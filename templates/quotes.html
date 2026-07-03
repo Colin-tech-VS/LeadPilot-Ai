@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('quotes.title') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header page-header-row">
+  <div>
+    <h1>{{ _('quotes.title') }}</h1>
+    <p class="subtitle">
+      {% if view == 'factures' %}{{ _('quotes.invoices_hint') }}{% else %}{{ _('quotes.devis_hint') }}{% endif %}
+    </p>
+  </div>
+  <div class="quotes-header-actions">
+    <a href="{{ url_for('quotes.new_quote') }}" class="btn btn-primary btn-sm">+ {{ _('quotes.new') }}</a>
+  </div>
+</div>
+
+<div class="view-tabs">
+  <a href="{{ url_for('quotes.quotes_page', view='devis') }}" class="view-tab{% if view != 'factures' %} active{% endif %}">{{ _('quotes.tab_devis') }}</a>
+  <a href="{{ url_for('quotes.quotes_page', view='factures') }}" class="view-tab{% if view == 'factures' %} active{% endif %}">{{ _('quotes.tab_factures') }}</a>
+</div>
+
+{% if view != 'factures' and followup_count %}
+<div class="quote-relance-banner">
+  <span class="quote-relance-icon">🔔</span>
+  <span>{{ _('quotes.followup_banner', count=followup_count) }}</span>
+</div>
+{% endif %}
+
+{% if quotes %}
+<div class="quote-list">
+  {% for q in quotes %}
+  <article class="quote-row{% if q.id|string in followup_ids %} quote-row-relance{% endif %}">
+    <a class="quote-row-main" href="{{ url_for('quotes.quote_detail', quote_id=q.id) }}">
+      <div class="quote-row-head">
+        <span class="quote-number">{{ q.number or '—' }}</span>
+        <span class="badge badge-quote badge-quote-{{ q.status }}">{{ _('quote_status.' + q.status) }}</span>
+        {% if q.id|string in followup_ids %}
+        <span class="badge badge-relance">{{ _('quotes.to_followup') }}</span>
+        {% endif %}
+      </div>
+      <p class="quote-client">{{ q.client_name or _('quotes.no_client') }}</p>
+      <p class="quote-title-line">{{ q.title or '—' }}</p>
+      <div class="quote-row-foot">
+        <span class="quote-amount">{{ '%.2f'|format(q.total_ttc) }} € {{ _('quotes.ttc') }}</span>
+        <span class="quote-date">{{ q.created_at.strftime('%d/%m/%Y') if q.created_at else '' }}</span>
+      </div>
+    </a>
+    <div class="quote-row-actions">
+      {% if q.id|string in followup_ids %}
+      <form method="post" action="{{ url_for('quotes.remind', quote_id=q.id) }}">
+        <button type="submit" class="btn btn-outline btn-sm">{{ _('quotes.mark_reminded') }}</button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('quotes.quote_detail', quote_id=q.id) }}" class="btn btn-primary btn-sm">{{ _('quotes.open') }}</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="dash-empty">
+  <div class="dash-empty-icon">🧾</div>
+  <p>{% if view == 'factures' %}{{ _('quotes.empty_invoices') }}{% else %}{{ _('quotes.empty_devis') }}{% endif %}</p>
+  <a href="{{ url_for('quotes.new_quote') }}" class="btn btn-primary">+ {{ _('quotes.new') }}</a>
+</div>
+{% endif %}
+
+<style>
+  .quotes-header-actions { display: flex; gap: .5rem; }
+  .quote-relance-banner { display: flex; align-items: center; gap: .6rem; background: #FEF3C7; color: #92400E;
+    border: 1px solid #FCD34D; border-radius: 12px; padding: .75rem 1rem; margin-bottom: 1rem; font-weight: 600; }
+  .quote-relance-icon { font-size: 1.2rem; }
+  .quote-list { display: flex; flex-direction: column; gap: .75rem; }
+  .quote-row { display: flex; align-items: stretch; gap: 1rem; background: #fff; border: 1px solid #E5E7EB;
+    border-radius: 14px; padding: 1rem 1.1rem; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .quote-row-relance { border-color: #FCD34D; box-shadow: 0 0 0 1px #FCD34D inset; }
+  .quote-row-main { flex: 1; text-decoration: none; color: inherit; min-width: 0; }
+  .quote-row-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .35rem; }
+  .quote-number { font-weight: 700; color: #111827; font-variant-numeric: tabular-nums; }
+  .quote-client { font-weight: 600; color: #1F2937; margin: 0; }
+  .quote-title-line { color: #6B7280; margin: .1rem 0 .5rem; font-size: .9rem; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .quote-row-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .quote-amount { font-weight: 700; color: #2563EB; }
+  .quote-date { color: #9CA3AF; font-size: .85rem; }
+  .quote-row-actions { display: flex; flex-direction: column; gap: .4rem; justify-content: center; }
+  .badge-quote-draft { background: #F3F4F6; color: #6B7280; }
+  .badge-quote-sent { background: #DBEAFE; color: #1D4ED8; }
+  .badge-quote-accepted { background: #D1FAE5; color: #047857; }
+  .badge-quote-refused { background: #FEE2E2; color: #B91C1C; }
+  .badge-quote-paid { background: #DCFCE7; color: #15803D; }
+  .badge-quote-cancelled { background: #F3F4F6; color: #9CA3AF; }
+  .badge-relance { background: #FEF3C7; color: #92400E; }
+  @media (max-width: 640px) { .quote-row { flex-direction: column; } .quote-row-actions { flex-direction: row; } }
+</style>
+{% endblock %}

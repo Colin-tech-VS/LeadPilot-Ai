@@ -71,15 +71,19 @@
     </div>
     <span class="kpi-trend">{{ _('dashboard.kpi_today') }}</span>
   </a>
-  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-3">
+  <a href="{{ url_for('quotes.quotes_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-3{% if quote_followups > 0 %} kpi-card-alert{% endif %}">
     <div class="kpi-icon-wrap kpi-icon-neutral">
-      <span class="kpi-icon">💰</span>
+      <span class="kpi-icon">🧾</span>
     </div>
     <div class="kpi-body">
       <p class="kpi-label">{{ _('dashboard.kpi_quotes') }}</p>
       <p class="kpi-value" data-count="{{ pending_quotes }}">0</p>
     </div>
+    {% if quote_followups > 0 %}
+    <span class="kpi-trend kpi-trend-alert">🔔 {{ _('dashboard.quotes_followup', count=quote_followups) }}</span>
+    {% else %}
     <span class="kpi-trend">{{ _('dashboard.kpi_pending') }}</span>
+    {% endif %}
   </a>
   <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-4{% if urgencies > 0 %} kpi-card-alert{% endif %}">
     <div class="kpi-icon-wrap kpi-icon-red">
@@ -134,7 +138,8 @@
         </div>
         <div class="lead-actions">
           <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
-          <a href="{{ url_for('web.appointments_page') }}" class="btn btn-primary btn-sm">{{ _('btn.create_appointment') }}</a>
+          <a href="{{ url_for('quotes.new_quote', lead_id=lead.id) }}" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</a>
+          <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
           <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
             <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
           </form>

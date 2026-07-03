@@ -1,0 +1,192 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ quote.number }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+{% if owner_view %}
+<div class="quote-toolbar no-print">
+  <a href="{{ url_for('quotes.quotes_page', view='factures' if quote.is_invoice else 'devis') }}" class="btn btn-outline btn-sm">← {{ _('quotes.back') }}</a>
+  <div class="quote-toolbar-right">
+    {% if quote.status not in ('accepted', 'paid') %}
+    <a href="{{ url_for('quotes.edit_quote', quote_id=quote.id) }}" class="btn btn-outline btn-sm">{{ _('quotes.edit') }}</a>
+    {% endif %}
+    <button type="button" onclick="window.print()" class="btn btn-outline btn-sm">🖨 {{ _('quotes.print') }}</button>
+
+    {% if quote.status == 'draft' %}
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id) }}">
+      <input type="hidden" name="action" value="send">
+      <button type="submit" class="btn btn-primary btn-sm">{{ _('quotes.mark_sent') }}</button>
+    </form>
+    {% endif %}
+    {% if not quote.is_invoice and quote.status in ('sent', 'draft') %}
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id) }}">
+      <input type="hidden" name="action" value="accept">
+      <button type="submit" class="btn btn-success btn-sm">{{ _('quotes.mark_accepted') }}</button>
+    </form>
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id) }}">
+      <input type="hidden" name="action" value="refuse">
+      <button type="submit" class="btn btn-outline btn-sm">{{ _('quotes.mark_refused') }}</button>
+    </form>
+    {% endif %}
+    {% if not quote.is_invoice and quote.status == 'accepted' %}
+    <form method="post" action="{{ url_for('quotes.convert', quote_id=quote.id) }}">
+      <button type="submit" class="btn btn-primary btn-sm">{{ _('quotes.to_invoice') }}</button>
+    </form>
+    {% endif %}
+    {% if quote.is_invoice and quote.status != 'paid' %}
+    <form method="post" action="{{ url_for('quotes.change_status', quote_id=quote.id) }}">
+      <input type="hidden" name="action" value="pay">
+      <button type="submit" class="btn btn-success btn-sm">{{ _('quotes.mark_paid') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if not quote.is_invoice and quote.status in ('sent', 'draft') %}
+<div class="quote-sharebar no-print">
+  <span class="quote-sharebar-label">{{ _('quotes.share_hint') }}</span>
+  <input type="text" readonly id="share-link" class="quote-share-input"
+         value="{{ url_for('quotes.public_quote', quote_id=quote.id, token=quote.public_token, _external=True) }}">
+  <button type="button" class="btn btn-outline btn-sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('share-link').value);this.textContent='✓';">{{ _('quotes.copy') }}</button>
+</div>
+{% endif %}
+{% endif %}
+
+<article class="doc-sheet">
+  <header class="doc-head">
+    <div class="doc-issuer">
+      <h2>{{ tenant.name }}</h2>
+      {% if tenant.full_address %}<p>{{ tenant.full_address }}</p>{% endif %}
+      {% if tenant.phone_number %}<p>{{ tenant.phone_number }}</p>{% endif %}
+      {% if tenant.siret %}<p>SIRET : {{ tenant.siret }}</p>{% endif %}
+    </div>
+    <div class="doc-meta">
+      <span class="doc-type">{{ _('quotes.invoice') if quote.is_invoice else _('quotes.quote') }}</span>
+      <p class="doc-number">{{ quote.number }}</p>
+      <p class="doc-date">{{ _('quotes.date') }} : {{ quote.created_at.strftime('%d/%m/%Y') if quote.created_at else '' }}</p>
+      {% if not quote.is_invoice and quote.valid_until %}
+      <p class="doc-valid">{{ _('quotes.valid_until') }} : {{ quote.valid_until.strftime('%d/%m/%Y') }}</p>
+      {% endif %}
+      <span class="badge badge-quote badge-quote-{{ quote.status }} no-print-badge">{{ _('quote_status.' + quote.status) }}</span>
+    </div>
+  </header>
+
+  <section class="doc-client">
+    <h3>{{ _('quotes.billed_to') }}</h3>
+    <p class="doc-client-name">{{ quote.client_name or '—' }}</p>
+    {% if quote.client_address %}<p>{{ quote.client_address }}</p>{% endif %}
+    {% if quote.client_phone %}<p>{{ quote.client_phone }}</p>{% endif %}
+  </section>
+
+  {% if quote.title %}<h3 class="doc-object">{{ quote.title }}</h3>{% endif %}
+
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th class="ta-l">{{ _('quotes.item_label') }}</th>
+        <th>{{ _('quotes.item_qty') }}</th>
+        <th class="ta-r">{{ _('quotes.item_price') }}</th>
+        <th>{{ _('quotes.item_tva') }}</th>
+        <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in quote.get_items() %}
+      <tr>
+        <td class="ta-l">{{ item.label }}</td>
+        <td>{{ item.quantity }}</td>
+        <td class="ta-r">{{ '%.2f'|format(item.unit_price) }} €</td>
+        <td>{{ item.tva_rate }} %</td>
+        <td class="ta-r">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
+      </tr>
+      {% endfor %}
+      {% if not quote.get_items() %}
+      <tr><td colspan="5" class="doc-empty">{{ _('quotes.no_items') }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <div class="doc-totals">
+    <div class="doc-totals-box">
+      <div><span>{{ _('quotes.total_ht') }}</span><span>{{ '%.2f'|format(quote.total_ht) }} €</span></div>
+      {% for b in quote.tva_breakdown %}
+      <div class="doc-tva-line"><span>{{ _('quotes.tva') }} {{ b.rate }} %</span><span>{{ '%.2f'|format(b.tva) }} €</span></div>
+      {% endfor %}
+      <div class="doc-total-ttc"><span>{{ _('quotes.total_ttc') }}</span><span>{{ '%.2f'|format(quote.total_ttc) }} €</span></div>
+      {% if quote.deposit_amount %}
+      <div class="doc-deposit"><span>{{ _('quotes.deposit') }} ({{ quote.deposit_percent }} %)</span><span>{{ '%.2f'|format(quote.deposit_amount) }} €</span></div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if quote.notes %}
+  <section class="doc-notes"><h4>{{ _('quotes.notes') }}</h4><p>{{ quote.notes }}</p></section>
+  {% endif %}
+
+  {% if not quote.is_invoice %}
+  <p class="doc-signature">{{ _('quotes.signature_line') }}</p>
+  {% endif %}
+</article>
+
+{% if owner_view %}
+<div class="quote-danger no-print">
+  <form method="post" action="{{ url_for('quotes.delete_quote', quote_id=quote.id) }}"
+        onsubmit="return confirm({{ _('quotes.delete_confirm')|tojson }});">
+    <button type="submit" class="btn btn-outline btn-sm btn-danger">{{ _('quotes.delete') }}</button>
+  </form>
+</div>
+{% endif %}
+
+<style>
+  .quote-toolbar { display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .quote-toolbar-right { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+  .quote-toolbar-right form { margin: 0; }
+  .quote-sharebar { display: flex; align-items: center; gap: .5rem; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 12px; padding: .6rem .8rem; margin-bottom: 1rem; }
+  .quote-sharebar-label { font-size: .85rem; color: #1D4ED8; font-weight: 600; white-space: nowrap; }
+  .quote-share-input { flex: 1; min-width: 0; border: 1px solid #BFDBFE; border-radius: 8px; padding: .4rem .5rem;
+    font-size: .8rem; background: #fff; color: #374151; }
+  .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; max-width: 820px;
+    margin: 0 auto; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
+  .doc-head { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 2px solid #111827;
+    padding-bottom: 1.2rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
+  .doc-issuer h2 { margin: 0 0 .4rem; font-size: 1.3rem; color: #111827; }
+  .doc-issuer p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
+  .doc-meta { text-align: right; }
+  .doc-type { display: inline-block; background: #2563EB; color: #fff; padding: .25rem .7rem; border-radius: 6px;
+    font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: .8rem; }
+  .doc-number { font-size: 1.15rem; font-weight: 700; margin: .5rem 0 .2rem; color: #111827; }
+  .doc-meta p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
+  .doc-client { margin-bottom: 1.2rem; }
+  .doc-client h3 { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #9CA3AF; margin: 0 0 .3rem; }
+  .doc-client-name { font-weight: 700; color: #111827; margin: 0; }
+  .doc-client p { margin: .1rem 0; color: #4B5563; font-size: .9rem; }
+  .doc-object { font-size: 1rem; color: #111827; margin: 0 0 1rem; padding: .5rem .7rem; background: #F9FAFB; border-radius: 8px; }
+  .doc-table { width: 100%; border-collapse: collapse; margin-bottom: 1.2rem; }
+  .doc-table th { background: #F3F4F6; padding: .6rem .7rem; font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .03em; color: #6B7280; text-align: center; }
+  .doc-table td { padding: .6rem .7rem; border-bottom: 1px solid #F3F4F6; font-size: .9rem; color: #374151; text-align: center; }
+  .ta-l { text-align: left !important; } .ta-r { text-align: right !important; }
+  .doc-empty { color: #9CA3AF; font-style: italic; }
+  .doc-totals { display: flex; justify-content: flex-end; }
+  .doc-totals-box { min-width: 280px; }
+  .doc-totals-box > div { display: flex; justify-content: space-between; padding: .35rem 0; color: #4B5563; font-size: .9rem; }
+  .doc-tva-line { color: #9CA3AF !important; font-size: .82rem !important; }
+  .doc-total-ttc { border-top: 2px solid #111827; margin-top: .3rem; padding-top: .6rem !important;
+    font-size: 1.15rem !important; font-weight: 700; color: #111827 !important; }
+  .doc-total-ttc span:last-child { color: #2563EB; }
+  .doc-deposit { color: #92400E !important; font-weight: 600; }
+  .doc-notes { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px dashed #E5E7EB; }
+  .doc-notes h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase; color: #9CA3AF; }
+  .doc-notes p { margin: 0; color: #4B5563; font-size: .9rem; white-space: pre-wrap; }
+  .doc-signature { margin-top: 1.6rem; color: #6B7280; font-size: .85rem; font-style: italic; }
+  .quote-danger { max-width: 820px; margin: 1rem auto 0; text-align: right; }
+  .btn-danger { color: #B91C1C; border-color: #FCA5A5; }
+  @media print {
+    .no-print, .topbar, .tabbar, .quote-toolbar, .quote-sharebar, .quote-danger { display: none !important; }
+    .no-print-badge { display: none !important; }
+    .doc-sheet { border: none; box-shadow: none; max-width: none; padding: 0; }
+    body, .main, .container { margin: 0; padding: 0; }
+  }
+</style>
+{% endblock %}

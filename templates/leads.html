@@ -1,65 +1,131 @@
-{% extends "layout.html" %}
-
-{% block title %}{{ _('leads_suffix') }} — {{ _('app.name') }}{% endblock %}
-
-{% block content %}
-<div class="page-header page-header-row">
-  <div>
-    <h1>{{ _('leads.title') }}</h1>
-    <p class="subtitle">{{ _('leads.total', count=leads|length) }}</p>
-  </div>
-  <div class="view-tabs">
-    <a href="{{ url_for('web.leads_page') }}" class="view-tab{% if not show_archived %} active{% endif %}">{{ _('leads.active') }}</a>
-    <a href="{{ url_for('web.leads_page', view='archived') }}" class="view-tab{% if show_archived %} active{% endif %}">{{ _('leads.archived') }}</a>
-  </div>
-</div>
-
-{% if leads %}
-<div class="lead-cards lead-cards-full">
-  {% for lead in leads %}
-  <article class="lead-card{% if lead.is_archived %} lead-card-archived{% endif %}">
-    <div class="lead-card-header">
-      <div>
-        <h3 class="lead-name">{{ lead.name }}</h3>
-        <p class="lead-phone">{{ lead.phone }}</p>
-      </div>
-      <div class="lead-card-badges">
-      {% if lead.urgency_level %}
-      <span class="badge badge-urgency-{{ lead.urgency_level|lower }}">{{ urgency_label(lead.urgency_level) }}</span>
-      {% endif %}
-      {% if lead.acceptance_status %}
-      <span class="badge badge-acceptance badge-{{ lead.acceptance_status }}">{{ acceptance_label(lead.acceptance_status) }}</span>
-      {% endif %}
-      {% if lead.is_archived %}
-      <span class="badge badge-archived">{{ _('leads.archived_badge') }}</span>
-      {% endif %}
-      </div>
-    </div>
-    <p class="lead-issue">{{ issue_label(lead.issue_type) if lead.issue_type else '—' }}</p>
-    {% if lead.address %}
-    <p class="lead-address">{{ lead.address }}</p>
-    {% endif %}
-    <div class="lead-card-footer">
-      <span class="badge badge-{{ lead.status }}">{{ status_label(lead.status) }}</span>
-      <span class="lead-time">{{ lead.created_at.strftime('%d/%m/%Y %H:%M') if lead.created_at else '' }}</span>
-    </div>
-    <div class="lead-actions">
-      <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
-      {% if not show_archived %}
-      <a href="{{ url_for('web.appointments_page') }}" class="btn btn-primary btn-sm">{{ _('btn.create_appointment') }}</a>
-      <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
-        <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
-      </form>
-      {% else %}
-      <form method="post" action="{{ url_for('web.unarchive_lead', lead_id=lead.id) }}" class="lead-action-form">
-        <button type="submit" class="btn btn-outline btn-sm">{{ _('btn.unarchive') }}</button>
-      </form>
-      {% endif %}
-    </div>
-  </article>
-  {% endfor %}
-</div>
-{% else %}
-<p class="empty">{% if show_archived %}{{ _('empty.leads_archived') }}{% else %}{{ _('empty.leads') }}{% endif %}</p>
-{% endif %}
-{% endblock %}
+{% extends "layout.html" %}
+
+
+
+{% block title %}{{ _('leads_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+
+
+{% block content %}
+
+<div class="page-header page-header-row">
+
+  <div>
+
+    <h1>{{ _('leads.title') }}</h1>
+
+    <p class="subtitle">{{ _('leads.total', count=leads|length) }}</p>
+
+  </div>
+
+  <div class="view-tabs">
+
+    <a href="{{ url_for('web.leads_page') }}" class="view-tab{% if not show_archived %} active{% endif %}">{{ _('leads.active') }}</a>
+
+    <a href="{{ url_for('web.leads_page', view='archived') }}" class="view-tab{% if show_archived %} active{% endif %}">{{ _('leads.archived') }}</a>
+
+  </div>
+
+</div>
+
+
+
+{% if leads %}
+
+<div class="lead-cards lead-cards-full">
+
+  {% for lead in leads %}
+
+  <article class="lead-card{% if lead.is_archived %} lead-card-archived{% endif %}">
+
+    <div class="lead-card-header">
+
+      <div>
+
+        <h3 class="lead-name">{{ lead.name }}</h3>
+
+        <p class="lead-phone">{{ lead.phone }}</p>
+
+      </div>
+
+      <div class="lead-card-badges">
+
+      {% if lead.urgency_level %}
+
+      <span class="badge badge-urgency-{{ lead.urgency_level|lower }}">{{ urgency_label(lead.urgency_level) }}</span>
+
+      {% endif %}
+
+      {% if lead.acceptance_status %}
+
+      <span class="badge badge-acceptance badge-{{ lead.acceptance_status }}">{{ acceptance_label(lead.acceptance_status) }}</span>
+
+      {% endif %}
+
+      {% if lead.is_archived %}
+
+      <span class="badge badge-archived">{{ _('leads.archived_badge') }}</span>
+
+      {% endif %}
+
+      </div>
+
+    </div>
+
+    <p class="lead-issue">{{ issue_label(lead.issue_type) if lead.issue_type else '—' }}</p>
+
+    {% if lead.address %}
+
+    <p class="lead-address">{{ lead.address }}</p>
+
+    {% endif %}
+
+    <div class="lead-card-footer">
+
+      <span class="badge badge-{{ lead.status }}">{{ status_label(lead.status) }}</span>
+
+      <span class="lead-time">{{ lead.created_at.strftime('%d/%m/%Y %H:%M') if lead.created_at else '' }}</span>
+
+    </div>
+
+    <div class="lead-actions">
+
+      <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
+
+      {% if not show_archived %}
+
+      <a href="{{ url_for('quotes.new_quote', lead_id=lead.id) }}" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</a>
+      <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
+
+      <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
+
+        <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
+
+      </form>
+
+      {% else %}
+
+      <form method="post" action="{{ url_for('web.unarchive_lead', lead_id=lead.id) }}" class="lead-action-form">
+
+        <button type="submit" class="btn btn-outline btn-sm">{{ _('btn.unarchive') }}</button>
+
+      </form>
+
+      {% endif %}
+
+    </div>
+
+  </article>
+
+  {% endfor %}
+
+</div>
+
+{% else %}
+
+<p class="empty">{% if show_archived %}{{ _('empty.leads_archived') }}{% else %}{{ _('empty.leads') }}{% endif %}</p>
+
+{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,141 @@
+{% extends "public_layout.html" %}
+
+{% block title %}{{ quote.number }} — {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="container quote-public-wrap">
+  {% if submitted %}
+  <div class="quote-public-flash quote-public-flash-{{ quote.status }}">
+    {% if quote.status == 'accepted' %}
+      ✓ {{ _('quotes.public_accepted') }}
+    {% elif quote.status == 'refused' %}
+      {{ _('quotes.public_refused') }}
+    {% else %}
+      {{ _('quotes.public_thanks') }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <article class="doc-sheet">
+    <header class="doc-head">
+      <div class="doc-issuer">
+        <h2>{{ tenant.name }}</h2>
+        {% if tenant.full_address %}<p>{{ tenant.full_address }}</p>{% endif %}
+        {% if tenant.phone_number %}<p>{{ tenant.phone_number }}</p>{% endif %}
+        {% if tenant.siret %}<p>SIRET : {{ tenant.siret }}</p>{% endif %}
+      </div>
+      <div class="doc-meta">
+        <span class="doc-type">{{ _('quotes.invoice') if quote.is_invoice else _('quotes.quote') }}</span>
+        <p class="doc-number">{{ quote.number }}</p>
+        <p class="doc-date">{{ _('quotes.date') }} : {{ quote.created_at.strftime('%d/%m/%Y') if quote.created_at else '' }}</p>
+        {% if not quote.is_invoice and quote.valid_until %}
+        <p class="doc-valid">{{ _('quotes.valid_until') }} : {{ quote.valid_until.strftime('%d/%m/%Y') }}</p>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="doc-client">
+      <h3>{{ _('quotes.billed_to') }}</h3>
+      <p class="doc-client-name">{{ quote.client_name or '—' }}</p>
+      {% if quote.client_address %}<p>{{ quote.client_address }}</p>{% endif %}
+    </section>
+
+    {% if quote.title %}<h3 class="doc-object">{{ quote.title }}</h3>{% endif %}
+
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th class="ta-l">{{ _('quotes.item_label') }}</th>
+          <th>{{ _('quotes.item_qty') }}</th>
+          <th class="ta-r">{{ _('quotes.item_price') }}</th>
+          <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in quote.get_items() %}
+        <tr>
+          <td class="ta-l">{{ item.label }}</td>
+          <td>{{ item.quantity }}</td>
+          <td class="ta-r">{{ '%.2f'|format(item.unit_price) }} €</td>
+          <td class="ta-r">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="doc-totals">
+      <div class="doc-totals-box">
+        <div><span>{{ _('quotes.total_ht') }}</span><span>{{ '%.2f'|format(quote.total_ht) }} €</span></div>
+        <div><span>{{ _('quotes.total_tva') }}</span><span>{{ '%.2f'|format(quote.total_tva) }} €</span></div>
+        <div class="doc-total-ttc"><span>{{ _('quotes.total_ttc') }}</span><span>{{ '%.2f'|format(quote.total_ttc) }} €</span></div>
+        {% if quote.deposit_amount %}
+        <div class="doc-deposit"><span>{{ _('quotes.deposit') }} ({{ quote.deposit_percent }} %)</span><span>{{ '%.2f'|format(quote.deposit_amount) }} €</span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if quote.notes %}
+    <section class="doc-notes"><h4>{{ _('quotes.notes') }}</h4><p>{{ quote.notes }}</p></section>
+    {% endif %}
+  </article>
+
+  {% if not quote.is_invoice and quote.status in ('sent', 'draft') %}
+  <div class="quote-public-actions">
+    <p class="quote-public-cta-label">{{ _('quotes.public_decision') }}</p>
+    <div class="quote-public-buttons">
+      <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
+        <input type="hidden" name="decision" value="accept">
+        <button type="submit" class="btn btn-primary btn-lg">✓ {{ _('quotes.public_accept') }}</button>
+      </form>
+      <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
+        <input type="hidden" name="decision" value="refuse">
+        <button type="submit" class="btn btn-outline">{{ _('quotes.public_refuse') }}</button>
+      </form>
+    </div>
+  </div>
+  {% elif quote.status == 'accepted' %}
+  <div class="quote-public-status quote-public-status-ok">✓ {{ _('quotes.public_already_accepted') }}</div>
+  {% elif quote.status == 'refused' %}
+  <div class="quote-public-status">{{ _('quotes.public_already_refused') }}</div>
+  {% endif %}
+</div>
+
+<style>
+  .quote-public-wrap { max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+  .quote-public-flash { border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-weight: 600; text-align: center; }
+  .quote-public-flash-accepted { background: #D1FAE5; color: #047857; }
+  .quote-public-flash-refused { background: #FEE2E2; color: #B91C1C; }
+  .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
+  .doc-head { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 2px solid #111827; padding-bottom: 1.2rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
+  .doc-issuer h2 { margin: 0 0 .4rem; font-size: 1.3rem; color: #111827; }
+  .doc-issuer p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
+  .doc-meta { text-align: right; }
+  .doc-type { display: inline-block; background: #2563EB; color: #fff; padding: .25rem .7rem; border-radius: 6px; font-weight: 700; text-transform: uppercase; font-size: .8rem; }
+  .doc-number { font-size: 1.15rem; font-weight: 700; margin: .5rem 0 .2rem; color: #111827; }
+  .doc-meta p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
+  .doc-client h3 { font-size: .75rem; text-transform: uppercase; color: #9CA3AF; margin: 0 0 .3rem; }
+  .doc-client-name { font-weight: 700; color: #111827; margin: 0; }
+  .doc-client p { margin: .1rem 0; color: #4B5563; font-size: .9rem; }
+  .doc-object { font-size: 1rem; color: #111827; margin: 1rem 0; padding: .5rem .7rem; background: #F9FAFB; border-radius: 8px; }
+  .doc-table { width: 100%; border-collapse: collapse; margin-bottom: 1.2rem; }
+  .doc-table th { background: #F3F4F6; padding: .6rem .7rem; font-size: .75rem; text-transform: uppercase; color: #6B7280; text-align: center; }
+  .doc-table td { padding: .6rem .7rem; border-bottom: 1px solid #F3F4F6; font-size: .9rem; color: #374151; text-align: center; }
+  .ta-l { text-align: left !important; } .ta-r { text-align: right !important; }
+  .doc-totals { display: flex; justify-content: flex-end; }
+  .doc-totals-box { min-width: 280px; }
+  .doc-totals-box > div { display: flex; justify-content: space-between; padding: .35rem 0; color: #4B5563; font-size: .9rem; }
+  .doc-total-ttc { border-top: 2px solid #111827; margin-top: .3rem; padding-top: .6rem !important; font-size: 1.15rem !important; font-weight: 700; color: #111827 !important; }
+  .doc-total-ttc span:last-child { color: #2563EB; }
+  .doc-deposit { color: #92400E !important; font-weight: 600; }
+  .doc-notes { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px dashed #E5E7EB; }
+  .doc-notes h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase; color: #9CA3AF; }
+  .doc-notes p { margin: 0; color: #4B5563; font-size: .9rem; white-space: pre-wrap; }
+  .quote-public-actions { margin-top: 1.6rem; text-align: center; }
+  .quote-public-cta-label { font-weight: 600; color: #374151; margin-bottom: .8rem; }
+  .quote-public-buttons { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+  .quote-public-buttons form { margin: 0; }
+  .btn-lg { padding: .8rem 1.6rem; font-size: 1rem; }
+  .quote-public-status { margin-top: 1.4rem; text-align: center; padding: 1rem; border-radius: 12px; background: #F3F4F6; color: #6B7280; font-weight: 600; }
+  .quote-public-status-ok { background: #D1FAE5; color: #047857; }
+</style>
+{% endblock %}

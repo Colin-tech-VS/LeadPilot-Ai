@@ -9,7 +9,7 @@ from app.models.tenant import Tenant
 from app.services.booking_engine import ACTION_BOOK_NOW, BookingEngine
 from app.services.availability import book_appointment
 from app.services.lead_extractor import LeadExtractor
-from app.services.notifications import notify_high_urgency_lead
+from app.services.notifications import notify_inbound_call
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,9 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
 
     db.session.commit()
 
-    if extracted.get("urgency_level") == "high":
-        notify_high_urgency_lead(lead, tenant)
+    # Alert the plumber live (web + mobile) about this call — a booked RDV, an
+    # urgent request, or simply a new lead.
+    notify_inbound_call(lead, tenant, booked=appointment_id is not None)
 
     logger.info(
         "Inbound call processed tenant=%s lead=%s action=%s score=%s",

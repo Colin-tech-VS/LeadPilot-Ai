@@ -169,6 +169,67 @@ def convert_to_invoice(quote, tenant_id):
     return invoice
 
 
+def accept_quote(quote):
+    """Accept a devis and run the post-acceptance automation.
+
+    On the *first* acceptance this:
+      1. marks the devis accepted,
+      2. auto-generates the matching facture (invoice),
+      3. auto-schedules the next available appointment.
+
+    Idempotent: the automation runs only when the devis was not already
+    accepted, so re-submitting the client link never duplicates anything.
+    Returns ``{"invoice", "appointment", "already"}``. The caller commits.
+    """
+    already = quote.status == STATUS_ACCEPTED or quote.accepted_at is not None
+
+    quote.status = STATUS_ACCEPTED
+    if quote.accepted_at is None:
+        quote.accepted_at = utcnow()
+
+    if already or quote.doc_type != DOC_DEVIS:
+        return {"invoice": None, "appointment": None, "already": True}
+
+    invoice = convert_to_invoice(quote, quote.tenant_id)
+    db.session.add(invoice)
+
+    appointment = _auto_schedule_from_quote(quote)
+    return {"invoice": invoice, "appointment": appointment, "already": False}
+
+
+def _auto_schedule_from_quote(quote):
+    """Book the next free slot for an accepted devis.
+
+    An appointment needs a lead; if the devis has none (created by hand), a
+    lightweight lead is derived from the client snapshot so the RDV still shows
+    on the agenda and route map.
+    """
+    from app.models.lead import Lead
+    from app.services.availability import book_appointment, find_next_available_slot
+
+    lead_id = quote.lead_id
+    if not lead_id:
+        lead = Lead(
+            tenant_id=quote.tenant_id,
+            name=(quote.client_name or "Client").strip() or "Client",
+            phone=(quote.client_phone or "").strip(),
+            address=quote.client_address,
+            issue_type="general_inquiry",
+            urgency_level="medium",
+            summary=(quote.title or "Devis accepté"),
+            status="booked",
+        )
+        db.session.add(lead)
+        db.session.flush()
+        quote.lead_id = lead.id
+        lead_id = lead.id
+
+    slot = find_next_available_slot(quote.tenant_id)
+    if not slot:
+        return None
+    return book_appointment(quote.tenant_id, lead_id, slot)
+
+
 def quotes_needing_followup(tenant_id):
     """Sent devis with no client decision, past the follow-up window."""
     tid = tenant_id if isinstance(tenant_id, uuid.UUID) else uuid.UUID(str(tenant_id))

@@ -102,12 +102,13 @@
   {% if session.get('user_id') %}
   <script>
     window.LEADPILOT_NOTIFY = {
-      endpoint: {{ url_for('web.notifications_appointments')|tojson }},
+      endpoint: {{ url_for('web.notifications_feed')|tojson }},
+      readEndpoint: {{ url_for('web.notifications_mark_read')|tojson }},
       tenant: {{ ((current_tenant.id|string) if current_tenant else '')|tojson }},
       lang: {{ lang|tojson }}
     };
   </script>
-  <script src="{{ url_for('static', filename='js/notifications.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='js/notifications.js') }}?v=2"></script>
   {% endif %}
   {% block scripts %}{% endblock %}
 </body>

@@ -603,6 +603,7 @@ def settings_page():
         name = (request.form.get("name") or "").strip()
         first_name = (request.form.get("first_name") or "").strip() or None
         last_name = (request.form.get("last_name") or "").strip() or None
+        ai_assistant_name = (request.form.get("ai_assistant_name") or "").strip() or None
         siret_raw = (request.form.get("siret") or "").strip()
         phone_number = _normalize_phone(request.form.get("phone_number"))
         ai_phone_number = _normalize_phone(request.form.get("ai_phone_number"))
@@ -646,6 +647,7 @@ def settings_page():
             tenant.name = name
             tenant.first_name = first_name
             tenant.last_name = last_name
+            tenant.ai_assistant_name = ai_assistant_name
             tenant.siret = _normalize_siret(siret_raw) if siret_raw else None
             tenant.phone_number = phone_number
             tenant.ai_phone_number = ai_phone_number

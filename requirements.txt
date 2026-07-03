@@ -10,3 +10,4 @@ mistralai==1.5.0
 openai==1.58.1
 requests==2.32.3
 twilio==9.4.6
+stripe==11.4.1

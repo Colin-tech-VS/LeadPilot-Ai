@@ -829,6 +829,120 @@ html {
   line-height: 1.5;
 }
 
+/* Pricing */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.pricing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.pricing-card-featured {
+  border-color: var(--blue-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.pricing-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  margin-bottom: 16px;
+}
+
+.pricing-badge-featured {
+  color: #fff;
+  background: linear-gradient(135deg, #1E3A8A, #2563EB);
+  border-color: transparent;
+}
+
+.pricing-name {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pricing-price {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pricing-price strong {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.pricing-desc {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.pricing-features {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.pricing-features li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.pricing-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.pricing-note {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* Steps */
 .steps-list {
   list-style: none;
@@ -965,6 +1079,12 @@ html {
 @media (max-width: 960px) {
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    margin: 0 auto;
   }
 
   .landing-section {

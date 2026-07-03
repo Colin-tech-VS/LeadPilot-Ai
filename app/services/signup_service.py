@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from app.core.errors import AppError, ConflictError
 from app.core.extensions import db
-from app.models.tenant import Tenant
+from app.models.tenant import TRIAL_DAYS, Tenant, utcnow
 from app.models.user import User
 from app.utils.validation import validate_email, validate_password
 
@@ -30,6 +32,8 @@ def register_plumber(
         phone_number=phone,
         city=city,
         service_radius_km=30,
+        plan="trial",
+        trial_ends_at=utcnow() + timedelta(days=TRIAL_DAYS),
     )
     db.session.add(tenant)
     db.session.flush()

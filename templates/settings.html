@@ -35,6 +35,10 @@
         </div>
       </div>
 
+      <label for="ai_assistant_name">{{ _('settings.ai_assistant_name') }}</label>
+      <input type="text" id="ai_assistant_name" name="ai_assistant_name" value="{{ tenant.ai_assistant_name or '' }}" placeholder="{{ _('settings.ai_assistant_name_placeholder') }}" maxlength="100">
+      <p class="field-hint">{{ _('settings.ai_assistant_name_hint') }}</p>
+
       <label for="siret">{{ _('settings.siret') }}</label>
       <input type="text" id="siret" name="siret" value="{{ tenant.siret or '' }}" placeholder="12345678901234" maxlength="17">
     </section>

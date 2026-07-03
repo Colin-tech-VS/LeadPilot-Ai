@@ -68,7 +68,12 @@ class TwilioVoiceHandler:
 
     def handle_inbound(self, tenant_id: str, call_sid: str, caller_phone: str) -> str:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
-        company = tenant.name if tenant else "notre service de plomberie"
+
+        # Free-trial gate: once the trial has expired (and no paid plan) the AI
+        # line no longer answers — it politely points the caller to the plumber's
+        # own number instead of taking the request.
+        if tenant and not tenant.subscription_active:
+            return self._subscription_expired_twiml(tenant)
 
         get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)
@@ -76,15 +81,45 @@ class TwilioVoiceHandler:
         client = TwilioVoiceClient()
         client.gather(
             action=process_url,
-            prompt=(
-                f"Bonjour, ici {company}, votre assistant de dépannage. "
-                "Je suis là pour vous aider. Dites-moi, qu'est-ce qui vous arrive ?"
-            ),
+            prompt=self._greeting(tenant),
         )
         client.say(
             "Je n'ai pas entendu votre demande. "
             "N'hésitez pas à nous rappeler. Au revoir."
         )
+        client.hangup()
+        return client.to_xml()
+
+    def _greeting(self, tenant) -> str:
+        """Opening line: the AI introduces itself by the name the plumber chose
+        and as the assistant of the plumber, e.g. "Bonjour, je suis Léa,
+        l'assistante de Martin, comment puis-je vous aider ?"."""
+        # The plumber's first name when known, otherwise the company name.
+        plumber_name = None
+        if tenant:
+            plumber_name = (tenant.first_name or "").strip() or (tenant.name or "").strip() or None
+        ai_name = (tenant.ai_assistant_name or "").strip() if tenant else ""
+
+        if ai_name and plumber_name:
+            return f"Bonjour, je suis {ai_name}, l'assistante de {plumber_name}, comment puis-je vous aider ?"
+        if ai_name:
+            return f"Bonjour, je suis {ai_name}, votre assistante de dépannage, comment puis-je vous aider ?"
+        if plumber_name:
+            return f"Bonjour, je suis l'assistante de {plumber_name}, comment puis-je vous aider ?"
+        return "Bonjour, je suis votre assistante de dépannage, comment puis-je vous aider ?"
+
+    def _subscription_expired_twiml(self, tenant) -> str:
+        client = TwilioVoiceClient()
+        direct = (tenant.phone_number or "").strip()
+        company = (tenant.name or "").strip()
+        message = "Bonjour, notre assistant vocal n'est pas disponible pour le moment. "
+        if direct:
+            digits = " ".join(direct)
+            who = f"directement {company}" if company else "directement votre plombier"
+            message += f"Vous pouvez joindre {who} au {digits}. Merci et à bientôt."
+        else:
+            message += "Merci de rappeler ultérieurement. À bientôt."
+        client.say(message)
         client.hangup()
         return client.to_xml()
 

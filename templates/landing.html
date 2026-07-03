@@ -176,6 +176,61 @@
   </div>
 </section>
 
+<section id="pricing" class="landing-section landing-pricing">
+  <div class="container">
+    <div class="landing-section-head landing-fade">
+      <h2>{{ _('landing.pricing_title') }}</h2>
+      <p>{{ _('landing.pricing_subtitle') }}</p>
+    </div>
+    <div class="pricing-grid landing-fade landing-delay-1">
+      <article class="pricing-card">
+        <span class="pricing-badge">{{ _('landing.pricing_trial_badge') }}</span>
+        <h3 class="pricing-name">{{ _('landing.pricing_trial_name') }}</h3>
+        <p class="pricing-price"><strong>{{ _('landing.pricing_trial_price') }}</strong> <span>{{ _('landing.pricing_trial_period') }}</span></p>
+        <p class="pricing-desc">{{ _('landing.pricing_trial_desc') }}</p>
+        <ul class="pricing-features">
+          <li>{{ _('landing.pricing_trial_feat_1') }}</li>
+          <li>{{ _('landing.pricing_trial_feat_2') }}</li>
+          <li>{{ _('landing.pricing_trial_feat_3') }}</li>
+          <li>{{ _('landing.pricing_trial_feat_4') }}</li>
+        </ul>
+        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_trial_cta') }}</a>
+      </article>
+
+      <article class="pricing-card">
+        <span class="pricing-badge">{{ _('landing.pricing_solo_badge') }}</span>
+        <h3 class="pricing-name">{{ _('landing.pricing_solo_name') }}</h3>
+        <p class="pricing-price"><strong>{{ _('landing.pricing_solo_price') }}</strong> <span>{{ _('landing.pricing_solo_period') }}</span></p>
+        <p class="pricing-desc">{{ _('landing.pricing_solo_desc') }}</p>
+        <ul class="pricing-features">
+          <li>{{ _('landing.pricing_solo_feat_1') }}</li>
+          <li>{{ _('landing.pricing_solo_feat_2') }}</li>
+          <li>{{ _('landing.pricing_solo_feat_3') }}</li>
+          <li>{{ _('landing.pricing_solo_feat_4') }}</li>
+          <li>{{ _('landing.pricing_solo_feat_5') }}</li>
+        </ul>
+        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_solo_cta') }}</a>
+      </article>
+
+      <article class="pricing-card pricing-card-featured">
+        <span class="pricing-badge pricing-badge-featured">{{ _('landing.pricing_pro_badge') }}</span>
+        <h3 class="pricing-name">{{ _('landing.pricing_pro_name') }}</h3>
+        <p class="pricing-price"><strong>{{ _('landing.pricing_pro_price') }}</strong> <span>{{ _('landing.pricing_pro_period') }}</span></p>
+        <p class="pricing-desc">{{ _('landing.pricing_pro_desc') }}</p>
+        <ul class="pricing-features">
+          <li>{{ _('landing.pricing_pro_feat_1') }}</li>
+          <li>{{ _('landing.pricing_pro_feat_2') }}</li>
+          <li>{{ _('landing.pricing_pro_feat_3') }}</li>
+          <li>{{ _('landing.pricing_pro_feat_4') }}</li>
+          <li>{{ _('landing.pricing_pro_feat_5') }}</li>
+        </ul>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.pricing_pro_cta') }}</a>
+      </article>
+    </div>
+    <p class="pricing-note landing-fade">{{ _('landing.pricing_note') }}</p>
+  </div>
+</section>
+
 <section id="faq" class="landing-section landing-faq">
   <div class="container">
     <div class="landing-section-head landing-fade">

@@ -4,6 +4,20 @@
 {% block title %}{{ _('dash_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block content %}
+{% if tenant and not tenant.is_paid %}
+<div class="trial-banner{% if not tenant.subscription_active %} trial-banner-expired{% endif %} dash-animate">
+  <span class="trial-banner-text">
+    {% if not tenant.subscription_active %}
+      {{ _('dashboard.trial_expired') }}
+    {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
+      {{ _('dashboard.trial_last_day') }}
+    {% else %}
+      {{ _('dashboard.trial_active', days=tenant.trial_days_left) }}
+    {% endif %}
+  </span>
+  <a href="{{ url_for('billing.billing_page') }}" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
+</div>
+{% endif %}
 <div class="dash-hero dash-animate">
   <div class="dash-hero-text">
     <p class="dash-greeting" id="dash-greeting">{{ _('dashboard.greeting') }}</p>

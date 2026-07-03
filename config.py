@@ -40,7 +40,9 @@ class Config:
     TWILIO_AI_PHONE_DISPLAY = os.environ.get("TWILIO_AI_PHONE_DISPLAY", "+33 1 59 16 96 91")
 
     # Public URL for Twilio webhooks (Scalingo: your-app.osc-fr1.scalingo.io)
-    SERVER_NAME = os.environ.get("SERVER_NAME", "")
+    # Must be None (not "") when unset — an empty string makes Flask host-match
+    # against "" and 404 every route.
+    SERVER_NAME = os.environ.get("SERVER_NAME") or None
     PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
 
 

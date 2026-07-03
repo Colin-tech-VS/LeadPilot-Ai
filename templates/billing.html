@@ -35,6 +35,7 @@
 <div class="plan-grid">
   {% for key, plan in plans.items() %}
   <article class="plan-card{% if key == 'pro' %} plan-card-featured{% endif %}">
+    {% if key == 'pro' %}<span class="plan-badge">{{ _('billing.popular') }}</span>{% endif %}
     <h3 class="plan-name">{{ plan.name }}</h3>
     <p class="plan-price"><strong>{{ (plan.amount / 100) | int }} €</strong> <span>{{ _('billing.per_month') }}</span></p>
     <ul class="plan-features">

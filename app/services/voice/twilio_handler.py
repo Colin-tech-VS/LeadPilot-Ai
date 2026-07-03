@@ -97,12 +97,19 @@ class TwilioVoiceHandler:
             state.booking_action = ACTION_OUT_OF_ZONE
 
         client = TwilioVoiceClient()
-        client.say(ai_response)
 
+        # The spoken decision is deterministic (based on the computed zone /
+        # booking action), never the raw LLM text — the model sometimes refuses
+        # an in-zone address by city name, which would contradict the booking.
         if booking.get("action") == ACTION_OUT_OF_ZONE:
-            client.say("Merci pour votre appel. Bonne journée.")
-            client.hangup()
             self._persist_lead_only(state, tenant_id, caller_phone, full_transcript, booking)
+            label = tenant.city or "notre secteur"
+            client.say(
+                f"Désolé, nous intervenons uniquement autour de {label}. "
+                "Nous vous conseillons de contacter un plombier proche de chez vous. "
+                "Merci de votre appel."
+            )
+            client.hangup()
             conversation_store.save(state)
             return client.to_xml()
 
@@ -112,10 +119,15 @@ class TwilioVoiceHandler:
             self._persist_lead_and_appointment(state, tenant_id, caller_phone, full_transcript, booking)
 
         if state.booking_status == "booked":
-            client.say("Parfait, un rendez-vous est confirmé.")
+            client.say(
+                "C'est noté, votre demande est bien enregistrée et un rendez-vous est confirmé. "
+                "Un plombier vous recontacte pour préciser l'horaire. Merci de votre appel."
+            )
         else:
-            client.say("C'est noté, un plombier vous recontactera très rapidement.")
-        client.say("Merci pour votre appel. À bientôt.")
+            client.say(
+                "C'est noté, votre demande est bien enregistrée. "
+                "Un plombier vous recontacte très rapidement. Merci de votre appel."
+            )
         client.hangup()
         conversation_store.save(state)
         return client.to_xml()

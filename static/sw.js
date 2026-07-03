@@ -1,5 +1,5 @@
 /* LeadPilot AI — service worker (PWA shell + notifications) */
-const CACHE = "leadpilot-v1";
+const CACHE = "leadpilot-v2";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",

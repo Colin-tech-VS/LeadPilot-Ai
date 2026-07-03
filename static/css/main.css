@@ -2125,11 +2125,25 @@ html.js-enabled .dash-card-in.is-visible {
    ══════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .appointments-map {
-    height: 360px !important;
+    height: 60vh !important;
+    min-height: 380px;
+  }
+
+  .map-panel {
+    position: static;
   }
 
   .page-dashboard .kpi-value {
     font-size: 28px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* GPS-first: give the map the room a navigation app needs. */
+  .appointments-map {
+    height: 66vh !important;
+    min-height: 340px;
+    border-radius: 14px;
   }
 }
 
@@ -2337,9 +2351,12 @@ html.js-enabled .dash-card-in.is-visible {
     grid-template-columns: 40px 1fr;
   }
 
-  .page-dashboard .lead-card-header .badge {
+  .page-dashboard .lead-card-badges {
     grid-column: 1 / -1;
-    justify-self: start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
   }
 
   .scenario-list {
@@ -2611,5 +2628,306 @@ html.js-enabled .dash-card-in.is-visible {
   .lp-toast {
     transition: opacity 0.2s ease;
     transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════
+   Mobile bottom tab bar (native app feel)
+   ══════════════════════════════════════════ */
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1200;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .tabbar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 4px 6px;
+    min-height: 56px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .tabbar-item:hover {
+    text-decoration: none;
+  }
+
+  .tabbar-icon {
+    font-size: 20px;
+    line-height: 1;
+    filter: grayscale(0.35);
+    transition: transform 0.15s, filter 0.15s;
+  }
+
+  .tabbar-label {
+    line-height: 1;
+  }
+
+  .tabbar-item.active {
+    color: var(--blue-primary);
+  }
+
+  .tabbar-item.active .tabbar-icon {
+    filter: none;
+    transform: translateY(-1px) scale(1.08);
+  }
+
+  .tabbar-item-primary .tabbar-icon {
+    filter: none;
+  }
+
+  /* Keep content clear of the fixed tab bar. */
+  .main {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0)) !important;
+  }
+
+  /* Float PWA / notification prompts above the tab bar. */
+  .lp-install {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0)) !important;
+  }
+
+  .lp-notify-enable {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0)) !important;
+  }
+}
+
+/* ══════════════════════════════════════════
+   Live GPS map — controls, position, next stop
+   ══════════════════════════════════════════ */
+.map-shell {
+  position: relative;
+}
+
+.map-fabs {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  padding: 0;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.map-fab:active {
+  transform: scale(0.94);
+}
+
+.map-fab-primary {
+  background: var(--blue-primary);
+  border-color: var(--blue-primary);
+}
+
+.map-fab-primary .map-fab-icon {
+  filter: grayscale(1) brightness(3);
+}
+
+.map-fab-loading {
+  animation: fabpulse 0.8s ease-in-out infinite;
+}
+
+@keyframes fabpulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); }
+  50% { box-shadow: 0 4px 22px rgba(37, 99, 235, 0.7); }
+}
+
+/* User's live position marker */
+.user-loc-icon {
+  position: relative;
+}
+
+.user-loc-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background: #2563EB;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.4);
+  z-index: 2;
+}
+
+.user-loc-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background: rgba(37, 99, 235, 0.4);
+  border-radius: 50%;
+  z-index: 1;
+  animation: userpulse 1.8s ease-out infinite;
+}
+
+@keyframes userpulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+
+/* Next-stop quick bar overlaid on the map */
+.next-stop-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+
+.next-stop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.next-stop-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blue-primary);
+}
+
+.next-stop-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.next-stop-eta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.next-stop-nav {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.btn-navigate {
+  font-weight: 700;
+}
+
+/* When the next-stop bar shows, lift the FABs above it. */
+.map-shell:has(.next-stop-bar:not([hidden])) .map-fabs {
+  bottom: 84px;
+}
+
+/* ══════════════════════════════════════════
+   Badge placement — consistent & no overflow
+   ══════════════════════════════════════════ */
+.lead-card-badges {
+  max-width: 55%;
+}
+
+.badge {
+  line-height: 1.5;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  /* Badges read left-to-right and wrap instead of stacking narrowly. */
+  .lead-card-badges {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-end;
+    max-width: none;
+    gap: 6px;
+  }
+
+  .lead-card-header {
+    flex-wrap: wrap;
+  }
+
+  /* Bigger, thumb-friendly badges on phones. */
+  .badge {
+    font-size: 12px;
+    padding: 4px 11px;
+  }
+
+  .agenda-time-col .badge {
+    white-space: nowrap;
+  }
+
+  /* Comfortable tap targets for primary actions. */
+  .btn-sm {
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .agenda-slot {
+    border-left-width: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .next-stop-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .next-stop-nav {
+    width: 100%;
+    text-align: center;
+  }
+
+  .map-shell:has(.next-stop-bar:not([hidden])) .map-fabs {
+    bottom: 128px;
   }
 }

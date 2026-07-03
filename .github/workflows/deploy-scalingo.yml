@@ -1,0 +1,19 @@
+name: Deploy to Scalingo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Scalingo
+        uses: scalingo/github-actions/deploy@v1
+        with:
+          api-token: ${{ secrets.SCALINGO_API_TOKEN }}
+          app-name: leadpilot-ai
+          region: osc-fr1

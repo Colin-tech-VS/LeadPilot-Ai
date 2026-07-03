@@ -843,27 +843,133 @@ a:hover {
 }
 
 /* ── Billing / plans ── */
-.billing-status {
-  margin-bottom: 24px;
-  border-left: 3px solid var(--blue-primary);
+.billing-page {
+  max-width: 920px;
+  margin: 0 auto;
 }
 
-.billing-current {
+.billing-hero {
+  margin-bottom: 22px;
+}
+
+.billing-hero h1 {
+  margin: 0 0 6px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.billing-hero-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* Current-subscription status card */
+.plan-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 30px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.plan-status-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  font-size: 22px;
+  border-radius: 13px;
+  background: #EFF6FF;
+}
+
+.plan-status-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plan-status-label {
+  margin: 0 0 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.plan-status-value {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
 }
 
-.billing-current-expired {
+.plan-status-badge {
+  flex: 0 0 auto;
+  padding: 6px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #D1FAE5;
+  color: #047857;
+}
+
+.plan-status--paid {
+  border-color: #A7F3D0;
+}
+.plan-status--paid .plan-status-icon {
+  background: #D1FAE5;
+}
+
+.plan-status--trial {
+  border-color: #FDE68A;
+}
+.plan-status--trial .plan-status-icon {
+  background: #FEF3C7;
+}
+
+.plan-status--expired {
+  border-color: #FECACA;
+}
+.plan-status--expired .plan-status-icon {
+  background: #FEE2E2;
+}
+.plan-status--expired .plan-status-value {
   color: var(--red);
+}
+
+/* Section heading above the plan cards */
+.plans-heading {
+  margin-bottom: 18px;
+}
+
+.plans-heading h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.plans-heading p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 20px;
   align-items: stretch;
-  margin-top: 8px;
 }
 
 .plan-card {
@@ -871,7 +977,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 18px;
   padding: 28px 26px;
   box-shadow: var(--shadow-sm);
@@ -881,11 +987,16 @@ a:hover {
 .plan-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+  border-color: #CBD5E1;
 }
 
 .plan-card-featured {
   border-color: var(--blue-primary);
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
+}
+
+.plan-card-featured:hover {
+  border-color: var(--blue-primary);
 }
 
 /* Accent bar across the top of the featured plan. */
@@ -896,6 +1007,15 @@ a:hover {
   height: 5px;
   border-radius: 18px 18px 0 0;
   background: linear-gradient(90deg, var(--blue-primary), #60A5FA);
+}
+
+/* The plan the tenant is currently subscribed to */
+.plan-card-current {
+  border-color: var(--green);
+  box-shadow: 0 10px 26px rgba(16, 185, 129, 0.15);
+}
+.plan-card-current:hover {
+  border-color: var(--green);
 }
 
 .plan-badge {
@@ -913,26 +1033,37 @@ a:hover {
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
 }
 
+.plan-card-head {
+  margin-bottom: 18px;
+}
+
 .plan-name {
-  margin: 0 0 4px;
+  margin: 0 0 3px;
   font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.plan-tag {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .plan-price {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   display: flex;
   align-items: baseline;
   gap: 6px;
   color: var(--text-muted);
   font-size: 14px;
-  padding-bottom: 20px;
+  padding-bottom: 22px;
   border-bottom: 1px solid var(--border);
 }
 
 .plan-price strong {
-  font-size: 40px;
+  font-size: 42px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -945,7 +1076,7 @@ a:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
   flex: 1;
 }
 
@@ -961,7 +1092,7 @@ a:hover {
   content: "✓";
   position: absolute;
   left: 0;
-  top: 0;
+  top: 1px;
   display: grid;
   place-items: center;
   width: 20px;
@@ -973,6 +1104,11 @@ a:hover {
   border-radius: 50%;
 }
 
+.plan-card-featured .plan-features li::before {
+  color: var(--blue-primary);
+  background: #DBEAFE;
+}
+
 .btn-block {
   display: block;
   width: 100%;
@@ -982,16 +1118,61 @@ a:hover {
   font-weight: 700;
 }
 
+.plan-cta {
+  margin-top: auto;
+  border-radius: 10px;
+}
+
+.plan-cta-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ECFDF5;
+  color: #047857;
+  border: 1.5px solid #A7F3D0;
+  cursor: default;
+  opacity: 1;
+}
+
+.plan-cta-current:hover {
+  background: #ECFDF5;
+}
+
+.plan-cta-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--green);
+  border-radius: 50%;
+}
+
 .billing-note {
-  margin: 22px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 26px 0 0;
   font-size: 13px;
   color: var(--text-muted);
   text-align: center;
 }
 
+.billing-note-lock {
+  font-size: 14px;
+}
+
 @media (max-width: 700px) {
   .plan-grid {
     grid-template-columns: 1fr;
+  }
+
+  .plan-status {
+    flex-wrap: wrap;
   }
 }
 

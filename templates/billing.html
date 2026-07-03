@@ -3,59 +3,97 @@
 {% block title %}{{ _('billing.title') }} — {{ _('app.name') }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>{{ _('billing.title') }}</h1>
-  <p class="subtitle">{{ _('billing.subtitle') }}</p>
-</div>
+<div class="billing-page">
+  <div class="billing-hero">
+    <h1>{{ _('billing.title') }}</h1>
+    <p class="billing-hero-sub">{{ _('billing.subtitle') }}</p>
+  </div>
 
-{% if checkout_status == 'success' %}
-<div class="alert alert-success">{{ _('billing.status_success') }}</div>
-{% elif checkout_status == 'cancel' %}
-<div class="alert alert-error">{{ _('billing.status_cancel') }}</div>
-{% elif checkout_status == 'error' %}
-<div class="alert alert-error">{{ _('billing.status_error') }}</div>
-{% elif checkout_status == 'unavailable' %}
-<div class="alert alert-error">{{ _('billing.status_unavailable') }}</div>
-{% endif %}
-
-<div class="card billing-status">
-  {% if tenant.is_paid %}
-    <p class="billing-current">{{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}</p>
-  {% elif tenant.subscription_active %}
-    <p class="billing-current">{{ _('billing.current_trial', days=tenant.trial_days_left) }}</p>
-  {% else %}
-    <p class="billing-current billing-current-expired">{{ _('billing.current_expired') }}</p>
+  {% if checkout_status == 'success' %}
+  <div class="alert alert-success">{{ _('billing.status_success') }}</div>
+  {% elif checkout_status == 'cancel' %}
+  <div class="alert alert-error">{{ _('billing.status_cancel') }}</div>
+  {% elif checkout_status == 'error' %}
+  <div class="alert alert-error">{{ _('billing.status_error') }}</div>
+  {% elif checkout_status == 'unavailable' %}
+  <div class="alert alert-error">{{ _('billing.status_unavailable') }}</div>
   {% endif %}
-</div>
 
-{% if not stripe_ready %}
-<div class="alert alert-error">{{ _('billing.not_configured') }}</div>
-{% endif %}
+  {% if tenant.is_paid %}
+    {% set status_state = 'paid' %}
+    {% set status_icon = '✓' %}
+  {% elif tenant.subscription_active %}
+    {% set status_state = 'trial' %}
+    {% set status_icon = '⏳' %}
+  {% else %}
+    {% set status_state = 'expired' %}
+    {% set status_icon = '⏰' %}
+  {% endif %}
 
-<div class="plan-grid">
-  {% for key, plan in plans.items() %}
-  <article class="plan-card{% if key == 'pro' %} plan-card-featured{% endif %}">
-    {% if key == 'pro' %}<span class="plan-badge">{{ _('billing.popular') }}</span>{% endif %}
-    <h3 class="plan-name">{{ plan.name }}</h3>
-    <p class="plan-price"><strong>{{ (plan.amount / 100) | int }} €</strong> <span>{{ _('billing.per_month') }}</span></p>
-    <ul class="plan-features">
-      {% for feat in _('billing.feat_' + key).split('|') %}
-      <li>{{ feat }}</li>
-      {% endfor %}
-    </ul>
-    {% if tenant.plan == key and tenant.is_paid %}
-      <button type="button" class="btn btn-block" disabled>{{ _('billing.current_badge') }}</button>
-    {% else %}
-      <form method="post" action="{{ url_for('billing.checkout', plan=key) }}">
-        <button type="submit" class="btn btn-block {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %}"
-                {% if not stripe_ready %}disabled{% endif %}>
-          {{ _('billing.choose', plan=plan.name) }}
-        </button>
-      </form>
+  <div class="plan-status plan-status--{{ status_state }}">
+    <span class="plan-status-icon">{{ status_icon }}</span>
+    <div class="plan-status-body">
+      <p class="plan-status-label">{{ _('billing.status_heading') }}</p>
+      <p class="plan-status-value">
+        {% if tenant.is_paid %}
+          {{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}
+        {% elif tenant.subscription_active %}
+          {{ _('billing.current_trial', days=tenant.trial_days_left) }}
+        {% else %}
+          {{ _('billing.current_expired') }}
+        {% endif %}
+      </p>
+    </div>
+    {% if tenant.is_paid %}
+    <span class="plan-status-badge">{{ _('billing.status_active') }}</span>
     {% endif %}
-  </article>
-  {% endfor %}
-</div>
+  </div>
 
-<p class="billing-note">{{ _('billing.note') }}</p>
+  {% if not stripe_ready %}
+  <div class="alert alert-error">{{ _('billing.not_configured') }}</div>
+  {% endif %}
+
+  <div class="plans-heading">
+    <h2>{{ _('billing.plans_heading') }}</h2>
+    <p>{{ _('billing.plans_sub') }}</p>
+  </div>
+
+  <div class="plan-grid">
+    {% for key, plan in plans.items() %}
+    {% set is_current = tenant.plan == key and tenant.is_paid %}
+    <article class="plan-card{% if key == 'pro' %} plan-card-featured{% endif %}{% if is_current %} plan-card-current{% endif %}">
+      {% if key == 'pro' %}<span class="plan-badge">{{ _('billing.popular') }}</span>{% endif %}
+      <div class="plan-card-head">
+        <h3 class="plan-name">{{ plan.name }}</h3>
+        <p class="plan-tag">{{ _('billing.tag_' + key) }}</p>
+      </div>
+      <p class="plan-price">
+        <strong>{{ (plan.amount / 100) | int }}&nbsp;€</strong>
+        <span>{{ _('billing.per_month') }}</span>
+      </p>
+      <ul class="plan-features">
+        {% for feat in _('billing.feat_' + key).split('|') %}
+        <li>{{ feat }}</li>
+        {% endfor %}
+      </ul>
+      {% if is_current %}
+        <button type="button" class="btn btn-block plan-cta plan-cta-current" disabled>
+          <span class="plan-cta-check">✓</span>{{ _('billing.current_badge') }}
+        </button>
+      {% else %}
+        <form method="post" action="{{ url_for('billing.checkout', plan=key) }}">
+          <button type="submit" class="btn btn-block plan-cta {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %}"
+                  {% if not stripe_ready %}disabled{% endif %}>
+            {{ _('billing.choose', plan=plan.name) }}
+          </button>
+        </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+
+  <p class="billing-note">
+    <span class="billing-note-lock">🔒</span>{{ _('billing.note') }}
+  </p>
+</div>
 {% endblock %}

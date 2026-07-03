@@ -296,12 +296,10 @@ def dashboard():
     appointments_today = Appointment.query.filter(
         Appointment.tenant_id == g.tenant_id, Appointment.created_at >= today_start
     ).count()
-    pending_quotes = sum(
-        1
-        for lead in all_leads
-        if (lead.get_booking() or {}).get("action") == "SEND_QUOTE"
-        or (lead.status == "new" and lead.urgency_level in (None, "low"))
-    )
+    from app.services import quote_engine
+
+    pending_quotes = quote_engine.pending_quote_count(g.tenant_id)
+    quote_followups = quote_engine.followup_count(g.tenant_id)
     urgencies = Lead.query.filter(
         Lead.tenant_id == g.tenant_id,
         Lead.urgency_level == "high",
@@ -345,6 +343,7 @@ def dashboard():
         calls_today=calls_today,
         appointments_today=appointments_today,
         pending_quotes=pending_quotes,
+        quote_followups=quote_followups,
         urgencies=urgencies,
         recent_leads=recent_leads,
         today_appointments=today_appointments,

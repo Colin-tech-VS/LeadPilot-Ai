@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('quotes.new') if is_new else _('quotes.edit') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('quotes.new') if is_new else _('quotes.edit') }}</h1>
+  <p class="subtitle">{{ _('quotes.form_hint') }}</p>
+</div>
+
+<form method="post" class="quote-form" id="quote-form"
+      action="{{ url_for('quotes.new_quote') if is_new else url_for('quotes.edit_quote', quote_id=quote.id) }}">
+  {% if is_new and lead %}<input type="hidden" name="lead_id" value="{{ lead.id }}">{% endif %}
+
+  <section class="quote-form-card">
+    <h2 class="quote-form-section">{{ _('quotes.client') }}</h2>
+    <div class="quote-form-grid">
+      <label class="field">
+        <span>{{ _('quotes.client_name') }}</span>
+        <input type="text" name="client_name" value="{{ quote.client_name or '' }}">
+      </label>
+      <label class="field">
+        <span>{{ _('quotes.client_phone') }}</span>
+        <input type="text" name="client_phone" value="{{ quote.client_phone or '' }}">
+      </label>
+      <label class="field field-wide">
+        <span>{{ _('quotes.client_address') }}</span>
+        <input type="text" name="client_address" value="{{ quote.client_address or '' }}">
+      </label>
+      <label class="field field-wide">
+        <span>{{ _('quotes.doc_title') }}</span>
+        <input type="text" name="title" value="{{ quote.title or '' }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="quote-form-card">
+    <h2 class="quote-form-section">{{ _('quotes.line_items') }}</h2>
+    <div class="items-head">
+      <span>{{ _('quotes.item_label') }}</span>
+      <span>{{ _('quotes.item_qty') }}</span>
+      <span>{{ _('quotes.item_price') }}</span>
+      <span>{{ _('quotes.item_tva') }}</span>
+      <span></span>
+    </div>
+    <div id="items-body">
+      {% for item in quote.get_items() %}
+      <div class="item-row">
+        <input type="text" name="item_label" value="{{ item.label }}" placeholder="{{ _('quotes.item_label') }}">
+        <input type="number" step="0.5" min="0" name="item_quantity" value="{{ item.quantity }}" class="item-num">
+        <input type="number" step="0.01" min="0" name="item_unit_price" value="{{ item.unit_price }}" class="item-num">
+        <select name="item_tva_rate" class="item-tva">
+          {% for r in tva_rates %}
+          <option value="{{ r }}"{% if item.tva_rate == r %} selected{% endif %}>{{ r }} %</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="item-remove" aria-label="{{ _('quotes.remove_item') }}">✕</button>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" id="add-item" class="btn btn-outline btn-sm">+ {{ _('quotes.add_item') }}</button>
+
+    <div class="quote-form-totals">
+      <div><span>{{ _('quotes.total_ht') }}</span><strong id="sum-ht">0,00 €</strong></div>
+      <div><span>{{ _('quotes.total_tva') }}</span><strong id="sum-tva">0,00 €</strong></div>
+      <div class="total-ttc"><span>{{ _('quotes.total_ttc') }}</span><strong id="sum-ttc">0,00 €</strong></div>
+    </div>
+  </section>
+
+  <section class="quote-form-card">
+    <div class="quote-form-grid">
+      <label class="field">
+        <span>{{ _('quotes.deposit') }}</span>
+        <input type="number" min="0" max="100" name="deposit_percent" value="{{ quote.deposit_percent or '' }}">
+      </label>
+      <label class="field field-wide">
+        <span>{{ _('quotes.notes') }}</span>
+        <textarea name="notes" rows="2">{{ quote.notes or '' }}</textarea>
+      </label>
+    </div>
+  </section>
+
+  <div class="quote-form-actions">
+    <a href="{{ url_for('quotes.quotes_page') if is_new else url_for('quotes.quote_detail', quote_id=quote.id) }}" class="btn btn-outline">{{ _('quotes.cancel') }}</a>
+    <button type="submit" class="btn btn-primary">{{ _('quotes.save') }}</button>
+  </div>
+</form>
+
+<template id="item-template">
+  <div class="item-row">
+    <input type="text" name="item_label" placeholder="__LABEL__">
+    <input type="number" step="0.5" min="0" name="item_quantity" value="1" class="item-num">
+    <input type="number" step="0.01" min="0" name="item_unit_price" value="0" class="item-num">
+    <select name="item_tva_rate" class="item-tva">
+      {% for r in tva_rates %}
+      <option value="{{ r }}"{% if r == 10 %} selected{% endif %}>{{ r }} %</option>
+      {% endfor %}
+    </select>
+    <button type="button" class="item-remove" aria-label="{{ _('quotes.remove_item') }}">✕</button>
+  </div>
+</template>
+
+<style>
+  .quote-form { display: flex; flex-direction: column; gap: 1.1rem; }
+  .quote-form-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 1.1rem 1.2rem; }
+  .quote-form-section { font-size: 1rem; margin: 0 0 .9rem; color: #111827; }
+  .quote-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+  .field { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: #374151; }
+  .field-wide { grid-column: 1 / -1; }
+  .field input, .field textarea, .field select { padding: .55rem .7rem; border: 1px solid #D1D5DB;
+    border-radius: 9px; font-size: .95rem; font-family: inherit; }
+  .items-head, .item-row { display: grid; grid-template-columns: 1fr 70px 100px 90px 34px; gap: .5rem; align-items: center; }
+  .items-head { font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; color: #9CA3AF;
+    padding: 0 .1rem .4rem; }
+  .item-row { margin-bottom: .5rem; }
+  .item-row input, .item-row select { padding: .5rem .55rem; border: 1px solid #D1D5DB; border-radius: 8px;
+    font-size: .9rem; width: 100%; }
+  .item-num { text-align: right; }
+  .item-remove { border: none; background: #FEE2E2; color: #B91C1C; border-radius: 8px; height: 34px;
+    cursor: pointer; font-size: .8rem; }
+  #add-item { margin-top: .3rem; }
+  .quote-form-totals { margin-top: 1.1rem; border-top: 1px dashed #E5E7EB; padding-top: .9rem;
+    display: flex; flex-direction: column; gap: .35rem; align-items: flex-end; }
+  .quote-form-totals > div { display: flex; gap: 1.5rem; min-width: 220px; justify-content: space-between; color: #6B7280; }
+  .quote-form-totals .total-ttc { font-size: 1.15rem; color: #111827; }
+  .quote-form-totals .total-ttc strong { color: #2563EB; }
+  .quote-form-actions { display: flex; justify-content: flex-end; gap: .6rem; }
+  @media (max-width: 640px) {
+    .quote-form-grid { grid-template-columns: 1fr; }
+    .items-head { display: none; }
+    .item-row { grid-template-columns: 1fr 1fr; gap: .4rem; }
+    .item-row input[name="item_label"] { grid-column: 1 / -1; }
+    .item-remove { grid-column: 2; justify-self: end; width: 40px; }
+  }
+</style>
+
+<script>
+(function () {
+  var body = document.getElementById('items-body');
+  var tpl = document.getElementById('item-template').innerHTML;
+  var addLabel = {{ _('quotes.item_label')|tojson }};
+
+  function fmt(n) { return (n || 0).toFixed(2).replace('.', ',') + ' €'; }
+
+  function recompute() {
+    var rows = body.querySelectorAll('.item-row');
+    var ht = 0, tva = 0;
+    rows.forEach(function (row) {
+      var q = parseFloat((row.querySelector('[name="item_quantity"]').value || '0').replace(',', '.')) || 0;
+      var p = parseFloat((row.querySelector('[name="item_unit_price"]').value || '0').replace(',', '.')) || 0;
+      var r = parseFloat(row.querySelector('[name="item_tva_rate"]').value || '0') || 0;
+      var line = q * p;
+      ht += line;
+      tva += line * (r / 100);
+    });
+    document.getElementById('sum-ht').textContent = fmt(ht);
+    document.getElementById('sum-tva').textContent = fmt(tva);
+    document.getElementById('sum-ttc').textContent = fmt(ht + tva);
+  }
+
+  function wire(row) {
+    row.querySelectorAll('input, select').forEach(function (el) {
+      el.addEventListener('input', recompute);
+    });
+    var rm = row.querySelector('.item-remove');
+    if (rm) rm.addEventListener('click', function () { row.remove(); recompute(); });
+  }
+
+  document.getElementById('add-item').addEventListener('click', function () {
+    var wrap = document.createElement('div');
+    wrap.innerHTML = tpl.replace('__LABEL__', addLabel);
+    var row = wrap.firstElementChild;
+    body.appendChild(row);
+    wire(row);
+    row.querySelector('[name="item_label"]').focus();
+  });
+
+  body.querySelectorAll('.item-row').forEach(wire);
+  recompute();
+})();
+</script>
+{% endblock %}

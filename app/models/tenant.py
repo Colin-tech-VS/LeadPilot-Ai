@@ -37,6 +37,8 @@ class Tenant(db.Model):
     # "pro"). The AI phone line only answers while the subscription is active.
     plan = db.Column(db.String(20), nullable=False, default="trial")
     trial_ends_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    stripe_customer_id = db.Column(db.String(64), nullable=True)
+    stripe_subscription_id = db.Column(db.String(64), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     users = db.relationship("User", back_populates="tenant", lazy="dynamic")

@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('billing.title') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('billing.title') }}</h1>
+  <p class="subtitle">{{ _('billing.subtitle') }}</p>
+</div>
+
+{% if checkout_status == 'success' %}
+<div class="alert alert-success">{{ _('billing.status_success') }}</div>
+{% elif checkout_status == 'cancel' %}
+<div class="alert alert-error">{{ _('billing.status_cancel') }}</div>
+{% elif checkout_status == 'error' %}
+<div class="alert alert-error">{{ _('billing.status_error') }}</div>
+{% elif checkout_status == 'unavailable' %}
+<div class="alert alert-error">{{ _('billing.status_unavailable') }}</div>
+{% endif %}
+
+<div class="card billing-status">
+  {% if tenant.is_paid %}
+    <p class="billing-current">{{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}</p>
+  {% elif tenant.subscription_active %}
+    <p class="billing-current">{{ _('billing.current_trial', days=tenant.trial_days_left) }}</p>
+  {% else %}
+    <p class="billing-current billing-current-expired">{{ _('billing.current_expired') }}</p>
+  {% endif %}
+</div>
+
+{% if not stripe_ready %}
+<div class="alert alert-error">{{ _('billing.not_configured') }}</div>
+{% endif %}
+
+<div class="plan-grid">
+  {% for key, plan in plans.items() %}
+  <article class="plan-card{% if key == 'pro' %} plan-card-featured{% endif %}">
+    <h3 class="plan-name">{{ plan.name }}</h3>
+    <p class="plan-price"><strong>{{ (plan.amount / 100) | int }} €</strong> <span>{{ _('billing.per_month') }}</span></p>
+    <ul class="plan-features">
+      {% for feat in _('billing.feat_' + key).split('|') %}
+      <li>{{ feat }}</li>
+      {% endfor %}
+    </ul>
+    {% if tenant.plan == key and tenant.is_paid %}
+      <button type="button" class="btn btn-block" disabled>{{ _('billing.current_badge') }}</button>
+    {% else %}
+      <form method="post" action="{{ url_for('billing.checkout', plan=key) }}">
+        <button type="submit" class="btn btn-block {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %}"
+                {% if not stripe_ready %}disabled{% endif %}>
+          {{ _('billing.choose', plan=plan.name) }}
+        </button>
+      </form>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+<p class="billing-note">{{ _('billing.note') }}</p>
+{% endblock %}

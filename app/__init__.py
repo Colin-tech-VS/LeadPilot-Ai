@@ -92,6 +92,8 @@ def _ensure_schema_updates():
         "service_radius_km": "INTEGER",
         "plan": "VARCHAR(20)",
         "trial_ends_at": ts_type,
+        "stripe_customer_id": "VARCHAR(64)",
+        "stripe_subscription_id": "VARCHAR(64)",
     }
     for col_name, col_type in tenant_patches.items():
         if col_name not in tenant_columns:

@@ -55,6 +55,7 @@
           <a href="{{ url_for('web.leads_page') }}" class="{% if request.endpoint == 'web.leads_page' %}active{% endif %}">{{ _('nav.leads') }}</a>
           <a href="{{ url_for('web.appointments_page') }}" class="{% if request.endpoint == 'web.appointments_page' %}active{% endif %}">{{ _('nav.appointments') }}</a>
           <a href="{{ url_for('web.test_call_page') }}" class="{% if request.endpoint == 'web.test_call_page' %}active{% endif %}">{{ _('nav.test_call') }}</a>
+          <a href="{{ url_for('billing.billing_page') }}" class="{% if request.endpoint == 'billing.billing_page' %}active{% endif %}">{{ _('nav.billing') }}</a>
           <a href="{{ url_for('web.settings_page') }}" class="{% if request.endpoint == 'web.settings_page' %}active{% endif %}">{{ _('nav.settings') }}</a>
           <a href="{{ url_for('web.logout') }}" class="nav-logout">{{ _('nav.logout') }}</a>
         </div>

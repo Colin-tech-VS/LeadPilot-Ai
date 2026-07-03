@@ -15,7 +15,7 @@
       {{ _('dashboard.trial_active', days=tenant.trial_days_left) }}
     {% endif %}
   </span>
-  <a href="{{ url_for('web.landing') }}#pricing" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
+  <a href="{{ url_for('billing.billing_page') }}" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
 </div>
 {% endif %}
 <div class="dash-hero dash-animate">

@@ -32,6 +32,19 @@
       {% endif %}
 
       <form method="post" class="auth-form" id="register-form">
+        <div class="auth-form-row">
+          <div>
+            <label for="first_name">{{ _('register.first_name') }}</label>
+            <input type="text" id="first_name" name="first_name" autocomplete="given-name"
+                   value="{{ form.get('first_name', '') }}" placeholder="Jean">
+          </div>
+          <div>
+            <label for="last_name">{{ _('register.last_name') }}</label>
+            <input type="text" id="last_name" name="last_name" autocomplete="family-name"
+                   value="{{ form.get('last_name', '') }}" placeholder="Dupont">
+          </div>
+        </div>
+
         <label for="company_name">{{ _('register.company') }}</label>
         <input type="text" id="company_name" name="company_name" required
                value="{{ form.get('company_name', '') }}" placeholder="Plomberie Dupont">

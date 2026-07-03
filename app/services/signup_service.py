@@ -11,6 +11,8 @@ def register_plumber(
     company_name: str,
     phone: str | None = None,
     city: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None,
 ) -> tuple[User, Tenant]:
     email = validate_email(email)
     validate_password(password)
@@ -23,6 +25,8 @@ def register_plumber(
 
     tenant = Tenant(
         name=company_name,
+        first_name=(first_name or "").strip() or None,
+        last_name=(last_name or "").strip() or None,
         phone_number=phone,
         city=city,
         service_radius_km=30,

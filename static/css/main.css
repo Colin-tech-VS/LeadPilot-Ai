@@ -58,6 +58,9 @@ a:hover {
   border-bottom: 1px solid var(--border);
   padding: 0;
   box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .topbar-inner {
@@ -2152,9 +2155,18 @@ html.js-enabled .dash-card-in.is-visible {
 
   .app-nav {
     display: none;
-    width: 100%;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    background: var(--card);
     border-top: 1px solid var(--border);
-    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+    padding: 8px 20px 12px;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
   }
 
   .app-nav.is-open {
@@ -2510,6 +2522,64 @@ html.js-enabled .dash-card-in.is-visible {
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.45);
 }
 
+/* ── Install-app prompt ── */
+.lp-install {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 9997;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  padding: 4px 6px 4px 4px;
+}
+
+.lp-install-btn {
+  border: none;
+  background: var(--blue-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.lp-install-btn:hover {
+  transform: translateY(-1px);
+}
+
+.lp-install-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.lp-install-close:hover {
+  color: var(--text);
+}
+
+.lp-install-hint {
+  max-width: min(320px, calc(100vw - 36px));
+  padding: 10px 6px 10px 14px;
+  border-radius: var(--radius);
+}
+
+.lp-install-hint-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
 @media (max-width: 640px) {
   .lp-toast-root {
     top: 10px;
@@ -2522,6 +2592,18 @@ html.js-enabled .dash-card-in.is-visible {
     left: 12px;
     right: 12px;
     bottom: 12px;
+  }
+
+  /* Sit above the full-width notifications button when both are visible. */
+  .lp-install {
+    left: 12px;
+    right: 12px;
+    bottom: 64px;
+    justify-content: center;
+  }
+
+  .lp-install-btn {
+    flex: 1;
   }
 }
 

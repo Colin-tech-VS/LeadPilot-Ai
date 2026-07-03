@@ -11,3 +11,4 @@ static/audio/voice/
 *.db
 instance/
 .tools/
+supabase/.temp/

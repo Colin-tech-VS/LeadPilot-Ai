@@ -1,5 +1,6 @@
 # LeadPilot AI — Supabase PostgreSQL
-# Liez ce dossier après `supabase login` : supabase link --project-ref YOUR_REF
+# Projet lié : xtqhyvvsjoyscdclyaxp (region eu-central-1)
+# Re-link si besoin : supabase link --project-ref xtqhyvvsjoyscdclyaxp
 
 [project]
 id = "leadpilot-ai"
@@ -9,4 +10,4 @@ enabled = false
 
 [db]
 port = 5432
-major_version = 15
+major_version = 17

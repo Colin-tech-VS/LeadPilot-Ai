@@ -48,14 +48,14 @@
             {% endif %}
             {% if lead %}
             <div class="agenda-actions">
-              <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('appointments.call_client') }}</a>
+              <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">📞 {{ _('appointments.call_client') }}</a>
               {% if lead.latitude and lead.longitude %}
               <a
-                href="https://www.google.com/maps/dir/?api=1&destination={{ lead.latitude }},{{ lead.longitude }}"
+                href="https://www.google.com/maps/dir/?api=1&destination={{ lead.latitude }},{{ lead.longitude }}&travelmode=driving"
                 target="_blank"
                 rel="noopener"
-                class="btn btn-primary btn-sm"
-              >{{ _('appointments.navigate') }}</a>
+                class="btn btn-primary btn-sm btn-navigate"
+              >🧭 {{ _('appointments.navigate_start') }}</a>
               {% endif %}
             </div>
             {% endif %}
@@ -89,8 +89,26 @@
       <div id="route-legs" class="route-legs"></div>
     </div>
     {% endif %}
-    <div id="appointments-map" class="appointments-map"></div>
-    <p id="map-status" class="map-status"></p>
+    <div class="map-shell">
+      <div id="appointments-map" class="appointments-map"></div>
+      <div class="map-fabs">
+        <button type="button" id="locate-btn" class="map-fab map-fab-primary" title="{{ _('appointments.locate_me') }}" aria-label="{{ _('appointments.locate_me') }}">
+          <span class="map-fab-icon">📍</span>
+        </button>
+        <button type="button" id="recenter-btn" class="map-fab" title="{{ _('appointments.recenter') }}" aria-label="{{ _('appointments.recenter') }}">
+          <span class="map-fab-icon">🗺️</span>
+        </button>
+      </div>
+      <div id="next-stop-bar" class="next-stop-bar" hidden>
+        <div class="next-stop-info">
+          <span class="next-stop-label">{{ _('appointments.next_stop') }}</span>
+          <span class="next-stop-name" id="next-stop-name">—</span>
+          <span class="next-stop-eta" id="next-stop-eta"></span>
+        </div>
+        <a href="#" id="next-stop-nav" target="_blank" rel="noopener" class="btn btn-primary btn-navigate next-stop-nav">🧭 {{ _('appointments.navigate_start') }}</a>
+      </div>
+    </div>
+    <p id="map-status" class="map-status">{{ _('appointments.gps_hint') }}</p>
   </section>
 </div>
 
@@ -107,11 +125,17 @@
     routeTo: {{ _('appointments.route_to')|tojson }},
     depot: {{ _('appointments.depot')|tojson }},
     noRoutes: {{ _('appointments.no_routes')|tojson }},
+    youAreHere: {{ _('appointments.you_are_here')|tojson }},
+    locationDenied: {{ _('appointments.location_denied')|tojson }},
+    locationUnavailable: {{ _('appointments.location_unavailable')|tojson }},
+    locating: {{ _('appointments.locating')|tojson }},
+    fromYou: {{ _('appointments.from_you')|tojson }},
+    navigate: {{ _('appointments.navigate_start')|tojson }},
   };
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="{{ url_for('static', filename='js/appointments.js') }}"></script>
+<script src="{{ url_for('static', filename='js/appointments.js') }}?v=2"></script>
 {% else %}
 <p class="empty">{{ _('empty.appointments') }}</p>
 {% endif %}

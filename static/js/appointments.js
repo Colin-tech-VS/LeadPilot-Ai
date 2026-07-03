@@ -6,7 +6,8 @@
   if (!mapEl || typeof L === "undefined") return;
 
   const defaultCenter = [46.603354, 1.888334];
-  const map = L.map("appointments-map").setView(defaultCenter, 6);
+  const map = L.map("appointments-map", { zoomControl: false }).setView(defaultCenter, 6);
+  L.control.zoom({ position: "topright" }).addTo(map);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -49,11 +50,161 @@
   }
 
   const statusEl = document.getElementById("map-status");
+
+  function fitAllBounds() {
+    if (bounds.length === 1) {
+      map.setView(bounds[0], 14);
+    } else if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }
+
+  // ── Live GPS: track the plumber's own position ──
+  let userLatLng = null;
+  let userMarker = null;
+  let accuracyCircle = null;
+  let watchId = null;
+  // Passive tracking shows the dot but must not hijack the route overview;
+  // only an explicit "locate me" tap recenters on the user.
+  let hasCenteredOnUser = true;
+
+  const nextStop = markers.find(function (m) { return !m.is_depot; }) || null;
+
+  function haversineKm(a, b) {
+    const R = 6371;
+    const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+    const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+    const lat1 = (a[0] * Math.PI) / 180;
+    const lat2 = (b[0] * Math.PI) / 180;
+    const h =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  const nextStopBar = document.getElementById("next-stop-bar");
+  const nextStopName = document.getElementById("next-stop-name");
+  const nextStopEta = document.getElementById("next-stop-eta");
+  const nextStopNav = document.getElementById("next-stop-nav");
+
+  function renderNextStop() {
+    if (!nextStopBar || !nextStop) return;
+    nextStopBar.hidden = false;
+    nextStopName.textContent = nextStop.name || "";
+    nextStopNav.href =
+      "https://www.google.com/maps/dir/?api=1&destination=" +
+      nextStop.lat + "," + nextStop.lng + "&travelmode=driving";
+    if (userLatLng) {
+      const km = haversineKm([userLatLng.lat, userLatLng.lng], [nextStop.lat, nextStop.lng]);
+      const mins = Math.max(1, Math.round((km / 28) * 60)); // ~28 km/h urban average
+      nextStopEta.textContent =
+        (labels.fromYou ? labels.fromYou + " · " : "") +
+        km.toFixed(1) + " km · ~" + mins + " min";
+    } else {
+      nextStopEta.textContent = nextStop.time ? nextStop.time : "";
+    }
+  }
+  renderNextStop();
+
+  function userIcon() {
+    return L.divIcon({
+      className: "user-loc-icon",
+      html: '<span class="user-loc-dot"></span><span class="user-loc-pulse"></span>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  }
+
+  function onPosition(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = pos.coords.accuracy || 0;
+    userLatLng = { lat: lat, lng: lng };
+
+    if (!userMarker) {
+      userMarker = L.marker([lat, lng], { icon: userIcon(), zIndexOffset: 2000 }).addTo(map);
+      userMarker.bindPopup("<strong>" + escapeHtml(labels.youAreHere || "You are here") + "</strong>");
+    } else {
+      userMarker.setLatLng([lat, lng]);
+    }
+
+    if (!accuracyCircle) {
+      accuracyCircle = L.circle([lat, lng], {
+        radius: acc,
+        color: "#2563EB",
+        weight: 1,
+        opacity: 0.4,
+        fillColor: "#2563EB",
+        fillOpacity: 0.08,
+      }).addTo(map);
+    } else {
+      accuracyCircle.setLatLng([lat, lng]).setRadius(acc);
+    }
+
+    if (!hasCenteredOnUser) {
+      hasCenteredOnUser = true;
+      map.setView([lat, lng], 14, { animate: true });
+    }
+    renderNextStop();
+    if (statusEl) {
+      statusEl.textContent = markers.length
+        ? markers.length + " point(s) · " + (labels.youAreHere || "GPS OK")
+        : (labels.youAreHere || "GPS OK");
+    }
+  }
+
+  function onPositionError(err) {
+    if (statusEl) {
+      statusEl.textContent =
+        err && err.code === 1
+          ? labels.locationDenied || "Location denied"
+          : labels.locationUnavailable || "GPS unavailable";
+    }
+  }
+
+  function startLocate(centerNow) {
+    if (!("geolocation" in navigator)) {
+      if (statusEl) statusEl.textContent = labels.locationUnavailable || "GPS unavailable";
+      return;
+    }
+    if (centerNow) {
+      hasCenteredOnUser = false;
+      if (userLatLng) {
+        map.setView([userLatLng.lat, userLatLng.lng], 15, { animate: true });
+        hasCenteredOnUser = true;
+        if (userMarker) userMarker.openPopup();
+      }
+    }
+    if (watchId !== null) return;
+    if (statusEl) statusEl.textContent = labels.locating || "Locating…";
+    watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000,
+    });
+  }
+
+  const locateBtn = document.getElementById("locate-btn");
+  const recenterBtn = document.getElementById("recenter-btn");
+  if (locateBtn) {
+    locateBtn.addEventListener("click", function () {
+      locateBtn.classList.add("map-fab-loading");
+      startLocate(true);
+      setTimeout(function () { locateBtn.classList.remove("map-fab-loading"); }, 1200);
+    });
+  }
+  if (recenterBtn) {
+    recenterBtn.addEventListener("click", fitAllBounds);
+  }
+
   if (statusEl) {
     statusEl.textContent = markers.length
       ? markers.length + " point(s) sur la carte"
       : labels.noLocation || "No locations";
   }
+
+  // Try to acquire GPS immediately (mobile-first); silently ignore if blocked.
+  startLocate(false);
 
   document.querySelectorAll(".agenda-slot").forEach(function (slot) {
     slot.addEventListener("click", function () {

@@ -28,15 +28,20 @@ class Config:
     MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
     WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 
-    # Stripe billing (subscriptions for the Solo / Pro plans). When
+    # Stripe billing (subscriptions for the Starter / Pro / Premium plans). When
     # STRIPE_SECRET_KEY is unset the app runs exactly as before and the
     # billing pages show an "unavailable" notice instead of a checkout.
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     # Optional pre-created Stripe Price IDs. Left empty -> the app creates the
-    # 49 €/89 € monthly prices on the fly via price_data.
-    STRIPE_PRICE_SOLO = os.environ.get("STRIPE_PRICE_SOLO", "")
+    # monthly prices on the fly via price_data.
+    STRIPE_PRICE_STARTER = os.environ.get("STRIPE_PRICE_STARTER", "")
     STRIPE_PRICE_PRO = os.environ.get("STRIPE_PRICE_PRO", "")
+    STRIPE_PRICE_PREMIUM = os.environ.get("STRIPE_PRICE_PREMIUM", "")
+    # Price billed per call handled beyond the plan's monthly allowance, in euro
+    # cents. Set this above your real marginal cost (Twilio + transcription +
+    # LLM) to keep a margin. Default: 0,50 € / extra call.
+    CALL_OVERAGE_PRICE_CENTS = int(os.environ.get("CALL_OVERAGE_PRICE_CENTS", "50"))
 
     # Voice pipeline (Whisper STT + OpenAI TTS — optional, text fallback supported)
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")

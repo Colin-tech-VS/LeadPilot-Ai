@@ -858,6 +858,20 @@ html {
   box-shadow: var(--shadow-md);
 }
 
+.pricing-calls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pricing-calls-dot {
+  font-size: 14px;
+}
+
 .pricing-badge {
   align-self: flex-start;
   font-size: 11px;

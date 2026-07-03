@@ -33,12 +33,15 @@ class Tenant(db.Model):
     latitude = db.Column(Float, nullable=True)
     longitude = db.Column(Float, nullable=True)
     service_radius_km = db.Column(db.Integer, nullable=True, default=30)
-    # Billing: "trial" until the plumber upgrades to a paid plan (e.g. "solo",
-    # "pro"). The AI phone line only answers while the subscription is active.
+    # Billing: "trial" until the plumber upgrades to a paid plan ("starter",
+    # "pro", "premium"). The AI line only answers while the subscription is active.
     plan = db.Column(db.String(20), nullable=False, default="trial")
     trial_ends_at = db.Column(db.DateTime(timezone=True), nullable=True)
     stripe_customer_id = db.Column(db.String(64), nullable=True)
     stripe_subscription_id = db.Column(db.String(64), nullable=True)
+    # Last calendar month whose call overage was billed to Stripe, as "YYYY-MM".
+    # Guards the monthly overage job against double-billing the same period.
+    last_overage_period = db.Column(db.String(7), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     users = db.relationship("User", back_populates="tenant", lazy="dynamic")

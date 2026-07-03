@@ -49,6 +49,21 @@
     {% endif %}
   </div>
 
+  {% if tenant.is_paid and tenant.plan in plans and plans[tenant.plan].included_calls %}
+  {% set quota = plans[tenant.plan].included_calls %}
+  {% set pct = [(call_usage / quota * 100) | round(0, 'ceil') | int, 100] | min %}
+  <div class="plan-usage{% if call_usage > quota %} plan-usage--over{% endif %}">
+    <div class="plan-usage-head">
+      <span class="plan-usage-label">{{ _('billing.usage_label') }}</span>
+      <span class="plan-usage-count">{{ call_usage }} / {{ quota }}</span>
+    </div>
+    <div class="plan-usage-bar"><span style="width: {{ pct }}%"></span></div>
+    {% if call_overage > 0 %}
+    <p class="plan-usage-over-note">{{ _('billing.usage_over', count=call_overage, amount=overage_amount) }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if not stripe_ready %}
   <div class="alert alert-error">{{ _('billing.not_configured') }}</div>
   {% endif %}
@@ -71,6 +86,9 @@
         <strong>{{ (plan.amount / 100) | int }}&nbsp;€</strong>
         <span>{{ _('billing.per_month') }}</span>
       </p>
+      {% if plan.included_calls %}
+      <p class="plan-calls"><span class="plan-calls-dot">📞</span>{{ _('billing.calls_included', count=plan.included_calls) }}</p>
+      {% endif %}
       <ul class="plan-features">
         {% for feat in _('billing.feat_' + key).split('|') %}
         <li>{{ feat }}</li>
@@ -91,6 +109,8 @@
     </article>
     {% endfor %}
   </div>
+
+  <p class="billing-overage-note">{{ _('billing.overage_price_note', price=overage_unit_price) }}</p>
 
   <p class="billing-note">
     <span class="billing-note-lock">🔒</span>{{ _('billing.note') }}

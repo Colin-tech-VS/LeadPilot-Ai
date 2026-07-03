@@ -198,6 +198,8 @@ def register():
 
         form = {
             "company_name": (request.form.get("company_name") or "").strip(),
+            "first_name": (request.form.get("first_name") or "").strip(),
+            "last_name": (request.form.get("last_name") or "").strip(),
             "email": (request.form.get("email") or "").strip().lower(),
             "phone": (request.form.get("phone") or "").strip(),
             "city": (request.form.get("city") or "").strip(),
@@ -219,6 +221,8 @@ def register():
                     company_name=form["company_name"],
                     phone=form["phone"] or None,
                     city=form["city"] or None,
+                    first_name=form["first_name"] or None,
+                    last_name=form["last_name"] or None,
                 )
                 login_user_to_session(user)
                 return redirect(url_for("web.dashboard"))

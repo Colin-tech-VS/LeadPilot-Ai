@@ -787,6 +787,37 @@ a:hover {
   border: 1px solid #FECACA;
 }
 
+/* ── Free-trial banner ── */
+.trial-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.trial-banner-expired {
+  background: #FEE2E2;
+  border-color: #FECACA;
+  color: #B91C1C;
+}
+
+.trial-banner-text {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.trial-banner-cta {
+  flex: 0 0 auto;
+}
+
 /* ── Cards (generic) ── */
 .card {
   background: var(--card);

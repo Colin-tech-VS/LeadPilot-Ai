@@ -77,9 +77,11 @@ def _ensure_schema_updates():
     if "tenants" not in inspector.get_table_names():
         return
     tenant_columns = {col["name"] for col in inspector.get_columns("tenants")}
+    ts_type = "TIMESTAMP WITH TIME ZONE" if db.engine.dialect.name == "postgresql" else "DATETIME"
     tenant_patches = {
         "first_name": "VARCHAR(100)",
         "last_name": "VARCHAR(100)",
+        "ai_assistant_name": "VARCHAR(100)",
         "siret": "VARCHAR(14)",
         "ai_phone_number": "VARCHAR(50)",
         "address": "VARCHAR(500)",
@@ -88,6 +90,8 @@ def _ensure_schema_updates():
         "latitude": "FLOAT",
         "longitude": "FLOAT",
         "service_radius_km": "INTEGER",
+        "plan": "VARCHAR(20)",
+        "trial_ends_at": ts_type,
     }
     for col_name, col_type in tenant_patches.items():
         if col_name not in tenant_columns:

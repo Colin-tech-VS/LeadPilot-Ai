@@ -37,8 +37,9 @@ class TwilioVoiceHandler:
         process_url = self._action_url("voice.process_recording", tenant_id)
 
         client = TwilioVoiceClient()
-        client.say(f"Bonjour, {company}. Je vous écoute.")
-        client.record(action=process_url, max_length=RECORD_MAX_LENGTH, play_beep=True)
+        client.gather(action=process_url, prompt=f"Bonjour, {company}. Je vous écoute.")
+        client.say("Je n'ai pas entendu votre demande. Au revoir.")
+        client.hangup()
         return client.to_xml()
 
     def handle_process(
@@ -122,9 +123,9 @@ class TwilioVoiceHandler:
             conversation_store.save(state)
             return client.to_xml()
 
-        client.say("Souhaitez-vous prendre rendez-vous ?")
-        client.gather(action=continue_url, timeout=6)
-        client.record(action=process_url, max_length=RECORD_MAX_LENGTH, play_beep=True)
+        client.gather(action=continue_url, prompt="Souhaitez-vous prendre rendez-vous ?", timeout=6)
+        client.say("Je n'ai pas entendu votre réponse. Un plombier vous recontactera. Au revoir.")
+        client.hangup()
         conversation_store.save(state)
         return client.to_xml()
 
@@ -181,8 +182,7 @@ class TwilioVoiceHandler:
         client = TwilioVoiceClient()
 
         if state.failure_count < MAX_FAILURES:
-            client.say("Pouvez-vous répéter votre demande ?")
-            client.record(action=process_url, max_length=RECORD_MAX_LENGTH, play_beep=True)
+            client.gather(action=process_url, prompt="Pouvez-vous répéter votre demande ?")
             conversation_store.save(state)
             return client.to_xml()
 

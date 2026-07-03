@@ -1,10 +1,11 @@
-"""Stripe billing for the Solo / Pro subscription plans.
+"""Stripe billing for the Starter / Pro / Premium subscription plans.
 
 Everything here is guarded by ``is_configured()``: when ``STRIPE_SECRET_KEY``
 is absent the app keeps working exactly as before (free trial only) and the
 billing UI shows an "unavailable" notice instead of a checkout button.
 """
 import logging
+from datetime import datetime, timezone
 
 from flask import current_app
 
@@ -14,9 +15,27 @@ from app.models.tenant import Tenant
 logger = logging.getLogger(__name__)
 
 # Monthly plans, in euro cents. Kept in sync with the landing pricing section.
+# ``included_calls`` is the monthly call allowance surfaced on the pricing grid;
+# calls handled beyond it are billed as usage (overage).
 PLANS = {
-    "solo": {"name": "Solo", "amount": 4900, "price_config_key": "STRIPE_PRICE_SOLO"},
-    "pro": {"name": "Pro", "amount": 8900, "price_config_key": "STRIPE_PRICE_PRO"},
+    "starter": {
+        "name": "Starter",
+        "amount": 14900,
+        "price_config_key": "STRIPE_PRICE_STARTER",
+        "included_calls": 150,
+    },
+    "pro": {
+        "name": "Pro",
+        "amount": 34900,
+        "price_config_key": "STRIPE_PRICE_PRO",
+        "included_calls": 500,
+    },
+    "premium": {
+        "name": "Premium",
+        "amount": 69900,
+        "price_config_key": "STRIPE_PRICE_PREMIUM",
+        "included_calls": 1500,
+    },
 }
 CURRENCY = "eur"
 
@@ -29,6 +48,26 @@ def available_plans() -> dict:
     return PLANS
 
 
+def included_calls(plan_key: str):
+    """Monthly call allowance for a plan, or None for the free trial / unknown."""
+    plan = PLANS.get(plan_key)
+    return plan.get("included_calls") if plan else None
+
+
+def monthly_call_usage(tenant) -> int:
+    """Calls handled for this tenant since the start of the current calendar
+    month. Each qualified inbound call creates a Lead, so we use that as the
+    usage signal shown against the plan's included-call allowance."""
+    from app.models.lead import Lead
+
+    start = datetime.now(timezone.utc).replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    return Lead.query.filter(
+        Lead.tenant_id == tenant.id, Lead.created_at >= start
+    ).count()
+
+
 def _client():
     import stripe
 
@@ -38,7 +77,7 @@ def _client():
 
 def _line_item(plan_key: str) -> dict:
     """Use a pre-created Price when the plumber configured one, otherwise build
-    the 49 €/89 € monthly price on the fly so only the secret key is needed."""
+    the monthly price on the fly so only the secret key is needed."""
     plan = PLANS[plan_key]
     price_id = current_app.config.get(plan["price_config_key"])
     if price_id:

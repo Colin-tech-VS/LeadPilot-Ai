@@ -22,6 +22,7 @@ def billing_page():
         plans=billing.available_plans(),
         stripe_ready=billing.is_configured(),
         checkout_status=request.args.get("status"),
+        call_usage=billing.monthly_call_usage(tenant),
     )
 
 

@@ -11,7 +11,9 @@
     </p>
   </div>
   <div class="quotes-header-actions">
-    <a href="{{ url_for('quotes.new_quote') }}" class="btn btn-primary btn-sm">+ {{ _('quotes.new') }}</a>
+    <form method="post" action="{{ url_for('quotes.create_quote') }}">
+      <button type="submit" class="btn btn-primary btn-sm">+ {{ _('quotes.new') }}</button>
+    </form>
   </div>
 </div>
 
@@ -61,7 +63,9 @@
 <div class="dash-empty">
   <div class="dash-empty-icon">🧾</div>
   <p>{% if view == 'factures' %}{{ _('quotes.empty_invoices') }}{% else %}{{ _('quotes.empty_devis') }}{% endif %}</p>
-  <a href="{{ url_for('quotes.new_quote') }}" class="btn btn-primary">+ {{ _('quotes.new') }}</a>
+  <form method="post" action="{{ url_for('quotes.create_quote') }}">
+    <button type="submit" class="btn btn-primary">+ {{ _('quotes.new') }}</button>
+  </form>
 </div>
 {% endif %}
 

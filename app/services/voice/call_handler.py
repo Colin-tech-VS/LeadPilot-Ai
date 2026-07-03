@@ -14,7 +14,7 @@ from app.services.booking_engine import (
     BookingEngine,
 )
 from app.services.lead_extractor import LeadExtractor
-from app.services.notifications import notify_high_urgency_lead
+from app.services.notifications import notify_inbound_call
 from app.services.voice.conversation_state import ConversationState, conversation_store
 from app.services.voice.llm_receptionist import LLMReceptionist
 from app.services.voice.speech_to_text import SpeechToText
@@ -219,8 +219,7 @@ class VoiceCallHandler:
 
         db.session.commit()
 
-        if lead_data.get("urgency_level") == "high":
-            notify_high_urgency_lead(lead, tenant)
+        notify_inbound_call(lead, tenant, booked=state.booking_status == "booked")
 
     def _failsafe_response(
         self,

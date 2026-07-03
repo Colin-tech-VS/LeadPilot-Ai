@@ -16,12 +16,22 @@ class TwilioVoiceClient:
     # the English-only models, so it is enabled conditionally (see gather()).
     DEFAULT_SPEECH_MODEL = "googlev2"
     ENHANCED_MODELS = ("phone_call", "numbers_and_commands")
+    # Domain vocabulary that biases the recognizer toward what plumbing callers
+    # actually say — problems, fixtures, urgency wording, and the address/number
+    # phrasing needed to capture a full postal address over a noisy phone line.
     SPEECH_HINTS = (
-        "fuite, fuite d'eau, dégât des eaux, baignoire, douche, évier, lavabo, "
-        "robinet, WC, toilettes, chasse d'eau, canalisation bouchée, tuyau, "
-        "chaudière, chauffe-eau, ballon d'eau chaude, radiateur, fuite de gaz, "
-        "urgent, urgence, ça inonde, plus d'eau chaude, rue, avenue, boulevard, "
-        "impasse, place, code postal, rendez-vous, dès que possible"
+        "fuite, fuite d'eau, dégât des eaux, ça fuit, ça coule, ça goutte, "
+        "inondation, ça inonde, il y a de l'eau partout, baignoire, douche, "
+        "évier, lavabo, robinet, mitigeur, WC, toilettes, chasse d'eau, "
+        "canalisation bouchée, canalisation, évacuation bouchée, tuyau percé, "
+        "chaudière, chauffe-eau, ballon d'eau chaude, cumulus, radiateur, "
+        "fuite de gaz, odeur de gaz, plus d'eau chaude, plus d'eau, compteur, "
+        "coupure d'eau, urgent, urgence, très urgent, dès que possible, "
+        "aujourd'hui, ce matin, cet après-midi, demain, tout de suite, "
+        "je m'appelle, mon nom, mon numéro, mon adresse, j'habite au, "
+        "numéro, rue, avenue, boulevard, impasse, allée, place, chemin, "
+        "résidence, bâtiment, étage, appartement, code postal, "
+        "rez-de-chaussée, Paris, Lyon, Marseille, rendez-vous"
     )
 
     def __init__(self):
@@ -78,6 +88,10 @@ class TwilioVoiceClient:
             speechTimeout=speech_timeout,
             speechModel=model,
             hints=self.SPEECH_HINTS,
+            # Keep raw words: the profanity filter masks tokens (e.g. "c***"),
+            # which mangles otherwise-useful French transcription. We never show
+            # the transcript to the caller, so masking only hurts understanding.
+            profanityFilter=False,
             # Even when Twilio detects no speech, still POST to the action URL so
             # the call is handled (re-prompt / fallback lead) instead of silently
             # hanging up — this is what left callers with "nothing recorded".

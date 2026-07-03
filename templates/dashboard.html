@@ -138,7 +138,10 @@
         </div>
         <div class="lead-actions">
           <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
-          <a href="{{ url_for('quotes.new_quote', lead_id=lead.id) }}" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</a>
+          <form method="post" action="{{ url_for('quotes.create_quote') }}" class="lead-action-form">
+            <input type="hidden" name="lead_id" value="{{ lead.id }}">
+            <button type="submit" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</button>
+          </form>
           <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
           <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
             <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>

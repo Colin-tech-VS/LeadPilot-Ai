@@ -19,12 +19,16 @@ SYSTEM_PROMPT_EN = (
 
 SYSTEM_PROMPT_FR = (
     "Tu es un assistant qui extrait des données structurées de transcriptions "
-    "d'appels pour une entreprise de plomberie. Retourne UNIQUEMENT du JSON valide "
+    "d'appels (parfois imparfaites, issues de reconnaissance vocale) pour une "
+    "entreprise de plomberie. Retourne UNIQUEMENT du JSON valide "
     "avec ces clés : name (string ou null), phone (string), address (string ou null), "
     "issue_type (un parmi : general_inquiry, leak, clogged_drain, clogged_toilet, "
     "water_heater, toilet, pipe_issue, burst_pipe, flooding), "
     "urgency_level (low|medium|high), summary (string en français). "
-    "Pas d'explications. Pas de markdown."
+    "Pour l'adresse, garde l'adresse la plus complète possible (numéro, rue, code "
+    "postal, ville) telle que dite. Ne devine jamais un nom ou une adresse qui "
+    "n'est pas clairement présent : mets null. Corrige les hésitations évidentes "
+    "(euh, ben) mais n'invente rien. Pas d'explications. Pas de markdown."
 )
 
 URGENCY_KEYWORDS = {

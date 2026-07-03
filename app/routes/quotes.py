@@ -27,7 +27,7 @@ from app.models.quote import (
     Quote,
 )
 from app.models.tenant import Tenant
-from app.services import quote_engine
+from app.services import notifications, quote_engine
 
 quotes_bp = Blueprint("quotes", __name__, url_prefix="/quotes")
 
@@ -122,6 +122,33 @@ def quotes_page():
 # --------------------------------------------------------------------------
 # Create
 # --------------------------------------------------------------------------
+@quotes_bp.route("/create", methods=["POST"])
+@web_tenant_required
+def create_quote():
+    """One-click devis creation: persist a ready-to-edit draft immediately.
+
+    The plumber lands straight on the editable devis (already saved and listed)
+    instead of an empty form that creates nothing until submitted.
+    """
+    tenant = db.session.get(Tenant, g.tenant_id)
+
+    lead = None
+    lead_id = request.form.get("lead_id")
+    if lead_id:
+        try:
+            lead = Lead.query.filter_by(
+                id=uuid.UUID(lead_id), tenant_id=g.tenant_id
+            ).first()
+        except ValueError:
+            lead = None
+
+    quote = quote_engine.build_draft_from_lead(lead, tenant)
+    quote.number = quote_engine.generate_number(g.tenant_id, DOC_DEVIS)
+    db.session.add(quote)
+    db.session.commit()
+    return redirect(url_for("quotes.edit_quote", quote_id=quote.id))
+
+
 @quotes_bp.route("/new", methods=["GET", "POST"])
 @web_tenant_required
 def new_quote():
@@ -208,11 +235,19 @@ def change_status(quote_id):
     if action == "send":
         quote_engine.mark_sent(quote)
     elif action == "accept":
-        quote.status = STATUS_ACCEPTED
-        quote.accepted_at = utcnow()
+        result = quote_engine.accept_quote(quote)
+        db.session.commit()
+        if not result["already"]:
+            notifications.notify_quote_accepted(
+                quote, appointment=result["appointment"], invoice=result["invoice"]
+            )
+        return redirect(url_for("quotes.quote_detail", quote_id=quote.id))
     elif action == "refuse":
         quote.status = STATUS_REFUSED
         quote.refused_at = utcnow()
+        db.session.commit()
+        notifications.notify_quote_refused(quote)
+        return redirect(url_for("quotes.quote_detail", quote_id=quote.id))
     elif action == "pay":
         quote.status = STATUS_PAID
         quote.paid_at = utcnow()
@@ -290,12 +325,18 @@ def public_decision(quote_id, token):
     if quote.doc_type == DOC_DEVIS and quote.status in (STATUS_SENT, STATUS_DRAFT):
         decision = request.form.get("decision")
         if decision == "accept":
-            quote.status = STATUS_ACCEPTED
-            quote.accepted_at = utcnow()
+            # Client acceptance auto-generates the facture and schedules the RDV.
+            result = quote_engine.accept_quote(quote)
+            db.session.commit()
+            if not result["already"]:
+                notifications.notify_quote_accepted(
+                    quote, appointment=result["appointment"], invoice=result["invoice"]
+                )
         elif decision == "refuse":
             quote.status = STATUS_REFUSED
             quote.refused_at = utcnow()
-        db.session.commit()
+            db.session.commit()
+            notifications.notify_quote_refused(quote)
 
     tenant = db.session.get(Tenant, quote.tenant_id)
     return render_template(

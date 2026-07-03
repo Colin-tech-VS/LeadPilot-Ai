@@ -76,10 +76,16 @@ def service_worker():
     return response
 
 
-@web_bp.route("/api/notifications/appointments", methods=["GET"])
+@web_bp.route("/api/notifications/feed", methods=["GET"])
 @web_tenant_required
-def notifications_appointments():
-    """Return appointments booked/scheduled since a cursor (for live alerts)."""
+def notifications_feed():
+    """Return notifications created since a cursor (for live web/mobile alerts).
+
+    Powers static/js/notifications.js: any new lead, urgent call, booked RDV,
+    accepted/refused devis surfaces as a toast + native OS notification.
+    """
+    from app.models.notification import Notification
+
     now = datetime.now(timezone.utc)
     since_raw = request.args.get("since")
     since = None
@@ -97,40 +103,49 @@ def notifications_appointments():
 
     # Compare against a naive-UTC cutoff: created_at is stored as UTC, and a
     # timezone-aware bind is silently ignored by SQLite (dev), which would make
-    # the same appointment resurface on every poll. Naive-UTC is correct on both
-    # SQLite and UTC Postgres (prod).
+    # the same row resurface on every poll. Naive-UTC is correct on both SQLite
+    # and UTC Postgres (prod).
     if since.tzinfo is not None:
         since = since.astimezone(timezone.utc).replace(tzinfo=None)
 
-    query = (
-        Appointment.query.filter(
-            Appointment.tenant_id == g.tenant_id,
-            Appointment.created_at > since,
+    rows = (
+        Notification.query.filter(
+            Notification.tenant_id == g.tenant_id,
+            Notification.created_at > since,
         )
-        .options(joinedload(Appointment.lead))
-        .order_by(Appointment.created_at.asc())
-        .limit(20)
+        .order_by(Notification.created_at.asc())
+        .limit(30)
+        .all()
     )
 
-    items = []
-    for appt in query.all():
-        lead = appt.lead
-        items.append(
-            {
-                "id": str(appt.id),
-                "name": lead.name if lead else "Client",
-                "phone": lead.phone if lead else "",
-                "address": (lead.address if lead else "") or "",
-                "issue": (lead.issue_type if lead else "") or "",
-                "status": appt.status,
-                "date": appt.date_time.strftime("%d/%m") if appt.date_time else "",
-                "time": appt.date_time.strftime("%H:%M") if appt.date_time else "",
-                "date_time": appt.date_time.isoformat() if appt.date_time else None,
-                "created_at": appt.created_at.isoformat() if appt.created_at else None,
-            }
-        )
+    unread = (
+        Notification.query.filter(
+            Notification.tenant_id == g.tenant_id,
+            Notification.read_at.is_(None),
+        ).count()
+    )
 
-    return jsonify({"now": now.isoformat(), "appointments": items}), 200
+    return jsonify(
+        {
+            "now": now.isoformat(),
+            "unread": unread,
+            "notifications": [n.to_dict() for n in rows],
+        }
+    ), 200
+
+
+@web_bp.route("/api/notifications/read", methods=["POST"])
+@web_tenant_required
+def notifications_mark_read():
+    """Mark all of the tenant's notifications as read (clears the badge)."""
+    from app.models.notification import Notification
+
+    Notification.query.filter(
+        Notification.tenant_id == g.tenant_id,
+        Notification.read_at.is_(None),
+    ).update({Notification.read_at: datetime.now(timezone.utc)})
+    db.session.commit()
+    return jsonify({"ok": True}), 200
 
 
 @web_bp.route("/robots.txt", methods=["GET"])

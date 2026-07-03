@@ -68,18 +68,26 @@ class TwilioVoiceHandler:
 
     def handle_inbound(self, tenant_id: str, call_sid: str, caller_phone: str) -> str:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
-        company = tenant.name if tenant else "notre service de plomberie"
+
+        # Greet on behalf of the plumber, using their first name when known so
+        # the caller feels they reached a real assistant of the business owner.
+        plumber_name = (tenant.first_name if tenant and tenant.first_name else None)
+        if not plumber_name and tenant and tenant.name:
+            plumber_name = tenant.name
 
         get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)
 
+        greeting = (
+            f"Bonjour, je suis l'assistante de {plumber_name}, comment puis-je vous aider ?"
+            if plumber_name
+            else "Bonjour, je suis votre assistante de dépannage, comment puis-je vous aider ?"
+        )
+
         client = TwilioVoiceClient()
         client.gather(
             action=process_url,
-            prompt=(
-                f"Bonjour, ici {company}, votre assistant de dépannage. "
-                "Je suis là pour vous aider. Dites-moi, qu'est-ce qui vous arrive ?"
-            ),
+            prompt=greeting,
         )
         client.say(
             "Je n'ai pas entendu votre demande. "

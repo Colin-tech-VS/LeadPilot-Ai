@@ -33,6 +33,8 @@ class Config:
     WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "whisper-1")
     TTS_MODEL = os.environ.get("TTS_MODEL", "tts-1")
     TTS_VOICE = os.environ.get("TTS_VOICE", "nova")
+    # Twilio <Say> voice — Amazon Polly neural for a natural, human tone.
+    TWILIO_VOICE = os.environ.get("TWILIO_VOICE", "Polly.Lea-Neural")
     TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
     TWILIO_DEFAULT_TENANT_ID = os.environ.get("TWILIO_DEFAULT_TENANT_ID", "")

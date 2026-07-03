@@ -1,3 +1,4 @@
+from flask import current_app, has_app_context
 from twilio.twiml.voice_response import Gather, VoiceResponse
 
 
@@ -5,6 +6,10 @@ class TwilioVoiceClient:
     """Thin wrapper around Twilio VoiceResponse for LeadPilot AI."""
 
     LANGUAGE = "fr-FR"
+    # Amazon Polly neural voice (via Twilio) — far more natural and human than
+    # the legacy fr-FR voice. "Lea" is the French neural female voice; override
+    # with TWILIO_VOICE (e.g. Polly.Remi-Neural for a male voice).
+    DEFAULT_VOICE = "Polly.Lea-Neural"
     # Telephony-optimized recognition model + domain vocabulary to bias
     # Twilio's speech-to-text toward plumbing calls (improves accuracy on
     # low-quality phone audio).
@@ -20,8 +25,14 @@ class TwilioVoiceClient:
     def __init__(self):
         self.response = VoiceResponse()
 
+    @property
+    def voice(self) -> str:
+        if has_app_context():
+            return current_app.config.get("TWILIO_VOICE") or self.DEFAULT_VOICE
+        return self.DEFAULT_VOICE
+
     def say(self, text: str, language: str | None = None) -> "TwilioVoiceClient":
-        self.response.say(text, language=language or self.LANGUAGE)
+        self.response.say(text, voice=self.voice, language=language or self.LANGUAGE)
         return self
 
     def record(
@@ -59,7 +70,7 @@ class TwilioVoiceClient:
             hints=self.SPEECH_HINTS,
         )
         if prompt:
-            gather.say(prompt, language=self.LANGUAGE)
+            gather.say(prompt, voice=self.voice, language=self.LANGUAGE)
         self.response.append(gather)
         return self
 

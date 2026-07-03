@@ -1,0 +1,21 @@
+{
+  "name": "LeadPilot AI — Standardiste & Tableau de bord",
+  "short_name": "LeadPilot",
+  "description": "Standardiste téléphonique IA et tableau de bord pour plombiers : leads, rendez-vous et notifications en temps réel.",
+  "lang": "fr",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/static/images/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

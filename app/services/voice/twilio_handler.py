@@ -83,11 +83,9 @@ class TwilioVoiceHandler:
             action=process_url,
             prompt=self._greeting(tenant),
         )
-        client.say(
-            "Je n'ai pas entendu votre demande. "
-            "N'hésitez pas à nous rappeler. Au revoir."
-        )
-        client.hangup()
+        # Safety net only: with actionOnEmptyResult the gather posts to /process
+        # even on silence, so this runs only if that redirect never fires.
+        client.redirect(process_url)
         return client.to_xml()
 
     def _greeting(self, tenant) -> str:
@@ -326,7 +324,13 @@ class TwilioVoiceHandler:
         client = TwilioVoiceClient()
 
         if state.failure_count < MAX_FAILURES:
-            client.gather(action=process_url, prompt="Pouvez-vous répéter votre demande ?")
+            prompt = (
+                "Je vous écoute, prenez votre temps. "
+                "Expliquez-moi simplement ce qui se passe, avec vos mots."
+                if state.turn_count == 0
+                else "Je ne vous ai pas bien entendu. Pouvez-vous répéter, s'il vous plaît ?"
+            )
+            client.gather(action=process_url, prompt=prompt)
             conversation_store.save(state)
             return client.to_xml()
 

@@ -45,6 +45,11 @@ class Config:
     TTS_VOICE = os.environ.get("TTS_VOICE", "nova")
     # Twilio <Say> voice — Amazon Polly neural for a natural, human tone.
     TWILIO_VOICE = os.environ.get("TWILIO_VOICE", "Polly.Lea-Neural")
+    # Twilio speech-recognition model. IMPORTANT: the legacy "phone_call" enhanced
+    # model only supports English (en-US) — pairing it with French silently
+    # cripples recognition ("l'IA n'a pas compris"). "googlev2" is multilingual
+    # and transcribes natural French speech on phone audio, so it is the default.
+    TWILIO_SPEECH_MODEL = os.environ.get("TWILIO_SPEECH_MODEL", "googlev2")
     TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
     TWILIO_DEFAULT_TENANT_ID = os.environ.get("TWILIO_DEFAULT_TENANT_ID", "")

@@ -869,14 +869,49 @@ a:hover {
 /* Current-subscription status card */
 .plan-status {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 18px 22px;
   margin-bottom: 30px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+}
+
+.plan-status-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Trial-progress row under the status headline. */
+.plan-status-trial {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.plan-status-trial-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.plan-status-trial-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+  transition: width 0.4s ease;
+}
+
+.plan-status-trial-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .plan-status-icon {
@@ -1252,7 +1287,7 @@ a:hover {
 }
 
 @media (max-width: 700px) {
-  .plan-status {
+  .plan-status-main {
     flex-wrap: wrap;
   }
 }

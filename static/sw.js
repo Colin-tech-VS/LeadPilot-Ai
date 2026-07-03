@@ -1,5 +1,7 @@
 /* LeadPilot AI — service worker (PWA shell + notifications) */
-const CACHE = "leadpilot-v2";
+/* Bump CACHE on every asset change: the activate handler purges every older
+   cache, so returning users can never be stuck on a stale bundle. */
+const CACHE = "leadpilot-v3";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",
@@ -9,6 +11,13 @@ const ASSETS = [
   "/static/images/logo.svg",
   "/manifest.webmanifest",
 ];
+
+/* Static assets whose freshness matters more than offline speed. Serving a
+   stale main.css here is what makes the UI look broken ("no cards"), so CSS
+   and JS go network-first and only fall back to the cache when offline. */
+function isFreshnessCritical(pathname) {
+  return pathname.endsWith(".css") || pathname.endsWith(".js");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,26 +37,42 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* Cache-first for our own static assets; everything else hits the network. */
+/* CSS/JS: network-first so style/script updates always reach the user, with a
+   cached fallback for offline. Other static assets (images, fonts): cache-first
+   with background refresh for speed. Everything else hits the network. */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin === self.location.origin && url.pathname.startsWith("/static/")) {
-    event.respondWith(
-      caches.match(req).then(
-        (cached) =>
-          cached ||
-          fetch(req)
-            .then((res) => {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy));
-              return res;
-            })
-            .catch(() => cached)
-      )
-    );
+  if (url.origin !== self.location.origin || !url.pathname.startsWith("/static/")) {
+    return;
   }
+
+  if (isFreshnessCritical(url.pathname)) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const network = fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => cached);
+      return cached || network;
+    })
+  );
 });
 
 /* Web Push — ready for future server-side push (VAPID). */

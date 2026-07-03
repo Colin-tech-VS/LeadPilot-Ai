@@ -31,21 +31,33 @@
   {% endif %}
 
   <div class="plan-status plan-status--{{ status_state }}">
-    <span class="plan-status-icon">{{ status_icon }}</span>
-    <div class="plan-status-body">
-      <p class="plan-status-label">{{ _('billing.status_heading') }}</p>
-      <p class="plan-status-value">
-        {% if tenant.is_paid %}
-          {{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}
-        {% elif tenant.subscription_active %}
-          {{ _('billing.current_trial', days=tenant.trial_days_left) }}
-        {% else %}
-          {{ _('billing.current_expired') }}
-        {% endif %}
-      </p>
+    <div class="plan-status-main">
+      <span class="plan-status-icon">{{ status_icon }}</span>
+      <div class="plan-status-body">
+        <p class="plan-status-label">{{ _('billing.status_heading') }}</p>
+        <p class="plan-status-value">
+          {% if tenant.is_paid %}
+            {{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}
+          {% elif tenant.subscription_active %}
+            {{ _('billing.current_trial', days=tenant.trial_days_left) }}
+          {% else %}
+            {{ _('billing.current_expired') }}
+          {% endif %}
+        </p>
+      </div>
+      {% if tenant.is_paid %}
+      <span class="plan-status-badge">{{ _('billing.status_active') }}</span>
+      {% endif %}
     </div>
-    {% if tenant.is_paid %}
-    <span class="plan-status-badge">{{ _('billing.status_active') }}</span>
+
+    {% if status_state == 'trial' %}
+    {% set trial_total = 14 %}
+    {% set days_left = tenant.trial_days_left or 0 %}
+    {% set trial_pct = [((trial_total - days_left) / trial_total * 100) | round(0, 'ceil') | int, 4] | max %}
+    <div class="plan-status-trial">
+      <div class="plan-status-trial-bar"><span style="width: {{ [trial_pct, 100] | min }}%"></span></div>
+      <span class="plan-status-trial-note">{{ _('billing.trial_days_used', used=trial_total - days_left, total=trial_total) }}</span>
+    </div>
     {% endif %}
   </div>
 

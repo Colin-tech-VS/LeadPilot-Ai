@@ -5,6 +5,17 @@ class TwilioVoiceClient:
     """Thin wrapper around Twilio VoiceResponse for LeadPilot AI."""
 
     LANGUAGE = "fr-FR"
+    # Telephony-optimized recognition model + domain vocabulary to bias
+    # Twilio's speech-to-text toward plumbing calls (improves accuracy on
+    # low-quality phone audio).
+    SPEECH_MODEL = "phone_call"
+    SPEECH_HINTS = (
+        "fuite, fuite d'eau, dégât des eaux, baignoire, douche, évier, lavabo, "
+        "robinet, WC, toilettes, chasse d'eau, canalisation bouchée, tuyau, "
+        "chaudière, chauffe-eau, ballon d'eau chaude, radiateur, fuite de gaz, "
+        "urgent, urgence, ça inonde, plus d'eau chaude, rue, avenue, boulevard, "
+        "impasse, place, code postal, rendez-vous, dès que possible"
+    )
 
     def __init__(self):
         self.response = VoiceResponse()
@@ -43,6 +54,9 @@ class TwilioVoiceClient:
             language=self.LANGUAGE,
             timeout=timeout,
             speechTimeout=speech_timeout,
+            speechModel=self.SPEECH_MODEL,
+            enhanced=True,
+            hints=self.SPEECH_HINTS,
         )
         if prompt:
             gather.say(prompt, language=self.LANGUAGE)

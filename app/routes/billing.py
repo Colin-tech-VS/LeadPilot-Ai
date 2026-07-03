@@ -6,16 +6,26 @@ from app.core.web_auth import web_tenant_required
 from app.core.extensions import db
 from app.models.tenant import Tenant
 from app.services import billing
+from app.utils.i18n import get_lang
 
 logger = logging.getLogger(__name__)
 
 billing_bp = Blueprint("billing", __name__, url_prefix="/billing")
 
 
+def _fmt_eur(cents: int, lang: str) -> str:
+    """Format euro cents for display: '12,50 €' (fr) or '€12.50' (en)."""
+    value = f"{cents / 100:.2f}"
+    if lang == "fr":
+        return value.replace(".", ",") + " €"
+    return "€" + value
+
+
 @billing_bp.route("", methods=["GET"])
 @web_tenant_required
 def billing_page():
     tenant = db.session.get(Tenant, g.tenant_id)
+    lang = get_lang()
     return render_template(
         "billing.html",
         tenant=tenant,
@@ -23,6 +33,9 @@ def billing_page():
         stripe_ready=billing.is_configured(),
         checkout_status=request.args.get("status"),
         call_usage=billing.monthly_call_usage(tenant),
+        call_overage=billing.overage_calls(tenant),
+        overage_amount=_fmt_eur(billing.overage_amount_cents(tenant), lang),
+        overage_unit_price=_fmt_eur(billing.overage_price_cents(), lang),
     )
 
 

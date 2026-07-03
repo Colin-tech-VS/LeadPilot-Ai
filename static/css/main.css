@@ -1220,12 +1220,20 @@ a:hover {
   border-radius: 50%;
 }
 
+.billing-overage-note {
+  margin: 24px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+}
+
 .billing-note {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin: 26px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
   color: var(--text-muted);
   text-align: center;

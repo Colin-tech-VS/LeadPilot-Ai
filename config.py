@@ -38,6 +38,10 @@ class Config:
     STRIPE_PRICE_STARTER = os.environ.get("STRIPE_PRICE_STARTER", "")
     STRIPE_PRICE_PRO = os.environ.get("STRIPE_PRICE_PRO", "")
     STRIPE_PRICE_PREMIUM = os.environ.get("STRIPE_PRICE_PREMIUM", "")
+    # Price billed per call handled beyond the plan's monthly allowance, in euro
+    # cents. Set this above your real marginal cost (Twilio + transcription +
+    # LLM) to keep a margin. Default: 0,50 € / extra call.
+    CALL_OVERAGE_PRICE_CENTS = int(os.environ.get("CALL_OVERAGE_PRICE_CENTS", "50"))
 
     # Voice pipeline (Whisper STT + OpenAI TTS — optional, text fallback supported)
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")

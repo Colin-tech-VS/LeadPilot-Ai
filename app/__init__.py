@@ -94,6 +94,7 @@ def _ensure_schema_updates():
         "trial_ends_at": ts_type,
         "stripe_customer_id": "VARCHAR(64)",
         "stripe_subscription_id": "VARCHAR(64)",
+        "last_overage_period": "VARCHAR(7)",
     }
     for col_name, col_type in tenant_patches.items():
         if col_name not in tenant_columns:

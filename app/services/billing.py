@@ -54,18 +54,103 @@ def included_calls(plan_key: str):
     return plan.get("included_calls") if plan else None
 
 
-def monthly_call_usage(tenant) -> int:
-    """Calls handled for this tenant since the start of the current calendar
-    month. Each qualified inbound call creates a Lead, so we use that as the
-    usage signal shown against the plan's included-call allowance."""
+def _month_bounds(year: int, month: int):
+    """UTC [start, next_start) datetimes for a calendar month."""
+    start = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        nxt = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        nxt = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    return start, nxt
+
+
+def calls_in_month(tenant, year: int, month: int) -> int:
+    """Calls handled for this tenant during a given calendar month. Each
+    qualified inbound call creates a Lead, so we count leads as the usage
+    signal against the plan's included-call allowance."""
     from app.models.lead import Lead
 
-    start = datetime.now(timezone.utc).replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
-    )
+    start, nxt = _month_bounds(year, month)
     return Lead.query.filter(
-        Lead.tenant_id == tenant.id, Lead.created_at >= start
+        Lead.tenant_id == tenant.id,
+        Lead.created_at >= start,
+        Lead.created_at < nxt,
     ).count()
+
+
+def monthly_call_usage(tenant) -> int:
+    """Calls handled for this tenant so far in the current calendar month."""
+    now = datetime.now(timezone.utc)
+    return calls_in_month(tenant, now.year, now.month)
+
+
+def overage_price_cents() -> int:
+    """Price billed per call beyond the plan allowance, in euro cents."""
+    return int(current_app.config.get("CALL_OVERAGE_PRICE_CENTS", 50))
+
+
+def overage_calls(tenant, year: int = None, month: int = None) -> int:
+    """Calls beyond the plan's monthly allowance for the given month (current
+    month by default). Zero for the free trial or plans without a quota."""
+    quota = included_calls(tenant.plan)
+    if not quota:
+        return 0
+    if year is None or month is None:
+        now = datetime.now(timezone.utc)
+        year, month = now.year, now.month
+    used = calls_in_month(tenant, year, month)
+    return max(0, used - quota)
+
+
+def overage_amount_cents(tenant, year: int = None, month: int = None) -> int:
+    """Amount owed for this month's overage calls, in euro cents."""
+    return overage_calls(tenant, year, month) * overage_price_cents()
+
+
+def bill_overage_for_period(tenant, year: int, month: int) -> dict:
+    """Post a tenant's call overage for one calendar month to Stripe as an
+    invoice item (added to their next invoice). Idempotent: a period already
+    recorded on ``tenant.last_overage_period`` is skipped, so re-running the
+    monthly job never double-bills. Returns a summary dict describing what
+    happened (``status`` in: skipped / no_overage / billed / not_configured)."""
+    period = f"{year:04d}-{month:02d}"
+    result = {"tenant_id": str(tenant.id), "period": period, "calls": 0, "amount_cents": 0}
+
+    if tenant.last_overage_period == period:
+        result["status"] = "skipped"
+        return result
+
+    calls = overage_calls(tenant, year, month)
+    amount = calls * overage_price_cents()
+    result["calls"] = calls
+    result["amount_cents"] = amount
+
+    if calls <= 0:
+        # Nothing to bill, but mark the period done so it isn't reprocessed.
+        tenant.last_overage_period = period
+        db.session.commit()
+        result["status"] = "no_overage"
+        return result
+
+    if not is_configured() or not tenant.stripe_customer_id:
+        # Can't reach Stripe yet — leave the period unmarked so it is retried
+        # once billing is configured.
+        result["status"] = "not_configured"
+        return result
+
+    stripe = _client()
+    stripe.InvoiceItem.create(
+        customer=tenant.stripe_customer_id,
+        amount=amount,
+        currency=CURRENCY,
+        description=f"LeadPilot AI — {calls} appel(s) supplémentaire(s) ({period})",
+        metadata={"tenant_id": str(tenant.id), "period": period, "overage_calls": calls},
+    )
+    tenant.last_overage_period = period
+    db.session.commit()
+    logger.info("Billed overage tenant=%s period=%s calls=%s amount=%s", tenant.id, period, calls, amount)
+    result["status"] = "billed"
+    return result
 
 
 def _client():

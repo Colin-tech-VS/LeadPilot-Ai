@@ -1,11 +1,9 @@
 import logging
 import uuid
-from datetime import datetime
 
 from flask import url_for
 
 from app.core.extensions import db
-from app.services.availability import book_appointment
 from app.models.tenant import Tenant
 from app.services.booking_engine import ACTION_BOOK_NOW, ACTION_OUT_OF_ZONE, BookingEngine
 from app.services.inbound_call import process_inbound_call
@@ -56,7 +54,6 @@ class TwilioVoiceHandler:
 
         state = get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)
-        continue_url = self._action_url("voice.continue_call", tenant_id)
 
         transcript = (speech_text or "").strip()
         if not transcript and recording_url:
@@ -109,22 +106,16 @@ class TwilioVoiceHandler:
             conversation_store.save(state)
             return client.to_xml()
 
-        if booking.get("action") == ACTION_BOOK_NOW and not state.lead_id:
+        # Always capture the lead right away (and book the appointment when the
+        # call qualifies for BOOK_NOW) so every call lands in the dashboard.
+        if not state.lead_id:
             self._persist_lead_and_appointment(state, tenant_id, caller_phone, full_transcript, booking)
+
+        if state.booking_status == "booked":
             client.say("Parfait, un rendez-vous est confirmé.")
-            client.say("Merci pour votre appel. À bientôt.")
-            client.hangup()
-            conversation_store.save(state)
-            return client.to_xml()
-
-        if state.lead_id:
-            client.say("Merci pour votre appel. Un technicien vous contactera rapidement.")
-            client.hangup()
-            conversation_store.save(state)
-            return client.to_xml()
-
-        client.gather(action=continue_url, prompt="Souhaitez-vous prendre rendez-vous ?", timeout=6)
-        client.say("Je n'ai pas entendu votre réponse. Un plombier vous recontactera. Au revoir.")
+        else:
+            client.say("C'est noté, un plombier vous recontactera très rapidement.")
+        client.say("Merci pour votre appel. À bientôt.")
         client.hangup()
         conversation_store.save(state)
         return client.to_xml()
@@ -222,35 +213,13 @@ class TwilioVoiceHandler:
         if state.lead_id:
             return
 
+        # process_inbound_call already creates the lead AND books the appointment
+        # when the call qualifies for BOOK_NOW — don't book a second one here.
         result = process_inbound_call(uuid.UUID(tenant_id), caller_phone, transcript)
         state.lead_id = result.get("lead_id")
         state.booking_result = result.get("booking", booking)
-        state.booking_status = "booked" if booking.get("action") == ACTION_BOOK_NOW else "lead_stored"
-
-        if booking.get("action") == ACTION_BOOK_NOW and booking.get("suggested_slot"):
-            slot = datetime.fromisoformat(
-                booking["suggested_slot"].replace("Z", "+00:00")
-            )
-            lead_uuid = uuid.UUID(state.lead_id)
-            appointment = book_appointment(uuid.UUID(tenant_id), lead_uuid, slot)
-            if appointment:
-                booking["suggested_slot"] = appointment.date_time.isoformat()
-                state.appointment_id = str(appointment.id)
-                state.booking_status = "booked"
-                logger.info(
-                    "Twilio BOOK_NOW appointment=%s lead=%s slot=%s",
-                    appointment.id,
-                    state.lead_id,
-                    appointment.date_time.isoformat(),
-                )
-            else:
-                state.booking_status = "callback"
-                booking["action"] = "CALL_BACK"
-                logger.warning(
-                    "Twilio slot unavailable lead=%s preferred=%s",
-                    state.lead_id,
-                    slot.isoformat(),
-                )
+        state.appointment_id = result.get("appointment_id")
+        state.booking_status = "booked" if result.get("appointment_id") else "lead_stored"
 
     def _action_url(self, endpoint: str, tenant_id: str) -> str:
         return url_for(endpoint, tenant_id=tenant_id, _external=True)

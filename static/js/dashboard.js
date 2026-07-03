@@ -6,7 +6,7 @@
     if (!el) return;
     const hour = new Date().getHours();
     if (hour < 12) el.textContent = labels.greetingMorning || el.textContent;
-    else if hour < 18) el.textContent = labels.greetingAfternoon || el.textContent;
+    else if (hour < 18) el.textContent = labels.greetingAfternoon || el.textContent;
     else el.textContent = labels.greetingEvening || el.textContent;
   }
 

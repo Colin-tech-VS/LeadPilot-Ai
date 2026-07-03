@@ -23,6 +23,7 @@ class ConversationState:
     turn_count: int = 0
     failure_count: int = 0
     failsafe_mode: bool = False
+    asked_slots: list = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -42,6 +43,13 @@ class ConversationState:
             lines.append(f"{prefix}: {entry['text']}")
         return "\n".join(lines)
 
+    def user_transcript(self) -> str:
+        """Only what the caller said — used for lead extraction so the
+        receptionist's own questions never pollute the parsed data."""
+        return "\n".join(
+            entry["text"] for entry in self.transcripts if entry["role"] == "user"
+        )
+
     def to_dict(self) -> dict:
         return {
             "call_id": self.call_id,
@@ -60,6 +68,7 @@ class ConversationState:
             "turn_count": self.turn_count,
             "failure_count": self.failure_count,
             "failsafe_mode": self.failsafe_mode,
+            "asked_slots": self.asked_slots,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }

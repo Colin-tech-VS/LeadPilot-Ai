@@ -49,6 +49,90 @@ def set_language(lang):
     return response
 
 
+@web_bp.route("/manifest.webmanifest", methods=["GET"])
+def web_manifest():
+    """PWA manifest — makes the dashboard installable on mobile and desktop."""
+    from flask import current_app, send_from_directory
+
+    return send_from_directory(
+        current_app.static_folder,
+        "manifest.webmanifest",
+        mimetype="application/manifest+json",
+    )
+
+
+@web_bp.route("/sw.js", methods=["GET"])
+def service_worker():
+    """Serve the service worker from the root so its scope covers every page."""
+    from flask import current_app, send_from_directory
+
+    response = make_response(
+        send_from_directory(
+            current_app.static_folder, "sw.js", mimetype="application/javascript"
+        )
+    )
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@web_bp.route("/api/notifications/appointments", methods=["GET"])
+@web_tenant_required
+def notifications_appointments():
+    """Return appointments booked/scheduled since a cursor (for live alerts)."""
+    now = datetime.now(timezone.utc)
+    since_raw = request.args.get("since")
+    since = None
+    if since_raw:
+        # A literal "+" in the query string decodes to a space; the ISO cursor
+        # uses "T" as its date/time separator, so the only space is the offset's
+        # "+" — restore it before parsing.
+        since_raw = since_raw.strip().replace(" ", "+").replace("Z", "+00:00")
+        try:
+            since = datetime.fromisoformat(since_raw)
+        except (ValueError, AttributeError):
+            since = None
+    if since is None:
+        since = now - timedelta(minutes=1)
+
+    # Compare against a naive-UTC cutoff: created_at is stored as UTC, and a
+    # timezone-aware bind is silently ignored by SQLite (dev), which would make
+    # the same appointment resurface on every poll. Naive-UTC is correct on both
+    # SQLite and UTC Postgres (prod).
+    if since.tzinfo is not None:
+        since = since.astimezone(timezone.utc).replace(tzinfo=None)
+
+    query = (
+        Appointment.query.filter(
+            Appointment.tenant_id == g.tenant_id,
+            Appointment.created_at > since,
+        )
+        .options(joinedload(Appointment.lead))
+        .order_by(Appointment.created_at.asc())
+        .limit(20)
+    )
+
+    items = []
+    for appt in query.all():
+        lead = appt.lead
+        items.append(
+            {
+                "id": str(appt.id),
+                "name": lead.name if lead else "Client",
+                "phone": lead.phone if lead else "",
+                "address": (lead.address if lead else "") or "",
+                "issue": (lead.issue_type if lead else "") or "",
+                "status": appt.status,
+                "date": appt.date_time.strftime("%d/%m") if appt.date_time else "",
+                "time": appt.date_time.strftime("%H:%M") if appt.date_time else "",
+                "date_time": appt.date_time.isoformat() if appt.date_time else None,
+                "created_at": appt.created_at.isoformat() if appt.created_at else None,
+            }
+        )
+
+    return jsonify({"now": now.isoformat(), "appointments": items}), 200
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")

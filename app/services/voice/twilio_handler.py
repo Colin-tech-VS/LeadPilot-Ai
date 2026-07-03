@@ -18,6 +18,45 @@ logger = logging.getLogger(__name__)
 MAX_FAILURES = 2
 RECORD_MAX_LENGTH = 10
 
+# Information a plumber needs before dispatching — asked one by one until the
+# caller has given everything. Order matters (problem first, then identity,
+# address and finally urgency).
+REQUIRED_SLOTS = [
+    (
+        "issue",
+        "Pouvez-vous me décrire précisément le problème ? "
+        "Par exemple une fuite d'eau, une canalisation bouchée, ou un chauffe-eau en panne.",
+    ),
+    (
+        "name",
+        "Pouvez-vous me donner votre nom et votre prénom, s'il vous plaît ?",
+    ),
+    (
+        "address",
+        "Quelle est l'adresse complète de l'intervention, "
+        "avec le numéro, la rue, le code postal et la ville ?",
+    ),
+    (
+        "urgency",
+        "Est-ce que c'est urgent ? "
+        "Y a-t-il par exemple une fuite importante ou un dégât des eaux en ce moment ?",
+    ),
+]
+# Safety guard against an endless loop (counts both caller and assistant turns).
+MAX_QUESTION_TURNS = 12
+
+ISSUE_LABELS_FR = {
+    "leak": "fuite d'eau",
+    "clogged_drain": "canalisation bouchée",
+    "clogged_toilet": "WC bouché",
+    "water_heater": "chauffe-eau",
+    "toilet": "WC",
+    "pipe_issue": "canalisation",
+    "burst_pipe": "canalisation percée",
+    "flooding": "dégât des eaux",
+    "no_water": "coupure d'eau",
+}
+
 
 class TwilioVoiceHandler:
     """Production Twilio voice flow: record → transcribe → book → respond."""
@@ -35,8 +74,17 @@ class TwilioVoiceHandler:
         process_url = self._action_url("voice.process_recording", tenant_id)
 
         client = TwilioVoiceClient()
-        client.gather(action=process_url, prompt=f"Bonjour, {company}. Je vous écoute.")
-        client.say("Je n'ai pas entendu votre demande. Au revoir.")
+        client.gather(
+            action=process_url,
+            prompt=(
+                f"Bonjour, ici {company}, votre assistant de dépannage. "
+                "Je suis là pour vous aider. Dites-moi, qu'est-ce qui vous arrive ?"
+            ),
+        )
+        client.say(
+            "Je n'ai pas entendu votre demande. "
+            "N'hésitez pas à nous rappeler. Au revoir."
+        )
         client.hangup()
         return client.to_xml()
 
@@ -65,8 +113,10 @@ class TwilioVoiceHandler:
         state.failure_count = 0
         state.append_transcript("user", transcript)
 
-        full_transcript = state.full_transcript()
-        extracted = self.extractor.extract(full_transcript, caller_phone)
+        # Extract only from what the caller said — never from the receptionist's
+        # own questions (otherwise "quelle est votre adresse" pollutes the parse).
+        caller_transcript = state.user_transcript()
+        extracted = self.extractor.extract(caller_transcript, caller_phone)
         state.extracted_lead_data = {
             **state.extracted_lead_data,
             **{k: v for k, v in extracted.items() if v},
@@ -77,60 +127,116 @@ class TwilioVoiceHandler:
         state.urgency_score = booking.get("priority_score", 0)
         state.booking_action = booking.get("action")
 
-        llm_result = self.llm.process(
-            user_text=transcript,
-            conversation_history=state.transcripts,
-            caller_phone=caller_phone,
-            tenant_name=tenant.name,
-            tenant_city=tenant.city,
-            booking_context=booking,
-        )
-
-        ai_response = self._shorten(llm_result.get("spoken_response", ""))
-        state.last_ai_response = ai_response
-        state.last_intent = llm_result.get("intent")
-        state.append_transcript("assistant", ai_response)
-
-        if llm_result.get("booking_action") and booking.get("action") != ACTION_OUT_OF_ZONE:
-            state.booking_action = llm_result["booking_action"]
-        elif booking.get("action") == ACTION_OUT_OF_ZONE:
-            state.booking_action = ACTION_OUT_OF_ZONE
-
         client = TwilioVoiceClient()
 
-        # The spoken decision is deterministic (based on the computed zone /
-        # booking action), never the raw LLM text — the model sometimes refuses
-        # an in-zone address by city name, which would contradict the booking.
-        if booking.get("action") == ACTION_OUT_OF_ZONE:
-            self._persist_lead_only(state, tenant_id, caller_phone, full_transcript, booking)
+        # Once we know the address, refuse politely if it is out of the service
+        # zone. The decision is deterministic (computed distance), never the raw
+        # LLM text — the model sometimes refuses an in-zone address by city name.
+        if state.extracted_lead_data.get("address") and booking.get("action") == ACTION_OUT_OF_ZONE:
+            state.booking_action = ACTION_OUT_OF_ZONE
+            self._persist_lead_only(state, tenant_id, caller_phone, caller_transcript, booking)
             label = tenant.city or "notre secteur"
             client.say(
-                f"Désolé, nous intervenons uniquement autour de {label}. "
-                "Nous vous conseillons de contacter un plombier proche de chez vous. "
-                "Merci de votre appel."
+                f"Je suis désolée, nous intervenons uniquement autour de {label}. "
+                "Je vous conseille de contacter un plombier plus proche de chez vous. "
+                "Merci de votre appel et bonne journée."
             )
             client.hangup()
             conversation_store.save(state)
             return client.to_xml()
 
-        # Always capture the lead right away (and book the appointment when the
-        # call qualifies for BOOK_NOW) so every call lands in the dashboard.
-        if not state.lead_id:
-            self._persist_lead_and_appointment(state, tenant_id, caller_phone, full_transcript, booking)
+        # Keep asking until every piece of information a plumber needs is
+        # collected — problem, name, address and urgency.
+        nxt = self._next_question(state)
+        if nxt and state.turn_count < MAX_QUESTION_TURNS:
+            slot, question = nxt
+            state.asked_slots.append(slot)
+            prompt = f"{self._acknowledge(state)} {question}"
+            state.last_ai_response = prompt
+            state.append_transcript("assistant", prompt)
+            client.gather(action=process_url, prompt=prompt)
+            client.say(
+                "Je n'ai pas bien entendu. "
+                "Un plombier vous rappellera très rapidement. Merci de votre appel."
+            )
+            client.hangup()
+            conversation_store.save(state)
+            return client.to_xml()
 
-        if state.booking_status == "booked":
-            client.say(
-                "C'est noté, votre demande est bien enregistrée et un rendez-vous est confirmé. "
-                "Un plombier vous recontacte pour préciser l'horaire. Merci de votre appel."
-            )
-        else:
-            client.say(
-                "C'est noté, votre demande est bien enregistrée. "
-                "Un plombier vous recontacte très rapidement. Merci de votre appel."
-            )
+        # All information gathered → capture the lead (and book the appointment
+        # when the call qualifies for BOOK_NOW) so every call lands in the dashboard.
+        if not state.lead_id:
+            self._persist_lead_and_appointment(state, tenant_id, caller_phone, caller_transcript, booking)
+
+        closing = self._closing_message(state)
+        state.last_ai_response = closing
+        state.append_transcript("assistant", closing)
+        client.say(closing)
         client.hangup()
         conversation_store.save(state)
         return client.to_xml()
+
+    def _next_question(self, state) -> tuple[str, str] | None:
+        """Return the next (slot, question) still missing, or None when done."""
+        lead = state.extracted_lead_data
+        for slot, question in REQUIRED_SLOTS:
+            if slot in state.asked_slots:
+                continue
+            if self._slot_filled(slot, lead):
+                continue
+            return slot, question
+        return None
+
+    def _slot_filled(self, slot: str, lead: dict) -> bool:
+        if slot == "issue":
+            return (lead.get("issue_type") or "general_inquiry") not in (None, "", "general_inquiry")
+        if slot == "name":
+            name = (lead.get("name") or "").strip().lower()
+            return bool(name) and name not in ("unknown caller", "unknown", "inconnu")
+        if slot == "address":
+            return bool((lead.get("address") or "").strip())
+        if slot == "urgency":
+            # The extractor always returns an urgency; only skip the question
+            # when the caller clearly flagged an emergency on their own.
+            return (lead.get("urgency_level") or "").lower() == "high"
+        return True
+
+    def _acknowledge(self, state) -> str:
+        lead = state.extracted_lead_data
+        if (lead.get("urgency_level") or "").lower() == "high":
+            return "Je comprends, c'est une urgence, je note tout de suite."
+        acks = ["Entendu.", "Très bien.", "D'accord, je note.", "Parfait."]
+        return acks[state.turn_count % len(acks)]
+
+    def _closing_message(self, state) -> str:
+        lead = state.extracted_lead_data
+        name = (lead.get("name") or "").strip()
+        first = name.split()[0] if name else ""
+        greeting = (
+            f"Merci {first}."
+            if first and first.lower() not in ("unknown", "inconnu")
+            else "Merci."
+        )
+
+        recap_bits = []
+        issue = lead.get("issue_type")
+        if issue and issue != "general_inquiry":
+            recap_bits.append(f"votre problème de {ISSUE_LABELS_FR.get(issue, 'plomberie')}")
+        if lead.get("address"):
+            recap_bits.append(f"à l'adresse {lead['address']}")
+        recap = ("J'ai bien noté " + ", ".join(recap_bits) + ". ") if recap_bits else ""
+
+        if state.booking_status == "booked":
+            outcome = (
+                "Votre demande est enregistrée et un rendez-vous est planifié. "
+                "Un plombier vous rappelle pour confirmer l'horaire."
+            )
+        else:
+            outcome = (
+                "Votre demande est bien enregistrée. "
+                "Un plombier vous rappelle très rapidement."
+            )
+        return f"{greeting} {recap}{outcome} Bonne journée."
 
     def handle_continue(
         self,

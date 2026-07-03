@@ -1,0 +1,66 @@
+{% from 'macros/brand.html' import brand_logo with context %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ _('app.name') }}{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=1">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar">
+    <div class="container topbar-shell">
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <a href="{{ url_for('web.dashboard') if session.get('user_id') else url_for('web.landing') }}" class="brand">
+            {{ brand_logo('md', 'nav') }}
+            <span class="brand-text">{{ _('app.name') }}</span>
+          </a>
+          {% if current_tenant %}
+          <span class="tenant-name">{{ current_tenant.name }}</span>
+          <span class="badge badge-active">{{ _('dashboard.subscription_active') }}</span>
+          {% endif %}
+        </div>
+
+        <div class="topbar-right">
+          <div class="lang-switcher">
+            <a href="{{ url_for('web.set_language', lang='fr') }}" class="lang-btn{% if lang == 'fr' %} active{% endif %}">{{ _('lang.fr') }}</a>
+            <span class="lang-sep">|</span>
+            <a href="{{ url_for('web.set_language', lang='en') }}" class="lang-btn{% if lang == 'en' %} active{% endif %}">{{ _('lang.en') }}</a>
+          </div>
+
+          {% if session.get('user_id') %}
+          <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="app-nav">
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if session.get('user_id') %}
+      <nav class="nav app-nav" id="app-nav">
+        <div class="app-nav-inner">
+          <a href="{{ url_for('web.dashboard') }}" class="{% if request.endpoint == 'web.dashboard' %}active{% endif %}">{{ _('nav.dashboard') }}</a>
+          <a href="{{ url_for('web.leads_page') }}" class="{% if request.endpoint == 'web.leads_page' %}active{% endif %}">{{ _('nav.leads') }}</a>
+          <a href="{{ url_for('web.appointments_page') }}" class="{% if request.endpoint == 'web.appointments_page' %}active{% endif %}">{{ _('nav.appointments') }}</a>
+          <a href="{{ url_for('web.test_call_page') }}" class="{% if request.endpoint == 'web.test_call_page' %}active{% endif %}">{{ _('nav.test_call') }}</a>
+          <a href="{{ url_for('web.settings_page') }}" class="{% if request.endpoint == 'web.settings_page' %}active{% endif %}">{{ _('nav.settings') }}</a>
+          <a href="{{ url_for('web.logout') }}" class="nav-logout">{{ _('nav.logout') }}</a>
+        </div>
+      </nav>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="container main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

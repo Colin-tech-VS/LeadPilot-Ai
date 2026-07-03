@@ -1,0 +1,135 @@
+/* LeadPilot AI — animated brand logo */
+.lp-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.lp-logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lp-logo--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.lp-logo--md {
+  width: 36px;
+  height: 36px;
+}
+
+.lp-logo--lg {
+  width: 56px;
+  height: 56px;
+}
+
+.lp-logo--xl {
+  width: 72px;
+  height: 72px;
+}
+
+.lp-logo--animated {
+  animation: lp-logo-float 4s ease-in-out infinite;
+}
+
+.lp-logo--animated .lp-logo__ring {
+  animation: lp-logo-ring 2.8s ease-out infinite;
+  transform-origin: 32px 32px;
+}
+
+.lp-logo--animated .lp-logo__wave--1 {
+  animation: lp-logo-wave 1.4s ease-in-out infinite;
+}
+
+.lp-logo--animated .lp-logo__wave--2 {
+  animation: lp-logo-wave 1.4s ease-in-out 0.18s infinite;
+}
+
+.lp-logo--animated .lp-logo__wave--3 {
+  animation: lp-logo-wave 1.4s ease-in-out 0.36s infinite;
+}
+
+.lp-logo--animated .lp-logo__drop {
+  animation: lp-logo-drop 2.2s ease-in-out infinite;
+  transform-origin: 18px 48px;
+}
+
+.lp-logo--animated .lp-logo__spark--1 {
+  animation: lp-logo-spark 2s ease-in-out infinite;
+}
+
+.lp-logo--animated .lp-logo__spark--2 {
+  animation: lp-logo-spark 2s ease-in-out 0.7s infinite;
+}
+
+.lp-logo--animated .lp-logo__phone {
+  animation: lp-logo-phone 3s ease-in-out infinite;
+  transform-origin: 32px 34px;
+}
+
+.brand:hover .lp-logo--animated,
+.auth-brand:hover .lp-logo--animated {
+  animation-duration: 2.5s;
+}
+
+.brand:hover .lp-logo__wave--1,
+.brand:hover .lp-logo__wave--2,
+.brand:hover .lp-logo__wave--3 {
+  animation-duration: 0.9s;
+}
+
+@keyframes lp-logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes lp-logo-ring {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes lp-logo-wave {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 1; }
+}
+
+@keyframes lp-logo-drop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(2px) scale(1.06); }
+}
+
+@keyframes lp-logo-spark {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes lp-logo-phone {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-1.5deg); }
+  75% { transform: rotate(1.5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-logo--animated,
+  .lp-logo--animated *,
+  .brand:hover .lp-logo__wave--1,
+  .brand:hover .lp-logo__wave--2,
+  .brand:hover .lp-logo__wave--3 {
+    animation: none !important;
+  }
+}

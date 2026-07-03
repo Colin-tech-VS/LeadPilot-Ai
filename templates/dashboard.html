@@ -1,0 +1,207 @@
+{% extends "layout.html" %}
+
+{% block body_class %}page-dashboard{% endblock %}
+{% block title %}{{ _('dash_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="dash-hero dash-animate">
+  <div class="dash-hero-text">
+    <p class="dash-greeting" id="dash-greeting">{{ _('dashboard.greeting') }}</p>
+    <h1 class="dash-title">{{ tenant.name if tenant else _('dashboard.title') }}</h1>
+    <p class="dash-subtitle">
+      <span id="dash-date"></span>
+      {% if next_appointment %}
+      · {{ _('dashboard.next_appointment') }} <strong>{{ next_appointment.date_time.strftime('%H:%M') }}</strong>
+      {% endif %}
+    </p>
+  </div>
+  <div class="dash-quick-actions">
+    <a href="{{ url_for('web.leads_page') }}" class="dash-action dash-action-primary">
+      <span class="dash-action-icon">👥</span>
+      <span>{{ _('nav.leads') }}</span>
+      {% if total_leads %}<span class="dash-action-badge">{{ total_leads }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('web.appointments_page') }}" class="dash-action">
+      <span class="dash-action-icon">📅</span>
+      <span>{{ _('nav.appointments') }}</span>
+    </a>
+    <a href="{{ url_for('web.test_call_page') }}" class="dash-action">
+      <span class="dash-action-icon">📞</span>
+      <span>{{ _('nav.test_call') }}</span>
+    </a>
+    <a href="{{ url_for('web.settings_page') }}" class="dash-action">
+      <span class="dash-action-icon">⚙️</span>
+      <span>{{ _('nav.settings') }}</span>
+    </a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-1">
+    <div class="kpi-icon-wrap kpi-icon-blue">
+      <span class="kpi-icon">📞</span>
+    </div>
+    <div class="kpi-body">
+      <p class="kpi-label">{{ _('dashboard.kpi_calls') }}</p>
+      <p class="kpi-value" data-count="{{ calls_today }}">0</p>
+    </div>
+    <span class="kpi-trend">{{ _('dashboard.kpi_today') }}</span>
+  </a>
+  <a href="{{ url_for('web.appointments_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-2">
+    <div class="kpi-icon-wrap kpi-icon-green">
+      <span class="kpi-icon">📅</span>
+    </div>
+    <div class="kpi-body">
+      <p class="kpi-label">{{ _('dashboard.kpi_appointments') }}</p>
+      <p class="kpi-value kpi-value-green" data-count="{{ appointments_today }}">0</p>
+    </div>
+    <span class="kpi-trend">{{ _('dashboard.kpi_today') }}</span>
+  </a>
+  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-3">
+    <div class="kpi-icon-wrap kpi-icon-neutral">
+      <span class="kpi-icon">💰</span>
+    </div>
+    <div class="kpi-body">
+      <p class="kpi-label">{{ _('dashboard.kpi_quotes') }}</p>
+      <p class="kpi-value" data-count="{{ pending_quotes }}">0</p>
+    </div>
+    <span class="kpi-trend">{{ _('dashboard.kpi_pending') }}</span>
+  </a>
+  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-4{% if urgencies > 0 %} kpi-card-alert{% endif %}">
+    <div class="kpi-icon-wrap kpi-icon-red">
+      <span class="kpi-icon">🚨</span>
+    </div>
+    <div class="kpi-body">
+      <p class="kpi-label">{{ _('dashboard.kpi_urgencies') }}</p>
+      <p class="kpi-value kpi-value-red" data-count="{{ urgencies }}">0</p>
+    </div>
+    {% if urgencies > 0 %}
+    <span class="kpi-pulse"></span>
+    {% endif %}
+  </a>
+</div>
+
+<div class="dashboard-grid">
+  <section class="dashboard-main dash-panel dash-animate dash-delay-5">
+    <header class="dash-panel-head">
+      <h2 class="dash-panel-title">
+        {{ _('dashboard.recent_leads') }}
+        {% if recent_leads %}<span class="dash-panel-count">{{ recent_leads|length }}</span>{% endif %}
+      </h2>
+      <a href="{{ url_for('web.leads_page') }}" class="dash-see-all">{{ _('dashboard.view_all') }}</a>
+    </header>
+
+    {% if recent_leads %}
+    <div class="lead-cards">
+      {% for lead in recent_leads %}
+      <article class="lead-card dash-card-in" style="--i: {{ loop.index }}">
+        <div class="lead-card-header">
+          <div class="lead-avatar">{{ lead.name[:1]|upper }}</div>
+          <div class="lead-card-meta">
+            <h3 class="lead-name">{{ lead.name }}</h3>
+            <p class="lead-phone">{{ lead.phone }}</p>
+          </div>
+          <div class="lead-card-badges">
+            {% if lead.urgency_level %}
+            <span class="badge badge-urgency-{{ lead.urgency_level|lower }}">{{ urgency_label(lead.urgency_level) }}</span>
+            {% endif %}
+            {% if lead.acceptance_status %}
+            <span class="badge badge-acceptance badge-{{ lead.acceptance_status }}">{{ acceptance_label(lead.acceptance_status) }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <p class="lead-issue">{{ issue_label(lead.issue_type) if lead.issue_type else '—' }}</p>
+        {% if lead.address %}
+        <p class="lead-address">📍 {{ lead.address }}</p>
+        {% endif %}
+        <div class="lead-card-footer">
+          <span class="badge badge-{{ lead.status }}">{{ status_label(lead.status) }}</span>
+          <span class="lead-time">{{ lead.created_at.strftime('%d/%m %H:%M') if lead.created_at else '' }}</span>
+        </div>
+        <div class="lead-actions">
+          <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
+          <a href="{{ url_for('web.appointments_page') }}" class="btn btn-primary btn-sm">{{ _('btn.create_appointment') }}</a>
+          <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
+            <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="dash-empty">
+      <div class="dash-empty-icon">📭</div>
+      <p>{{ _('empty.leads') }}</p>
+      <a href="{{ url_for('web.test_call_page') }}" class="btn btn-primary">{{ _('dashboard.simulate_call') }}</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-card sidebar-card-highlight dash-animate dash-delay-6">
+      <div class="sidebar-card-head">
+        <h2>{{ _('dashboard.today') }}</h2>
+        <span class="sidebar-count">{{ today_appointments|length }}</span>
+      </div>
+      {% if today_appointments %}
+      <ul class="schedule-list schedule-timeline">
+        {% for appt in today_appointments %}
+        <li class="schedule-item">
+          <div class="schedule-rail">
+            <span class="schedule-dot"></span>
+            {% if not loop.last %}<span class="schedule-line"></span>{% endif %}
+          </div>
+          <div class="schedule-content">
+            <span class="schedule-time">{{ appt.date_time.strftime('%H:%M') if appt.date_time else '—' }}</span>
+            <p class="schedule-name">{{ appt.lead.name if appt.lead else '—' }}</p>
+            {% if appt.lead and appt.lead.address %}
+            <p class="schedule-address">{{ appt.lead.address[:40] }}{% if appt.lead.address|length > 40 %}…{% endif %}</p>
+            {% endif %}
+            <span class="badge badge-{{ appt.status }}">{{ status_label(appt.status) }}</span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      <a href="{{ url_for('web.appointments_page') }}" class="sidebar-link">{{ _('dashboard.open_map') }} →</a>
+      {% else %}
+      <div class="dash-empty dash-empty-sm">
+        <p>{{ _('dashboard.no_appointments_today') }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sidebar-card dash-animate dash-delay-7">
+      <div class="sidebar-card-head">
+        <h2>{{ _('dashboard.upcoming') }}</h2>
+      </div>
+      {% if upcoming_appointments %}
+      <ul class="schedule-list schedule-compact">
+        {% for appt in upcoming_appointments %}
+        <li class="schedule-row">
+          <span class="schedule-date-badge">{{ appt.date_time.strftime('%d/%m') if appt.date_time else '—' }}</span>
+          <div>
+            <span class="schedule-time-inline">{{ appt.date_time.strftime('%H:%M') if appt.date_time else '' }}</span>
+            <p class="schedule-name">{{ appt.lead.name if appt.lead else '—' }}</p>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="dash-empty dash-empty-sm">
+        <p>{{ _('empty.appointments') }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+
+<script>
+  window.DASH_LABELS = {
+    greetingMorning: {{ _('dashboard.greeting_morning')|tojson }},
+    greetingAfternoon: {{ _('dashboard.greeting_afternoon')|tojson }},
+    greetingEvening: {{ _('dashboard.greeting_evening')|tojson }},
+    locale: {{ lang|tojson }},
+  };
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=2"></script>
+{% endblock %}

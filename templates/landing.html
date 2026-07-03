@@ -1,0 +1,246 @@
+{% extends "public_layout.html" %}
+
+{% block title %}{{ _('landing.meta_title') }}{% endblock %}
+{% block body_class %}page-landing{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ _('landing.meta_description') }}">
+<meta name="keywords" content="{{ _('landing.meta_keywords') }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ _('landing.meta_title') }}">
+<meta property="og:description" content="{{ _('landing.meta_description') }}">
+<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ _('landing.meta_title') }}">
+<meta name="twitter:description" content="{{ _('landing.meta_description') }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "LeadPilot AI",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": {{ _('landing.meta_description')|tojson }},
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR",
+    "description": {{ _('landing.schema_offer')|tojson }}
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="landing-hero">
+  <div class="container landing-hero-grid">
+    <div class="landing-hero-copy landing-fade">
+      <span class="landing-badge">{{ _('landing.hero_badge') }}</span>
+      <h1>{{ _('landing.hero_title') }}</h1>
+      <p class="landing-hero-lead">{{ _('landing.hero_subtitle') }}</p>
+      <div class="landing-hero-cta">
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg landing-cta-primary">{{ _('landing.cta_signup') }}</a>
+        <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_demo') }}</a>
+      </div>
+      <ul class="landing-trust">
+        <li>{{ _('landing.trust_1') }}</li>
+        <li>{{ _('landing.trust_2') }}</li>
+        <li>{{ _('landing.trust_3') }}</li>
+      </ul>
+    </div>
+    <div class="landing-hero-visual landing-fade landing-delay-1" aria-hidden="true">
+      <div class="hero-orbit hero-orbit-1"></div>
+      <div class="hero-orbit hero-orbit-2"></div>
+      <div class="hero-phone">
+        <div class="hero-phone-notch"></div>
+        <div class="hero-phone-screen">
+          <p class="hero-call-label">{{ _('landing.demo_incoming') }}</p>
+          <p class="hero-call-number">{{ twilio_ai_phone_display }}</p>
+          <div class="hero-call-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p class="hero-call-ai">{{ _('landing.demo_ai_speaking') }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demo" class="landing-section landing-demo">
+  <div class="container">
+    <div class="landing-section-head landing-fade">
+      <span class="demo-notice-badge">{{ _('landing.demo_notice') }}</span>
+      <h2>{{ _('landing.demo_title') }}</h2>
+      <p>{{ _('landing.demo_subtitle') }}</p>
+    </div>
+
+    <div class="demo-grid landing-fade landing-delay-1">
+      <div class="demo-phone-wrap">
+        <div class="demo-phone">
+          <div class="demo-phone-header">
+            <span class="demo-call-icon" aria-hidden="true">📞</span>
+            <div class="demo-phone-header-text">
+              <strong>{{ _('landing.demo_live') }}</strong>
+              <span>{{ _('landing.demo_incoming_line') }}</span>
+            </div>
+          </div>
+          <div class="demo-call-log" id="demo-chat">
+            <div class="demo-utterance demo-utterance-ai">
+              <span class="demo-speaker">{{ _('landing.demo_ai_voice') }}</span>
+              <p>{{ _('landing.demo_welcome') }}</p>
+            </div>
+          </div>
+          <div class="demo-input-area">
+            <label for="demo-transcript">{{ _('landing.demo_transcript_label') }}</label>
+            <textarea id="demo-transcript" rows="3" placeholder="{{ _('landing.demo_placeholder') }}">{{ _('landing.demo_default_text') }}</textarea>
+            <button type="button" id="demo-run" class="btn btn-primary">{{ _('landing.demo_run') }}</button>
+            <p class="demo-input-hint">{{ _('landing.demo_input_hint') }}</p>
+          </div>
+        </div>
+        <div class="demo-scenarios">
+          <p class="demo-scenarios-label">{{ _('landing.demo_scenarios') }}</p>
+          <button type="button" class="demo-scenario-btn" data-scenario="paris">{{ _('landing.demo_scenario_paris') }}</button>
+          <button type="button" class="demo-scenario-btn" data-scenario="nice">{{ _('landing.demo_scenario_nice') }}</button>
+          <button type="button" class="demo-scenario-btn" data-scenario="quote">{{ _('landing.demo_scenario_quote') }}</button>
+        </div>
+      </div>
+
+      <div class="demo-result" id="demo-result">
+        <h3>{{ _('landing.demo_result') }}</h3>
+        <div class="demo-result-empty" id="demo-result-empty">
+          <p>{{ _('landing.demo_result_hint') }}</p>
+        </div>
+        <div class="demo-result-body" id="demo-result-body" hidden>
+          <div class="demo-result-row">
+            <span class="demo-result-label">{{ _('landing.demo_extracted') }}</span>
+            <div id="demo-extracted" class="demo-result-tags"></div>
+          </div>
+          <div class="demo-result-row">
+            <span class="demo-result-label">{{ _('landing.demo_action') }}</span>
+            <span id="demo-action" class="demo-action-badge"></span>
+          </div>
+          <div class="demo-result-row">
+            <span class="demo-result-label">{{ _('landing.demo_score') }}</span>
+            <span id="demo-score" class="demo-score"></span>
+          </div>
+          <p id="demo-reason" class="demo-reason"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="landing-section landing-features">
+  <div class="container">
+    <div class="landing-section-head landing-fade">
+      <h2>{{ _('landing.features_title') }}</h2>
+      <p>{{ _('landing.features_subtitle') }}</p>
+    </div>
+    <div class="features-grid">
+      <article class="feature-card landing-fade">
+        <span class="feature-icon">🤖</span>
+        <h3>{{ _('landing.feature_1_title') }}</h3>
+        <p>{{ _('landing.feature_1_desc') }}</p>
+      </article>
+      <article class="feature-card landing-fade landing-delay-1">
+        <span class="feature-icon">📍</span>
+        <h3>{{ _('landing.feature_2_title') }}</h3>
+        <p>{{ _('landing.feature_2_desc') }}</p>
+      </article>
+      <article class="feature-card landing-fade landing-delay-2">
+        <span class="feature-icon">📅</span>
+        <h3>{{ _('landing.feature_3_title') }}</h3>
+        <p>{{ _('landing.feature_3_desc') }}</p>
+      </article>
+      <article class="feature-card landing-fade landing-delay-3">
+        <span class="feature-icon">🗺️</span>
+        <h3>{{ _('landing.feature_4_title') }}</h3>
+        <p>{{ _('landing.feature_4_desc') }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="landing-section landing-steps">
+  <div class="container">
+    <div class="landing-section-head landing-fade">
+      <h2>{{ _('landing.steps_title') }}</h2>
+    </div>
+    <ol class="steps-list">
+      <li class="step-item landing-fade"><span class="step-num">1</span><div><strong>{{ _('landing.step_1_title') }}</strong><p>{{ _('landing.step_1_desc') }}</p></div></li>
+      <li class="step-item landing-fade landing-delay-1"><span class="step-num">2</span><div><strong>{{ _('landing.step_2_title') }}</strong><p>{{ _('landing.step_2_desc') }}</p></div></li>
+      <li class="step-item landing-fade landing-delay-2"><span class="step-num">3</span><div><strong>{{ _('landing.step_3_title') }}</strong><p>{{ _('landing.step_3_desc') }}</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section id="faq" class="landing-section landing-faq">
+  <div class="container">
+    <div class="landing-section-head landing-fade">
+      <h2>{{ _('landing.faq_title') }}</h2>
+    </div>
+    <div class="faq-list landing-fade landing-delay-1">
+      <details class="faq-item" open>
+        <summary>{{ _('landing.faq_1_q') }}</summary>
+        <p>{{ _('landing.faq_1_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_2_q') }}</summary>
+        <p>{{ _('landing.faq_2_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_3_q') }}</summary>
+        <p>{{ _('landing.faq_3_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_4_q') }}</summary>
+        <p>{{ _('landing.faq_4_a') }}</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="landing-cta-band">
+  <div class="container landing-cta-inner landing-fade">
+    <h2>{{ _('landing.cta_band_title') }}</h2>
+    <p>{{ _('landing.cta_band_sub') }}</p>
+    <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.LANDING_I18N = {
+    processing: {{ _('landing.demo_processing')|tojson }},
+    run: {{ _('landing.demo_run')|tojson }},
+    client: {{ _('landing.demo_client')|tojson }},
+    ai: {{ _('landing.demo_ai')|tojson }},
+    error: {{ _('landing.demo_error')|tojson }},
+    replies: {
+      BOOK_NOW: {{ _('landing.demo_reply_book')|tojson }},
+      OUT_OF_ZONE: {{ _('landing.demo_reply_out_zone')|tojson }},
+      SEND_QUOTE: {{ _('landing.demo_reply_quote')|tojson }},
+      default: {{ _('landing.demo_reply_default')|tojson }},
+    },
+    speakers: {
+      client: {{ _('landing.demo_caller')|tojson }},
+      ai: {{ _('landing.demo_ai_voice')|tojson }},
+    },
+    booking: {
+      BOOK_NOW: {{ _('booking.BOOK_NOW')|tojson }},
+      CALL_BACK: {{ _('booking.CALL_BACK')|tojson }},
+      SEND_QUOTE: {{ _('booking.SEND_QUOTE')|tojson }},
+      OUT_OF_ZONE: {{ _('booking.OUT_OF_ZONE')|tojson }},
+    },
+    scenarios: {
+      paris: {{ _('landing.scenario_paris_text')|tojson }},
+      nice: {{ _('landing.scenario_nice_text')|tojson }},
+      quote: {{ _('landing.scenario_quote_text')|tojson }},
+    },
+  };
+</script>
+<script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

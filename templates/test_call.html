@@ -1,0 +1,172 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('test_call_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('test_call.title') }}</h1>
+  <p class="subtitle">{{ _('test_call.subtitle') }}</p>
+</div>
+
+<div class="test-call-grid">
+  <section class="card form-card">
+    {% if scenarios %}
+    <div class="test-scenarios">
+      <h2>{{ _('test_call.scenarios') }}</h2>
+      <p class="section-hint">{{ _('test_call.scenarios_hint') }}</p>
+      <div class="scenario-list">
+        {% for s in scenarios %}
+        <button type="button" class="scenario-btn" data-phone="{{ s.phone }}" data-transcript="{{ s.transcript }}" data-expected="{{ s.expected }}">
+          <span class="scenario-label">{{ s.label }}</span>
+          <span class="scenario-expected">{{ _('test_call.expected') }}: {{ s.expected }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <form id="test-call-form">
+      <input type="hidden" id="tenant_id" name="tenant_id" value="{{ tenant_id }}">
+
+      <label for="phone">{{ _('test_call.phone') }}</label>
+      <input type="text" id="phone" name="phone" placeholder="+33612345678" required>
+
+      <label for="transcript">{{ _('test_call.transcript') }}</label>
+      <textarea id="transcript" name="transcript" rows="8" placeholder="{{ _('test_call.transcript_placeholder') }}" required></textarea>
+
+      <button type="submit" class="btn" id="submit-btn">{{ _('test_call.submit') }}</button>
+    </form>
+  </section>
+
+  <section class="card result-card" id="result-panel" hidden>
+    <h2>{{ _('test_call.result') }}</h2>
+    <div id="result-error" class="alert alert-error" hidden></div>
+    <div id="result-success" hidden>
+      <p><strong>{{ _('test_call.lead_id') }}:</strong> <code id="result-lead-id"></code></p>
+      <p><strong>{{ _('test_call.urgency') }}:</strong> <span id="result-urgency" class="badge"></span></p>
+      <p><strong>{{ _('test_call.summary') }}:</strong></p>
+      <p id="result-summary" class="result-summary"></p>
+
+      <div class="booking-box" id="booking-box">
+        <h3>{{ _('test_call.booking') }}</h3>
+        <div class="booking-row">
+          <span class="booking-label">{{ _('test_call.priority_score') }}</span>
+          <span id="result-score" class="badge badge-score"></span>
+        </div>
+        <div class="booking-row">
+          <span class="booking-label">{{ _('test_call.action') }}</span>
+          <span id="result-action" class="badge"></span>
+        </div>
+        <div class="booking-row">
+          <span class="booking-label">{{ _('test_call.suggested_slot') }}</span>
+          <span id="result-slot">—</span>
+        </div>
+        <div class="booking-row">
+          <span class="booking-label">{{ _('test_call.reason') }}</span>
+          <p id="result-reason" class="result-reason"></p>
+        </div>
+      </div>
+
+      <p><strong>{{ _('test_call.extracted') }}:</strong></p>
+      <pre id="result-json" class="result-json"></pre>
+    </div>
+  </section>
+</div>
+
+<script>
+const i18n = {
+  processing: {{ _('test_call.processing')|tojson }},
+  submit: {{ _('test_call.submit')|tojson }},
+  failed: {{ _('test_call.error.failed')|tojson }},
+  noSlot: {{ _('booking.no_slot')|tojson }},
+  urgency: {
+    low: {{ _('urgency.low')|tojson }},
+    medium: {{ _('urgency.medium')|tojson }},
+    high: {{ _('urgency.high')|tojson }},
+  },
+  booking: {
+    BOOK_NOW: {{ _('booking.BOOK_NOW')|tojson }},
+    CALL_BACK: {{ _('booking.CALL_BACK')|tojson }},
+    SEND_QUOTE: {{ _('booking.SEND_QUOTE')|tojson }},
+    OUT_OF_ZONE: {{ _('booking.OUT_OF_ZONE')|tojson }},
+  },
+};
+
+document.querySelectorAll('.scenario-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.getElementById('phone').value = btn.dataset.phone || '';
+    document.getElementById('transcript').value = btn.dataset.transcript || '';
+    document.querySelectorAll('.scenario-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('test-call-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const panel = document.getElementById('result-panel');
+  const errBox = document.getElementById('result-error');
+  const okBox = document.getElementById('result-success');
+
+  btn.disabled = true;
+  btn.textContent = i18n.processing;
+  panel.hidden = false;
+  errBox.hidden = true;
+  okBox.hidden = true;
+
+  const payload = {
+    tenant_id: document.getElementById('tenant_id').value,
+    phone: document.getElementById('phone').value,
+    transcript: document.getElementById('transcript').value,
+  };
+
+  try {
+    const res = await fetch('/webhook/inbound-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errBox.textContent = data.error || i18n.failed;
+      errBox.hidden = false;
+      return;
+    }
+
+    const extracted = data.extracted_data || {};
+    const booking = data.booking || {};
+    const urgency = (extracted.urgency_level || 'low').toLowerCase();
+    const action = booking.action || '';
+
+    document.getElementById('result-lead-id').textContent = data.lead_id;
+    const urgencyEl = document.getElementById('result-urgency');
+    urgencyEl.textContent = i18n.urgency[urgency] || extracted.urgency_level || '—';
+    urgencyEl.className = 'badge badge-urgency-' + urgency;
+    document.getElementById('result-summary').textContent = extracted.summary || '—';
+
+    const scoreEl = document.getElementById('result-score');
+    scoreEl.textContent = (booking.priority_score ?? '—') + ' / 100';
+
+    const actionEl = document.getElementById('result-action');
+    actionEl.textContent = i18n.booking[action] || action || '—';
+    actionEl.className = 'badge badge-action-' + action;
+
+    const slot = booking.suggested_slot;
+    document.getElementById('result-slot').textContent = slot
+      ? new Date(slot).toLocaleString('{{ lang }}')
+      : i18n.noSlot;
+    document.getElementById('result-reason').textContent = booking.reason || '—';
+
+    document.getElementById('result-json').textContent = JSON.stringify(extracted, null, 2);
+    okBox.hidden = false;
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = i18n.submit;
+  }
+});
+</script>
+{% endblock %}

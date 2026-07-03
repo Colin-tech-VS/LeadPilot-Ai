@@ -1,0 +1,9 @@
+{
+  "name": "LeadPilot Ai",
+  "description": "Réceptionniste IA vocale pour plombiers — prise de RDV et gestion des leads",
+  "stack": "scalingo-22",
+  "env": {
+    "FLASK_ENV": "production",
+    "PREFERRED_URL_SCHEME": "https"
+  }
+}

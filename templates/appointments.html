@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('appointments_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('appointments.title') }}</h1>
+  <p class="subtitle">{{ _('appointments.total', count=appointments|length) }} · {{ _('appointments.select_hint') }}</p>
+</div>
+
+{% if appointments %}
+<div class="appointments-layout">
+  <section class="agenda-panel">
+    <h2 class="panel-title">{{ _('appointments.agenda') }}</h2>
+
+    {% for day in agenda_days %}
+    <div class="agenda-day">
+      <div class="agenda-day-header">
+        <span class="agenda-day-name">{{ day.day_name }}</span>
+        <span class="agenda-day-date">{{ day.date_display }}</span>
+        <span class="agenda-day-count">{{ day.count }} RDV</span>
+      </div>
+
+      <div class="agenda-slots">
+        {% for appt in day.appointments %}
+        {% set lead = appt.lead %}
+        <article
+          class="agenda-slot{% if lead and lead.latitude %} agenda-slot-mapped{% endif %}"
+          data-appt-id="{{ appt.id }}"
+          {% if lead and lead.latitude %}data-lat="{{ lead.latitude }}" data-lng="{{ lead.longitude }}"{% endif %}
+        >
+          <div class="agenda-time-col">
+            <span class="agenda-time">{{ appt.date_time.strftime('%H:%M') if appt.date_time else '—' }}</span>
+            <span class="badge badge-{{ appt.status }}">{{ status_label(appt.status) }}</span>
+            {% if lead and lead.acceptance_status %}
+            <span class="badge badge-acceptance badge-{{ lead.acceptance_status }}">{{ acceptance_label(lead.acceptance_status) }}</span>
+            {% endif %}
+          </div>
+          <div class="agenda-details">
+            <h3 class="agenda-client">{{ lead.name if lead else '—' }}</h3>
+            {% if lead and lead.issue_type %}
+            <p class="agenda-issue">{{ issue_label(lead.issue_type) }}</p>
+            {% endif %}
+            {% if lead and lead.address %}
+            <p class="agenda-address">📍 {{ lead.address }}</p>
+            {% else %}
+            <p class="agenda-address agenda-address-missing">{{ _('appointments.no_address') }}</p>
+            {% endif %}
+            {% if lead %}
+            <div class="agenda-actions">
+              <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('appointments.call_client') }}</a>
+              {% if lead.latitude and lead.longitude %}
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination={{ lead.latitude }},{{ lead.longitude }}"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-primary btn-sm"
+              >{{ _('appointments.navigate') }}</a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="map-panel">
+    <h2 class="panel-title">{{ _('appointments.map') }}</h2>
+    {% if route_days %}
+    <div class="route-controls">
+      <label for="route-day-select">{{ _('appointments.route_day') }}</label>
+      <select id="route-day-select" class="route-day-select">
+        {% for day in route_days %}
+        <option value="{{ day.day_key }}">{{ day.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="route-legend">
+      <span class="route-legend-item"><span class="route-legend-line route-legend-car"></span> {{ _('appointments.route_car') }}</span>
+      <span class="route-legend-item"><span class="route-legend-line route-legend-transit"></span> {{ _('appointments.route_transit') }}</span>
+    </div>
+    {% endif %}
+    {% if route_days %}
+    <div class="route-summary-panel">
+      <h3 class="route-summary-title">{{ _('appointments.route_summary') }}</h3>
+      <div id="route-legs" class="route-legs"></div>
+    </div>
+    {% endif %}
+    <div id="appointments-map" class="appointments-map"></div>
+    <p id="map-status" class="map-status"></p>
+  </section>
+</div>
+
+<script>
+  window.APPOINTMENT_MARKERS = {{ map_markers|tojson }};
+  window.ROUTE_DAYS = {{ route_days|tojson }};
+  window.MAP_LABELS = {
+    noLocation: {{ _('appointments.no_location')|tojson }},
+    routeLoading: {{ _('appointments.route_loading')|tojson }},
+    routeCar: {{ _('appointments.route_car_short')|tojson }},
+    routeTransit: {{ _('appointments.route_transit_short')|tojson }},
+    routeKm: {{ _('appointments.route_km')|tojson }},
+    routeFrom: {{ _('appointments.route_from')|tojson }},
+    routeTo: {{ _('appointments.route_to')|tojson }},
+    depot: {{ _('appointments.depot')|tojson }},
+    noRoutes: {{ _('appointments.no_routes')|tojson }},
+  };
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/appointments.js') }}"></script>
+{% else %}
+<p class="empty">{{ _('empty.appointments') }}</p>
+{% endif %}
+{% endblock %}

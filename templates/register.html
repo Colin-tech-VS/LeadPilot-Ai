@@ -1,0 +1,71 @@
+{% extends "public_layout.html" %}
+{% from 'macros/brand.html' import brand_logo with context %}
+
+{% block body_class %}page-register{% endblock %}
+{% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
+{% block public_nav %}{% endblock %}
+
+{% block content %}
+<div class="auth-split">
+  <aside class="auth-brand auth-animate">
+    <div class="auth-brand-inner">
+      {{ brand_logo('xl', 'register') }}
+      <h1>{{ _('register.title') }}</h1>
+      <p class="auth-brand-tagline">{{ _('register.tagline') }}</p>
+      <ul class="auth-benefits">
+        <li class="auth-benefit-item">{{ _('register.benefit_1') }}</li>
+        <li class="auth-benefit-item">{{ _('register.benefit_2') }}</li>
+        <li class="auth-benefit-item">{{ _('register.benefit_3') }}</li>
+        <li class="auth-benefit-item">{{ _('register.benefit_4') }}</li>
+      </ul>
+    </div>
+    <div class="auth-brand-glow"></div>
+  </aside>
+
+  <section class="auth-form-panel auth-animate auth-delay-1">
+    <div class="auth-form-box">
+      <h2>{{ _('register.form_title') }}</h2>
+      <p class="auth-form-sub">{{ _('register.form_sub') }}</p>
+
+      {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" class="auth-form" id="register-form">
+        <label for="company_name">{{ _('register.company') }}</label>
+        <input type="text" id="company_name" name="company_name" required
+               value="{{ form.get('company_name', '') }}" placeholder="Plomberie Dupont">
+
+        <div class="auth-form-row">
+          <div>
+            <label for="city">{{ _('register.city') }}</label>
+            <input type="text" id="city" name="city" value="{{ form.get('city', '') }}" placeholder="Paris">
+          </div>
+          <div>
+            <label for="phone">{{ _('register.phone') }}</label>
+            <input type="tel" id="phone" name="phone" value="{{ form.get('phone', '') }}" placeholder="+336…">
+          </div>
+        </div>
+
+        <label for="email">{{ _('login.email') }}</label>
+        <input type="email" id="email" name="email" required
+               value="{{ form.get('email', '') }}" placeholder="vous@entreprise.fr">
+
+        <label for="password">{{ _('login.password') }}</label>
+        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+
+        <label for="confirm_password">{{ _('register.confirm_password') }}</label>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
+
+        <button type="submit" class="btn btn-primary btn-auth-submit">{{ _('register.submit') }}</button>
+      </form>
+
+      <p class="auth-switch">
+        {{ _('register.have_account') }}
+        <a href="{{ url_for('web.login') }}">{{ _('register.login_link') }}</a>
+      </p>
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}

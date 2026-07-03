@@ -1,0 +1,72 @@
+[
+  {
+    "id": "1_paris_urgence",
+    "label": "1 — Urgence Paris (RDV)",
+    "phone": "+33612345678",
+    "expected": "BOOK_NOW",
+    "transcript": "Bonjour, je m'appelle Sophie Martin. J'ai une fuite d'eau importante sous mon évier qui inonde ma cuisine. Je suis au 15 avenue des Champs-Élysées, 75008 Paris. C'est urgent, j'ai besoin d'un plombier aujourd'hui."
+  },
+  {
+    "id": "2_nice_hors_zone",
+    "label": "2 — Nice (hors zone)",
+    "phone": "+33698765432",
+    "expected": "OUT_OF_ZONE",
+    "transcript": "Bonjour, ici Marc Dubois. J'ai les WC complètement bouchés et ça déborde, c'est une urgence. Je suis au 22 promenade des Anglais, 06000 Nice. Pouvez-vous m'envoyer quelqu'un cet après-midi ?"
+  },
+  {
+    "id": "3_chaville_proche",
+    "label": "3 — Chaville proche (RDV)",
+    "phone": "+33611223344",
+    "expected": "BOOK_NOW",
+    "transcript": "Bonjour, Marie Leroy à l'appareil. Mon chauffe-eau fuit depuis ce matin au 3 rue du General de Gaulle, 92370 Chaville. Ce n'est pas une inondation mais j'aimerais un passage rapidement."
+  },
+  {
+    "id": "4_toulouse_hors_zone",
+    "label": "4 — Toulouse (hors zone)",
+    "phone": "+33655443322",
+    "expected": "OUT_OF_ZONE",
+    "transcript": "Bonjour, Pierre Durand. Canalisation percée au 10 place du Capitole, 31000 Toulouse. Il y a de l'eau partout, c'est très urgent !"
+  },
+  {
+    "id": "5_devis_sans_adresse",
+    "label": "5 — Devis sans adresse",
+    "phone": "+33677889900",
+    "expected": "SEND_QUOTE ou CALL_BACK",
+    "transcript": "Bonjour, je voudrais savoir combien coûte le remplacement d'un mitigeur de cuisine. Je n'ai pas encore de problème urgent, c'est juste pour me renseigner."
+  },
+  {
+    "id": "6_urgence_faible_paris",
+    "label": "6 — Fuite légère Paris",
+    "phone": "+33644556677",
+    "expected": "CALL_BACK ou SEND_QUOTE",
+    "transcript": "Bonjour, je suis Jean Petit au 42 rue de Rivoli, 75004 Paris. J'ai un petit goutte-à-goutte au robinet de la salle de bain depuis une semaine. Ce n'est pas pressé."
+  },
+  {
+    "id": "7_adresse_incomplete",
+    "label": "7 — Adresse incomplète",
+    "phone": "+33666778899",
+    "expected": "CALL_BACK",
+    "transcript": "Bonjour, j'ai un problème de WC bouché. Je suis dans le 15ème arrondissement de Paris mais je ne connais pas l'adresse exacte, je suis locataire. C'est assez urgent."
+  },
+  {
+    "id": "8_versailles_zone",
+    "label": "8 — Versailles (dans la zone)",
+    "phone": "+33699887766",
+    "expected": "BOOK_NOW",
+    "transcript": "Bonjour, Anne Moreau. Fuite sur la canalisation principale au 12 rue de la Paroisse, 78000 Versailles. L'eau coule dans le garage, merci d'intervenir vite."
+  },
+  {
+    "id": "9_marseille_hors_zone",
+    "label": "9 — Marseille (hors zone)",
+    "phone": "+33622334455",
+    "expected": "OUT_OF_ZONE",
+    "transcript": "Bonjour, Marc Lefebvre. Inondation dans l'appartement au 22 boulevard Gambetta, 13001 Marseille. Il faut un plombier en urgence s'il vous plaît."
+  },
+  {
+    "id": "10_double_creneau",
+    "label": "10 — 2e RDV même scénario",
+    "phone": "+33612345679",
+    "expected": "BOOK_NOW (créneau différent du #1)",
+    "transcript": "Bonjour, Thomas Bernard. Canalisation éclatée au 8 rue de la Paix, 75002 Paris. Inondation en cours, intervention urgente s'il vous plaît."
+  }
+]

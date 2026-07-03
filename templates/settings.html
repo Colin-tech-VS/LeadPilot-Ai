@@ -1,0 +1,101 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('settings_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('settings.title') }}</h1>
+  <p class="subtitle">{{ _('settings.subtitle') }}</p>
+</div>
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" class="settings-form">
+  <div class="settings-grid">
+    <section class="card form-card settings-section">
+      <h2>{{ _('settings.section.company') }}</h2>
+      <p class="section-hint">{{ _('settings.section.company_hint') }}</p>
+
+      <label for="name">{{ _('settings.company_name') }}</label>
+      <input type="text" id="name" name="name" value="{{ tenant.name or '' }}" required>
+
+      <div class="form-row">
+        <div>
+          <label for="first_name">{{ _('settings.first_name') }}</label>
+          <input type="text" id="first_name" name="first_name" value="{{ tenant.first_name or '' }}">
+        </div>
+        <div>
+          <label for="last_name">{{ _('settings.last_name') }}</label>
+          <input type="text" id="last_name" name="last_name" value="{{ tenant.last_name or '' }}">
+        </div>
+      </div>
+
+      <label for="siret">{{ _('settings.siret') }}</label>
+      <input type="text" id="siret" name="siret" value="{{ tenant.siret or '' }}" placeholder="12345678901234" maxlength="17">
+    </section>
+
+    <section class="card form-card settings-section">
+      <h2>{{ _('settings.section.phones') }}</h2>
+      <p class="section-hint">{{ _('settings.section.phones_hint') }}</p>
+
+      <label for="phone_number">{{ _('settings.phone') }}</label>
+      <input type="tel" id="phone_number" name="phone_number" value="{{ tenant.phone_number or '' }}" placeholder="+33612345678">
+
+      <label for="ai_phone_number">{{ _('settings.ai_phone') }}</label>
+      <input type="tel" id="ai_phone_number" name="ai_phone_number" value="{{ tenant.ai_phone_number or twilio_ai_phone_e164 }}" placeholder="{{ twilio_ai_phone_e164 }}">
+      <p class="field-hint">{{ _('settings.ai_phone_hint') }}</p>
+    </section>
+
+    <section class="card form-card settings-section">
+      <h2>{{ _('settings.section.location') }}</h2>
+      <p class="section-hint">{{ _('settings.section.location_hint') }}</p>
+
+      <label for="address">{{ _('settings.address') }}</label>
+      <input type="text" id="address" name="address" value="{{ tenant.address or '' }}" placeholder="12 rue de la Paix">
+
+      <div class="form-row">
+        <div class="form-row-narrow">
+          <label for="postal_code">{{ _('settings.postal_code') }}</label>
+          <input type="text" id="postal_code" name="postal_code" value="{{ tenant.postal_code or '' }}" placeholder="75001">
+        </div>
+        <div>
+          <label for="city">{{ _('settings.city') }}</label>
+          <input type="text" id="city" name="city" value="{{ tenant.city or '' }}" placeholder="Paris">
+        </div>
+      </div>
+
+      {% if tenant.latitude and tenant.longitude %}
+      <p class="field-hint">{{ _('settings.coords_saved') }}: {{ "%.5f"|format(tenant.latitude) }}, {{ "%.5f"|format(tenant.longitude) }}</p>
+      {% endif %}
+
+      <label for="service_radius_km">{{ _('settings.service_radius') }}</label>
+      <input type="number" id="service_radius_km" name="service_radius_km" min="5" max="200" step="1"
+             value="{{ tenant.service_radius_km or 30 }}">
+      <p class="field-hint">{{ _('settings.service_radius_hint') }}</p>
+    </section>
+
+    <section class="card form-card settings-section">
+      <h2>{{ _('settings.section.account') }}</h2>
+      <p class="section-hint">{{ _('settings.section.account_hint') }}</p>
+
+      <label for="email">{{ _('settings.email') }}</label>
+      <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+      <label for="new_password">{{ _('settings.new_password') }}</label>
+      <input type="password" id="new_password" name="new_password" autocomplete="new-password" placeholder="{{ _('settings.password_placeholder') }}">
+
+      <label for="confirm_password">{{ _('settings.confirm_password') }}</label>
+      <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password">
+    </section>
+  </div>
+
+  <div class="settings-actions">
+    <button type="submit" class="btn btn-primary">{{ _('settings.save') }}</button>
+  </div>
+</form>
+{% endblock %}

@@ -3724,3 +3724,95 @@ html.js-enabled .dash-card-in.is-visible {
   .chat-public-wrap { margin: 12px auto 28px; padding: 0 10px; }
   .chat-public-card .lp-chat, .chat-public-card .lp-chat-scroll { min-height: 64vh; }
 }
+
+/* ── Signature pad (settings) ───────────────────────────────────────── */
+.settings-section-signature {
+  grid-column: 1 / -1;
+}
+
+.settings-section-signature .sig-pad {
+  position: relative;
+  margin-top: 10px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 11px, rgba(15,23,42,0.02) 11px, rgba(15,23,42,0.02) 12px),
+    var(--card);
+  overflow: hidden;
+}
+
+.sig-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sig-current {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-height: 160px;
+  max-width: 90%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.sig-placeholder {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.sig-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── Artisan signature on the devis document ────────────────────────── */
+.doc-artisan-sign {
+  margin-top: 1.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doc-artisan-sign-box {
+  text-align: center;
+  min-width: 220px;
+}
+
+.doc-artisan-sign-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #9CA3AF;
+  margin: 0 0 .3rem;
+}
+
+.doc-artisan-sign-img {
+  max-height: 90px;
+  max-width: 240px;
+  object-fit: contain;
+}
+
+.doc-artisan-sign-name {
+  margin: .3rem 0 0;
+  font-weight: 600;
+  color: #111827;
+  border-top: 1px solid #E5E7EB;
+  padding-top: .4rem;
+}
+
+.doc-artisan-sign-typed {
+  font-family: "Segoe Script", "Bradley Hand", cursive;
+  font-size: 1.5rem;
+  color: #1E3A8A;
+  margin: 0;
+  padding: .2rem 0;
+}

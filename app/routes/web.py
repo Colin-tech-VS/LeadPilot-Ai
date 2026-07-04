@@ -593,6 +593,20 @@ def _normalize_siret(value):
     return digits if len(digits) == 14 else None
 
 
+# Signature pad output is a PNG data URL. Accept only that, and cap the size so
+# an oversized paste can't bloat the row (a normal signature is a few KB).
+_SIGNATURE_MAX_LEN = 300_000
+
+
+def _normalize_signature(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    if not value.startswith("data:image/") or len(value) > _SIGNATURE_MAX_LEN:
+        return None
+    return value
+
+
 @web_bp.route("/settings", methods=["GET", "POST"])
 @web_tenant_required
 def settings_page():
@@ -618,6 +632,7 @@ def settings_page():
         email = (request.form.get("email") or "").strip().lower()
         new_password = request.form.get("new_password") or ""
         confirm_password = request.form.get("confirm_password") or ""
+        signature = _normalize_signature(request.form.get("signature"))
 
         if not name:
             error = translate("settings.error.company_required")
@@ -662,6 +677,7 @@ def settings_page():
                 tenant.service_radius_km = int(service_radius_raw)
             elif tenant.service_radius_km is None:
                 tenant.service_radius_km = 30
+            tenant.signature = signature
 
             full_address = tenant.full_address
             if full_address:

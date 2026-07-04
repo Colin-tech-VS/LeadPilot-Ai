@@ -33,6 +33,10 @@ class Tenant(db.Model):
     latitude = db.Column(Float, nullable=True)
     longitude = db.Column(Float, nullable=True)
     service_radius_km = db.Column(db.Integer, nullable=True, default=30)
+    # Artisan's handwritten signature, stored as a PNG data URL (drawn on the
+    # settings signature pad). Printed on every devis so quotes the AI sends are
+    # already signed by the plumber. Null = no signature configured yet.
+    signature = db.Column(db.Text, nullable=True)
     # Billing: "trial" until the plumber upgrades to a paid plan ("starter",
     # "pro", "premium"). The AI line only answers while the subscription is active.
     plan = db.Column(db.String(20), nullable=False, default="trial")

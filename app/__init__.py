@@ -90,6 +90,7 @@ def _ensure_schema_updates():
         "latitude": "FLOAT",
         "longitude": "FLOAT",
         "service_radius_km": "INTEGER",
+        "signature": "TEXT",
         "plan": "VARCHAR(20)",
         "trial_ends_at": ts_type,
         "stripe_customer_id": "VARCHAR(64)",

@@ -262,7 +262,8 @@ class TwilioVoiceHandler:
         if state.booking_status == "booked":
             outcome = (
                 "Votre demande est enregistrée et un rendez-vous est planifié. "
-                "Un plombier vous rappelle pour confirmer l'horaire."
+                "Je vous envoie un devis détaillé, déjà signé par le plombier, "
+                "que vous pourrez valider. Un plombier vous rappelle pour confirmer l'horaire."
             )
         else:
             outcome = (
@@ -302,7 +303,10 @@ class TwilioVoiceHandler:
                     )
                 client = TwilioVoiceClient()
                 if booking.get("action") == ACTION_BOOK_NOW:
-                    client.say("Parfait, un rendez-vous est confirmé.")
+                    client.say(
+                        "Parfait, un rendez-vous est confirmé. "
+                        "Je vous envoie un devis déjà signé par le plombier, à valider de votre côté."
+                    )
                 else:
                     client.say("Très bien, nous vous recontactons rapidement.")
                 client.say("Merci pour votre appel. À bientôt.")

@@ -110,6 +110,7 @@ TRANSLATIONS = {
         "quotes.no_items": "Aucune prestation.",
         "quotes.tva": "TVA",
         "quotes.signature_line": "Bon pour accord — date et signature du client.",
+        "quotes.artisan_signature": "Signature de l'artisan",
         "quotes.delete": "Supprimer",
         "quotes.delete_confirm": "Supprimer ce document ? Cette action est irréversible.",
         "quote_status.draft": "Brouillon",
@@ -427,6 +428,12 @@ TRANSLATIONS = {
         "settings.section.location_hint": "Adresse de votre entreprise pour la géolocalisation",
         "settings.section.account": "Compte",
         "settings.section.account_hint": "E-mail de connexion et mot de passe",
+        "settings.section.signature": "Signature de l'artisan",
+        "settings.section.signature_hint": "Signez ci-dessous : votre signature apparaîtra sur chaque devis. Quand l'IA planifie un rendez-vous, elle envoie au client un devis déjà signé de votre main.",
+        "settings.signature_placeholder": "Signez ici avec la souris ou le doigt",
+        "settings.signature_clear": "Effacer",
+        "settings.signature_redraw": "Refaire la signature",
+        "settings.signature_current": "Signature enregistrée",
         "settings.company_name": "Nom de l'entreprise",
         "settings.first_name": "Prénom",
         "settings.last_name": "Nom",
@@ -596,6 +603,7 @@ TRANSLATIONS = {
         "quotes.no_items": "No line items.",
         "quotes.tva": "VAT",
         "quotes.signature_line": "Approved — client date and signature.",
+        "quotes.artisan_signature": "Tradesperson signature",
         "quotes.delete": "Delete",
         "quotes.delete_confirm": "Delete this document? This cannot be undone.",
         "quote_status.draft": "Draft",
@@ -913,6 +921,12 @@ TRANSLATIONS = {
         "settings.section.location_hint": "The address of your business for geolocation",
         "settings.section.account": "Account",
         "settings.section.account_hint": "Login email and password",
+        "settings.section.signature": "Tradesperson signature",
+        "settings.section.signature_hint": "Sign below: your signature appears on every quote. When the AI books an appointment, it sends the client a quote already signed by you.",
+        "settings.signature_placeholder": "Sign here with your mouse or finger",
+        "settings.signature_clear": "Clear",
+        "settings.signature_redraw": "Redraw signature",
+        "settings.signature_current": "Saved signature",
         "settings.company_name": "Company name",
         "settings.first_name": "First name",
         "settings.last_name": "Last name",
@@ -1022,16 +1036,22 @@ def issue_label(issue_type, lang=None):
 
 
 def get_lang():
-    if hasattr(g, "lang") and g.lang:
-        return g.lang
-    cookie_lang = request.cookies.get("lang") if request else None
-    if cookie_lang in SUPPORTED_LANGUAGES:
-        return cookie_lang
-    session_lang = session.get("lang")
-    if session_lang in SUPPORTED_LANGUAGES:
-        return session_lang
-    accept = request.accept_languages.best_match(SUPPORTED_LANGUAGES) if request else None
-    return accept or DEFAULT_LANGUAGE
+    # Robust outside a request/app context (e.g. background jobs, the voice
+    # pipeline building a devis): fall back to the default language instead of
+    # raising "Working outside of request context".
+    try:
+        if hasattr(g, "lang") and g.lang:
+            return g.lang
+        cookie_lang = request.cookies.get("lang") if request else None
+        if cookie_lang in SUPPORTED_LANGUAGES:
+            return cookie_lang
+        session_lang = session.get("lang")
+        if session_lang in SUPPORTED_LANGUAGES:
+            return session_lang
+        accept = request.accept_languages.best_match(SUPPORTED_LANGUAGES) if request else None
+        return accept or DEFAULT_LANGUAGE
+    except RuntimeError:
+        return DEFAULT_LANGUAGE
 
 
 def translate(key, lang=None, **kwargs):

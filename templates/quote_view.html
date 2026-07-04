@@ -126,6 +126,17 @@
   {% endif %}
 
   {% if not quote.is_invoice %}
+  <div class="doc-artisan-sign">
+    <div class="doc-artisan-sign-box">
+      <p class="doc-artisan-sign-label">{{ _('quotes.artisan_signature') }}</p>
+      {% if tenant.signature %}
+      <img class="doc-artisan-sign-img" src="{{ tenant.signature }}" alt="{{ _('quotes.artisan_signature') }}">
+      {% else %}
+      <p class="doc-artisan-sign-typed">{{ tenant.first_name or tenant.name }}{% if tenant.first_name and tenant.last_name %} {{ tenant.last_name }}{% endif %}</p>
+      {% endif %}
+      <p class="doc-artisan-sign-name">{{ tenant.name }}</p>
+    </div>
+  </div>
   <p class="doc-signature">{{ _('quotes.signature_line') }}</p>
   {% endif %}
 </article>

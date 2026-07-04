@@ -80,31 +80,33 @@
 
   {% if quote.title %}<h3 class="doc-object">{{ quote.title }}</h3>{% endif %}
 
-  <table class="doc-table">
-    <thead>
-      <tr>
-        <th class="ta-l">{{ _('quotes.item_label') }}</th>
-        <th>{{ _('quotes.item_qty') }}</th>
-        <th class="ta-r">{{ _('quotes.item_price') }}</th>
-        <th>{{ _('quotes.item_tva') }}</th>
-        <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in quote.get_items() %}
-      <tr>
-        <td class="ta-l">{{ item.label }}</td>
-        <td>{{ item.quantity }}</td>
-        <td class="ta-r">{{ '%.2f'|format(item.unit_price) }} €</td>
-        <td>{{ item.tva_rate }} %</td>
-        <td class="ta-r">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
-      </tr>
-      {% endfor %}
-      {% if not quote.get_items() %}
-      <tr><td colspan="5" class="doc-empty">{{ _('quotes.no_items') }}</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
+  <div class="doc-table-wrap">
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th class="ta-l">{{ _('quotes.item_label') }}</th>
+          <th>{{ _('quotes.item_qty') }}</th>
+          <th class="ta-r">{{ _('quotes.item_price') }}</th>
+          <th>{{ _('quotes.item_tva') }}</th>
+          <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in quote.get_items() %}
+        <tr>
+          <td class="ta-l" data-label="{{ _('quotes.item_label') }}">{{ item.label }}</td>
+          <td data-label="{{ _('quotes.item_qty') }}">{{ item.quantity }}</td>
+          <td class="ta-r" data-label="{{ _('quotes.item_price') }}">{{ '%.2f'|format(item.unit_price) }} €</td>
+          <td data-label="{{ _('quotes.item_tva') }}">{{ item.tva_rate }} %</td>
+          <td class="ta-r" data-label="{{ _('quotes.item_total_ht') }}">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
+        </tr>
+        {% endfor %}
+        {% if not quote.get_items() %}
+        <tr><td colspan="5" class="doc-empty">{{ _('quotes.no_items') }}</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 
   <div class="doc-totals">
     <div class="doc-totals-box">
@@ -147,9 +149,11 @@
   .quote-share-input { flex: 1; min-width: 0; border: 1px solid #BFDBFE; border-radius: 8px; padding: .4rem .5rem;
     font-size: .8rem; background: #fff; color: #374151; }
   .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; max-width: 820px;
-    margin: 0 auto; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
+    margin: 0 auto; box-shadow: 0 4px 16px rgba(16,24,40,.08); border-top: 4px solid #2563EB; }
   .doc-head { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 2px solid #111827;
     padding-bottom: 1.2rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
+  .doc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.2rem; }
+  .doc-table-wrap .doc-table { margin-bottom: 0; }
   .doc-issuer h2 { margin: 0 0 .4rem; font-size: 1.3rem; color: #111827; }
   .doc-issuer p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
   .doc-meta { text-align: right; }
@@ -182,6 +186,23 @@
   .doc-signature { margin-top: 1.6rem; color: #6B7280; font-size: .85rem; font-style: italic; }
   .quote-danger { max-width: 820px; margin: 1rem auto 0; text-align: right; }
   .btn-danger { color: #B91C1C; border-color: #FCA5A5; }
+  @media (max-width: 560px) {
+    .doc-sheet { padding: 1.2rem; }
+    .doc-head { gap: 1rem; }
+    .doc-meta { text-align: left; }
+    .doc-totals-box { min-width: 0; width: 100%; }
+    .doc-totals { justify-content: stretch; }
+    .doc-table-wrap { overflow: visible; }
+    .doc-table thead { display: none; }
+    .doc-table, .doc-table tbody, .doc-table tr, .doc-table td { display: block; width: 100%; }
+    .doc-table tr { border: 1px solid #F0F1F3; border-radius: 10px; padding: .5rem .7rem; margin-bottom: .6rem; }
+    .doc-table td { border: none !important; text-align: right !important; padding: .3rem 0;
+      display: flex; justify-content: space-between; gap: 1rem; font-size: .92rem; }
+    .doc-table td::before { content: attr(data-label); font-weight: 600; color: #6B7280; text-align: left;
+      text-transform: uppercase; font-size: .68rem; letter-spacing: .03em; }
+    .doc-table td.ta-l { font-weight: 600; color: #111827; }
+    .doc-empty::before { content: none; }
+  }
   @media print {
     .no-print, .topbar, .tabbar, .quote-toolbar, .quote-sharebar, .quote-danger { display: none !important; }
     .no-print-badge { display: none !important; }

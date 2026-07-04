@@ -151,7 +151,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -574,19 +574,9 @@ def appointments_page():
 @web_bp.route("/test-call", methods=["GET"])
 @web_tenant_required
 def test_call_page():
-    import json
-    from pathlib import Path
-
-    scenarios_path = Path(__file__).resolve().parent.parent.parent / "scripts" / "test_ia_scenarios.json"
-    scenarios = []
-    if scenarios_path.exists():
-        scenarios = json.loads(scenarios_path.read_text(encoding="utf-8"))
-
-    return render_template(
-        "test_call.html",
-        tenant_id=str(g.tenant_id),
-        scenarios=scenarios,
-    )
+    # The former "Test appel" page has been replaced by the commercial chatbot.
+    # Keep the old URL working for any bookmarks by redirecting to it.
+    return redirect(url_for("chatbot.chatbot_console"))
 
 
 def _normalize_phone(value):

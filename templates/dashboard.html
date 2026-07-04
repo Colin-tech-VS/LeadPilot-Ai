@@ -39,9 +39,9 @@
       <span class="dash-action-icon">📅</span>
       <span>{{ _('nav.appointments') }}</span>
     </a>
-    <a href="{{ url_for('web.test_call_page') }}" class="dash-action">
-      <span class="dash-action-icon">📞</span>
-      <span>{{ _('nav.test_call') }}</span>
+    <a href="{{ url_for('chatbot.chatbot_console') }}" class="dash-action">
+      <span class="dash-action-icon">💬</span>
+      <span>{{ _('nav.chatbot') }}</span>
     </a>
     <a href="{{ url_for('web.settings_page') }}" class="dash-action">
       <span class="dash-action-icon">⚙️</span>
@@ -154,7 +154,7 @@
     <div class="dash-empty">
       <div class="dash-empty-icon">📭</div>
       <p>{{ _('empty.leads') }}</p>
-      <a href="{{ url_for('web.test_call_page') }}" class="btn btn-primary">{{ _('dashboard.simulate_call') }}</a>
+      <a href="{{ url_for('chatbot.chatbot_console') }}" class="btn btn-primary">{{ _('chatbot.title') }}</a>
     </div>
     {% endif %}
   </section>

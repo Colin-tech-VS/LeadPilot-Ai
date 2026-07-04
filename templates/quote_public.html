@@ -42,26 +42,28 @@
 
     {% if quote.title %}<h3 class="doc-object">{{ quote.title }}</h3>{% endif %}
 
-    <table class="doc-table">
-      <thead>
-        <tr>
-          <th class="ta-l">{{ _('quotes.item_label') }}</th>
-          <th>{{ _('quotes.item_qty') }}</th>
-          <th class="ta-r">{{ _('quotes.item_price') }}</th>
-          <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in quote.get_items() %}
-        <tr>
-          <td class="ta-l">{{ item.label }}</td>
-          <td>{{ item.quantity }}</td>
-          <td class="ta-r">{{ '%.2f'|format(item.unit_price) }} €</td>
-          <td class="ta-r">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="doc-table-wrap">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th class="ta-l">{{ _('quotes.item_label') }}</th>
+            <th>{{ _('quotes.item_qty') }}</th>
+            <th class="ta-r">{{ _('quotes.item_price') }}</th>
+            <th class="ta-r">{{ _('quotes.item_total_ht') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in quote.get_items() %}
+          <tr>
+            <td class="ta-l" data-label="{{ _('quotes.item_label') }}">{{ item.label }}</td>
+            <td data-label="{{ _('quotes.item_qty') }}">{{ item.quantity }}</td>
+            <td class="ta-r" data-label="{{ _('quotes.item_price') }}">{{ '%.2f'|format(item.unit_price) }} €</td>
+            <td class="ta-r" data-label="{{ _('quotes.item_total_ht') }}">{{ '%.2f'|format(item.quantity * item.unit_price) }} €</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     <div class="doc-totals">
       <div class="doc-totals-box">
@@ -76,6 +78,20 @@
 
     {% if quote.notes %}
     <section class="doc-notes"><h4>{{ _('quotes.notes') }}</h4><p>{{ quote.notes }}</p></section>
+    {% endif %}
+
+    {% if not quote.is_invoice %}
+    <div class="doc-artisan-sign">
+      <div class="doc-artisan-sign-box">
+        <p class="doc-artisan-sign-label">{{ _('quotes.artisan_signature') }}</p>
+        {% if tenant.signature %}
+        <img class="doc-artisan-sign-img" src="{{ tenant.signature }}" alt="{{ _('quotes.artisan_signature') }}">
+        {% else %}
+        <p class="doc-artisan-sign-typed">{{ tenant.first_name or tenant.name }}{% if tenant.first_name and tenant.last_name %} {{ tenant.last_name }}{% endif %}</p>
+        {% endif %}
+        <p class="doc-artisan-sign-name">{{ tenant.name }}</p>
+      </div>
+    </div>
     {% endif %}
   </article>
 
@@ -105,8 +121,10 @@
   .quote-public-flash { border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-weight: 600; text-align: center; }
   .quote-public-flash-accepted { background: #D1FAE5; color: #047857; }
   .quote-public-flash-refused { background: #FEE2E2; color: #B91C1C; }
-  .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
+  .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; box-shadow: 0 4px 16px rgba(16,24,40,.08); border-top: 4px solid #2563EB; }
   .doc-head { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 2px solid #111827; padding-bottom: 1.2rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
+  .doc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.2rem; }
+  .doc-table-wrap .doc-table { margin-bottom: 0; }
   .doc-issuer h2 { margin: 0 0 .4rem; font-size: 1.3rem; color: #111827; }
   .doc-issuer p { margin: .1rem 0; color: #6B7280; font-size: .85rem; }
   .doc-meta { text-align: right; }
@@ -137,5 +155,24 @@
   .btn-lg { padding: .8rem 1.6rem; font-size: 1rem; }
   .quote-public-status { margin-top: 1.4rem; text-align: center; padding: 1rem; border-radius: 12px; background: #F3F4F6; color: #6B7280; font-weight: 600; }
   .quote-public-status-ok { background: #D1FAE5; color: #047857; }
+  @media (max-width: 560px) {
+    .quote-public-wrap { margin: 1rem auto; }
+    .doc-sheet { padding: 1.2rem; }
+    .doc-head { gap: 1rem; }
+    .doc-meta { text-align: left; }
+    .doc-totals-box { min-width: 0; width: 100%; }
+    .doc-totals { justify-content: stretch; }
+    .doc-table-wrap { overflow: visible; }
+    .doc-table thead { display: none; }
+    .doc-table, .doc-table tbody, .doc-table tr, .doc-table td { display: block; width: 100%; }
+    .doc-table tr { border: 1px solid #F0F1F3; border-radius: 10px; padding: .5rem .7rem; margin-bottom: .6rem; }
+    .doc-table td { border: none !important; text-align: right !important; padding: .3rem 0;
+      display: flex; justify-content: space-between; gap: 1rem; font-size: .92rem; }
+    .doc-table td::before { content: attr(data-label); font-weight: 600; color: #6B7280; text-align: left;
+      text-transform: uppercase; font-size: .68rem; letter-spacing: .03em; }
+    .doc-table td.ta-l { font-weight: 600; color: #111827; }
+    .quote-public-buttons form { flex: 1; }
+    .quote-public-buttons .btn { width: 100%; }
+  }
 </style>
 {% endblock %}

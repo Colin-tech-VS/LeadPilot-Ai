@@ -1,0 +1,45 @@
+{% extends "public_layout.html" %}
+
+{% block title %}{{ tenant.name }} — {{ _('chatbot.title') }}{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.landing') }}" class="public-nav-link">{{ _('app.name') }}</a>
+{% endblock %}
+
+{% block content %}
+<div class="container chat-public-wrap">
+  <div class="chat-public-card">
+    <div class="chat-public-header">
+      <div class="chat-public-avatar" aria-hidden="true">
+        {{ (tenant.ai_assistant_name or tenant.name or '?')[:1]|upper }}
+      </div>
+      <div class="chat-public-ident">
+        <span class="chat-public-name">{{ tenant.ai_assistant_name or tenant.name }}</span>
+        <span class="chat-public-status"><span class="chat-public-dot"></span>{{ _('chatbot.public_tagline') }}</span>
+      </div>
+    </div>
+
+    <div class="lp-chat lp-chat--full"
+         data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant_id) }}"
+         data-greeting="{{ _('chatbot.greeting', company=tenant.name) }}"
+         data-label-you="{{ _('chatbot.you') }}"
+         data-label-assistant="{{ tenant.ai_assistant_name or _('chatbot.assistant') }}"
+         data-label-typing="{{ _('chatbot.typing') }}"
+         data-label-error="{{ _('chatbot.error') }}"
+         data-label-captured="{{ _('chatbot.captured') }}">
+      <div class="lp-chat-scroll" aria-live="polite"></div>
+      <form class="lp-chat-form">
+        <textarea class="lp-chat-input" rows="1" placeholder="{{ _('chatbot.input_placeholder') }}"></textarea>
+        <button type="submit" class="btn btn-primary lp-chat-send" aria-label="{{ _('chatbot.send') }}">
+          <span class="lp-chat-send-icon" aria-hidden="true">➤</span>
+        </button>
+      </form>
+    </div>
+  </div>
+  <p class="chat-public-footnote">⚡ {{ _('app.name') }}</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=1"></script>
+{% endblock %}

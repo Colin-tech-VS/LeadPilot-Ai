@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('chatbot_suffix') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('chatbot.title') }}</h1>
+  <p class="subtitle">{{ _('chatbot.subtitle') }}</p>
+</div>
+
+<div class="chatbot-grid">
+  <div class="chatbot-side">
+    <section class="card chatbot-share">
+      <h2 class="chatbot-card-title">🔗 {{ _('chatbot.share_title') }}</h2>
+      <p class="section-hint">{{ _('chatbot.share_hint') }}</p>
+      <div class="chatbot-link-row">
+        <input type="text" readonly id="chatbot-link" class="chatbot-link-input" value="{{ public_url }}">
+        <button type="button" class="btn btn-primary btn-sm" id="chatbot-copy"
+                data-copied="{{ _('chatbot.copied') }}" data-label="{{ _('chatbot.copy') }}">
+          {{ _('chatbot.copy') }}
+        </button>
+      </div>
+      <a href="{{ public_url }}" target="_blank" rel="noopener" class="chatbot-open-link">↗ {{ _('chatbot.open_link') }}</a>
+    </section>
+
+    <section class="card chatbot-how">
+      <h2 class="chatbot-card-title">💡 {{ _('chatbot.how_title') }}</h2>
+      <ol class="chatbot-steps">
+        <li>{{ _('chatbot.how_1') }}</li>
+        <li>{{ _('chatbot.how_2') }}</li>
+        <li>{{ _('chatbot.how_3') }}</li>
+      </ol>
+    </section>
+  </div>
+
+  <section class="card chatbot-preview">
+    <div class="chatbot-preview-head">
+      <h2 class="chatbot-card-title">{{ _('chatbot.preview_title') }}</h2>
+      <p class="section-hint">{{ _('chatbot.preview_hint') }}</p>
+    </div>
+
+    <div class="lp-chat"
+         data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant.id) }}"
+         data-greeting="{{ _('chatbot.greeting', company=tenant.name) }}"
+         data-label-you="{{ _('chatbot.you') }}"
+         data-label-assistant="{{ tenant.ai_assistant_name or _('chatbot.assistant') }}"
+         data-label-typing="{{ _('chatbot.typing') }}"
+         data-label-error="{{ _('chatbot.error') }}"
+         data-label-captured="{{ _('chatbot.captured') }}">
+      <div class="lp-chat-scroll" aria-live="polite"></div>
+      <form class="lp-chat-form">
+        <textarea class="lp-chat-input" rows="1" placeholder="{{ _('chatbot.input_placeholder') }}"></textarea>
+        <button type="submit" class="btn btn-primary lp-chat-send" aria-label="{{ _('chatbot.send') }}">
+          <span class="lp-chat-send-label">{{ _('chatbot.send') }}</span>
+          <span class="lp-chat-send-icon" aria-hidden="true">➤</span>
+        </button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('chatbot-copy');
+  var link = document.getElementById('chatbot-link');
+  if (btn && link) {
+    btn.addEventListener('click', function () {
+      var done = function () {
+        btn.textContent = btn.dataset.copied;
+        setTimeout(function () { btn.textContent = btn.dataset.label; }, 2000);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link.value).then(done, function () { link.select(); });
+      } else {
+        link.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+      }
+    });
+  }
+})();
+</script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=1"></script>
+{% endblock %}

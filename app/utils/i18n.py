@@ -11,6 +11,7 @@ TRANSLATIONS = {
         "nav.leads": "Prospects",
         "nav.appointments": "Rendez-vous",
         "nav.test_call": "Test appel",
+        "nav.chatbot": "Chatbot",
         "nav.settings": "Paramètres",
         "nav.logout": "Déconnexion",
         "nav.tab_dashboard": "Accueil",
@@ -109,6 +110,7 @@ TRANSLATIONS = {
         "quotes.no_items": "Aucune prestation.",
         "quotes.tva": "TVA",
         "quotes.signature_line": "Bon pour accord — date et signature du client.",
+        "quotes.artisan_signature": "Signature de l'artisan",
         "quotes.delete": "Supprimer",
         "quotes.delete_confirm": "Supprimer ce document ? Cette action est irréversible.",
         "quote_status.draft": "Brouillon",
@@ -186,6 +188,31 @@ TRANSLATIONS = {
         "test_call.scenarios": "Scénarios de test IA",
         "test_call.scenarios_hint": "Cliquez pour charger un script, puis Simuler l'appel",
         "test_call.expected": "Attendu",
+        "chatbot_suffix": "Chatbot",
+        "chatbot.title": "Chatbot commercial",
+        "chatbot.subtitle": "Un assistant écrit qui répond à vos visiteurs, comme votre IA vocale — mais en discussion.",
+        "chatbot.share_title": "Partagez votre chatbot",
+        "chatbot.share_hint": "Envoyez ce lien à vos clients ou ajoutez-le sur votre site : ils pourront écrire à votre assistant et devenir des prospects.",
+        "chatbot.copy": "Copier le lien",
+        "chatbot.copied": "Lien copié ✓",
+        "chatbot.open_link": "Ouvrir",
+        "chatbot.qr_hint": "Ou faites scanner ce QR code depuis un mobile.",
+        "chatbot.preview_title": "Aperçu en direct",
+        "chatbot.preview_hint": "Discutez avec votre chatbot exactement comme le feront vos clients.",
+        "chatbot.how_title": "Comment ça marche",
+        "chatbot.how_1": "Votre assistant discute avec le visiteur, répond à ses questions et le met en confiance.",
+        "chatbot.how_2": "Il recueille naturellement le besoin, le nom et le téléphone.",
+        "chatbot.how_3": "Dès qu'un contact est qualifié, un prospect est créé et vous êtes notifié.",
+        "chatbot.input_placeholder": "Écrivez votre message…",
+        "chatbot.send": "Envoyer",
+        "chatbot.restart": "Recommencer",
+        "chatbot.error": "Désolé, une erreur est survenue. Réessayez dans un instant.",
+        "chatbot.captured": "✓ Vos coordonnées ont été transmises — vous serez recontacté rapidement.",
+        "chatbot.you": "Vous",
+        "chatbot.assistant": "Assistant",
+        "chatbot.typing": "L'assistant écrit…",
+        "chatbot.public_tagline": "Assistant en ligne — posez votre question, on vous répond.",
+        "chatbot.greeting": "Bonjour 👋 Bienvenue chez {company} ! Dites-moi en quoi je peux vous aider aujourd'hui.",
         "booking.BOOK_NOW": "Réserver maintenant",
         "booking.CALL_BACK": "Rappeler le client",
         "booking.SEND_QUOTE": "Envoyer un devis",
@@ -401,6 +428,12 @@ TRANSLATIONS = {
         "settings.section.location_hint": "Adresse de votre entreprise pour la géolocalisation",
         "settings.section.account": "Compte",
         "settings.section.account_hint": "E-mail de connexion et mot de passe",
+        "settings.section.signature": "Signature de l'artisan",
+        "settings.section.signature_hint": "Signez ci-dessous : votre signature apparaîtra sur chaque devis. Quand l'IA planifie un rendez-vous, elle envoie au client un devis déjà signé de votre main.",
+        "settings.signature_placeholder": "Signez ici avec la souris ou le doigt",
+        "settings.signature_clear": "Effacer",
+        "settings.signature_redraw": "Refaire la signature",
+        "settings.signature_current": "Signature enregistrée",
         "settings.company_name": "Nom de l'entreprise",
         "settings.first_name": "Prénom",
         "settings.last_name": "Nom",
@@ -471,6 +504,7 @@ TRANSLATIONS = {
         "nav.leads": "Leads",
         "nav.appointments": "Appointments",
         "nav.test_call": "Test Call",
+        "nav.chatbot": "Chatbot",
         "nav.settings": "Settings",
         "nav.logout": "Logout",
         "nav.tab_dashboard": "Home",
@@ -569,6 +603,7 @@ TRANSLATIONS = {
         "quotes.no_items": "No line items.",
         "quotes.tva": "VAT",
         "quotes.signature_line": "Approved — client date and signature.",
+        "quotes.artisan_signature": "Tradesperson signature",
         "quotes.delete": "Delete",
         "quotes.delete_confirm": "Delete this document? This cannot be undone.",
         "quote_status.draft": "Draft",
@@ -646,6 +681,31 @@ TRANSLATIONS = {
         "test_call.scenarios": "AI test scenarios",
         "test_call.scenarios_hint": "Click to load a script, then Simulate Call",
         "test_call.expected": "Expected",
+        "chatbot_suffix": "Chatbot",
+        "chatbot.title": "Sales chatbot",
+        "chatbot.subtitle": "A written assistant that answers your visitors, just like your voice AI — but as a chat.",
+        "chatbot.share_title": "Share your chatbot",
+        "chatbot.share_hint": "Send this link to your clients or add it to your website: they can chat with your assistant and turn into leads.",
+        "chatbot.copy": "Copy link",
+        "chatbot.copied": "Link copied ✓",
+        "chatbot.open_link": "Open",
+        "chatbot.qr_hint": "Or scan this QR code from a phone.",
+        "chatbot.preview_title": "Live preview",
+        "chatbot.preview_hint": "Chat with your bot exactly the way your clients will.",
+        "chatbot.how_title": "How it works",
+        "chatbot.how_1": "Your assistant chats with the visitor, answers questions and builds trust.",
+        "chatbot.how_2": "It naturally collects the need, the name and the phone number.",
+        "chatbot.how_3": "As soon as a contact is qualified, a lead is created and you're notified.",
+        "chatbot.input_placeholder": "Type your message…",
+        "chatbot.send": "Send",
+        "chatbot.restart": "Restart",
+        "chatbot.error": "Sorry, something went wrong. Please try again in a moment.",
+        "chatbot.captured": "✓ Your details have been sent — we'll get back to you shortly.",
+        "chatbot.you": "You",
+        "chatbot.assistant": "Assistant",
+        "chatbot.typing": "Assistant is typing…",
+        "chatbot.public_tagline": "Online assistant — ask your question, we'll reply.",
+        "chatbot.greeting": "Hello 👋 Welcome to {company}! Tell me how I can help you today.",
         "booking.BOOK_NOW": "Book now",
         "booking.CALL_BACK": "Call back",
         "booking.SEND_QUOTE": "Send quote",
@@ -861,6 +921,12 @@ TRANSLATIONS = {
         "settings.section.location_hint": "The address of your business for geolocation",
         "settings.section.account": "Account",
         "settings.section.account_hint": "Login email and password",
+        "settings.section.signature": "Tradesperson signature",
+        "settings.section.signature_hint": "Sign below: your signature appears on every quote. When the AI books an appointment, it sends the client a quote already signed by you.",
+        "settings.signature_placeholder": "Sign here with your mouse or finger",
+        "settings.signature_clear": "Clear",
+        "settings.signature_redraw": "Redraw signature",
+        "settings.signature_current": "Saved signature",
         "settings.company_name": "Company name",
         "settings.first_name": "First name",
         "settings.last_name": "Last name",
@@ -970,16 +1036,22 @@ def issue_label(issue_type, lang=None):
 
 
 def get_lang():
-    if hasattr(g, "lang") and g.lang:
-        return g.lang
-    cookie_lang = request.cookies.get("lang") if request else None
-    if cookie_lang in SUPPORTED_LANGUAGES:
-        return cookie_lang
-    session_lang = session.get("lang")
-    if session_lang in SUPPORTED_LANGUAGES:
-        return session_lang
-    accept = request.accept_languages.best_match(SUPPORTED_LANGUAGES) if request else None
-    return accept or DEFAULT_LANGUAGE
+    # Robust outside a request/app context (e.g. background jobs, the voice
+    # pipeline building a devis): fall back to the default language instead of
+    # raising "Working outside of request context".
+    try:
+        if hasattr(g, "lang") and g.lang:
+            return g.lang
+        cookie_lang = request.cookies.get("lang") if request else None
+        if cookie_lang in SUPPORTED_LANGUAGES:
+            return cookie_lang
+        session_lang = session.get("lang")
+        if session_lang in SUPPORTED_LANGUAGES:
+            return session_lang
+        accept = request.accept_languages.best_match(SUPPORTED_LANGUAGES) if request else None
+        return accept or DEFAULT_LANGUAGE
+    except RuntimeError:
+        return DEFAULT_LANGUAGE
 
 
 def translate(key, lang=None, **kwargs):

@@ -144,6 +144,25 @@ def mark_sent(quote):
     quote.ensure_token()
 
 
+def create_signed_devis_for_lead(lead, tenant):
+    """Build, number, mark-sent and persist a devis for a lead.
+
+    Used by the voice AI: when it agrees to schedule an appointment it first
+    sends a devis already signed by the plumber (the artisan's signature is
+    rendered on every devis from ``tenant.signature``). The devis is pre-filled
+    from the detected issue and lands in the plumber's list as "sent", with a
+    client-facing accept/refuse link ready to share.
+
+    The caller is responsible for committing the session.
+    """
+    quote = build_draft_from_lead(lead, tenant)
+    quote.number = generate_number(tenant.id, DOC_DEVIS)
+    mark_sent(quote)
+    db.session.add(quote)
+    db.session.flush()
+    return quote
+
+
 def mark_reminded(quote):
     quote.last_reminded_at = utcnow()
     quote.reminder_count = (quote.reminder_count or 0) + 1

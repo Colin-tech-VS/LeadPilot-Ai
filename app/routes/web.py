@@ -151,7 +151,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -574,19 +574,9 @@ def appointments_page():
 @web_bp.route("/test-call", methods=["GET"])
 @web_tenant_required
 def test_call_page():
-    import json
-    from pathlib import Path
-
-    scenarios_path = Path(__file__).resolve().parent.parent.parent / "scripts" / "test_ia_scenarios.json"
-    scenarios = []
-    if scenarios_path.exists():
-        scenarios = json.loads(scenarios_path.read_text(encoding="utf-8"))
-
-    return render_template(
-        "test_call.html",
-        tenant_id=str(g.tenant_id),
-        scenarios=scenarios,
-    )
+    # The former "Test appel" page has been replaced by the commercial chatbot.
+    # Keep the old URL working for any bookmarks by redirecting to it.
+    return redirect(url_for("chatbot.chatbot_console"))
 
 
 def _normalize_phone(value):
@@ -601,6 +591,20 @@ def _normalize_siret(value):
         return None
     digits = "".join(c for c in value if c.isdigit())
     return digits if len(digits) == 14 else None
+
+
+# Signature pad output is a PNG data URL. Accept only that, and cap the size so
+# an oversized paste can't bloat the row (a normal signature is a few KB).
+_SIGNATURE_MAX_LEN = 300_000
+
+
+def _normalize_signature(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    if not value.startswith("data:image/") or len(value) > _SIGNATURE_MAX_LEN:
+        return None
+    return value
 
 
 @web_bp.route("/settings", methods=["GET", "POST"])
@@ -628,6 +632,7 @@ def settings_page():
         email = (request.form.get("email") or "").strip().lower()
         new_password = request.form.get("new_password") or ""
         confirm_password = request.form.get("confirm_password") or ""
+        signature = _normalize_signature(request.form.get("signature"))
 
         if not name:
             error = translate("settings.error.company_required")
@@ -672,6 +677,7 @@ def settings_page():
                 tenant.service_radius_km = int(service_radius_raw)
             elif tenant.service_radius_km is None:
                 tenant.service_radius_km = 30
+            tenant.signature = signature
 
             full_address = tenant.full_address
             if full_address:

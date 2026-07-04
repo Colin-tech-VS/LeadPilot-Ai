@@ -99,6 +99,23 @@ def notify_inbound_call(lead, tenant, booked=False, commit=True):
     )
 
 
+def notify_quote_sent(quote, commit=True):
+    """A pre-signed devis was auto-generated and sent (e.g. by the voice AI)."""
+    client = (quote.client_name or "Client").strip() or "Client"
+    bits = []
+    if quote.number:
+        bits.append(quote.number)
+    try:
+        bits.append(f"{quote.total_ttc:.2f} € TTC")
+    except Exception:
+        pass
+    return push_notification(
+        quote.tenant_id, TYPE_NEW_LEAD,
+        f"🧾 Devis signé envoyé — {client}", " · ".join(bits),
+        icon="🧾", url=f"/quotes/{quote.id}", commit=commit,
+    )
+
+
 def notify_quote_accepted(quote, appointment=None, invoice=None, commit=True):
     """Devis accepted by a client: alert the plumber (+ invoice / RDV info)."""
     client = (quote.client_name or "Client").strip() or "Client"

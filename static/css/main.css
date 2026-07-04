@@ -3436,3 +3436,383 @@ html.js-enabled .dash-card-in.is-visible {
     bottom: 128px;
   }
 }
+
+/* ── Commercial chatbot ─────────────────────────────────────────────── */
+.chatbot-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.chatbot-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chatbot-card-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.chatbot-link-row {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.chatbot-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.chatbot-link-row .btn {
+  white-space: nowrap;
+}
+
+.chatbot-open-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chatbot-steps {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.chatbot-steps li { padding-left: 4px; }
+
+.chatbot-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chatbot-preview-head { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.chatbot-preview-head .section-hint { margin-bottom: 0; }
+
+/* Chat widget (shared: owner preview + public page) */
+.lp-chat {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  overflow: hidden;
+  min-height: 420px;
+}
+
+.lp-chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 460px;
+  scroll-behavior: smooth;
+}
+
+.lp-chat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 82%;
+}
+
+.lp-chat-row-user { align-self: flex-end; align-items: flex-end; }
+.lp-chat-row-assistant { align-self: flex-start; align-items: flex-start; }
+
+.lp-chat-who {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.lp-chat-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  box-shadow: var(--shadow-sm);
+}
+
+.lp-chat-bubble-assistant {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 5px;
+}
+
+.lp-chat-bubble-user {
+  background: var(--blue-primary);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+}
+
+.lp-chat-notice {
+  align-self: center;
+  text-align: center;
+  max-width: 90%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #047857;
+  background: #D1FAE5;
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+.lp-chat-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.lp-chat-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.5;
+  animation: lp-chat-blink 1.2s infinite both;
+}
+.lp-chat-dots span:nth-child(2) { animation-delay: 0.2s; }
+.lp-chat-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes lp-chat-blink {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 0.9; transform: translateY(-2px); }
+}
+
+.lp-chat-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+
+.lp-chat-input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  max-height: 120px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.lp-chat-input:focus {
+  outline: none;
+  border-color: var(--blue-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.lp-chat-send {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lp-chat-send-icon { font-size: 15px; line-height: 1; }
+
+/* Public full-page chat */
+.chat-public-wrap {
+  max-width: 640px;
+  margin: 24px auto 40px;
+  padding: 0 16px;
+}
+
+.chat-public-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.chat-public-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--blue-deep), var(--blue-primary));
+  color: #fff;
+}
+
+.chat-public-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.chat-public-ident { display: flex; flex-direction: column; min-width: 0; }
+.chat-public-name { font-weight: 700; font-size: 16px; }
+.chat-public-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  opacity: 0.9;
+}
+.chat-public-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+}
+
+.chat-public-card .lp-chat {
+  border: none;
+  border-radius: 0;
+  min-height: 60vh;
+}
+
+.chat-public-card .lp-chat-scroll {
+  max-height: none;
+  min-height: 52vh;
+}
+
+.chat-public-footnote {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin: 14px 0 0;
+}
+
+@media (max-width: 900px) {
+  .chatbot-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .lp-chat { min-height: 380px; }
+  .lp-chat-scroll { max-height: none; }
+  .lp-chat-row { max-width: 88%; }
+  .lp-chat-send-label { display: none; }
+  .lp-chat-send { padding: 11px 14px; }
+  .chat-public-wrap { margin: 12px auto 28px; padding: 0 10px; }
+  .chat-public-card .lp-chat, .chat-public-card .lp-chat-scroll { min-height: 64vh; }
+}
+
+/* ── Signature pad (settings) ───────────────────────────────────────── */
+.settings-section-signature {
+  grid-column: 1 / -1;
+}
+
+.settings-section-signature .sig-pad {
+  position: relative;
+  margin-top: 10px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 11px, rgba(15,23,42,0.02) 11px, rgba(15,23,42,0.02) 12px),
+    var(--card);
+  overflow: hidden;
+}
+
+.sig-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sig-current {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-height: 160px;
+  max-width: 90%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.sig-placeholder {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.sig-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── Artisan signature on the devis document ────────────────────────── */
+.doc-artisan-sign {
+  margin-top: 1.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doc-artisan-sign-box {
+  text-align: center;
+  min-width: 220px;
+}
+
+.doc-artisan-sign-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #9CA3AF;
+  margin: 0 0 .3rem;
+}
+
+.doc-artisan-sign-img {
+  max-height: 90px;
+  max-width: 240px;
+  object-fit: contain;
+}
+
+.doc-artisan-sign-name {
+  margin: .3rem 0 0;
+  font-weight: 600;
+  color: #111827;
+  border-top: 1px solid #E5E7EB;
+  padding-top: .4rem;
+}
+
+.doc-artisan-sign-typed {
+  font-family: "Segoe Script", "Bradley Hand", cursive;
+  font-size: 1.5rem;
+  color: #1E3A8A;
+  margin: 0;
+  padding: .2rem 0;
+}

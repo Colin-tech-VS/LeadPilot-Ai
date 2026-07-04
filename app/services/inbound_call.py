@@ -43,6 +43,7 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
     db.session.flush()
 
     appointment_id = None
+    quote_id = None
     if booking.get("action") == ACTION_BOOK_NOW and booking.get("suggested_slot"):
         slot = datetime.fromisoformat(booking["suggested_slot"].replace("Z", "+00:00"))
         appointment = book_appointment(tenant_id, lead.id, slot)
@@ -57,6 +58,9 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
                 lead.id,
                 appointment.date_time.isoformat(),
             )
+            # Before confirming the RDV, send a devis already signed by the
+            # plumber so the client receives a ready-to-accept quote.
+            quote_id = _send_signed_devis(lead, tenant)
         else:
             booking["action"] = "CALL_BACK"
             booking["slot_unavailable"] = True
@@ -80,6 +84,26 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
         "success": True,
         "lead_id": str(lead.id),
         "appointment_id": appointment_id,
+        "quote_id": quote_id,
         "extracted_data": extracted,
         "booking": booking,
     }
+
+
+def _send_signed_devis(lead, tenant) -> str | None:
+    """Generate and send a pre-signed devis for a just-booked lead.
+
+    Best-effort: a failure here must never break the call flow, so any error is
+    logged and the booking still succeeds.
+    """
+    from app.services import quote_engine
+    from app.services.notifications import notify_quote_sent
+
+    try:
+        quote = quote_engine.create_signed_devis_for_lead(lead, tenant)
+        notify_quote_sent(quote, commit=False)
+        logger.info("Signed devis %s sent for lead=%s", quote.number, lead.id)
+        return str(quote.id)
+    except Exception:
+        logger.exception("Failed to send signed devis for lead=%s", lead.id)
+        return None

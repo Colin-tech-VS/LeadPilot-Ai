@@ -60,6 +60,10 @@ class Config:
     TWILIO_DEFAULT_TENANT_ID = os.environ.get("TWILIO_DEFAULT_TENANT_ID", "")
     TWILIO_AI_PHONE_NUMBER = os.environ.get("TWILIO_AI_PHONE_NUMBER", "+33159169691")
     TWILIO_AI_PHONE_DISPLAY = os.environ.get("TWILIO_AI_PHONE_DISPLAY", "+33 1 59 16 96 91")
+    # Sender number for outbound SMS (e.g. the signed-devis link texted to the
+    # client). Falls back to the AI phone number. When Twilio is not configured
+    # the app degrades gracefully — no SMS is sent and nothing breaks.
+    TWILIO_SMS_FROM = os.environ.get("TWILIO_SMS_FROM", "")
 
     # Public URL for Twilio webhooks (Scalingo: your-app.osc-fr1.scalingo.io)
     # Must be None (not "") when unset — an empty string makes Flask host-match

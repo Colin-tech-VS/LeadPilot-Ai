@@ -102,8 +102,38 @@ def _send_signed_devis(lead, tenant) -> str | None:
     try:
         quote = quote_engine.create_signed_devis_for_lead(lead, tenant)
         notify_quote_sent(quote, commit=False)
+        _text_devis_link(quote, tenant, lead)
         logger.info("Signed devis %s sent for lead=%s", quote.number, lead.id)
         return str(quote.id)
     except Exception:
         logger.exception("Failed to send signed devis for lead=%s", lead.id)
         return None
+
+
+def _text_devis_link(quote, tenant, lead) -> bool:
+    """SMS the client the link to their pre-signed devis (best-effort)."""
+    from flask import url_for
+
+    from app.services.sms import send_sms
+
+    phone = (getattr(lead, "phone", None) or quote.client_phone or "").strip()
+    if not phone:
+        return False
+
+    try:
+        link = url_for(
+            "quotes.public_quote",
+            quote_id=quote.id,
+            token=quote.public_token,
+            _external=True,
+        )
+    except Exception:
+        logger.exception("Could not build devis link for SMS (quote=%s)", quote.id)
+        return False
+
+    company = (tenant.name or "votre plombier").strip()
+    body = (
+        f"Bonjour, voici votre devis {quote.number} de {company}, "
+        f"déjà signé. Consultez-le et validez-le en ligne : {link}"
+    )
+    return send_sms(phone, body)

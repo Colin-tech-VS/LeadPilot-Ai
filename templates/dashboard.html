@@ -18,7 +18,8 @@
   <a href="{{ url_for('billing.billing_page') }}" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
 </div>
 {% endif %}
-<div class="dash-hero dash-animate">
+
+<div class="dash-hero dash-hero-slim dash-animate">
   <div class="dash-hero-text">
     <p class="dash-greeting" id="dash-greeting">{{ _('dashboard.greeting') }}</p>
     <h1 class="dash-title">{{ tenant.name if tenant else _('dashboard.title') }}</h1>
@@ -29,83 +30,101 @@
       {% endif %}
     </p>
   </div>
-  <div class="dash-quick-actions">
-    <a href="{{ url_for('web.leads_page') }}" class="dash-action dash-action-primary">
-      <span class="dash-action-icon">👥</span>
-      <span>{{ _('nav.leads') }}</span>
-      {% if total_leads %}<span class="dash-action-badge">{{ total_leads }}</span>{% endif %}
-    </a>
-    <a href="{{ url_for('web.appointments_page') }}" class="dash-action">
-      <span class="dash-action-icon">📅</span>
-      <span>{{ _('nav.appointments') }}</span>
-    </a>
-    <a href="{{ url_for('chatbot.chatbot_console') }}" class="dash-action">
-      <span class="dash-action-icon">💬</span>
-      <span>{{ _('nav.chatbot') }}</span>
-    </a>
-    <a href="{{ url_for('web.settings_page') }}" class="dash-action">
-      <span class="dash-action-icon">⚙️</span>
-      <span>{{ _('nav.settings') }}</span>
-    </a>
-  </div>
+  {% if urgencies > 0 %}
+  <a href="{{ url_for('web.leads_page') }}" class="dash-hero-alert">
+    <span class="dash-hero-alert-icon">🚨</span>
+    <span>{{ _('dashboard.kpi_urgencies') }} · <strong>{{ urgencies }}</strong></span>
+  </a>
+  {% endif %}
 </div>
 
-<div class="kpi-grid">
-  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-1">
-    <div class="kpi-icon-wrap kpi-icon-blue">
-      <span class="kpi-icon">📞</span>
-    </div>
-    <div class="kpi-body">
-      <p class="kpi-label">{{ _('dashboard.kpi_calls') }}</p>
-      <p class="kpi-value" data-count="{{ calls_today }}">0</p>
-    </div>
-    <span class="kpi-trend">{{ _('dashboard.kpi_today') }}</span>
-  </a>
-  <a href="{{ url_for('web.appointments_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-2">
-    <div class="kpi-icon-wrap kpi-icon-green">
-      <span class="kpi-icon">📅</span>
-    </div>
-    <div class="kpi-body">
-      <p class="kpi-label">{{ _('dashboard.kpi_appointments') }}</p>
-      <p class="kpi-value kpi-value-green" data-count="{{ appointments_today }}">0</p>
-    </div>
-    <span class="kpi-trend">{{ _('dashboard.kpi_today') }}</span>
-  </a>
-  <a href="{{ url_for('quotes.quotes_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-3{% if quote_followups > 0 %} kpi-card-alert{% endif %}">
-    <div class="kpi-icon-wrap kpi-icon-neutral">
-      <span class="kpi-icon">🧾</span>
-    </div>
-    <div class="kpi-body">
-      <p class="kpi-label">{{ _('dashboard.kpi_quotes') }}</p>
-      <p class="kpi-value" data-count="{{ pending_quotes }}">0</p>
-    </div>
-    {% if quote_followups > 0 %}
-    <span class="kpi-trend kpi-trend-alert">🔔 {{ _('dashboard.quotes_followup', count=quote_followups) }}</span>
-    {% else %}
-    <span class="kpi-trend">{{ _('dashboard.kpi_pending') }}</span>
-    {% endif %}
-  </a>
-  <a href="{{ url_for('web.leads_page') }}" class="kpi-card kpi-card-link dash-animate dash-delay-4{% if urgencies > 0 %} kpi-card-alert{% endif %}">
-    <div class="kpi-icon-wrap kpi-icon-red">
-      <span class="kpi-icon">🚨</span>
-    </div>
-    <div class="kpi-body">
-      <p class="kpi-label">{{ _('dashboard.kpi_urgencies') }}</p>
-      <p class="kpi-value kpi-value-red" data-count="{{ urgencies }}">0</p>
-    </div>
-    {% if urgencies > 0 %}
-    <span class="kpi-pulse"></span>
-    {% endif %}
-  </a>
-</div>
+{# ── Le parcours plombier : appel → prospect → devis → RDV → tournée ── #}
+<section class="dash-flow dash-animate dash-delay-1">
+  <header class="dash-flow-head">
+    <h2 class="dash-flow-title">{{ _('dashboard.flow_title') }}</h2>
+    <p class="dash-flow-hint">{{ _('dashboard.flow_hint') }}</p>
+  </header>
+  <ol class="flow-rail">
+    <li class="flow-step">
+      <a href="{{ url_for('web.leads_page') }}" class="flow-step-link">
+        <span class="flow-step-num">1</span>
+        <span class="flow-step-icon flow-icon-blue">📞</span>
+        <span class="flow-step-body">
+          <span class="flow-step-title">{{ _('dashboard.flow_calls_title') }}</span>
+          <span class="flow-step-metric"><strong data-count="{{ calls_today }}">0</strong></span>
+          <span class="flow-step-unit">{{ _('dashboard.flow_calls_unit') }}</span>
+          <span class="flow-step-desc">{{ _('dashboard.flow_calls_desc') }}</span>
+        </span>
+      </a>
+    </li>
+
+    <li class="flow-step{% if new_leads_count > 0 %} flow-step-todo{% endif %}{% if urgencies > 0 %} flow-step-urgent{% endif %}">
+      <a href="{{ url_for('web.leads_page') }}" class="flow-step-link">
+        <span class="flow-step-num">2</span>
+        <span class="flow-step-icon flow-icon-indigo">👥</span>
+        <span class="flow-step-body">
+          <span class="flow-step-title">{{ _('dashboard.flow_leads_title') }}</span>
+          <span class="flow-step-metric"><strong data-count="{{ new_leads_count }}">0</strong></span>
+          <span class="flow-step-unit">{{ _('dashboard.flow_leads_unit') }}</span>
+          <span class="flow-step-desc">{{ _('dashboard.flow_leads_desc') }}</span>
+        </span>
+        {% if new_leads_count > 0 %}<span class="flow-step-pill">{{ new_leads_count }} {{ _('dashboard.flow_todo') }}</span>{% endif %}
+      </a>
+    </li>
+
+    <li class="flow-step{% if quote_followups > 0 %} flow-step-todo{% endif %}">
+      <a href="{{ url_for('quotes.quotes_page') }}" class="flow-step-link">
+        <span class="flow-step-num">3</span>
+        <span class="flow-step-icon flow-icon-amber">🧾</span>
+        <span class="flow-step-body">
+          <span class="flow-step-title">{{ _('dashboard.flow_quotes_title') }}</span>
+          <span class="flow-step-metric"><strong data-count="{{ pending_quotes }}">0</strong></span>
+          <span class="flow-step-unit">{{ _('dashboard.flow_quotes_unit') }}</span>
+          <span class="flow-step-desc">{{ _('dashboard.flow_quotes_desc') }}</span>
+        </span>
+        {% if quote_followups > 0 %}<span class="flow-step-pill">🔔 {{ _('dashboard.quotes_followup', count=quote_followups) }}</span>{% endif %}
+      </a>
+    </li>
+
+    <li class="flow-step">
+      <a href="{{ url_for('web.appointments_page') }}" class="flow-step-link">
+        <span class="flow-step-num">4</span>
+        <span class="flow-step-icon flow-icon-green">📅</span>
+        <span class="flow-step-body">
+          <span class="flow-step-title">{{ _('dashboard.flow_appts_title') }}</span>
+          <span class="flow-step-metric"><strong data-count="{{ upcoming_count }}">0</strong></span>
+          <span class="flow-step-unit">{{ _('dashboard.flow_appts_unit') }}</span>
+          <span class="flow-step-desc">{{ _('dashboard.flow_appts_desc') }}</span>
+        </span>
+      </a>
+    </li>
+
+    <li class="flow-step flow-step-last">
+      <a href="{{ url_for('web.appointments_page') }}" class="flow-step-link">
+        <span class="flow-step-num">5</span>
+        <span class="flow-step-icon flow-icon-teal">🧭</span>
+        <span class="flow-step-body">
+          <span class="flow-step-title">{{ _('dashboard.flow_route_title') }}</span>
+          <span class="flow-step-metric"><strong data-count="{{ today_appointments|length }}">0</strong></span>
+          <span class="flow-step-unit">{{ _('dashboard.flow_route_unit') }}</span>
+          <span class="flow-step-desc">{{ _('dashboard.flow_route_desc') }}</span>
+        </span>
+      </a>
+    </li>
+  </ol>
+</section>
 
 <div class="dashboard-grid">
-  <section class="dashboard-main dash-panel dash-animate dash-delay-5">
+  <section class="dashboard-main dash-panel dash-animate dash-delay-2">
     <header class="dash-panel-head">
-      <h2 class="dash-panel-title">
-        {{ _('dashboard.recent_leads') }}
-        {% if recent_leads %}<span class="dash-panel-count">{{ recent_leads|length }}</span>{% endif %}
-      </h2>
+      <div>
+        <h2 class="dash-panel-title">
+          <span class="dash-panel-step">2</span>
+          {{ _('dashboard.leads_to_handle') }}
+          {% if recent_leads %}<span class="dash-panel-count">{{ recent_leads|length }}</span>{% endif %}
+        </h2>
+        <p class="dash-panel-sub">{{ _('dashboard.leads_to_handle_hint') }}</p>
+      </div>
       <a href="{{ url_for('web.leads_page') }}" class="dash-see-all">{{ _('dashboard.view_all') }}</a>
     </header>
 
@@ -136,13 +155,14 @@
           <span class="badge badge-{{ lead.status }}">{{ status_label(lead.status) }}</span>
           <span class="lead-time">{{ lead.created_at.strftime('%d/%m %H:%M') if lead.created_at else '' }}</span>
         </div>
-        <div class="lead-actions">
-          <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
+        {# Actions dans l'ordre du workflow : rappeler → devis → RDV → archiver #}
+        <div class="lead-actions lead-actions-flow">
+          <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm lead-step-btn" data-step="1">{{ _('btn.call') }}</a>
           <form method="post" action="{{ url_for('quotes.create_quote') }}" class="lead-action-form">
             <input type="hidden" name="lead_id" value="{{ lead.id }}">
-            <button type="submit" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</button>
+            <button type="submit" class="btn btn-primary btn-sm lead-step-btn" data-step="2">{{ _('btn.create_quote') }}</button>
           </form>
-          <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
+          <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm lead-step-btn" data-step="3">{{ _('btn.create_appointment') }}</a>
           <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
             <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
           </form>
@@ -160,9 +180,9 @@
   </section>
 
   <aside class="dashboard-sidebar">
-    <div class="sidebar-card sidebar-card-highlight dash-animate dash-delay-6">
+    <div class="sidebar-card sidebar-card-highlight dash-animate dash-delay-3">
       <div class="sidebar-card-head">
-        <h2>{{ _('dashboard.today') }}</h2>
+        <h2><span class="dash-panel-step">5</span> {{ _('dashboard.my_day') }}</h2>
         <span class="sidebar-count">{{ today_appointments|length }}</span>
       </div>
       {% if today_appointments %}
@@ -192,7 +212,7 @@
       {% endif %}
     </div>
 
-    <div class="sidebar-card dash-animate dash-delay-7">
+    <div class="sidebar-card dash-animate dash-delay-4">
       <div class="sidebar-card-head">
         <h2>{{ _('dashboard.upcoming') }}</h2>
       </div>

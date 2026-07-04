@@ -2218,6 +2218,255 @@ code {
   background: var(--blue-deep);
 }
 
+/* ── Slim hero + urgent shortcut ── */
+.dash-hero-slim {
+  padding: 20px 26px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.dash-hero-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+  animation: alertPulse 2s ease-in-out infinite;
+}
+
+.dash-hero-alert:hover {
+  background: rgba(255, 255, 255, 0.26);
+  text-decoration: none;
+  color: #fff;
+}
+
+.dash-hero-alert strong { color: #FECACA; }
+.dash-hero-alert-icon { font-size: 18px; }
+
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.0); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.18); }
+}
+
+/* ── Workflow rail (le parcours plombier) ── */
+.dash-flow {
+  margin-bottom: 28px;
+}
+
+.dash-flow-head {
+  margin-bottom: 14px;
+}
+
+.dash-flow-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.dash-flow-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.flow-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.flow-step {
+  position: relative;
+  display: flex;
+}
+
+/* Connecteur "flèche" entre les étapes pour matérialiser l'ordre. */
+.flow-step:not(.flow-step-last)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  transform: translateY(-50%) rotate(45deg);
+  z-index: 2;
+}
+
+.flow-step-link {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.flow-step-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+  border-color: #BFDBFE;
+  text-decoration: none;
+}
+
+.flow-step-num {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.flow-step-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.flow-icon-blue { background: #EFF6FF; }
+.flow-icon-indigo { background: #EEF2FF; }
+.flow-icon-amber { background: #FEF3C7; }
+.flow-icon-green { background: #D1FAE5; }
+.flow-icon-teal { background: #CCFBF1; }
+
+.flow-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.flow-step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.flow-step-metric {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-step-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.flow-step-desc {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.flow-step-pill {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Étape avec du travail en attente : liseré coloré + puce d'appel à l'action. */
+.flow-step-todo .flow-step-link {
+  border-color: #FDE68A;
+  background: linear-gradient(135deg, #fff 0%, #FFFBEB 100%);
+}
+
+.flow-step-urgent .flow-step-link {
+  border-color: #FECACA;
+  background: linear-gradient(135deg, #fff 0%, #FEF2F2 100%);
+}
+
+.flow-step-urgent .flow-step-pill {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* Puce numérotée réutilisée dans les titres de panneaux. */
+.dash-panel-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.dash-panel-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Actions par lead alignées sur l'ordre du workflow. */
+.lead-actions-flow {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1040px) {
+  .flow-rail {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .flow-step:nth-child(3)::after,
+  .flow-step:not(.flow-step-last)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .flow-rail {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .flow-step-metric { font-size: 26px; }
+}
+
 /* Animations */
 @keyframes dashFadeUp {
   from {

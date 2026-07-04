@@ -321,6 +321,14 @@ def dashboard():
         Lead.archived_at.is_(None),
     ).count()
 
+    # Step 2 of the workflow: "prospects à traiter" — leads the plumber hasn't
+    # turned into a booking yet (status "new"). These are the ones needing action.
+    new_leads_count = Lead.query.filter(
+        Lead.tenant_id == g.tenant_id,
+        Lead.status == "new",
+        Lead.archived_at.is_(None),
+    ).count()
+
     recent_leads = (
         Lead.query.filter_by(tenant_id=g.tenant_id)
         .filter(Lead.archived_at.is_(None))
@@ -343,6 +351,13 @@ def dashboard():
         .limit(5)
         .all()
     )
+    # Step 4 of the workflow: RDV still to come (today included) — drives the
+    # "Rendez-vous" pipeline step count.
+    upcoming_count = (
+        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        .filter(Appointment.date_time >= today_start)
+        .count()
+    )
     total_leads = Lead.query.filter_by(tenant_id=g.tenant_id).filter(Lead.archived_at.is_(None)).count()
     next_appointment = (
         Appointment.query.filter_by(tenant_id=g.tenant_id)
@@ -360,9 +375,11 @@ def dashboard():
         pending_quotes=pending_quotes,
         quote_followups=quote_followups,
         urgencies=urgencies,
+        new_leads_count=new_leads_count,
         recent_leads=recent_leads,
         today_appointments=today_appointments,
         upcoming_appointments=upcoming_appointments,
+        upcoming_count=upcoming_count,
         total_leads=total_leads,
         next_appointment=next_appointment,
     )

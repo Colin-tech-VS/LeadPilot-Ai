@@ -23,6 +23,10 @@
         <span>{{ _('quotes.client_phone') }}</span>
         <input type="text" name="client_phone" value="{{ quote.client_phone or '' }}">
       </label>
+      <label class="field">
+        <span>{{ _('quotes.client_email') }}</span>
+        <input type="email" name="client_email" value="{{ quote.client_email or '' }}" placeholder="client@email.com">
+      </label>
       <label class="field field-wide">
         <span>{{ _('quotes.client_address') }}</span>
         <input type="text" name="client_address" value="{{ quote.client_address or '' }}">

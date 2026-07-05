@@ -104,6 +104,21 @@
       </div>
     </section>
 
+    <section class="card form-card settings-section" id="rib">
+      <h2>{{ _('settings.section.bank') }}</h2>
+      <p class="section-hint">{{ _('settings.section.bank_hint') }}</p>
+
+      <label for="bank_holder">{{ _('settings.bank_holder') }}</label>
+      <input type="text" id="bank_holder" name="bank_holder" value="{{ tenant.bank_holder or '' }}" placeholder="{{ tenant.name or '' }}">
+
+      <label for="iban">{{ _('settings.iban') }}</label>
+      <input type="text" id="iban" name="iban" value="{{ tenant.iban or '' }}" placeholder="FR76 3000 1000 0100 0000 0000 123" autocomplete="off">
+
+      <label for="bic">{{ _('settings.bic') }}</label>
+      <input type="text" id="bic" name="bic" value="{{ tenant.bic or '' }}" placeholder="BNPAFRPPXXX" autocomplete="off">
+      <p class="field-hint">{{ _('settings.bank_field_hint') }}</p>
+    </section>
+
     <section class="card form-card settings-section">
       <h2>{{ _('settings.section.account') }}</h2>
       <p class="section-hint">{{ _('settings.section.account_hint') }}</p>

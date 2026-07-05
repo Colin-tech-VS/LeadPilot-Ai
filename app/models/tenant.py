@@ -37,6 +37,11 @@ class Tenant(db.Model):
     # settings signature pad). Printed on every devis so quotes the AI sends are
     # already signed by the plumber. Null = no signature configured yet.
     signature = db.Column(db.Text, nullable=True)
+    # Bank details (RIB) printed on the devis and sent to the client so they can
+    # pay the acompte (deposit). Configured once in Paramètres. Null = not set.
+    iban = db.Column(db.String(40), nullable=True)
+    bic = db.Column(db.String(15), nullable=True)
+    bank_holder = db.Column(db.String(255), nullable=True)
     # Billing: "trial" until the plumber upgrades to a paid plan ("starter",
     # "pro", "premium"). The AI line only answers while the subscription is active.
     plan = db.Column(db.String(20), nullable=False, default="trial")
@@ -56,6 +61,11 @@ class Tenant(db.Model):
     def full_address(self):
         parts = [p for p in (self.address, self.postal_code, self.city) if p]
         return ", ".join(parts)
+
+    @property
+    def has_bank_details(self):
+        """True once an IBAN is configured — required to invoice the acompte."""
+        return bool((self.iban or "").strip())
 
     @property
     def trial_end_date(self):

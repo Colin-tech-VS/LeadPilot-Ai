@@ -76,6 +76,18 @@
       </div>
     </div>
 
+    {% if tenant.has_bank_details and (quote.deposit_amount or quote.is_invoice) %}
+    <section class="doc-rib">
+      <h4>{{ _('quotes.payment_details') }}</h4>
+      <div class="doc-rib-grid">
+        {% if tenant.bank_holder %}<div><span>{{ _('settings.bank_holder') }}</span><strong>{{ tenant.bank_holder }}</strong></div>{% endif %}
+        <div><span>IBAN</span><strong>{{ tenant.iban }}</strong></div>
+        {% if tenant.bic %}<div><span>BIC</span><strong>{{ tenant.bic }}</strong></div>{% endif %}
+        {% if quote.deposit_amount %}<div><span>{{ _('quotes.deposit') }}</span><strong>{{ '%.2f'|format(quote.deposit_amount) }} €</strong></div>{% endif %}
+      </div>
+    </section>
+    {% endif %}
+
     {% if quote.notes %}
     <section class="doc-notes"><h4>{{ _('quotes.notes') }}</h4><p>{{ quote.notes }}</p></section>
     {% endif %}
@@ -145,6 +157,12 @@
   .doc-total-ttc { border-top: 2px solid #111827; margin-top: .3rem; padding-top: .6rem !important; font-size: 1.15rem !important; font-weight: 700; color: #111827 !important; }
   .doc-total-ttc span:last-child { color: #2563EB; }
   .doc-deposit { color: #92400E !important; font-weight: 600; }
+  .doc-rib { margin-top: 1.4rem; padding: .9rem 1rem; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 10px; }
+  .doc-rib h4 { margin: 0 0 .5rem; font-size: .8rem; text-transform: uppercase; color: #0369A1; }
+  .doc-rib-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .5rem 1.2rem; }
+  .doc-rib-grid > div { display: flex; flex-direction: column; }
+  .doc-rib-grid span { font-size: .7rem; text-transform: uppercase; letter-spacing: .03em; color: #64748B; }
+  .doc-rib-grid strong { font-size: .9rem; color: #0F172A; word-break: break-all; }
   .doc-notes { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px dashed #E5E7EB; }
   .doc-notes h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase; color: #9CA3AF; }
   .doc-notes p { margin: 0; color: #4B5563; font-size: .9rem; white-space: pre-wrap; }

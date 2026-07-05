@@ -15,6 +15,7 @@ from app.models.notification import (
     TYPE_NEW_LEAD,
     TYPE_QUOTE_ACCEPTED,
     TYPE_QUOTE_REFUSED,
+    TYPE_QUOTE_SENT,
     TYPE_URGENT_LEAD,
     Notification,
 )
@@ -110,8 +111,8 @@ def notify_quote_sent(quote, commit=True):
     except Exception:
         pass
     return push_notification(
-        quote.tenant_id, TYPE_NEW_LEAD,
-        f"🧾 Devis signé envoyé — {client}", " · ".join(bits),
+        quote.tenant_id, TYPE_QUOTE_SENT,
+        f"🧾 Devis envoyé — {client}", " · ".join(bits),
         icon="🧾", url=f"/quotes/{quote.id}", commit=commit,
     )
 

@@ -28,6 +28,10 @@ class Lead(db.Model):
     status = db.Column(db.String(20), nullable=False, default="new")
     summary = db.Column(db.Text, nullable=True)
     booking_metadata = db.Column(db.Text, nullable=True)
+    # Set when the plumber cancels a booked job from the prospect card. The
+    # reason is sent to the client (SMS/email) and kept for the history.
+    cancelled_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    cancel_reason = db.Column(db.Text, nullable=True)
     archived_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
     tenant = db.relationship("Tenant", back_populates="leads")
@@ -59,6 +63,28 @@ class Lead(db.Model):
         return "pending"
 
     @property
+    def is_cancelled(self):
+        return self.cancelled_at is not None
+
+    @property
+    def is_booked(self):
+        """A confirmed job: the client accepted / the RDV is booked."""
+        return not self.is_cancelled and (
+            self.status == "booked" or self.acceptance_status == "accepted"
+        )
+
+    @property
+    def maps_url(self):
+        """Directions link to the client's address (opens the native maps app)."""
+        if not (self.address or "").strip():
+            return None
+        from urllib.parse import quote_plus
+
+        return "https://www.google.com/maps/dir/?api=1&destination=" + quote_plus(
+            self.address.strip()
+        )
+
+    @property
     def is_archived(self):
         return self.archived_at is not None
 
@@ -73,6 +99,8 @@ class Lead(db.Model):
             "urgency_level": self.urgency_level,
             "status": self.status,
             "summary": self.summary,
+            "cancelled_at": self.cancelled_at.isoformat() if self.cancelled_at else None,
+            "cancel_reason": self.cancel_reason,
             "archived_at": self.archived_at.isoformat() if self.archived_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

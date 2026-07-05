@@ -1,0 +1,154 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Éditer' if page else 'Nouvelle' }} page · Admin{% endblock %}
+{% block page_title %}{{ page.title if page else 'Nouvelle page' }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.pages') }}" class="admin-btn ghost">← Pages</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('admin.page_save') }}" id="page-form">
+  {% if page %}<input type="hidden" name="id" value="{{ page.id }}">{% endif %}
+  <input type="hidden" name="status" value="{{ page.status if page else 'draft' }}">
+
+  <div class="studio-split">
+    <div class="studio-editor">
+      {% if ai_available %}
+      <div class="ai-box">
+        <h3>🤖 Générer avec l'IA (Mistral)</h3>
+        <label class="field"><span>Décrivez la page souhaitée</span>
+          <textarea id="ai-prompt" rows="3" placeholder="Ex : une page 'À propos' qui présente LeadPilot AI, notre mission d'aider les artisans à ne plus rater d'appels, avec un ton chaleureux et rassurant."></textarea>
+        </label>
+        <div class="field-row">
+          <label class="field"><span>Ton</span>
+            <select id="ai-tone">
+              <option value="professionnel">Professionnel</option>
+              <option value="chaleureux">Chaleureux</option>
+              <option value="dynamique">Dynamique</option>
+              <option value="expert">Expert / technique</option>
+              <option value="convivial">Convivial</option>
+            </select>
+          </label>
+          <div class="field" style="justify-content:flex-end">
+            <button type="button" class="admin-btn" id="ai-generate">Générer la page ✨</button>
+          </div>
+        </div>
+        <span class="ai-spinner" id="ai-spinner">Génération en cours…</span>
+        <span class="mail-error" id="ai-error" style="display:none"></span>
+      </div>
+      {% else %}
+      <div class="admin-notice">IA indisponible (clé <code>MISTRAL_API_KEY</code> absente). Vous pouvez créer la page manuellement ci-dessous.</div>
+      {% endif %}
+
+      <label class="field"><span>Titre de la page</span>
+        <input type="text" name="title" id="f-title" value="{{ page.title if page else '' }}" placeholder="Titre affiché en haut de la page" required>
+      </label>
+      <div class="field-row">
+        <label class="field"><span>Slug (URL)</span>
+          <input type="text" name="slug" id="f-slug" value="{{ page.slug if page else '' }}" placeholder="auto depuis le titre">
+        </label>
+        <div class="field"><span>Adresse publique</span>
+          <input type="text" value="/p/{{ page.slug if page else '…' }}" id="f-slug-preview" readonly>
+        </div>
+      </div>
+      <label class="field"><span>Meta description (SEO, ~150 caractères)</span>
+        <input type="text" name="meta_description" id="f-meta" value="{{ page.meta_description if page else '' }}" maxlength="300">
+      </label>
+      <label class="field"><span>Contenu HTML</span>
+        <textarea name="body_html" id="f-body" rows="16" placeholder="Écrivez ou collez le contenu HTML de la page (h2, p, ul, li…). L'IA remplit ce champ pour vous.">{{ page.body_html if page else '' }}</textarea>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="admin-btn ghost" name="save_draft" value="1">💾 Enregistrer le brouillon</button>
+        <button type="submit" class="admin-btn" name="publish" value="on">🚀 Enregistrer &amp; publier</button>
+        {% if page and page.is_published %}
+        <a href="{{ url_for('web.site_page', slug=page.slug) }}" target="_blank" rel="noopener" class="admin-btn ghost">Voir en ligne ↗</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="studio-preview">
+      <div class="studio-preview-head">
+        <h2>Aperçu</h2>
+        <span class="studio-preview-dot">temps réel</span>
+      </div>
+      <iframe id="page-preview" class="studio-preview-frame" title="Aperçu de la page"></iframe>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var titleEl = document.getElementById("f-title");
+  var bodyEl = document.getElementById("f-body");
+  var metaEl = document.getElementById("f-meta");
+  var slugEl = document.getElementById("f-slug");
+  var slugPrev = document.getElementById("f-slug-preview");
+  var frame = document.getElementById("page-preview");
+
+  function slugify(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "").replace(/[\s-]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  var PREVIEW_CSS =
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" +
+    "color:#1a2233;line-height:1.65;max-width:820px;margin:0 auto;padding:40px 28px;background:#fff;}" +
+    "h1{font-size:34px;line-height:1.2;margin:0 0 8px;}h2{font-size:24px;margin:32px 0 12px;}" +
+    "h3{font-size:19px;margin:24px 0 8px;}p{margin:0 0 16px;}ul{margin:0 0 16px;padding-left:22px;}" +
+    "li{margin:6px 0;}a{color:#3358ff;}blockquote{border-left:4px solid #6d8bff;margin:0 0 16px;" +
+    "padding:8px 16px;background:#f4f6ff;color:#333;}.lead{color:#5a6478;font-size:18px;}" +
+    "img{max-width:100%;height:auto;border-radius:12px;}";
+
+  function render() {
+    var title = titleEl.value || "Titre de la page";
+    var body = bodyEl.value || "<p style='color:#98a2b3'>Le contenu de la page apparaîtra ici…</p>";
+    var doc =
+      "<!doctype html><html lang='fr'><head><meta charset='utf-8'>" +
+      "<meta name='viewport' content='width=device-width, initial-scale=1'>" +
+      "<style>" + PREVIEW_CSS + "</style></head><body>" +
+      "<h1>" + title.replace(/</g, "&lt;") + "</h1>" + body + "</body></html>";
+    frame.srcdoc = doc;
+  }
+
+  function syncSlug() {
+    var s = slugEl.value.trim() ? slugify(slugEl.value) : slugify(titleEl.value);
+    if (slugPrev) slugPrev.value = "/p/" + (s || "…");
+  }
+
+  [titleEl, bodyEl].forEach(function (el) { el.addEventListener("input", render); });
+  [titleEl, slugEl].forEach(function (el) { el.addEventListener("input", syncSlug); });
+  render(); syncSlug();
+
+  // ---- AI generation ----
+  var genBtn = document.getElementById("ai-generate");
+  if (genBtn) {
+    genBtn.addEventListener("click", function () {
+      var prompt = document.getElementById("ai-prompt").value.trim();
+      var tone = document.getElementById("ai-tone").value;
+      var spinner = document.getElementById("ai-spinner");
+      var errEl = document.getElementById("ai-error");
+      errEl.style.display = "none";
+      if (!prompt) { errEl.textContent = "Décrivez d'abord la page à générer."; errEl.style.display = "block"; return; }
+      spinner.classList.add("on"); genBtn.disabled = true;
+      fetch("{{ url_for('admin.api_pages_generate') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, tone: tone })
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { throw new Error(res.d.error || "Erreur de génération."); }
+          if (res.d.title && !titleEl.value.trim()) titleEl.value = res.d.title;
+          else if (res.d.title) titleEl.value = res.d.title;
+          if (res.d.meta_description) metaEl.value = res.d.meta_description;
+          if (res.d.body_html) bodyEl.value = res.d.body_html;
+          render(); syncSlug();
+        })
+        .catch(function (e) { errEl.textContent = e.message; errEl.style.display = "block"; })
+        .finally(function () { spinner.classList.remove("on"); genBtn.disabled = false; });
+    });
+  }
+})();
+</script>
+{% endblock %}

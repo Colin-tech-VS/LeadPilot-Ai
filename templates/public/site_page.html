@@ -1,0 +1,39 @@
+{% extends "public_layout.html" %}
+{% block title %}{{ page.title }} · {{ _('app.name') }}{% endblock %}
+{% block meta %}
+  <meta name="description" content="{{ page.meta_description or page.title }}">
+  {% if preview %}<meta name="robots" content="noindex, nofollow">{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if preview %}
+<div style="background:#fbbf24;color:#3a2a00;text-align:center;padding:8px 16px;font-size:13px;font-weight:700;">
+  👁️ Aperçu — cette page est un brouillon, elle n'est pas encore publiée.
+</div>
+{% endif %}
+<article class="site-page">
+  <div class="container site-page-inner">
+    <h1 class="site-page-title">{{ page.title }}</h1>
+    <div class="site-page-body">
+      {{ page.body_html | safe }}
+    </div>
+  </div>
+</article>
+{% endblock %}
+
+{% block head_extra %}
+<style>
+  .site-page-inner { max-width: 820px; padding-top: 48px; padding-bottom: 64px; }
+  .site-page-title { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 24px; }
+  .site-page-body { font-size: 17px; line-height: 1.7; }
+  .site-page-body h2 { font-size: clamp(22px, 4vw, 28px); margin: 40px 0 14px; }
+  .site-page-body h3 { font-size: 20px; margin: 28px 0 10px; }
+  .site-page-body p { margin: 0 0 18px; }
+  .site-page-body ul, .site-page-body ol { margin: 0 0 18px; padding-left: 24px; }
+  .site-page-body li { margin: 8px 0; }
+  .site-page-body img { max-width: 100%; height: auto; border-radius: 14px; }
+  .site-page-body blockquote { border-left: 4px solid var(--brand, #6d8bff); margin: 0 0 18px;
+    padding: 10px 20px; background: rgba(109,139,255,.08); border-radius: 6px; }
+  .site-page-body a { color: #3358ff; }
+</style>
+{% endblock %}

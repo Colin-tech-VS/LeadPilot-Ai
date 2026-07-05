@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+{% block title %}Offres &amp; prix · Admin{% endblock %}
+{% block page_title %}Offres &amp; prix{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('web.landing') }}#pricing" target="_blank" rel="noopener" class="admin-btn ghost">Voir sur le site ↗</a>
+{% endblock %}
+
+{% block content %}
+<p class="admin-hint">Modifiez vos tarifs et le contenu de chaque offre. L'aperçu à droite se met à jour en direct ; cliquez sur <strong>Enregistrer</strong> pour appliquer sur la page d'accueil.</p>
+
+<form method="POST" action="{{ url_for('admin.offers_save') }}" id="offers-form">
+  <div class="studio-split">
+    <div class="studio-editor">
+      <div class="offer-grid">
+        {% for offer in offers %}
+        <div class="offer-card{% if offer.featured %} featured{% endif %}" data-offer-card="{{ offer.key }}">
+          <div class="offer-card-head">
+            <strong data-bind="name-{{ offer.key }}">{{ offer.name }}</strong>
+            <span class="offer-key">{{ offer.key }}</span>
+          </div>
+          <label class="field"><span>Nom</span>
+            <input type="text" name="o_{{ offer.key }}_name" value="{{ offer.name }}" data-offer="{{ offer.key }}" data-part="name">
+          </label>
+          <label class="field"><span>Badge (optionnel)</span>
+            <input type="text" name="o_{{ offer.key }}_badge" value="{{ offer.badge or '' }}" data-offer="{{ offer.key }}" data-part="badge">
+          </label>
+          <div class="field-row">
+            <label class="field"><span>Prix</span>
+              <input type="text" name="o_{{ offer.key }}_price" value="{{ offer.price }}" data-offer="{{ offer.key }}" data-part="price">
+            </label>
+            <label class="field"><span>Période</span>
+              <input type="text" name="o_{{ offer.key }}_period" value="{{ offer.period or '' }}" data-offer="{{ offer.key }}" data-part="period">
+            </label>
+          </div>
+          <label class="field"><span>Appels inclus</span>
+            <input type="text" name="o_{{ offer.key }}_calls" value="{{ offer.calls or '' }}" data-offer="{{ offer.key }}" data-part="calls">
+          </label>
+          <label class="field"><span>Description</span>
+            <input type="text" name="o_{{ offer.key }}_description" value="{{ offer.description or '' }}" data-offer="{{ offer.key }}" data-part="description">
+          </label>
+          <label class="field"><span>Avantages (une ligne par avantage)</span>
+            <textarea name="o_{{ offer.key }}_features" rows="5" data-offer="{{ offer.key }}" data-part="features">{{ offer.feature_list() | join('\n') }}</textarea>
+          </label>
+          <label class="field"><span>Texte du bouton</span>
+            <input type="text" name="o_{{ offer.key }}_cta" value="{{ offer.cta or '' }}" data-offer="{{ offer.key }}" data-part="cta">
+          </label>
+          <div class="form-actions">
+            <label class="switch">
+              <input type="checkbox" name="o_{{ offer.key }}_active" {% if offer.active %}checked{% endif %}>
+              <span class="switch-track"></span> Visible
+            </label>
+            <label class="switch">
+              <input type="radio" name="featured_key" value="{{ offer.key }}" {% if offer.featured %}checked{% endif %} data-featured="{{ offer.key }}">
+              <span class="switch-track"></span> Mise en avant
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions" style="margin-top:18px">
+        <button type="submit" class="admin-btn">💾 Enregistrer les offres</button>
+      </div>
+    </div>
+
+    <div class="studio-preview">
+      <div class="studio-preview-head">
+        <h2>Aperçu en direct</h2>
+        <span class="studio-preview-dot">temps réel</span>
+      </div>
+      <div id="offers-preview" class="offers-preview"></div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .offers-preview { display: grid; gap: 12px; }
+  .op-card { background: linear-gradient(160deg, var(--panel), #141c37); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; }
+  .op-card.featured { border-color: var(--brand); box-shadow: inset 0 0 0 1px rgba(109,139,255,.35); }
+  .op-badge { display: inline-block; font-size: 11px; font-weight: 700; color: var(--brand-2);
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .op-name { font-size: 18px; font-weight: 800; margin: 0 0 6px; }
+  .op-price { font-size: 26px; font-weight: 800; } .op-price span { font-size: 14px; color: var(--muted); font-weight: 600; }
+  .op-calls { font-size: 13px; color: var(--brand-2); margin: 8px 0 4px; }
+  .op-desc { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .op-feats { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
+  .op-feats li { font-size: 13px; padding-left: 20px; position: relative; }
+  .op-feats li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 800; }
+  .op-cta { display: block; text-align: center; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px;
+    background: linear-gradient(90deg, var(--brand), var(--brand-2)); color: #06122b; }
+  .op-card:not(.featured) .op-cta { background: transparent; border: 1px solid var(--border); color: var(--text); }
+</style>
+<script>
+(function () {
+  var keys = {{ offers | map(attribute='key') | list | tojson }};
+  function val(key, part) {
+    var el = document.querySelector('[data-offer="' + key + '"][data-part="' + part + '"]');
+    return el ? el.value : "";
+  }
+  function isActive(key) {
+    var el = document.querySelector('input[name="o_' + key + '_active"]');
+    return el ? el.checked : true;
+  }
+  function featuredKey() {
+    var el = document.querySelector('input[name="featured_key"]:checked');
+    return el ? el.value : "";
+  }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+  function render() {
+    var host = document.getElementById("offers-preview");
+    var fk = featuredKey();
+    host.innerHTML = keys.filter(isActive).map(function (key) {
+      var feats = val(key, "features").split("\n").filter(function (l) { return l.trim(); });
+      var featured = key === fk;
+      return '<div class="op-card' + (featured ? ' featured' : '') + '">' +
+        (val(key, "badge") ? '<span class="op-badge">' + esc(val(key, "badge")) + '</span>' : '') +
+        '<h3 class="op-name">' + esc(val(key, "name")) + '</h3>' +
+        '<div class="op-price">' + esc(val(key, "price")) + ' <span>' + esc(val(key, "period")) + '</span></div>' +
+        (val(key, "calls") ? '<div class="op-calls">📞 ' + esc(val(key, "calls")) + '</div>' : '') +
+        (val(key, "description") ? '<p class="op-desc">' + esc(val(key, "description")) + '</p>' : '') +
+        '<ul class="op-feats">' + feats.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join("") + '</ul>' +
+        '<span class="op-cta">' + esc(val(key, "cta") || "Choisir") + '</span></div>';
+    }).join("");
+  }
+  document.getElementById("offers-form").addEventListener("input", render);
+  document.getElementById("offers-form").addEventListener("change", render);
+  render();
+})();
+</script>
+{% endblock %}

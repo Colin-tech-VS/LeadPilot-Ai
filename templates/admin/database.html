@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+{% block title %}Base de données · Admin{% endblock %}
+{% block page_title %}Base de données{% endblock %}
+
+{% block content %}
+<p class="admin-hint">Accès direct aux tables. Ajout, édition et suppression en direct — à manier avec précaution.</p>
+<div class="db-grid">
+  {% for name, label in admin_tables.items() %}
+  <a class="db-card" href="{{ url_for('admin.database_table', table=name) }}">
+    <span class="db-card-count">{{ counts.get(name, 0) }}</span>
+    <span class="db-card-label">{{ label }}</span>
+    <span class="db-card-name">{{ name }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

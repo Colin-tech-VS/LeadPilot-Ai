@@ -65,6 +65,37 @@ class Config:
     # the app degrades gracefully — no SMS is sent and nothing breaks.
     TWILIO_SMS_FROM = os.environ.get("TWILIO_SMS_FROM", "")
 
+    # Validate incoming Twilio webhook signatures (X-Twilio-Signature). Enabled
+    # by default in production — it stops anyone but Twilio from hitting the
+    # voice endpoints (which cost money: STT + LLM + TTS per call). Requires
+    # TWILIO_AUTH_TOKEN. Set TWILIO_VALIDATE_SIGNATURE=0 to disable (e.g. local).
+    TWILIO_VALIDATE_SIGNATURE = os.environ.get("TWILIO_VALIDATE_SIGNATURE", "1") not in ("0", "false", "False", "")
+
+    # ------------------------------------------------------------------ Admin
+    # Standalone admin console (/admin), fully separate from the artisan app.
+    # The username is not secret. The password is read from ADMIN_PASSWORD
+    # (plaintext, preferred in prod) or ADMIN_PASSWORD_HASH. A default hash ships
+    # so the console works out of the box; override it in production.
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "LeadPilot_Admin")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+    ADMIN_PASSWORD_HASH = os.environ.get(
+        "ADMIN_PASSWORD_HASH",
+        "scrypt:32768:8:1$iYS5rlPR2M5YlS8z$5f4ffac38bb021d9a80ad86495f6c581fab7631596ef6f57fc54491b41bbf2c0a549eb6e39132ae74f182ac2caec3a0f075c1d5173ffa1baead954cfe44e1154",
+    )
+
+    # ------------------------------------------------------------------ Email
+    # Outbound email (admin console + system notices). Sent over SMTP when
+    # configured; otherwise logged/simulated so nothing breaks. Inbound email is
+    # received via a provider webhook (Mailgun/SendGrid) at /admin/email/inbound,
+    # guarded by EMAIL_INBOUND_SECRET.
+    SMTP_HOST = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USER = os.environ.get("SMTP_USER", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "1") not in ("0", "false", "False", "")
+    EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@leadpilot.ai")
+    EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
+
     # Public URL for Twilio webhooks (Scalingo: your-app.osc-fr1.scalingo.io)
     # Must be None (not "") when unset — an empty string makes Flask host-match
     # against "" and 404 every route.
@@ -86,6 +117,10 @@ class ProductionConfig(Config):
     DEBUG = False
     ENV = "production"
     PREFERRED_URL_SCHEME = "https"
+    # Harden the session cookie in production (admin + artisan sessions).
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 
 config_by_name = {

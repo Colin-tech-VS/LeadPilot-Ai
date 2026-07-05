@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% block title %}Journal · Admin{% endblock %}
+{% block page_title %}Journal d'évènements{% endblock %}
+{% block topbar_actions %}
+  <label class="admin-live-toggle"><input type="checkbox" id="live-toggle" checked> Temps réel</label>
+{% endblock %}
+
+{% block content %}
+<div class="admin-tabs">
+  <a href="{{ url_for('admin.logs') }}" class="admin-tab {% if not category %}active{% endif %}">Tous</a>
+  {% for c in ['auth', 'lead', 'appointment', 'quote', 'billing', 'email', 'admin', 'system'] %}
+  <a href="?category={{ c }}" class="admin-tab {% if category == c %}active{% endif %}">{{ c }}</a>
+  {% endfor %}
+</div>
+
+<div class="log-stream" id="log-stream">
+  {% for e in events %}
+  <div class="log-row log-{{ e.level }}" data-created="{{ e.created_at.isoformat() if e.created_at else '' }}">
+    <span class="log-time">{{ e.created_at.strftime('%d/%m %H:%M:%S') if e.created_at else '' }}</span>
+    <span class="log-cat cat-{{ e.category }}">{{ e.category }}</span>
+    <span class="log-action">{{ e.action }}</span>
+    <span class="log-summary">{{ e.summary or '' }}</span>
+    <span class="log-actor">{{ e.actor or '' }}</span>
+  </div>
+  {% else %}
+  <p class="admin-empty">Aucun évènement enregistré.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.ADMIN_LOGS_URL = "{{ url_for('admin.api_logs') }}";</script>
+{% endblock %}

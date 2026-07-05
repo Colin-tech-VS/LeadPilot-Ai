@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% block title %}Emails · Admin{% endblock %}
+{% block page_title %}Emails{% endblock %}
+{% block topbar_actions %}
+  <button class="admin-btn" onclick="document.getElementById('compose').classList.toggle('open')">✉️ Composer</button>
+{% endblock %}
+
+{% block content %}
+{% if not smtp_configured %}
+<div class="admin-notice">SMTP non configuré — les envois sont <strong>simulés</strong> et journalisés. Renseignez <code>SMTP_HOST</code> pour envoyer réellement.</div>
+{% endif %}
+
+<div id="compose" class="db-add-panel">
+  <form method="POST" action="{{ url_for('admin.emails_send') }}" class="db-form">
+    <h3>Nouvel email</h3>
+    <div class="db-form-grid">
+      <label>Destinataire<input type="email" name="to" required></label>
+      <label>Objet<input type="text" name="subject" required></label>
+    </div>
+    <label>Message<textarea name="body" rows="6"></textarea></label>
+    <label class="db-inline"><input type="checkbox" name="is_html"> Contenu HTML</label>
+    <button type="submit" class="admin-btn">Envoyer</button>
+  </form>
+</div>
+
+<div class="admin-tabs">
+  <a href="?box=outbox" class="admin-tab {% if box == 'outbox' %}active{% endif %}">📤 Envoyés</a>
+  <a href="?box=inbox" class="admin-tab {% if box == 'inbox' %}active{% endif %}">📥 Reçus</a>
+  <a href="?box=all" class="admin-tab {% if box == 'all' %}active{% endif %}">Tous</a>
+</div>
+
+<div class="mail-list">
+  {% for m in messages %}
+  <div class="mail-item mail-{{ m.status }}">
+    <div class="mail-dir">{{ '📥' if m.direction == 'inbound' else '📤' }}</div>
+    <div class="mail-body">
+      <div class="mail-head">
+        <strong>{{ m.subject or '(sans objet)' }}</strong>
+        <span class="mail-status status-{{ m.status }}">{{ m.status }}</span>
+      </div>
+      <div class="mail-meta">
+        {{ m.from_addr or '—' }} → {{ m.to_addr or '—' }}
+        · {{ m.created_at.strftime('%d/%m %H:%M') if m.created_at else '' }}
+      </div>
+      <div class="mail-preview">{{ m.preview }}</div>
+      {% if m.error %}<div class="mail-error">{{ m.error }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="admin-empty">Aucun email pour l'instant.</p>
+  {% endfor %}
+</div>
+{% endblock %}

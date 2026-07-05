@@ -1,3 +1,4 @@
+from app.routes.admin import admin_bp
 from app.routes.appointments import appointments_bp
 from app.routes.auth import auth_bp
 from app.routes.billing import billing_bp
@@ -22,4 +23,5 @@ def register_blueprints(app):
     app.register_blueprint(billing_bp)
     app.register_blueprint(quotes_bp)
     app.register_blueprint(chatbot_bp)
+    app.register_blueprint(admin_bp)
     app.register_blueprint(web_bp)

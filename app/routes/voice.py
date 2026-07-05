@@ -3,11 +3,24 @@ from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
-from app.core.errors import AppError, UnauthorizedError
+from app.core.errors import AppError, ForbiddenError, UnauthorizedError
+from app.core.security import validate_twilio_request
 from app.services.voice import VoiceCallHandler, conversation_store
 from app.services.voice.twilio_handler import TwilioVoiceHandler
 
 voice_bp = Blueprint("voice", __name__, url_prefix="/voice")
+
+# Twilio-signed TwiML webhooks. The JSON API endpoints (/inbound-call, tests)
+# are excluded — they carry no Twilio signature.
+_TWILIO_SIGNED_ENDPOINTS = {"voice.inbound", "voice.process_recording", "voice.continue_call"}
+
+
+@voice_bp.before_request
+def _guard_twilio_webhooks():
+    from flask import request as _req
+
+    if _req.endpoint in _TWILIO_SIGNED_ENDPOINTS and not validate_twilio_request():
+        raise ForbiddenError("Invalid Twilio signature")
 
 
 def _verify_webhook_secret():

@@ -248,6 +248,49 @@ a { color: inherit; text-decoration: none; }
   padding: 10px 14px; border-radius: 10px; font-size: 13px; text-align: center; margin-bottom: 6px; }
 .admin-login-foot { text-align: center; font-size: 11px; color: var(--muted); margin: 14px 0 0; }
 
+/* ---------------------------------------------------------------- traffic */
+.kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.nav-live-dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; background: #2c3766; }
+.nav-live-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.6s infinite; }
+
+.realtime-panel { margin-bottom: 18px; }
+.realtime-head { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+.realtime-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; display: flex; align-items: center; gap: 8px; }
+.rt-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 1.6s infinite; }
+.realtime-count { font-size: 46px; font-weight: 800; margin-top: 6px; letter-spacing: -1px;
+  background: linear-gradient(90deg, #fff, #22d3ee); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.realtime-unit { font-size: 15px; color: var(--muted); -webkit-text-fill-color: var(--muted); font-weight: 600; }
+.realtime-spark { text-align: right; }
+#rt-spark { width: 360px; max-width: 46vw; height: 70px; }
+.realtime-spark-label { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.realtime-pages { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+.realtime-pages h3 { font-size: 13px; margin: 0 0 10px; color: #d7ddff; }
+.rt-pages-list { display: flex; flex-direction: column; gap: 6px; }
+.rt-page { display: flex; justify-content: space-between; padding: 7px 12px; background: var(--bg-2); border-radius: 8px; font-size: 13px; animation: rise .3s ease; }
+.rt-page-path { color: #c3ccf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-page-count { color: var(--brand-2); font-weight: 700; margin-left: 12px; }
+.admin-empty-inline { color: var(--muted); font-size: 13px; }
+
+.chart-legend { display: flex; gap: 16px; margin-bottom: 8px; font-size: 12px; }
+.lg { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.lg::before { content: ""; width: 14px; height: 3px; border-radius: 2px; }
+.lg-views::before { background: var(--brand); }
+.lg-visitors::before { background: var(--brand-2); border-top: 2px dashed var(--brand-2); height: 0; }
+
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+.rank-row { position: relative; display: flex; align-items: center; padding: 9px 12px; border-radius: 8px; background: var(--bg-2); overflow: hidden; font-size: 13px; }
+.rank-bar { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(109,139,255,.35), rgba(34,211,238,.14)); transition: width .9s cubic-bezier(.2,.8,.2,1); }
+.rank-label { position: relative; z-index: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-val { position: relative; z-index: 1; margin-left: auto; font-weight: 700; color: var(--brand-2); padding-left: 12px; }
+
+.danger-zone { margin-top: 34px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.06);
+  border-radius: var(--radius); padding: 20px 22px; }
+.danger-zone h2 { margin: 0 0 6px; font-size: 15px; color: var(--red); }
+.danger-zone p { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 640px; }
+.danger-zone form { display: flex; gap: 10px; flex-wrap: wrap; }
+.danger-zone input { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; color: var(--text); font-size: 13px; min-width: 260px; }
+.danger-zone input:focus { outline: none; border-color: var(--red); }
+
 /* ---------------------------------------------------------------- anim */
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }

@@ -180,4 +180,128 @@
     }
     setInterval(poll, 5000);
   }
+
+  // ---- traffic dashboard (GA4-style) ----
+  function drawDualLine(svg, series) {
+    if (!svg) return;
+    var W = 720, H = 260, pad = { l: 34, r: 12, t: 16, b: 22 };
+    var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, n = series.length;
+    var max = Math.max(1, series.reduce(function (m, d) { return Math.max(m, d.views, d.visitors); }, 0));
+    function x(i) { return pad.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw); }
+    function y(v) { return pad.t + ih - (v / max) * ih; }
+    function path(key) {
+      return series.map(function (d, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d[key]).toFixed(1); }).join(" ");
+    }
+    var grid = "";
+    for (var g = 0; g <= 4; g++) {
+      var gy = pad.t + (ih / 4) * g;
+      grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#26315c" opacity="0.5"/>';
+      grid += '<text x="4" y="' + (gy + 4) + '" fill="#8b96c4" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
+    }
+    var viewsLine = path("views"), visLine = path("visitors");
+    var area = viewsLine + " L" + x(n - 1).toFixed(1) + " " + (pad.t + ih) + " L" + x(0).toFixed(1) + " " + (pad.t + ih) + " Z";
+    svg.innerHTML =
+      '<defs><linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#6d8bff" stop-opacity="0.3"/><stop offset="100%" stop-color="#6d8bff" stop-opacity="0"/></linearGradient></defs>' +
+      grid +
+      '<path d="' + area + '" fill="url(#tGrad)"/>' +
+      '<path d="' + viewsLine + '" fill="none" stroke="#6d8bff" stroke-width="2.5" class="chart-line"/>' +
+      '<path d="' + visLine + '" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-dasharray="4 4"/>';
+    var p = svg.querySelector(".chart-line");
+    if (p && p.getTotalLength) {
+      var len = p.getTotalLength();
+      p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+      p.style.transition = "stroke-dashoffset 1.1s ease";
+      requestAnimationFrame(function () { p.style.strokeDashoffset = 0; });
+    }
+  }
+
+  function drawSparkline(svg, data) {
+    if (!svg) return;
+    var W = 360, H = 70, n = data.length;
+    var max = Math.max(1, data.reduce(function (m, d) { return Math.max(m, d.v); }, 0));
+    function x(i) { return (i / Math.max(1, n - 1)) * W; }
+    function y(v) { return H - 4 - (v / max) * (H - 10); }
+    var bars = data.map(function (d, i) {
+      var bw = W / n - 2;
+      var h = (d.v / max) * (H - 10);
+      return '<rect x="' + (x(i) - bw / 2).toFixed(1) + '" y="' + (H - 4 - h).toFixed(1) + '" width="' + Math.max(1.5, bw).toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="1.5" fill="#22d3ee" opacity="0.85"/>';
+    }).join("");
+    svg.innerHTML = bars;
+  }
+
+  function rankList(host, items, key) {
+    if (!host) return;
+    if (!items.length) { host.innerHTML = '<span class="admin-empty-inline">Pas encore de données.</span>'; return; }
+    var max = Math.max(1, items.reduce(function (m, d) { return Math.max(m, d[key]); }, 0));
+    host.innerHTML = items.map(function (d) {
+      var pct = (d[key] / max) * 100;
+      var label = d.path || d.host || d.label || "";
+      return '<div class="rank-row"><span class="rank-bar" style="width:0" data-w="' + pct + '"></span>' +
+        '<span class="rank-label" title="' + label + '">' + label + '</span>' +
+        '<span class="rank-val">' + fmtInt.format(d[key]) + '</span></div>';
+    }).join("");
+    requestAnimationFrame(function () {
+      host.querySelectorAll(".rank-bar").forEach(function (b) { b.style.width = b.getAttribute("data-w") + "%"; });
+    });
+  }
+
+  function applyRealtime(rt) {
+    var el = document.getElementById("rt-count");
+    if (el) animateValue(el, rt.active_visitors || 0);
+    drawSparkline(document.getElementById("rt-spark"), rt.sparkline || []);
+    var pages = document.getElementById("rt-pages");
+    if (pages) {
+      if (!rt.active_pages || !rt.active_pages.length) pages.innerHTML = '<span class="admin-empty-inline">Aucune activité pour l\'instant.</span>';
+      else pages.innerHTML = rt.active_pages.map(function (p) {
+        return '<div class="rt-page"><span class="rt-page-path">' + p.path + '</span><span class="rt-page-count">' + p.views + '</span></div>';
+      }).join("");
+    }
+    var dot = document.getElementById("nav-live-dot");
+    if (dot) dot.classList.toggle("on", (rt.active_visitors || 0) > 0);
+  }
+
+  function setTrend(id, v) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = (v >= 0 ? "▲ +" : "▼ ") + v + "%";
+    el.className = "kpi-trend " + (v >= 0 ? "up" : "down");
+  }
+
+  function loadTraffic(days) {
+    if (!window.ADMIN_TRAFFIC_URL) return;
+    fetch(window.ADMIN_TRAFFIC_URL + "?days=" + days).then(function (r) { return r.json(); }).then(function (d) {
+      var k = d.kpis || {};
+      animateValue(document.getElementById("tk-visitors"), k.unique_visitors || 0);
+      animateValue(document.getElementById("tk-pageviews"), k.pageviews || 0);
+      animateValue(document.getElementById("tk-sessions"), k.sessions || 0);
+      animateValue(document.getElementById("tk-bounce"), k.bounce_rate || 0);
+      setTrend("tk-visitors-trend", k.visitors_trend || 0);
+      setTrend("tk-pageviews-trend", k.pageviews_trend || 0);
+      var pps = document.getElementById("tk-pps"); if (pps) pps.textContent = k.pages_per_session || 0;
+      drawDualLine(document.getElementById("traffic-chart"), d.timeseries || []);
+      rankList(document.getElementById("top-pages"), d.top_pages || [], "views");
+      drawBars(document.getElementById("top-referrers"), (d.top_referrers || []).map(function (r) { return { label: r.host, count: r.views }; }));
+      drawBars(document.getElementById("devices"), d.devices || []);
+      applyRealtime(d.realtime || {});
+      var upd = document.getElementById("traffic-updated");
+      if (upd) upd.textContent = "màj " + new Date().toLocaleTimeString("fr-FR");
+    }).catch(function () {});
+  }
+
+  function loadRealtimeOnly() {
+    if (!window.ADMIN_TRAFFIC_RT_URL) return;
+    fetch(window.ADMIN_TRAFFIC_RT_URL).then(function (r) { return r.json(); }).then(applyRealtime).catch(function () {});
+  }
+
+  var trafficRange = document.getElementById("traffic-range");
+  if (document.getElementById("rt-count")) {
+    var td = trafficRange ? trafficRange.value : 30;
+    loadTraffic(td);
+    if (trafficRange) trafficRange.addEventListener("change", function () { loadTraffic(trafficRange.value); });
+    setInterval(loadRealtimeOnly, 8000);          // realtime pulse
+    setInterval(function () { loadTraffic(trafficRange ? trafficRange.value : 30); }, 45000);
+  } else if (window.ADMIN_TRAFFIC_RT_URL) {
+    // (not on traffic page) — nothing
+  }
 })();

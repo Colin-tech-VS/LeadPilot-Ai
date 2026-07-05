@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% block title %}Trafic · Admin{% endblock %}
+{% block page_title %}Trafic{% endblock %}
+{% block topbar_actions %}
+  <select id="traffic-range" class="admin-select">
+    <option value="1">Aujourd'hui</option>
+    <option value="7">7 jours</option>
+    <option value="30" selected>30 jours</option>
+    <option value="90">90 jours</option>
+  </select>
+  <span class="admin-live" id="traffic-updated">—</span>
+{% endblock %}
+
+{% block content %}
+<section class="admin-panel realtime-panel">
+  <div class="realtime-head">
+    <div>
+      <span class="realtime-label"><span class="rt-pulse"></span> Temps réel · 5 dernières minutes</span>
+      <div class="realtime-count"><span id="rt-count" data-count="0">0</span> <span class="realtime-unit">visiteur(s) actif(s)</span></div>
+    </div>
+    <div class="realtime-spark"><svg id="rt-spark" viewBox="0 0 360 70" preserveAspectRatio="none"></svg>
+      <span class="realtime-spark-label">pages vues / min (30 min)</span>
+    </div>
+  </div>
+  <div class="realtime-pages">
+    <h3>Pages actives maintenant</h3>
+    <div id="rt-pages" class="rt-pages-list"><span class="admin-empty-inline">Aucune activité pour l'instant.</span></div>
+  </div>
+</section>
+
+<div class="kpi-grid kpi-grid-4">
+  <div class="kpi-card"><span class="kpi-label">Visiteurs uniques</span><span class="kpi-value" id="tk-visitors" data-count="0">0</span><span class="kpi-trend" id="tk-visitors-trend"></span></div>
+  <div class="kpi-card"><span class="kpi-label">Pages vues</span><span class="kpi-value" id="tk-pageviews" data-count="0">0</span><span class="kpi-trend" id="tk-pageviews-trend"></span></div>
+  <div class="kpi-card"><span class="kpi-label">Sessions</span><span class="kpi-value" id="tk-sessions" data-count="0">0</span><span class="kpi-sub"><span id="tk-pps">0</span> pages / session</span></div>
+  <div class="kpi-card"><span class="kpi-label">Taux de rebond</span><span class="kpi-value" id="tk-bounce" data-count="0" data-suffix="%">0</span><span class="kpi-sub">sessions d'une seule page</span></div>
+</div>
+
+<section class="admin-panel">
+  <h2>Audience — pages vues & visiteurs uniques</h2>
+  <div class="chart-legend"><span class="lg lg-views">Pages vues</span><span class="lg lg-visitors">Visiteurs uniques</span></div>
+  <div class="chart-host"><svg id="traffic-chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg></div>
+</section>
+
+<div class="admin-grid-2">
+  <section class="admin-panel">
+    <h2>Pages les plus vues</h2>
+    <div id="top-pages" class="rank-list"></div>
+  </section>
+  <section class="admin-panel">
+    <h2>Sources de trafic</h2>
+    <div id="top-referrers" class="bars"></div>
+    <h2 style="margin-top:20px">Appareils</h2>
+    <div id="devices" class="bars"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.ADMIN_TRAFFIC_URL = "{{ url_for('admin.api_traffic') }}";
+  window.ADMIN_TRAFFIC_RT_URL = "{{ url_for('admin.api_traffic_realtime') }}";
+</script>
+{% endblock %}

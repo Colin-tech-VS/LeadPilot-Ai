@@ -45,6 +45,10 @@ def create_app(config_object=None):
     register_i18n(app)
     register_blueprints(app)
 
+    from app.core.tracking import register_tracking
+
+    register_tracking(app)
+
     with app.app_context():
         db.create_all()
         _ensure_schema_updates()

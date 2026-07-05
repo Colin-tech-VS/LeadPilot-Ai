@@ -23,6 +23,10 @@
         <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
           <span class="nav-ico">📊</span> Analytics
         </a>
+        <a href="{{ url_for('admin.traffic_page') }}" class="{% if request.endpoint == 'admin.traffic_page' %}active{% endif %}">
+          <span class="nav-ico">🌐</span> Trafic
+          <span class="nav-live-dot" id="nav-live-dot"></span>
+        </a>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
           <span class="nav-ico">🗄️</span> Base de données
         </a>

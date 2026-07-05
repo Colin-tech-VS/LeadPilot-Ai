@@ -33,10 +33,11 @@ from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.lead import Lead
 from app.models.notification import Notification
+from app.models.page_view import PageView
 from app.models.quote import Quote
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services import admin_email, analytics
+from app.services import admin_email, analytics, traffic
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
 admin_bp = Blueprint(
@@ -79,6 +80,8 @@ TABLES = {
     "email_messages": TableSpec(
         EmailMessage, "Emails", ["direction", "status", "from_addr", "to_addr",
                                  "subject", "body"]),
+    "page_views": TableSpec(
+        PageView, "Pages vues", ["path", "referrer_host", "device"]),
 }
 
 
@@ -136,14 +139,62 @@ def dashboard():
 @admin_bp.route("/api/analytics")
 @admin_required
 def api_analytics():
+    return jsonify(analytics.dashboard_payload(_range_days()))
+
+
+def _range_days(default=30):
     try:
-        days = max(7, min(365, int(request.args.get("days", 30))))
+        return max(1, min(365, int(request.args.get("days", default))))
     except (TypeError, ValueError):
-        days = 30
-    return jsonify(analytics.dashboard_payload(days))
+        return default
+
+
+# ------------------------------------------------------------------ traffic
+@admin_bp.route("/traffic")
+@admin_required
+def traffic_page():
+    return render_template("admin/traffic.html")
+
+
+@admin_bp.route("/api/traffic")
+@admin_required
+def api_traffic():
+    return jsonify(traffic.payload(_range_days()))
+
+
+@admin_bp.route("/api/traffic/realtime")
+@admin_required
+def api_traffic_realtime():
+    return jsonify(traffic.realtime())
 
 
 # ------------------------------------------------------------------ database
+@admin_bp.route("/maintenance/purge-leads", methods=["POST"])
+@admin_required
+def purge_leads():
+    """Delete every prospect and everything that hangs off it (RDV, devis,
+    notifications) while keeping the accounts (artisans + identifiants +
+    abonnement). FK-safe order so PostgreSQL never rejects the deletion."""
+    if request.form.get("confirm") != "SUPPRIMER":
+        flash("Confirmation incorrecte — tapez SUPPRIMER pour valider.", "error")
+        return redirect(url_for("admin.database_home"))
+    try:
+        quotes = Quote.query.delete()
+        appts = Appointment.query.delete()
+        notifs = Notification.query.delete()
+        leads = Lead.query.delete()
+        db.session.commit()
+        log_event(CAT_ADMIN, "purge_leads",
+                  summary=f"Purge: {leads} prospects, {appts} RDV, {quotes} devis, {notifs} notifs",
+                  level=LEVEL_WARNING)
+        flash(f"Supprimé : {leads} prospect(s), {appts} RDV, {quotes} devis, "
+              f"{notifs} notification(s). Comptes conservés.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur pendant la purge : {exc}", "error")
+    return redirect(url_for("admin.database_home"))
+
+
 @admin_bp.route("/database")
 @admin_required
 def database_home():

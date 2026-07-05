@@ -13,4 +13,15 @@
   </a>
   {% endfor %}
 </div>
+
+<section class="danger-zone">
+  <h2>⚠️ Zone de maintenance</h2>
+  <p>Supprime <strong>tous les prospects</strong> et ce qui en dépend (RDV, devis, notifications).
+     Les <strong>comptes</strong> (artisans, identifiants, abonnement) sont conservés. Action irréversible.</p>
+  <form method="POST" action="{{ url_for('admin.purge_leads') }}"
+        onsubmit="return confirm('Supprimer DÉFINITIVEMENT tous les prospects, RDV et devis ? Les comptes sont conservés.');">
+    <input type="text" name="confirm" placeholder="Tapez SUPPRIMER pour confirmer" autocomplete="off" required>
+    <button type="submit" class="admin-btn danger">Supprimer tous les prospects</button>
+  </form>
+</section>
 {% endblock %}

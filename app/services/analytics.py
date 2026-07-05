@@ -86,8 +86,9 @@ def _revenue_estimate_cents():
 
 
 def leads_timeseries(days=30):
-    """Daily lead counts for the main chart (zero-filled)."""
-    since = _since(days).replace(hour=0, minute=0, second=0, microsecond=0)
+    """Daily lead counts for the main chart (zero-filled), including today."""
+    today = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    since = today - timedelta(days=days - 1)
     buckets = OrderedDict()
     for i in range(days):
         day = (since + timedelta(days=i)).date()

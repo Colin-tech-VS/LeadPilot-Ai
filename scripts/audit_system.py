@@ -1,10 +1,24 @@
-"""Full system audit for LeadPilot AI."""
+"""Full system audit for LeadPilot AI.
+
+Credentials come from the environment so nothing sensitive is committed:
+    AUDIT_EMAIL=you@example.com AUDIT_PASSWORD=... python scripts/audit_system.py
+"""
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import create_app
+
+AUDIT_EMAIL = os.environ.get("AUDIT_EMAIL", "")
+AUDIT_PASSWORD = os.environ.get("AUDIT_PASSWORD", "")
+
+if not AUDIT_EMAIL or not AUDIT_PASSWORD:
+    sys.exit(
+        "Set AUDIT_EMAIL and AUDIT_PASSWORD in the environment before running "
+        "the audit (login checks need a real account)."
+    )
 
 app = create_app()
 c = app.test_client()
@@ -31,7 +45,7 @@ r = c.get("/health")
 check("Health check", r.status_code == 200 and r.get_json().get("status") == "ok")
 
 # API login
-r = c.post("/auth/login", json={"email": "coco.cayre@gmail.com", "password": "Ttcedu_92410"})
+r = c.post("/auth/login", json={"email": AUDIT_EMAIL, "password": AUDIT_PASSWORD})
 token = r.get_json().get("access_token") if r.status_code == 200 else None
 check("API login", r.status_code == 200 and bool(token))
 headers = {"Authorization": f"Bearer {token}"} if token else {}
@@ -40,7 +54,7 @@ r = c.get("/tenant/me", headers=headers)
 check("API tenant/me", r.status_code == 200)
 
 # Web
-c.post("/login", data={"email": "coco.cayre@gmail.com", "password": "Ttcedu_92410"})
+c.post("/login", data={"email": AUDIT_EMAIL, "password": AUDIT_PASSWORD})
 check("Dashboard", c.get("/dashboard").status_code == 200)
 check("Leads page", c.get("/leads").status_code == 200)
 check("Appointments page", c.get("/appointments").status_code == 200)

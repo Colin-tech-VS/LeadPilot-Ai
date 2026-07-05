@@ -79,6 +79,7 @@ def _parse_items(form):
 def _apply_form(quote, form):
     quote.client_name = (form.get("client_name") or "").strip() or None
     quote.client_phone = (form.get("client_phone") or "").strip() or None
+    quote.client_email = (form.get("client_email") or "").strip().lower() or None
     quote.client_address = (form.get("client_address") or "").strip() or None
     quote.title = (form.get("title") or "").strip() or None
     quote.notes = (form.get("notes") or "").strip() or None
@@ -203,7 +204,13 @@ def new_quote():
 def quote_detail(quote_id):
     quote = _get_quote(quote_id)
     tenant = db.session.get(Tenant, g.tenant_id)
-    return render_template("quote_view.html", quote=quote, tenant=tenant, owner_view=True)
+    return render_template(
+        "quote_view.html",
+        quote=quote,
+        tenant=tenant,
+        owner_view=True,
+        sent_result=request.args.get("sent"),
+    )
 
 
 @quotes_bp.route("/<quote_id>/edit", methods=["GET", "POST"])
@@ -260,6 +267,38 @@ def change_status(quote_id):
 
     db.session.commit()
     return redirect(url_for("quotes.quote_detail", quote_id=quote.id))
+
+
+@quotes_bp.route("/<quote_id>/send", methods=["POST"])
+@web_tenant_required
+def send_quote(quote_id):
+    """Actually send the devis to the client (email and/or SMS) with the RIB.
+
+    Unlike the plain "mark sent" transition, this delivers the online devis link
+    to the client through the selected channels and includes the bank details
+    for the acompte. The devis is marked sent when at least one channel went out.
+    """
+    from app.services import quote_delivery
+
+    quote = _get_quote(quote_id)
+    if quote.is_invoice:
+        return redirect(url_for("quotes.quote_detail", quote_id=quote.id))
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+
+    channels = request.form.getlist("channel") or None
+    result = quote_delivery.send_quote(quote, tenant, channels=channels)
+
+    if result["any"]:
+        quote_engine.mark_sent(quote)
+        quote.sent_channel = result["channel"]
+        db.session.commit()
+        notifications.notify_quote_sent(quote)
+        status = result["channel"]
+    else:
+        status = "none"
+
+    return redirect(url_for("quotes.quote_detail", quote_id=quote.id, sent=status))
 
 
 @quotes_bp.route("/<quote_id>/remind", methods=["POST"])

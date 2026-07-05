@@ -60,6 +60,7 @@ class Quote(db.Model):
     # Client snapshot (kept independent of the lead so edits/deletes are safe).
     client_name = db.Column(db.String(255), nullable=True)
     client_phone = db.Column(db.String(50), nullable=True)
+    client_email = db.Column(db.String(255), nullable=True)
     client_address = db.Column(db.String(500), nullable=True)
 
     title = db.Column(db.String(255), nullable=True)
@@ -72,6 +73,10 @@ class Quote(db.Model):
 
     # Random token backing the client-facing accept/refuse link.
     public_token = db.Column(db.String(64), nullable=True, index=True)
+
+    # How the devis was delivered to the client ("email", "sms", "email+sms")
+    # and whether the bank details (RIB) were included for the acompte.
+    sent_channel = db.Column(db.String(20), nullable=True)
 
     sent_at = db.Column(db.DateTime(timezone=True), nullable=True)
     accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -181,6 +186,7 @@ class Quote(db.Model):
             "number": self.number,
             "client_name": self.client_name,
             "client_phone": self.client_phone,
+            "client_email": self.client_email,
             "client_address": self.client_address,
             "title": self.title,
             "items": self.get_items(),

@@ -126,13 +126,23 @@ def notifications_feed():
         ).count()
     )
 
-    return jsonify(
-        {
-            "now": now.isoformat(),
-            "unread": unread,
-            "notifications": [n.to_dict() for n in rows],
-        }
-    ), 200
+    payload = {
+        "now": now.isoformat(),
+        "unread": unread,
+        "notifications": [n.to_dict() for n in rows],
+    }
+
+    # The notification centre asks for the latest history when its panel opens.
+    if request.args.get("recent"):
+        recent = (
+            Notification.query.filter(Notification.tenant_id == g.tenant_id)
+            .order_by(Notification.created_at.desc())
+            .limit(20)
+            .all()
+        )
+        payload["recent"] = [n.to_dict() for n in recent]
+
+    return jsonify(payload), 200
 
 
 @web_bp.route("/api/notifications/read", methods=["POST"])
@@ -421,6 +431,63 @@ def archive_lead(lead_id):
     return redirect(request.referrer or url_for("web.leads_page"))
 
 
+@web_bp.route("/leads/<lead_id>/cancel", methods=["POST"])
+@web_tenant_required
+def cancel_lead(lead_id):
+    """Cancel a booked job from the prospect card.
+
+    Records the reason, cancels any upcoming appointment and — unless the plumber
+    unticks the box — tells the client (SMS/email) that the intervention is
+    cancelled, with the reason. A notification is pushed so it shows in the feed.
+    """
+    from app.services import notifications
+    from app.services.sms import send_sms
+
+    try:
+        lid = uuid.UUID(lead_id)
+    except ValueError:
+        return redirect(url_for("web.leads_page"))
+
+    lead = Lead.query.filter_by(id=lid, tenant_id=g.tenant_id).first()
+    if not lead:
+        return redirect(url_for("web.leads_page"))
+
+    reason = (request.form.get("reason") or "").strip()
+    notify_client = request.form.get("notify_client") == "1"
+    tenant = db.session.get(Tenant, g.tenant_id)
+
+    lead.cancelled_at = datetime.now(timezone.utc)
+    lead.cancel_reason = reason or None
+    lead.status = "lost"
+
+    # Cancel still-active appointments tied to this lead so they leave the agenda.
+    for appt in lead.appointments.filter(
+        Appointment.status.in_(("scheduled", "confirmed"))
+    ).all():
+        appt.status = "cancelled"
+    db.session.commit()
+
+    if notify_client and lead.phone:
+        company = (tenant.name or "votre artisan").strip()
+        body = (
+            f"Bonjour, votre rendez-vous avec {company} a été annulé."
+            + (f" Motif : {reason}." if reason else "")
+            + " Contactez-nous pour reprogrammer."
+        )
+        send_sms(lead.phone, body)
+
+    notifications.push_notification(
+        g.tenant_id,
+        "lead_cancelled",
+        f"🚫 Intervention annulée — {lead.name}",
+        reason or "",
+        icon="🚫",
+        url="/leads",
+    )
+
+    return redirect(request.referrer or url_for("web.leads_page"))
+
+
 @web_bp.route("/leads/<lead_id>/unarchive", methods=["POST"])
 @web_tenant_required
 def unarchive_lead(lead_id):
@@ -653,6 +720,10 @@ def settings_page():
         new_password = request.form.get("new_password") or ""
         confirm_password = request.form.get("confirm_password") or ""
         signature = _normalize_signature(request.form.get("signature"))
+        bank_holder = (request.form.get("bank_holder") or "").strip() or None
+        # Store the IBAN/BIC uppercased and without spaces for a clean display.
+        iban = ((request.form.get("iban") or "").replace(" ", "").upper()) or None
+        bic = ((request.form.get("bic") or "").replace(" ", "").upper()) or None
 
         if not name:
             error = translate("settings.error.company_required")
@@ -698,6 +769,9 @@ def settings_page():
             elif tenant.service_radius_km is None:
                 tenant.service_radius_km = 30
             tenant.signature = signature
+            tenant.bank_holder = bank_holder
+            tenant.iban = iban
+            tenant.bic = bic
 
             full_address = tenant.full_address
             if full_address:

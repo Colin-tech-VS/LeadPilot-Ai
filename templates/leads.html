@@ -62,6 +62,12 @@
 
       {% endif %}
 
+      {% if lead.is_cancelled %}
+
+      <span class="badge badge-cancelled">{{ _('leads.cancelled_badge') }}</span>
+
+      {% endif %}
+
       {% if lead.is_archived %}
 
       <span class="badge badge-archived">{{ _('leads.archived_badge') }}</span>
@@ -90,33 +96,55 @@
 
     <div class="lead-actions">
 
+      {% if show_archived %}
+
       <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
+      <form method="post" action="{{ url_for('web.unarchive_lead', lead_id=lead.id) }}" class="lead-action-form">
+        <button type="submit" class="btn btn-outline btn-sm">{{ _('btn.unarchive') }}</button>
+      </form>
 
-      {% if not show_archived %}
+      {% elif lead.is_booked %}
 
+      {% if lead.maps_url %}
+      <a href="{{ lead.maps_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">🧭 {{ _('btn.go_there') }}</a>
+      {% endif %}
+      <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">📞 {{ _('btn.call') }}</a>
+      <button type="button" class="btn btn-outline btn-sm btn-danger lead-cancel-toggle" data-target="cancel-{{ lead.id }}">✕ {{ _('btn.cancel_job') }}</button>
+
+      <form method="post" action="{{ url_for('web.cancel_lead', lead_id=lead.id) }}" class="lead-cancel-form" id="cancel-{{ lead.id }}" hidden>
+        <label class="lead-cancel-label" for="reason-{{ lead.id }}">{{ _('leads.cancel_reason_label') }}</label>
+        <textarea id="reason-{{ lead.id }}" name="reason" rows="2" required
+                  placeholder="{{ _('leads.cancel_reason_placeholder') }}"></textarea>
+        <label class="lead-cancel-notify">
+          <input type="checkbox" name="notify_client" value="1" checked>
+          <span>{{ _('leads.cancel_notify') }}</span>
+        </label>
+        <div class="lead-cancel-actions">
+          <button type="button" class="btn btn-outline btn-sm lead-cancel-abort" data-target="cancel-{{ lead.id }}">{{ _('quotes.cancel') }}</button>
+          <button type="submit" class="btn btn-danger btn-sm"
+                  onclick="return confirm({{ _('leads.cancel_confirm')|tojson }});">{{ _('leads.cancel_submit') }}</button>
+        </div>
+      </form>
+
+      {% else %}
+
+      <a href="tel:{{ lead.phone }}" class="btn btn-outline btn-sm">{{ _('btn.call') }}</a>
       <form method="post" action="{{ url_for('quotes.create_quote') }}" class="lead-action-form">
         <input type="hidden" name="lead_id" value="{{ lead.id }}">
         <button type="submit" class="btn btn-primary btn-sm">{{ _('btn.create_quote') }}</button>
       </form>
       <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
-
       <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
-
         <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
-
-      </form>
-
-      {% else %}
-
-      <form method="post" action="{{ url_for('web.unarchive_lead', lead_id=lead.id) }}" class="lead-action-form">
-
-        <button type="submit" class="btn btn-outline btn-sm">{{ _('btn.unarchive') }}</button>
-
       </form>
 
       {% endif %}
 
     </div>
+
+    {% if lead.is_cancelled and lead.cancel_reason %}
+    <p class="lead-cancel-note">{{ _('leads.cancelled_note', reason=lead.cancel_reason) }}</p>
+    {% endif %}
 
   </article>
 
@@ -129,6 +157,40 @@
 <p class="empty">{% if show_archived %}{{ _('empty.leads_archived') }}{% else %}{{ _('empty.leads') }}{% endif %}</p>
 
 {% endif %}
+
+<style>
+  .btn-danger { color: #B91C1C; border-color: #FCA5A5; }
+  .badge-cancelled { background: #FEE2E2; color: #B91C1C; }
+  .lead-cancel-form { margin-top: .7rem; padding: .8rem; background: #FEF2F2; border: 1px solid #FECACA;
+    border-radius: 10px; display: flex; flex-direction: column; gap: .5rem; }
+  .lead-cancel-label { font-size: .8rem; font-weight: 600; color: #991B1B; }
+  .lead-cancel-form textarea { width: 100%; border: 1px solid #FCA5A5; border-radius: 8px; padding: .5rem .6rem;
+    font-family: inherit; font-size: .9rem; resize: vertical; }
+  .lead-cancel-notify { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: #7F1D1D; }
+  .lead-cancel-notify input { width: 16px; height: 16px; }
+  .lead-cancel-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+  .lead-cancel-note { margin: .6rem 0 0; font-size: .82rem; color: #B91C1C; }
+</style>
+
+<script>
+(function () {
+  function toggle(id, show) {
+    var el = document.getElementById(id);
+    if (el) el.hidden = !show;
+  }
+  document.querySelectorAll('.lead-cancel-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var form = document.getElementById(btn.getAttribute('data-target'));
+      if (!form) return;
+      form.hidden = !form.hidden;
+      if (!form.hidden) { var ta = form.querySelector('textarea'); if (ta) ta.focus(); }
+    });
+  });
+  document.querySelectorAll('.lead-cancel-abort').forEach(function (btn) {
+    btn.addEventListener('click', function () { toggle(btn.getAttribute('data-target'), false); });
+  });
+})();
+</script>
 
 {% endblock %}
 

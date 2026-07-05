@@ -64,19 +64,19 @@ def _ensure_schema_updates():
     if "leads" not in inspector.get_table_names():
         return
     columns = {col["name"] for col in inspector.get_columns("leads")}
-    if "booking_metadata" not in columns:
-        with db.engine.begin() as conn:
-            conn.execute(text("ALTER TABLE leads ADD COLUMN booking_metadata TEXT"))
-    if "latitude" not in columns:
-        with db.engine.begin() as conn:
-            conn.execute(text("ALTER TABLE leads ADD COLUMN latitude FLOAT"))
-    if "longitude" not in columns:
-        with db.engine.begin() as conn:
-            conn.execute(text("ALTER TABLE leads ADD COLUMN longitude FLOAT"))
-    if "archived_at" not in columns:
-        ts_type = "TIMESTAMP WITH TIME ZONE" if db.engine.dialect.name == "postgresql" else "DATETIME"
-        with db.engine.begin() as conn:
-            conn.execute(text(f"ALTER TABLE leads ADD COLUMN archived_at {ts_type}"))
+    ts_type = "TIMESTAMP WITH TIME ZONE" if db.engine.dialect.name == "postgresql" else "DATETIME"
+    lead_patches = {
+        "booking_metadata": "TEXT",
+        "latitude": "FLOAT",
+        "longitude": "FLOAT",
+        "cancelled_at": ts_type,
+        "cancel_reason": "TEXT",
+        "archived_at": ts_type,
+    }
+    for col_name, col_type in lead_patches.items():
+        if col_name not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE leads ADD COLUMN {col_name} {col_type}"))
 
     if "tenants" not in inspector.get_table_names():
         return
@@ -95,6 +95,9 @@ def _ensure_schema_updates():
         "longitude": "FLOAT",
         "service_radius_km": "INTEGER",
         "signature": "TEXT",
+        "iban": "VARCHAR(40)",
+        "bic": "VARCHAR(15)",
+        "bank_holder": "VARCHAR(255)",
         "plan": "VARCHAR(20)",
         "trial_ends_at": ts_type,
         "stripe_customer_id": "VARCHAR(64)",
@@ -105,3 +108,15 @@ def _ensure_schema_updates():
         if col_name not in tenant_columns:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE tenants ADD COLUMN {col_name} {col_type}"))
+
+    if "quotes" not in inspector.get_table_names():
+        return
+    quote_columns = {col["name"] for col in inspector.get_columns("quotes")}
+    quote_patches = {
+        "client_email": "VARCHAR(255)",
+        "sent_channel": "VARCHAR(20)",
+    }
+    for col_name, col_type in quote_patches.items():
+        if col_name not in quote_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE quotes ADD COLUMN {col_name} {col_type}"))

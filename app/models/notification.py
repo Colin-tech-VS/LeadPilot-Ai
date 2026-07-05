@@ -17,6 +17,8 @@ TYPE_URGENT_LEAD = "urgent_lead"
 TYPE_APPOINTMENT = "appointment"
 TYPE_QUOTE_ACCEPTED = "quote_accepted"
 TYPE_QUOTE_REFUSED = "quote_refused"
+TYPE_QUOTE_SENT = "quote_sent"
+TYPE_LEAD_CANCELLED = "lead_cancelled"
 TYPE_INVOICE_PAID = "invoice_paid"
 
 

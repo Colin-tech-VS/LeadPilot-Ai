@@ -5,9 +5,25 @@
   // ---- sidebar toggle (mobile) ----
   var burger = document.getElementById("admin-burger");
   var sidebar = document.getElementById("admin-sidebar");
-  if (burger && sidebar) {
-    burger.addEventListener("click", function () { sidebar.classList.toggle("open"); });
+  var backdrop = document.getElementById("admin-backdrop");
+  function setSidebar(open) {
+    if (sidebar) sidebar.classList.toggle("open", open);
+    if (backdrop) backdrop.classList.toggle("open", open);
   }
+  if (burger && sidebar) {
+    burger.addEventListener("click", function () {
+      setSidebar(!sidebar.classList.contains("open"));
+    });
+  }
+  if (backdrop) backdrop.addEventListener("click", function () { setSidebar(false); });
+  if (sidebar) {
+    sidebar.querySelectorAll(".admin-nav a").forEach(function (a) {
+      a.addEventListener("click", function () { setSidebar(false); });
+    });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") setSidebar(false);
+  });
 
   var fmtInt = new Intl.NumberFormat("fr-FR");
   function fmtMoney(cents) {

@@ -33,11 +33,14 @@ from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.lead import Lead
 from app.models.notification import Notification
+from app.models.offer import Offer
 from app.models.page_view import PageView
 from app.models.quote import Quote
+from app.models.site_page import SitePage
+from app.models.social_post import SocialPost
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services import admin_email, analytics, traffic
+from app.services import admin_email, analytics, content_ai, content_studio, social, traffic
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
 admin_bp = Blueprint(
@@ -435,3 +438,265 @@ def api_logs():
             pass
     events = query.order_by(Event.created_at.desc()).limit(50).all()
     return jsonify([e.to_dict() for e in events])
+
+
+# ============================================================ CONTENT STUDIO
+import re as _re
+
+
+def _slugify(value):
+    value = (value or "").strip().lower()
+    value = _re.sub(r"[^a-z0-9\s-]", "", value)
+    value = _re.sub(r"[\s-]+", "-", value).strip("-")
+    return value or "page"
+
+
+def _unique_slug(base, exclude_id=None):
+    slug = base
+    i = 2
+    # no_autoflush: a pending (not-yet-persisted) SitePage would otherwise be
+    # flushed by this query while its slug is still unset, tripping NOT NULL.
+    with db.session.no_autoflush:
+        while True:
+            existing = SitePage.query.filter(SitePage.slug == slug).first()
+            if existing is None or existing.id == exclude_id:
+                return slug
+            slug = f"{base}-{i}"
+            i += 1
+
+
+# ------------------------------------------------------------------ studio hub
+@admin_bp.route("/studio")
+@admin_required
+def studio():
+    return render_template(
+        "admin/studio.html",
+        page_count=SitePage.query.count(),
+        published_count=SitePage.query.filter(SitePage.status == "published").count(),
+        offer_count=Offer.query.count(),
+        social_count=SocialPost.query.count(),
+        facebook_connected=social.is_configured(),
+        ai_available=content_ai.is_available(),
+    )
+
+
+# ------------------------------------------------------------------ offers
+@admin_bp.route("/offers")
+@admin_required
+def offers():
+    return render_template(
+        "admin/offers.html",
+        offers=content_studio.get_offers(),
+    )
+
+
+@admin_bp.route("/offers/save", methods=["POST"])
+@admin_required
+def offers_save():
+    offers_list = content_studio.get_offers()
+    featured_key = request.form.get("featured_key", "")
+    for offer in offers_list:
+        prefix = f"o_{offer.key}_"
+        offer.name = request.form.get(prefix + "name", offer.name).strip()
+        offer.badge = request.form.get(prefix + "badge", "").strip()
+        offer.price = request.form.get(prefix + "price", offer.price).strip()
+        offer.period = request.form.get(prefix + "period", "").strip()
+        offer.calls = request.form.get(prefix + "calls", "").strip()
+        offer.description = request.form.get(prefix + "description", "").strip()
+        offer.cta = request.form.get(prefix + "cta", "").strip()
+        offer.active = request.form.get(prefix + "active") == "on"
+        offer.featured = (offer.key == featured_key)
+        features_raw = request.form.get(prefix + "features", "")
+        offer.set_features([ln for ln in features_raw.splitlines()])
+    try:
+        db.session.commit()
+        log_event(CAT_ADMIN, "offers_update", summary="Offres / prix mis à jour", level=LEVEL_SUCCESS)
+        flash("Offres mises à jour — visibles immédiatement sur la page d'accueil.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur: {exc}", "error")
+    return redirect(url_for("admin.offers"))
+
+
+# ------------------------------------------------------------------ pages
+@admin_bp.route("/pages")
+@admin_required
+def pages():
+    all_pages = SitePage.query.order_by(SitePage.updated_at.desc()).all()
+    return render_template("admin/pages.html", pages=all_pages)
+
+
+@admin_bp.route("/pages/new")
+@admin_required
+def page_new():
+    return render_template("admin/page_editor.html", page=None, ai_available=content_ai.is_available())
+
+
+@admin_bp.route("/pages/<page_id>")
+@admin_required
+def page_edit(page_id):
+    page = db.session.get(SitePage, _pk_value(SitePage, page_id))
+    if not page:
+        abort(404)
+    return render_template("admin/page_editor.html", page=page, ai_available=content_ai.is_available())
+
+
+@admin_bp.route("/pages/save", methods=["POST"])
+@admin_required
+def page_save():
+    page_id = request.form.get("id") or None
+    page = None
+    if page_id:
+        page = db.session.get(SitePage, _pk_value(SitePage, page_id))
+        if not page:
+            abort(404)
+    title = request.form.get("title", "").strip() or "Sans titre"
+    slug_input = request.form.get("slug", "").strip()
+    base_slug = _slugify(slug_input or title)
+    is_new = page is None
+    if is_new:
+        page = SitePage()
+        db.session.add(page)
+    page.title = title
+    page.slug = _unique_slug(base_slug, exclude_id=None if is_new else page.id)
+    page.meta_description = request.form.get("meta_description", "").strip()[:300]
+    page.body_html = request.form.get("body_html", "")
+    if request.form.get("publish") == "on":
+        page.status = "published"
+    elif request.form.get("status") in ("draft", "published"):
+        page.status = request.form.get("status")
+    try:
+        db.session.commit()
+        log_event(CAT_ADMIN, "page_save",
+                  summary=f"Page « {page.title} » enregistrée ({page.status})", level=LEVEL_SUCCESS)
+        flash("Page enregistrée.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur: {exc}", "error")
+        return redirect(url_for("admin.pages"))
+    return redirect(url_for("admin.page_edit", page_id=page.id))
+
+
+@admin_bp.route("/pages/<page_id>/status", methods=["POST"])
+@admin_required
+def page_status(page_id):
+    page = db.session.get(SitePage, _pk_value(SitePage, page_id))
+    if not page:
+        abort(404)
+    page.status = "published" if page.status != "published" else "draft"
+    db.session.commit()
+    log_event(CAT_ADMIN, "page_status", summary=f"Page « {page.title} » → {page.status}")
+    flash(f"Page {'publiée' if page.status == 'published' else 'repassée en brouillon'}.", "success")
+    return redirect(request.referrer or url_for("admin.pages"))
+
+
+@admin_bp.route("/pages/<page_id>/delete", methods=["POST"])
+@admin_required
+def page_delete(page_id):
+    page = db.session.get(SitePage, _pk_value(SitePage, page_id))
+    if not page:
+        abort(404)
+    title = page.title
+    db.session.delete(page)
+    db.session.commit()
+    log_event(CAT_ADMIN, "page_delete", summary=f"Page « {title} » supprimée", level=LEVEL_WARNING)
+    flash("Page supprimée.", "success")
+    return redirect(url_for("admin.pages"))
+
+
+@admin_bp.route("/pages/<page_id>/preview")
+@admin_required
+def page_preview(page_id):
+    page = db.session.get(SitePage, _pk_value(SitePage, page_id))
+    if not page:
+        abort(404)
+    return render_template("public/site_page.html", page=page, preview=True)
+
+
+@admin_bp.route("/api/pages/generate", methods=["POST"])
+@admin_required
+def api_pages_generate():
+    data = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    tone = (data.get("tone") or "professionnel").strip()
+    if not prompt:
+        return jsonify({"error": "Décrivez la page à générer."}), 400
+    try:
+        result = content_ai.generate_page(prompt, tone)
+        log_event(CAT_ADMIN, "page_ai_generate", summary=f"Page générée par IA: {prompt[:80]}")
+        return jsonify(result)
+    except content_ai.ContentAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+# ------------------------------------------------------------------ social
+@admin_bp.route("/social", endpoint="social")
+@admin_required
+def social_page():
+    cfg = social.get_config()
+    return render_template(
+        "admin/social.html",
+        posts=social.recent_posts(),
+        facebook_connected=social.is_configured(),
+        facebook_config=cfg,
+        ai_available=content_ai.is_available(),
+    )
+
+
+@admin_bp.route("/social/connect", methods=["POST"])
+@admin_required
+def social_connect():
+    page_id = request.form.get("page_id", "").strip()
+    token = request.form.get("token", "").strip()
+    if not page_id or not token:
+        flash("Identifiant de page et token requis.", "error")
+        return redirect(url_for("admin.social"))
+    social.save_connection(page_id, token)
+    ok, message = social.verify_connection()
+    if ok:
+        flash(f"Page Facebook « {message} » connectée.", "success")
+        log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {message}", level=LEVEL_SUCCESS)
+    else:
+        flash(f"Connexion enregistrée mais vérification échouée : {message}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/disconnect", methods=["POST"])
+@admin_required
+def social_disconnect():
+    social.disconnect()
+    flash("Page Facebook déconnectée.", "success")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/publish", methods=["POST"])
+@admin_required
+def social_publish():
+    message = request.form.get("message", "").strip()
+    link = request.form.get("link", "").strip()
+    ai_flag = request.form.get("generated_by_ai") == "1"
+    if not message:
+        flash("Le message ne peut pas être vide.", "error")
+        return redirect(url_for("admin.social"))
+    post = social.publish_post(message, link=link, generated_by_ai=ai_flag)
+    if post.status == "published":
+        flash("Post publié sur Facebook 🎉", "success")
+    else:
+        flash(f"Échec de la publication : {post.error}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/api/social/generate", methods=["POST"])
+@admin_required
+def api_social_generate():
+    data = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    tone = (data.get("tone") or "engageant").strip()
+    if not prompt:
+        return jsonify({"error": "Décrivez le sujet du post."}), 400
+    try:
+        message = content_ai.generate_social_post(prompt, tone)
+        log_event(CAT_ADMIN, "social_ai_generate", summary=f"Post généré par IA: {prompt[:80]}")
+        return jsonify({"message": message})
+    except content_ai.ContentAIError as exc:
+        return jsonify({"error": str(exc)}), 502

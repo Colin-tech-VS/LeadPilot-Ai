@@ -28,6 +28,17 @@
           <span class="nav-ico">🌐</span> Trafic
           <span class="nav-live-dot" id="nav-live-dot"></span>
         </a>
+        <div class="admin-nav-sep">Studio</div>
+        <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">
+          <span class="nav-ico">💶</span> Offres &amp; prix
+        </a>
+        <a href="{{ url_for('admin.pages') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.page') %}active{% endif %}">
+          <span class="nav-ico">📄</span> Pages
+        </a>
+        <a href="{{ url_for('admin.social') }}" class="{% if request.endpoint and 'social' in request.endpoint %}active{% endif %}">
+          <span class="nav-ico">📣</span> Réseaux sociaux
+        </a>
+        <div class="admin-nav-sep">Système</div>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
           <span class="nav-ico">🗄️</span> Base de données
         </a>

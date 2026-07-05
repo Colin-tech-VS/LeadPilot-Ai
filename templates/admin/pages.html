@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Pages · Admin{% endblock %}
+{% block page_title %}Pages{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.page_new') }}" class="admin-btn">+ Nouvelle page</a>
+{% endblock %}
+
+{% block content %}
+<p class="admin-hint">Créez des pages sur mesure (manuellement ou avec l'IA) et publiez-les. Les pages publiées sont accessibles sur <code>/p/&lt;slug&gt;</code>.</p>
+
+<div class="studio-list">
+  {% for page in pages %}
+  <div class="studio-item">
+    <div class="studio-item-main">
+      <div class="studio-item-title">
+        {{ page.title }}
+        {% if page.is_published %}<span class="pill pill-published">publiée</span>{% else %}<span class="pill pill-draft">brouillon</span>{% endif %}
+      </div>
+      <div class="studio-item-meta">
+        /p/{{ page.slug }} · modifiée le {{ page.updated_at.strftime('%d/%m/%Y %H:%M') if page.updated_at else '' }}
+      </div>
+    </div>
+    <div class="studio-item-actions">
+      {% if page.is_published %}
+      <a href="{{ url_for('web.site_page', slug=page.slug) }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Voir ↗</a>
+      {% else %}
+      <a href="{{ url_for('admin.page_preview', page_id=page.id) }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Aperçu</a>
+      {% endif %}
+      <a href="{{ url_for('admin.page_edit', page_id=page.id) }}" class="admin-btn tiny">Éditer</a>
+      <form method="POST" action="{{ url_for('admin.page_status', page_id=page.id) }}" style="display:inline">
+        <button type="submit" class="admin-btn tiny ghost">{{ 'Dépublier' if page.is_published else 'Publier' }}</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin.page_delete', page_id=page.id) }}"
+            onsubmit="return confirm('Supprimer définitivement cette page ?');" style="display:inline">
+        <button type="submit" class="admin-btn tiny danger">🗑</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="admin-empty">
+    Aucune page pour l'instant.<br><br>
+    <a href="{{ url_for('admin.page_new') }}" class="admin-btn">Créer ma première page</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

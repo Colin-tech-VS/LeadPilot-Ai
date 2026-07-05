@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% block title %}Studio · Admin{% endblock %}
+{% block page_title %}Studio de contenu{% endblock %}
+
+{% block content %}
+<p class="admin-hint">Pilotez votre site : ajustez les prix, créez des pages (avec ou sans IA) et publiez sur vos réseaux — tout depuis un seul endroit.</p>
+
+<div class="studio-hub">
+  <a class="studio-tile" href="{{ url_for('admin.offers') }}">
+    <span class="studio-tile-ico">💶</span>
+    <h3>Offres &amp; prix</h3>
+    <p>Modifiez les tarifs, noms et avantages de vos offres. Visible instantanément sur la page d'accueil.</p>
+    <span class="studio-tile-badge">{{ offer_count }} offre(s)</span>
+  </a>
+  <a class="studio-tile" href="{{ url_for('admin.pages') }}">
+    <span class="studio-tile-ico">📄</span>
+    <h3>Pages</h3>
+    <p>Créez des pages manuellement ou par IA, avec un aperçu en direct, puis publiez-les.</p>
+    <span class="studio-tile-badge">{{ published_count }} publiée(s) / {{ page_count }}</span>
+  </a>
+  <a class="studio-tile" href="{{ url_for('admin.social') }}">
+    <span class="studio-tile-ico">📣</span>
+    <h3>Réseaux sociaux</h3>
+    <p>Rédigez et publiez sur Facebook, manuellement ou avec l'IA Mistral.</p>
+    <span class="studio-tile-badge">{% if facebook_connected %}✅ Facebook connecté{% else %}⚠️ Non connecté{% endif %}</span>
+  </a>
+</div>
+
+<div class="admin-notice" style="margin-top:24px">
+  {% if ai_available %}
+  🤖 <strong>IA Mistral active</strong> — la génération de pages et de posts est disponible.
+  {% else %}
+  ⚠️ IA indisponible — renseignez <code>MISTRAL_API_KEY</code> pour activer la génération automatique. Vous pouvez tout créer manuellement en attendant.
+  {% endif %}
+</div>
+{% endblock %}

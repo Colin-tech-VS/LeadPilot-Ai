@@ -190,7 +190,24 @@ def sitemap_xml():
 def landing():
     if session.get("user_id") and session.get("tenant_id"):
         return redirect(url_for("web.dashboard"))
-    return render_template("landing.html")
+    from app.services import content_studio
+
+    return render_template("landing.html", offers=content_studio.get_offers(active_only=True))
+
+
+@web_bp.route("/p/<slug>", methods=["GET"])
+def site_page(slug):
+    """Serve a published custom page authored in the admin studio."""
+    from flask import abort
+
+    from app.models.site_page import SitePage
+
+    page = SitePage.query.filter(
+        SitePage.slug == slug, SitePage.status == "published"
+    ).first()
+    if not page:
+        abort(404)
+    return render_template("public/site_page.html", page=page, preview=False)
 
 
 @web_bp.route("/demo/simulate", methods=["POST"])

@@ -183,52 +183,19 @@
       <p>{{ _('landing.pricing_subtitle') }}</p>
     </div>
     <div class="pricing-grid landing-fade landing-delay-1">
-      <article class="pricing-card">
-        <span class="pricing-badge">{{ _('landing.pricing_starter_badge') }}</span>
-        <h3 class="pricing-name">{{ _('landing.pricing_starter_name') }}</h3>
-        <p class="pricing-price"><strong>{{ _('landing.pricing_starter_price') }}</strong> <span>{{ _('landing.pricing_starter_period') }}</span></p>
-        <p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ _('landing.pricing_starter_calls') }}</p>
-        <p class="pricing-desc">{{ _('landing.pricing_starter_desc') }}</p>
+      {% for offer in offers %}
+      <article class="pricing-card{% if offer.featured %} pricing-card-featured{% endif %}">
+        {% if offer.badge %}<span class="pricing-badge{% if offer.featured %} pricing-badge-featured{% endif %}">{{ offer.badge }}</span>{% endif %}
+        <h3 class="pricing-name">{{ offer.name }}</h3>
+        <p class="pricing-price"><strong>{{ offer.price }}</strong> {% if offer.period %}<span>{{ offer.period }}</span>{% endif %}</p>
+        {% if offer.calls %}<p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ offer.calls }}</p>{% endif %}
+        {% if offer.description %}<p class="pricing-desc">{{ offer.description }}</p>{% endif %}
         <ul class="pricing-features">
-          <li>{{ _('landing.pricing_starter_feat_1') }}</li>
-          <li>{{ _('landing.pricing_starter_feat_2') }}</li>
-          <li>{{ _('landing.pricing_starter_feat_3') }}</li>
-          <li>{{ _('landing.pricing_starter_feat_4') }}</li>
+          {% for feat in offer.feature_list() %}<li>{{ feat }}</li>{% endfor %}
         </ul>
-        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_starter_cta') }}</a>
+        <a href="{{ url_for('web.register') }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
       </article>
-
-      <article class="pricing-card pricing-card-featured">
-        <span class="pricing-badge pricing-badge-featured">{{ _('landing.pricing_pro_badge') }}</span>
-        <h3 class="pricing-name">{{ _('landing.pricing_pro_name') }}</h3>
-        <p class="pricing-price"><strong>{{ _('landing.pricing_pro_price') }}</strong> <span>{{ _('landing.pricing_pro_period') }}</span></p>
-        <p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ _('landing.pricing_pro_calls') }}</p>
-        <p class="pricing-desc">{{ _('landing.pricing_pro_desc') }}</p>
-        <ul class="pricing-features">
-          <li>{{ _('landing.pricing_pro_feat_1') }}</li>
-          <li>{{ _('landing.pricing_pro_feat_2') }}</li>
-          <li>{{ _('landing.pricing_pro_feat_3') }}</li>
-          <li>{{ _('landing.pricing_pro_feat_4') }}</li>
-          <li>{{ _('landing.pricing_pro_feat_5') }}</li>
-        </ul>
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.pricing_pro_cta') }}</a>
-      </article>
-
-      <article class="pricing-card">
-        <span class="pricing-badge">{{ _('landing.pricing_premium_badge') }}</span>
-        <h3 class="pricing-name">{{ _('landing.pricing_premium_name') }}</h3>
-        <p class="pricing-price"><strong>{{ _('landing.pricing_premium_price') }}</strong> <span>{{ _('landing.pricing_premium_period') }}</span></p>
-        <p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ _('landing.pricing_premium_calls') }}</p>
-        <p class="pricing-desc">{{ _('landing.pricing_premium_desc') }}</p>
-        <ul class="pricing-features">
-          <li>{{ _('landing.pricing_premium_feat_1') }}</li>
-          <li>{{ _('landing.pricing_premium_feat_2') }}</li>
-          <li>{{ _('landing.pricing_premium_feat_3') }}</li>
-          <li>{{ _('landing.pricing_premium_feat_4') }}</li>
-          <li>{{ _('landing.pricing_premium_feat_5') }}</li>
-        </ul>
-        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_premium_cta') }}</a>
-      </article>
+      {% endfor %}
     </div>
     <p class="pricing-note landing-fade">{{ _('landing.pricing_note') }}</p>
   </div>

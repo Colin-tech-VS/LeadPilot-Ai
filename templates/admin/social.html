@@ -1,0 +1,182 @@
+{% extends "admin/base.html" %}
+{% block title %}Réseaux sociaux · Admin{% endblock %}
+{% block page_title %}Réseaux sociaux{% endblock %}
+
+{% block content %}
+<!-- Connexion Facebook -->
+{% if facebook_connected %}
+<div class="connect-banner ok">
+  <span style="font-size:22px">✅</span>
+  <div style="flex:1;min-width:0">
+    <strong>Page Facebook connectée</strong>
+    <div class="studio-item-meta">{{ facebook_config.page_name or facebook_config.page_id }}</div>
+  </div>
+  <details style="width:100%">
+    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Gérer la connexion</summary>
+    <form method="POST" action="{{ url_for('admin.social_disconnect') }}" style="margin-top:12px">
+      <button type="submit" class="admin-btn danger tiny">Déconnecter la page</button>
+    </form>
+  </details>
+</div>
+{% else %}
+<div class="connect-banner">
+  <span style="font-size:22px">📘</span>
+  <div style="flex:1;min-width:260px">
+    <strong>Connectez votre page Facebook</strong>
+    <div class="studio-item-meta">Renseignez l'identifiant de votre page et un token d'accès de page (Graph API) pour publier.</div>
+  </div>
+  <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="width:100%">
+    <div class="db-form-grid">
+      <label>Identifiant de la page (Page ID)<input type="text" name="page_id" required></label>
+      <label>Token d'accès de page<input type="text" name="token" required></label>
+    </div>
+    <button type="submit" class="admin-btn">Connecter Facebook</button>
+    <p class="admin-hint" style="margin-top:10px">Obtenez ces valeurs dans <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> (permissions <code>pages_manage_posts</code>, <code>pages_read_engagement</code>).</p>
+  </form>
+</div>
+{% endif %}
+
+<!-- Composer -->
+<form method="POST" action="{{ url_for('admin.social_publish') }}" id="social-form">
+  <input type="hidden" name="generated_by_ai" id="gen-ai-flag" value="0">
+  <div class="social-compose-grid">
+    <div class="studio-editor">
+      {% if ai_available %}
+      <div class="ai-box">
+        <h3>🤖 Générer un post avec l'IA (Mistral)</h3>
+        <label class="field"><span>De quoi parle le post ?</span>
+          <textarea id="ai-prompt" rows="2" placeholder="Ex : annoncer que notre IA répond désormais aux appels 24h/24 pour les plombiers, avec une promo essai gratuit."></textarea>
+        </label>
+        <div class="field-row">
+          <label class="field"><span>Ton</span>
+            <select id="ai-tone">
+              <option value="engageant">Engageant</option>
+              <option value="professionnel">Professionnel</option>
+              <option value="amical">Amical</option>
+              <option value="promotionnel">Promotionnel</option>
+              <option value="inspirant">Inspirant</option>
+            </select>
+          </label>
+          <div class="field" style="justify-content:flex-end">
+            <button type="button" class="admin-btn" id="ai-generate">Générer le post ✨</button>
+          </div>
+        </div>
+        <span class="ai-spinner" id="ai-spinner">Génération en cours…</span>
+        <span class="mail-error" id="ai-error" style="display:none"></span>
+      </div>
+      {% endif %}
+
+      <label class="field"><span>Message</span>
+        <textarea name="message" id="f-message" rows="7" placeholder="Écrivez votre publication…" required>{{ '' }}</textarea>
+      </label>
+      <div class="char-count"><span id="char-count">0</span> caractères</div>
+      <label class="field"><span>Lien à partager (optionnel)</span>
+        <input type="url" name="link" id="f-link" placeholder="https://…">
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>📣 Publier sur Facebook</button>
+        {% if not facebook_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="studio-preview">
+      <div class="studio-preview-head">
+        <h2>Aperçu Facebook</h2>
+        <span class="studio-preview-dot">temps réel</span>
+      </div>
+      <div class="fb-preview">
+        <div class="fb-preview-head">
+          <div class="fb-avatar"></div>
+          <div>
+            <div class="fb-preview-name">{{ facebook_config.page_name or 'Votre page' }}</div>
+            <div class="fb-preview-sub">À l'instant · 🌐</div>
+          </div>
+        </div>
+        <div class="fb-preview-body" id="fb-body">Votre message apparaîtra ici…</div>
+        <div class="fb-preview-link" id="fb-link" style="display:none"></div>
+        <div class="fb-preview-foot"><span>👍 J'aime</span><span>💬 Commenter</span><span>↗ Partager</span></div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Historique -->
+<h2 style="margin:34px 0 14px;font-size:16px">Historique des publications</h2>
+<div class="studio-list">
+  {% for post in posts %}
+  <div class="studio-item">
+    <div class="mail-dir">📘</div>
+    <div class="studio-item-main">
+      <div class="studio-item-title">
+        {{ post.preview(80) or '(vide)' }}
+        {% if post.status == 'published' %}<span class="pill pill-published">publié</span>
+        {% elif post.status == 'failed' %}<span class="pill pill-failed">échec</span>
+        {% else %}<span class="pill pill-draft">brouillon</span>{% endif %}
+        {% if post.generated_by_ai %}<span class="pill" style="background:rgba(109,139,255,.18);color:var(--brand)">IA</span>{% endif %}
+      </div>
+      <div class="studio-item-meta">
+        {{ post.created_at.strftime('%d/%m/%Y %H:%M') if post.created_at else '' }}
+        {% if post.error %} · <span style="color:var(--red)">{{ post.error }}</span>{% endif %}
+      </div>
+    </div>
+    {% if post.permalink %}
+    <div class="studio-item-actions">
+      <a href="{{ post.permalink }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Voir ↗</a>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="admin-empty">Aucune publication pour l'instant.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var msg = document.getElementById("f-message");
+  var link = document.getElementById("f-link");
+  var body = document.getElementById("fb-body");
+  var linkBox = document.getElementById("fb-link");
+  var count = document.getElementById("char-count");
+  var aiFlag = document.getElementById("gen-ai-flag");
+
+  function render() {
+    var text = msg.value.trim();
+    body.textContent = text || "Votre message apparaîtra ici…";
+    count.textContent = msg.value.length;
+    if (link.value.trim()) { linkBox.style.display = "block"; linkBox.textContent = link.value.trim(); }
+    else { linkBox.style.display = "none"; }
+  }
+  msg.addEventListener("input", function () { aiFlag.value = "0"; render(); });
+  link.addEventListener("input", render);
+  render();
+
+  var genBtn = document.getElementById("ai-generate");
+  if (genBtn) {
+    genBtn.addEventListener("click", function () {
+      var prompt = document.getElementById("ai-prompt").value.trim();
+      var tone = document.getElementById("ai-tone").value;
+      var spinner = document.getElementById("ai-spinner");
+      var errEl = document.getElementById("ai-error");
+      errEl.style.display = "none";
+      if (!prompt) { errEl.textContent = "Décrivez d'abord le sujet du post."; errEl.style.display = "block"; return; }
+      spinner.classList.add("on"); genBtn.disabled = true;
+      fetch("{{ url_for('admin.api_social_generate') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, tone: tone })
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) { throw new Error(res.d.error || "Erreur de génération."); }
+          msg.value = res.d.message || "";
+          aiFlag.value = "1";
+          render();
+        })
+        .catch(function (e) { errEl.textContent = e.message; errEl.style.display = "block"; })
+        .finally(function () { spinner.classList.remove("on"); genBtn.disabled = false; });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -72,7 +72,9 @@ if (Test-Path $envFile) {
             $k, $v = $matches[1], $matches[2].Trim()
             if ($k -in @(
                 "MISTRAL_API_KEY", "OPENAI_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
-                "TWILIO_DEFAULT_TENANT_ID", "TWILIO_AI_PHONE_NUMBER", "TWILIO_AI_PHONE_DISPLAY"
+                "TWILIO_DEFAULT_TENANT_ID", "TWILIO_AI_PHONE_NUMBER", "TWILIO_AI_PHONE_DISPLAY",
+                "TWILIO_AUTO_PROVISION_NUMBERS", "TWILIO_NUMBER_COUNTRY", "TWILIO_NUMBER_AREA_CODE",
+                "TWILIO_SMS_FROM", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"
             )) {
                 Set-EnvIfMissing $k $v
             }

@@ -30,15 +30,33 @@ def inject_tenant():
             tenant = db.session.get(Tenant, uuid.UUID(tid))
         except ValueError:
             tenant = None
+
+    # Prefer the tenant's OWN dedicated AI number (each plumber has their own in
+    # a multi-tenant setup); fall back to the shared config number for tenants
+    # not yet provisioned.
+    shared_e164 = current_app.config.get("TWILIO_AI_PHONE_NUMBER", "+33159169691")
+    shared_display = current_app.config.get("TWILIO_AI_PHONE_DISPLAY", "+33 1 59 16 96 91")
+    tenant_e164 = getattr(tenant, "ai_phone_number", None)
+    ai_phone_e164 = tenant_e164 or shared_e164
+    ai_phone_display = _format_phone_display(tenant_e164) if tenant_e164 else shared_display
+
     return {
         "current_tenant": tenant,
-        "twilio_ai_phone_display": current_app.config.get(
-            "TWILIO_AI_PHONE_DISPLAY", "+33 1 59 16 96 91"
-        ),
-        "twilio_ai_phone_e164": current_app.config.get(
-            "TWILIO_AI_PHONE_NUMBER", "+33159169691"
-        ),
+        "twilio_ai_phone_display": ai_phone_display,
+        "twilio_ai_phone_e164": ai_phone_e164,
     }
+
+
+def _format_phone_display(e164: str | None) -> str:
+    """Pretty-print an E.164 number for display, best-effort for FR."""
+    if not e164:
+        return ""
+    raw = e164.strip()
+    if raw.startswith("+33") and len(raw) == 12:
+        rest = raw[3:]  # 9 national digits after +33 (leading 0 dropped in E.164)
+        pairs = " ".join(rest[i:i + 2] for i in range(1, 9, 2))
+        return f"+33 {rest[0]} {pairs}"
+    return raw
 
 
 @web_bp.route("/set-language/<lang>", methods=["GET"])

@@ -108,6 +108,7 @@ def _ensure_schema_updates():
     columns = {col["name"] for col in inspector.get_columns("leads")}
     ts_type = "TIMESTAMP WITH TIME ZONE" if db.engine.dialect.name == "postgresql" else "DATETIME"
     lead_patches = {
+        "email": "VARCHAR(255)",
         "booking_metadata": "TEXT",
         "latitude": "FLOAT",
         "longitude": "FLOAT",

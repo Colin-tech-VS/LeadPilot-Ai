@@ -505,6 +505,58 @@ def cancel_lead(lead_id):
     return redirect(request.referrer or url_for("web.leads_page"))
 
 
+@web_bp.route("/marketing", methods=["GET"])
+@web_tenant_required
+def marketing_page():
+    """Segmentation marketing / SAV — completed clients grouped into segments
+    the plumber can run an SMS / e-mail campaign against."""
+    from app.services import marketing
+
+    segments = marketing.build_segments(g.tenant_id)
+    result = session.pop("marketing_result", None)
+    return render_template(
+        "marketing.html",
+        segments=segments,
+        total_clients=segments[0]["count"] if segments else 0,
+        result=result,
+    )
+
+
+@web_bp.route("/marketing/send", methods=["POST"])
+@web_tenant_required
+def marketing_send():
+    """Send a one-off campaign to a segment of completed clients."""
+    from app.services import marketing, notifications
+
+    segment_key = (request.form.get("segment") or "").strip()
+    channel = (request.form.get("channel") or "sms").strip()
+    subject = (request.form.get("subject") or "").strip()
+    message = (request.form.get("message") or "").strip()
+
+    if channel not in ("sms", "email", "both"):
+        channel = "sms"
+
+    if not segment_key or not message:
+        session["marketing_result"] = {"error": "empty"}
+        return redirect(url_for("web.marketing_page"))
+
+    result = marketing.send_campaign(g.tenant_id, segment_key, channel, subject, message)
+    session["marketing_result"] = result
+
+    if result.get("recipients"):
+        notifications.push_notification(
+            g.tenant_id,
+            "marketing_campaign",
+            f"📣 Campagne envoyée — {result['recipients']} client(s)",
+            f"SMS : {result['sms_sent']}/{result['sms_attempted']} · "
+            f"E-mail : {result['email_sent']}/{result['email_attempted']}",
+            icon="📣",
+            url="/marketing",
+        )
+
+    return redirect(url_for("web.marketing_page"))
+
+
 @web_bp.route("/leads/<lead_id>/unarchive", methods=["POST"])
 @web_tenant_required
 def unarchive_lead(lead_id):

@@ -164,7 +164,7 @@
           </form>
           <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm lead-step-btn" data-step="3">{{ _('btn.create_appointment') }}</a>
           <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
-            <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
+            <button type="submit" class="btn btn-outline btn-sm btn-archive" title="{{ _('leads.complete_hint') }}">✓ {{ _('btn.complete') }}</button>
           </form>
         </div>
       </article>

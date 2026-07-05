@@ -30,6 +30,18 @@
 
 
 
+{% if show_archived %}
+<div class="mkt-crosslink">
+  <span>📣 {{ _('marketing.subtitle') }}</span>
+  <a href="{{ url_for('web.marketing_page') }}" class="btn btn-primary btn-sm">{{ _('nav.marketing') }}</a>
+</div>
+<style>
+  .mkt-crosslink { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    flex-wrap: wrap; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E3A8A;
+    border-radius: 12px; padding: .8rem 1rem; margin-bottom: 1.2rem; font-size: .88rem; }
+</style>
+{% endif %}
+
 {% if leads %}
 
 <div class="lead-cards lead-cards-full">
@@ -135,7 +147,7 @@
       </form>
       <a href="{{ url_for('web.appointments_page') }}" class="btn btn-outline btn-sm">{{ _('btn.create_appointment') }}</a>
       <form method="post" action="{{ url_for('web.archive_lead', lead_id=lead.id) }}" class="lead-action-form">
-        <button type="submit" class="btn btn-outline btn-sm btn-archive">{{ _('btn.archive') }}</button>
+        <button type="submit" class="btn btn-outline btn-sm btn-archive" title="{{ _('leads.complete_hint') }}">✓ {{ _('btn.complete') }}</button>
       </form>
 
       {% endif %}

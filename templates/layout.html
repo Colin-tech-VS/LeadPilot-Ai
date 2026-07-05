@@ -71,6 +71,7 @@
           <a href="{{ url_for('web.appointments_page') }}" class="{% if request.endpoint == 'web.appointments_page' %}active{% endif %}">{{ _('nav.appointments') }}</a>
           <a href="{{ url_for('quotes.quotes_page') }}" class="{% if request.endpoint and request.endpoint.startswith('quotes.') %}active{% endif %}">{{ _('nav.quotes') }}</a>
           <a href="{{ url_for('chatbot.chatbot_console') }}" class="{% if request.endpoint == 'chatbot.chatbot_console' %}active{% endif %}">{{ _('nav.chatbot') }}</a>
+          <a href="{{ url_for('web.marketing_page') }}" class="{% if request.endpoint == 'web.marketing_page' %}active{% endif %}">{{ _('nav.marketing') }}</a>
           <a href="{{ url_for('billing.billing_page') }}" class="{% if request.endpoint == 'billing.billing_page' %}active{% endif %}">{{ _('nav.billing') }}</a>
           <a href="{{ url_for('web.settings_page') }}" class="{% if request.endpoint == 'web.settings_page' %}active{% endif %}">{{ _('nav.settings') }}</a>
           <a href="{{ url_for('web.logout') }}" class="nav-logout">{{ _('nav.logout') }}</a>

@@ -20,6 +20,9 @@ class Lead(db.Model):
     tenant_id = db.Column(Uuid, db.ForeignKey("tenants.id"), nullable=False, index=True)
     name = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(50), nullable=False)
+    # Optional — captured when known (e.g. from a devis) so the client can be
+    # reached by email for the after-sales / marketing follow-up.
+    email = db.Column(db.String(255), nullable=True)
     address = db.Column(db.String(500), nullable=True)
     latitude = db.Column(Float, nullable=True)
     longitude = db.Column(Float, nullable=True)
@@ -94,6 +97,7 @@ class Lead(db.Model):
             "tenant_id": str(self.tenant_id),
             "name": self.name,
             "phone": self.phone,
+            "email": self.email,
             "address": self.address,
             "issue_type": self.issue_type,
             "urgency_level": self.urgency_level,

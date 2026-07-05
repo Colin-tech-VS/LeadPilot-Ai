@@ -1,0 +1,149 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('marketing.title') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('marketing.title') }}</h1>
+  <p class="subtitle">{{ _('marketing.subtitle') }}</p>
+</div>
+
+{% if result %}
+  {% if result.error %}
+  <div class="mkt-banner mkt-banner-warn">{{ _('marketing.result_empty') }}</div>
+  {% else %}
+  <div class="mkt-banner mkt-banner-ok">
+    ✅ {{ _('marketing.result_ok', recipients=result.recipients) }}
+    <span class="mkt-banner-detail">
+      SMS {{ result.sms_sent }}/{{ result.sms_attempted }} ·
+      E-mail {{ result.email_sent }}/{{ result.email_attempted }}
+    </span>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% if total_clients == 0 %}
+<div class="mkt-empty">
+  <div class="mkt-empty-icon">📣</div>
+  <p>{{ _('marketing.empty') }}</p>
+  <a href="{{ url_for('web.leads_page') }}" class="btn btn-primary">{{ _('nav.leads') }}</a>
+</div>
+{% else %}
+
+<form method="post" action="{{ url_for('web.marketing_send') }}" class="mkt-form"
+      onsubmit="return confirm({{ _('marketing.confirm')|tojson }});">
+
+  <section class="mkt-section">
+    <h2 class="mkt-section-title">{{ _('marketing.pick_segment') }}</h2>
+    <div class="mkt-segments">
+      {% for seg in segments %}
+      <label class="mkt-seg">
+        <input type="radio" name="segment" value="{{ seg.key }}" {% if loop.first %}checked{% endif %}>
+        <span class="mkt-seg-card">
+          <span class="mkt-seg-icon">{{ seg.icon }}</span>
+          <span class="mkt-seg-body">
+            <span class="mkt-seg-label">{{ seg.label }}</span>
+            <span class="mkt-seg-count">{{ seg.count }} {{ _('marketing.clients') }}</span>
+          </span>
+          <span class="mkt-seg-reach">
+            <span class="mkt-chip">📱 {{ seg.sms_count }}</span>
+            <span class="mkt-chip">✉️ {{ seg.email_count }}</span>
+          </span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="mkt-section mkt-composer">
+    <h2 class="mkt-section-title">{{ _('marketing.compose') }}</h2>
+
+    <div class="mkt-channels">
+      <label class="mkt-channel">
+        <input type="radio" name="channel" value="sms" checked>
+        <span>📱 {{ _('marketing.channel_sms') }}</span>
+      </label>
+      <label class="mkt-channel">
+        <input type="radio" name="channel" value="email">
+        <span>✉️ {{ _('marketing.channel_email') }}</span>
+      </label>
+      <label class="mkt-channel">
+        <input type="radio" name="channel" value="both">
+        <span>📱✉️ {{ _('marketing.channel_both') }}</span>
+      </label>
+    </div>
+
+    <div class="mkt-field mkt-field-subject">
+      <label for="mkt-subject">{{ _('marketing.subject') }}</label>
+      <input type="text" id="mkt-subject" name="subject" maxlength="200"
+             placeholder="{{ _('marketing.subject_ph') }}">
+    </div>
+
+    <div class="mkt-field">
+      <label for="mkt-message">{{ _('marketing.message') }}</label>
+      <textarea id="mkt-message" name="message" rows="5" required
+                placeholder="{{ _('marketing.message_ph') }}"></textarea>
+      <p class="mkt-hint">{{ _('marketing.placeholders_hint') }}</p>
+    </div>
+
+    <div class="mkt-actions">
+      <button type="submit" class="btn btn-primary">{{ _('marketing.send') }}</button>
+    </div>
+  </section>
+</form>
+{% endif %}
+
+<style>
+  .mkt-banner { border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: 1.2rem; font-size: .92rem; }
+  .mkt-banner-ok { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+  .mkt-banner-warn { background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; }
+  .mkt-banner-detail { display: block; margin-top: .2rem; font-size: .82rem; opacity: .8; }
+  .mkt-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted, #6B7280); }
+  .mkt-empty-icon { font-size: 2.6rem; margin-bottom: .6rem; }
+  .mkt-empty p { margin-bottom: 1rem; }
+  .mkt-section { margin-bottom: 1.8rem; }
+  .mkt-section-title { font-size: 1.02rem; margin-bottom: .8rem; }
+  .mkt-segments { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .7rem; }
+  .mkt-seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .mkt-seg-card { display: flex; align-items: center; gap: .7rem; padding: .8rem .9rem; border: 2px solid #E5E7EB;
+    border-radius: 12px; cursor: pointer; background: #fff; transition: border-color .15s, box-shadow .15s; height: 100%; }
+  .mkt-seg input:checked + .mkt-seg-card { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  .mkt-seg-icon { font-size: 1.4rem; }
+  .mkt-seg-body { flex: 1; min-width: 0; }
+  .mkt-seg-label { display: block; font-weight: 600; font-size: .92rem; }
+  .mkt-seg-count { display: block; font-size: .8rem; color: #6B7280; }
+  .mkt-seg-reach { display: flex; flex-direction: column; gap: .25rem; }
+  .mkt-chip { font-size: .72rem; background: #F3F4F6; color: #374151; border-radius: 999px; padding: .1rem .45rem; white-space: nowrap; }
+  .mkt-composer { max-width: 640px; }
+  .mkt-channels { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .mkt-channel input { position: absolute; opacity: 0; pointer-events: none; }
+  .mkt-channel span { display: inline-block; padding: .45rem .8rem; border: 2px solid #E5E7EB; border-radius: 999px;
+    cursor: pointer; font-size: .88rem; background: #fff; }
+  .mkt-channel input:checked + span { border-color: #2563EB; background: #EFF6FF; color: #1D4ED8; }
+  .mkt-field { margin-bottom: 1rem; }
+  .mkt-field label { display: block; font-weight: 600; font-size: .86rem; margin-bottom: .35rem; }
+  .mkt-field input, .mkt-field textarea { width: 100%; border: 1px solid #D1D5DB; border-radius: 10px;
+    padding: .6rem .7rem; font-family: inherit; font-size: .92rem; resize: vertical; }
+  .mkt-hint { margin: .4rem 0 0; font-size: .78rem; color: #6B7280; }
+  .mkt-actions { display: flex; justify-content: flex-end; }
+  @media (prefers-color-scheme: dark) {
+    .mkt-seg-card, .mkt-channel span, .mkt-field input, .mkt-field textarea { background: #1F2430; border-color: #374151; color: #E5E7EB; }
+    .mkt-chip { background: #374151; color: #E5E7EB; }
+  }
+</style>
+
+<script>
+(function () {
+  // Hide the subject field for pure-SMS campaigns (it only applies to e-mail).
+  var subjectField = document.querySelector('.mkt-field-subject');
+  function sync() {
+    var channel = document.querySelector('input[name="channel"]:checked');
+    if (subjectField) subjectField.style.display = (channel && channel.value === 'sms') ? 'none' : '';
+  }
+  document.querySelectorAll('input[name="channel"]').forEach(function (el) {
+    el.addEventListener('change', sync);
+  });
+  sync();
+})();
+</script>
+{% endblock %}

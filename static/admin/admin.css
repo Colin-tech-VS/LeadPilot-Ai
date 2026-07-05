@@ -324,8 +324,6 @@ a { color: inherit; text-decoration: none; }
   #rt-spark { width: 100%; max-width: 100%; }
   .realtime-count { font-size: 38px; }
   .realtime-spark { text-align: left; width: 100%; }
-  .studio-split { grid-template-columns: 1fr; }
-  .studio-preview-frame { min-height: 420px; }
 }
 
 @media (max-width: 560px) {
@@ -343,8 +341,6 @@ a { color: inherit; text-decoration: none; }
   .admin-topbar-right { width: 100%; margin-left: 0; }
   .admin-topbar-right .admin-select,
   .admin-topbar-right .admin-btn { flex: 1 1 auto; text-align: center; }
-  .offer-grid { grid-template-columns: 1fr; }
-  .social-compose-grid { grid-template-columns: 1fr; }
 }
 
 /* ---------------------------------------------------------------- studio */
@@ -442,3 +438,23 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px; }
 .connect-banner.ok { border-color: rgba(52, 211, 153, .4); }
 .char-count { font-size: 12px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- studio responsive
+   Kept at the very end of the file on purpose: the base .studio-split /
+   .offer-grid / .social-compose-grid rules are declared later in the source
+   than the shared mobile media queries above, so those earlier overrides lose
+   to them (equal specificity → later source order wins). Placing the responsive
+   overrides here guarantees they apply on small screens. */
+@media (max-width: 900px) {
+  .studio-split { grid-template-columns: 1fr; }
+  .social-compose-grid { grid-template-columns: 1fr; }
+  /* Editor and preview now stack vertically — drop the sticky preview so it
+     flows naturally under the form instead of pinning to the top. */
+  .studio-preview { position: static; top: auto; }
+  .studio-preview-frame { min-height: 420px; }
+}
+
+@media (max-width: 560px) {
+  .offer-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}

@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from app.core.errors import AppError
 from app.core.i18n import set_language_preference
 from app.core.extensions import db
+from app.core.security import check_rate
 from app.core.web_auth import login_user_to_session, logout_user_session, web_tenant_required
 from app.models.appointment import Appointment
 from app.models.lead import Lead
@@ -266,7 +267,9 @@ def login():
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "")
 
-        if not email or not password:
+        if not check_rate("web_login", limit=10, window=300):
+            error = translate("login.error.rate_limited")
+        elif not email or not password:
             error = translate("login.error.required")
         else:
             try:

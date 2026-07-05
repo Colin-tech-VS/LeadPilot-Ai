@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Admin · LeadPilot AI{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=1">
+</head>
+<body class="admin{% block body_class %}{% endblock %}">
+{% if is_admin %}
+  <div class="admin-shell">
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-brand">
+        <span class="admin-logo">◆</span>
+        <div>
+          <strong>LeadPilot</strong>
+          <span class="admin-brand-sub">Admin Console</span>
+        </div>
+      </div>
+      <nav class="admin-nav">
+        <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+          <span class="nav-ico">📊</span> Analytics
+        </a>
+        <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
+          <span class="nav-ico">🗄️</span> Base de données
+        </a>
+        <a href="{{ url_for('admin.emails') }}" class="{% if request.endpoint == 'admin.emails' %}active{% endif %}">
+          <span class="nav-ico">✉️</span> Emails
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
+          <span class="nav-ico">📜</span> Journal
+        </a>
+      </nav>
+      <div class="admin-sidebar-foot">
+        <span class="admin-dot"></span> {{ admin_username }}
+        <a class="admin-logout" href="{{ url_for('admin.logout') }}">Déconnexion</a>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <button class="admin-burger" id="admin-burger" aria-label="Menu">☰</button>
+        <h1 class="admin-page-title">{% block page_title %}Console{% endblock %}</h1>
+        <div class="admin-topbar-right">{% block topbar_actions %}{% endblock %}</div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="admin-flashes">
+          {% for cat, msg in messages %}
+            <div class="admin-flash admin-flash-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="admin-content">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='admin/admin.js') }}?v=1"></script>
+</body>
+</html>

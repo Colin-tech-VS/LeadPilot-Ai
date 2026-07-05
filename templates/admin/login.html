@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}Connexion Admin · LeadPilot AI{% endblock %}
+{% block body_class %} admin-login-body{% endblock %}
+
+{% block auth_content %}
+<div class="admin-login-wrap">
+  <div class="admin-login-bg"></div>
+  <form class="admin-login-card" method="POST" action="{{ url_for('admin.login') }}">
+    <div class="admin-login-logo">◆</div>
+    <h1>LeadPilot <span>Admin</span></h1>
+    <p class="admin-login-sub">Console d'administration sécurisée</p>
+
+    {% if error %}<div class="admin-login-error">{{ error }}</div>{% endif %}
+
+    <label>Identifiant
+      <input type="text" name="username" autocomplete="username" required autofocus>
+    </label>
+    <label>Mot de passe
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit">Se connecter</button>
+    <p class="admin-login-foot">Accès réservé · toutes les tentatives sont journalisées</p>
+  </form>
+</div>
+{% endblock %}

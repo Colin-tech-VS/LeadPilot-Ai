@@ -73,6 +73,24 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
     # urgent request, or simply a new lead.
     notify_inbound_call(lead, tenant, booked=appointment_id is not None)
 
+    # Record the event for the admin log / analytics funnel.
+    try:
+        from app.services.events import CAT_LEAD, LEVEL_SUCCESS, log_event
+
+        booked = appointment_id is not None
+        log_event(
+            CAT_LEAD,
+            "lead_booked" if booked else "lead_created",
+            summary=f"{lead.name} — {lead.issue_type or 'demande'}"
+            + (" (RDV pris)" if booked else ""),
+            level=LEVEL_SUCCESS if booked else "info",
+            tenant_id=tenant_id,
+            actor="voix IA",
+            meta={"urgency": lead.urgency_level, "action": booking.get("action")},
+        )
+    except Exception:  # pragma: no cover
+        logger.exception("event log failed for lead %s", lead.id)
+
     logger.info(
         "Inbound call processed tenant=%s lead=%s action=%s score=%s",
         tenant_id,

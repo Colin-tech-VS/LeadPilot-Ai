@@ -3,6 +3,7 @@ import uuid
 from flask import Blueprint, current_app, jsonify, request
 
 from app.core.errors import AppError, UnauthorizedError
+from app.core.security import rate_limit
 from app.services.inbound_call import process_inbound_call
 from app.utils.validation import require_fields, require_json
 
@@ -19,6 +20,7 @@ def _verify_webhook_secret():
 
 
 @webhook_bp.route("/inbound-call", methods=["POST"])
+@rate_limit(limit=60, window=60, scope="webhook_inbound")
 def inbound_call():
     _verify_webhook_secret()
 

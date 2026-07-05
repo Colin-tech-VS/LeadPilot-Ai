@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ spec.label }} · Base de données{% endblock %}
+{% block page_title %}{{ spec.label }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.database_home') }}" class="admin-btn ghost">← Tables</a>
+  <button class="admin-btn" onclick="document.getElementById('add-row').classList.toggle('open')">+ Ajouter</button>
+{% endblock %}
+
+{% block content %}
+<p class="admin-hint">{{ total }} ligne(s) · page {{ page }}/{{ pages or 1 }}</p>
+
+<div id="add-row" class="db-add-panel">
+  <form method="POST" action="{{ url_for('admin.database_create', table=table) }}" class="db-form">
+    <h3>Nouvelle ligne — {{ spec.label }}</h3>
+    <div class="db-form-grid">
+      {% for f in editable_fields %}
+      <label>{{ f }}
+        {% if f in ('summary', 'body') %}
+        <textarea name="{{ f }}" rows="2"></textarea>
+        {% else %}
+        <input type="text" name="{{ f }}">
+        {% endif %}
+      </label>
+      {% endfor %}
+      {% if table == 'users' %}
+      <label>password (laisser vide = inchangé)
+        <input type="text" name="password">
+      </label>
+      {% endif %}
+    </div>
+    <button type="submit" class="admin-btn">Créer</button>
+  </form>
+</div>
+
+<div class="db-table-wrap">
+  <table class="db-table">
+    <thead>
+      <tr>
+        {% for col in columns %}<th>{{ col }}</th>{% endfor %}
+        <th class="db-actions-col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for col in columns %}
+        <td title="{{ row[col] }}"><span class="db-cell">{{ row[col] }}</span></td>
+        {% endfor %}
+        <td class="db-actions">
+          <button class="admin-btn tiny ghost" onclick="document.getElementById('edit-{{ row['id'] }}').classList.toggle('open')">✎</button>
+          <form method="POST" action="{{ url_for('admin.database_delete', table=table, row_id=row['id']) }}"
+                onsubmit="return confirm('Supprimer définitivement cette ligne ?');" style="display:inline">
+            <button type="submit" class="admin-btn tiny danger">🗑</button>
+          </form>
+        </td>
+      </tr>
+      <tr id="edit-{{ row['id'] }}" class="db-edit-row">
+        <td colspan="{{ columns|length + 1 }}">
+          <form method="POST" action="{{ url_for('admin.database_update', table=table, row_id=row['id']) }}" class="db-form">
+            <div class="db-form-grid">
+              {% for f in editable_fields %}
+              <label>{{ f }}
+                {% if f in ('summary', 'body') %}
+                <textarea name="{{ f }}" rows="2">{{ row[f] }}</textarea>
+                {% else %}
+                <input type="text" name="{{ f }}" value="{{ row[f] }}">
+                {% endif %}
+              </label>
+              {% endfor %}
+              {% if table == 'users' %}
+              <label>nouveau password (optionnel)<input type="text" name="password"></label>
+              {% endif %}
+            </div>
+            <button type="submit" class="admin-btn">Enregistrer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pages and pages > 1 %}
+<div class="db-pager">
+  {% if page > 1 %}<a class="admin-btn ghost" href="?page={{ page - 1 }}">← Précédent</a>{% endif %}
+  <span>{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="admin-btn ghost" href="?page={{ page + 1 }}">Suivant →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

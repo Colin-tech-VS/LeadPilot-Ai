@@ -3531,6 +3531,22 @@ html.js-enabled .dash-card-in.is-visible {
     max-width: none;
   }
 
+  /* The dropdown is anchored to a bell that isn't at the screen edge, so on a
+     phone an absolutely-positioned panel would spill off-screen. Pin it to the
+     viewport instead: full width, just below the top bar. */
+  .notif-panel {
+    position: fixed;
+    top: 64px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+  }
+
+  .notif-list {
+    max-height: calc(100vh - 140px);
+  }
+
   .lp-notify-enable {
     left: 12px;
     right: 12px;

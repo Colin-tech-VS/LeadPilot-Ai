@@ -163,6 +163,8 @@
   .badge-cancelled { background: #FEE2E2; color: #B91C1C; }
   .lead-cancel-form { margin-top: .7rem; padding: .8rem; background: #FEF2F2; border: 1px solid #FECACA;
     border-radius: 10px; display: flex; flex-direction: column; gap: .5rem; }
+  /* A `display` value defeats the [hidden] attribute — keep it collapsed until toggled. */
+  .lead-cancel-form[hidden] { display: none; }
   .lead-cancel-label { font-size: .8rem; font-weight: 600; color: #991B1B; }
   .lead-cancel-form textarea { width: 100%; border: 1px solid #FCA5A5; border-radius: 8px; padding: .5rem .6rem;
     font-family: inherit; font-size: .9rem; resize: vertical; }

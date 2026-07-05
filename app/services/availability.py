@@ -124,5 +124,14 @@ def book_appointment(tenant_id, lead_id, slot_dt: datetime) -> Appointment | Non
         status="scheduled",
     )
     db.session.add(appointment)
+
+    # Booking an appointment means the lead is now a confirmed job: promote it
+    # so the prospect card / dashboard reflect "réservé" without a manual step.
+    from app.models.lead import Lead
+
+    lead = db.session.get(Lead, lid)
+    if lead and lead.status == "new" and lead.cancelled_at is None:
+        lead.status = "booked"
+
     db.session.commit()
     return appointment

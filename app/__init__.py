@@ -52,8 +52,50 @@ def create_app(config_object=None):
     with app.app_context():
         db.create_all()
         _ensure_schema_updates()
+        _backfill_lead_status()
 
     return app
+
+
+def _backfill_lead_status():
+    """Self-heal leads left as "new" after a devis was accepted / a RDV booked.
+
+    Older records (created before the booking flow promoted the lead) can sit at
+    status "new" while already having an accepted devis and a scheduled RDV,
+    which shows a misleading "en attente" badge. Promote them to "booked" once so
+    the acceptance badge reflects reality. Idempotent and cheap: after the first
+    run no rows match.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    tables = set(inspector.get_table_names())
+    if not {"leads", "appointments"} <= tables:
+        return
+
+    lead_cols = {c["name"] for c in inspector.get_columns("leads")}
+    cancelled_guard = " AND cancelled_at IS NULL" if "cancelled_at" in lead_cols else ""
+
+    conditions = [
+        "id IN (SELECT lead_id FROM appointments "
+        "WHERE lead_id IS NOT NULL AND status IN ('scheduled', 'confirmed'))"
+    ]
+    if "quotes" in tables:
+        conditions.append(
+            "id IN (SELECT lead_id FROM quotes "
+            "WHERE lead_id IS NOT NULL AND doc_type = 'devis' AND status = 'accepted')"
+        )
+
+    sql = (
+        "UPDATE leads SET status = 'booked' "
+        "WHERE status = 'new' AND archived_at IS NULL" + cancelled_guard +
+        " AND (" + " OR ".join(conditions) + ")"
+    )
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(text(sql))
+    except Exception:
+        logging.getLogger(__name__).exception("lead status backfill failed")
 
 
 def _ensure_schema_updates():

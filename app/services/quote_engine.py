@@ -242,6 +242,13 @@ def _auto_schedule_from_quote(quote):
         db.session.flush()
         quote.lead_id = lead.id
         lead_id = lead.id
+    else:
+        # Accepting the devis confirms the job — mark the existing lead booked so
+        # its status/acceptance badge updates immediately (even if no slot is
+        # free below and no appointment gets created).
+        lead = db.session.get(Lead, lead_id)
+        if lead and lead.status == "new" and lead.cancelled_at is None:
+            lead.status = "booked"
 
     slot = find_next_available_slot(quote.tenant_id)
     if not slot:

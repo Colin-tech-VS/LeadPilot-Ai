@@ -65,6 +65,19 @@ class Config:
     # the app degrades gracefully — no SMS is sent and nothing breaks.
     TWILIO_SMS_FROM = os.environ.get("TWILIO_SMS_FROM", "")
 
+    # Automatic per-tenant AI number provisioning. In a real multi-tenant setup
+    # each plumber needs their OWN number: a phone call carries no login, so the
+    # dialed number is the only way to know which tenant the caller wants. When
+    # enabled (and Twilio is configured) a dedicated number is bought and wired
+    # to the voice webhook automatically at signup — the plumber does nothing.
+    # Set TWILIO_AUTO_PROVISION_NUMBERS=0 to disable (e.g. to avoid per-number
+    # costs during testing); tenants then share TWILIO_AI_PHONE_NUMBER.
+    TWILIO_AUTO_PROVISION_NUMBERS = os.environ.get("TWILIO_AUTO_PROVISION_NUMBERS", "1") not in ("0", "false", "False", "")
+    # Country (ISO-3166 alpha-2) the AI numbers are purchased in, and an optional
+    # preferred area/regional code (e.g. "1" for Paris local numbers).
+    TWILIO_NUMBER_COUNTRY = os.environ.get("TWILIO_NUMBER_COUNTRY", "FR")
+    TWILIO_NUMBER_AREA_CODE = os.environ.get("TWILIO_NUMBER_AREA_CODE", "")
+
     # Validate incoming Twilio webhook signatures (X-Twilio-Signature). Enabled
     # by default in production — it stops anyone but Twilio from hitting the
     # voice endpoints (which cost money: STT + LLM + TTS per call). Requires

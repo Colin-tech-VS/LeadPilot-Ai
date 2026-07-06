@@ -9,7 +9,7 @@ def _production_app():
         ENV="production",
         SECRET_KEY="real-secret",
         DATABASE_URL="postgresql://user:pass@localhost/db",
-        SERVER_NAME="leadpilot-ai.osc-fr1.scalingo.io",
+        PUBLIC_BASE_URL="https://www.pilotcore.fr",
         ADMIN_PASSWORD="strong-admin-password",
         WEBHOOK_SECRET="webhook-secret",
         EMAIL_INBOUND_SECRET="inbound-secret",

@@ -13,6 +13,15 @@ def _normalize_database_url(url):
     return url
 
 
+def _normalize_public_base_url(value, scheme="https"):
+    if not value or not str(value).strip():
+        return None
+    url = str(value).strip().rstrip("/")
+    if not url.startswith(("http://", "https://")):
+        url = f"{scheme}://{url}"
+    return url
+
+
 class Config:
     """Base configuration."""
 
@@ -112,11 +121,15 @@ class Config:
     EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@pilotcore.fr")
     EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
 
-    # Public URL for Twilio webhooks (Scalingo: your-app.osc-fr1.scalingo.io)
-    # Must be None (not "") when unset — an empty string makes Flask host-match
-    # against "" and 404 every route.
-    SERVER_NAME = os.environ.get("SERVER_NAME") or None
+    # Canonical public URL (https://www.example.com) for Twilio webhooks and links.
+    # Accepts PUBLIC_BASE_URL or legacy SERVER_NAME; never passed to Flask as
+    # SERVER_NAME — that would 404 every request whose Host header does not match.
     PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
+    PUBLIC_BASE_URL = _normalize_public_base_url(
+        os.environ.get("PUBLIC_BASE_URL") or os.environ.get("SERVER_NAME"),
+        scheme=PREFERRED_URL_SCHEME,
+    )
+    SERVER_NAME = None
 
 
 class DevelopmentConfig(Config):

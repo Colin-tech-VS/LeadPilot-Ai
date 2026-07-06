@@ -27,8 +27,10 @@ def validate_production_config(app) -> None:
     if not app.config.get("DATABASE_URL"):
         errors.append("DATABASE_URL must point to PostgreSQL (Supabase pooler)")
 
-    if not app.config.get("SERVER_NAME"):
-        errors.append("SERVER_NAME must be set (e.g. leadpilot-ai.osc-fr1.scalingo.io)")
+    if not app.config.get("PUBLIC_BASE_URL"):
+        errors.append(
+            "PUBLIC_BASE_URL must be set (e.g. https://www.pilotcore.fr)"
+        )
 
     admin_pw = app.config.get("ADMIN_PASSWORD", "")
     admin_hash = app.config.get("ADMIN_PASSWORD_HASH", "")

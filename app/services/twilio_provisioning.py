@@ -37,14 +37,13 @@ def auto_provision_enabled() -> bool:
 def _base_url() -> str | None:
     """Public base URL Twilio must call back on.
 
-    Prefers the configured ``SERVER_NAME`` (set in production) so provisioning
-    works outside a request too; falls back to the current request root.
+    Prefers ``PUBLIC_BASE_URL`` (set in production) so provisioning works outside
+    a request too; falls back to the current request root.
     """
     cfg = current_app.config
-    server_name = cfg.get("SERVER_NAME")
-    if server_name:
-        scheme = cfg.get("PREFERRED_URL_SCHEME", "https")
-        return f"{scheme}://{server_name}"
+    public_base = cfg.get("PUBLIC_BASE_URL")
+    if public_base:
+        return str(public_base).rstrip("/")
     if has_request_context():
         return request.url_root.rstrip("/")
     return None
@@ -103,7 +102,7 @@ def provision_ai_number(tenant) -> str | None:
     voice_url = voice_webhook_url(str(tenant.id))
     if not voice_url:
         logger.warning(
-            "No public base URL (set SERVER_NAME) — cannot provision a number for tenant=%s",
+            "No public base URL (set PUBLIC_BASE_URL) — cannot provision a number for tenant=%s",
             tenant.id,
         )
         return None

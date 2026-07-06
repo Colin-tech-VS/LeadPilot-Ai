@@ -63,12 +63,16 @@ if (-not $env:ADMIN_PASSWORD) {
     throw "Set ADMIN_PASSWORD before deploying to production."
 }
 
-$serverName = "${AppName}.${Region}.scalingo.io"
+$publicBaseUrl = if ($env:PUBLIC_BASE_URL) {
+    $env:PUBLIC_BASE_URL
+} else {
+    "https://www.pilotcore.fr"
+}
 
 Write-Host "Configuring environment..."
 Set-EnvVar "FLASK_ENV" "production"
 Set-EnvVar "PREFERRED_URL_SCHEME" "https"
-Set-EnvVar "SERVER_NAME" $serverName
+Set-EnvVar "PUBLIC_BASE_URL" $publicBaseUrl
 Set-EnvVar "SECRET_KEY" $env:SECRET_KEY
 Set-EnvVar "JWT_SECRET_KEY" $env:JWT_SECRET_KEY
 Set-EnvVar "DATABASE_URL" $env:DATABASE_URL

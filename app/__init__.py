@@ -199,6 +199,13 @@ def _ensure_schema_updates():
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE tenants ADD COLUMN {col_name} {col_type}"))
 
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(text("UPDATE tenants SET is_public = TRUE WHERE is_public IS NULL"))
+            conn.execute(text("UPDATE tenants SET trade_type = 'plombier' WHERE trade_type IS NULL OR trade_type = ''"))
+    except Exception:
+        logging.getLogger(__name__).debug("tenant directory defaults patch skipped", exc_info=True)
+
     if "quotes" not in inspector.get_table_names():
         return
     quote_columns = {col["name"] for col in inspector.get_columns("quotes")}

@@ -1,8 +1,12 @@
 {# Styled trade selector — optional chip grid + select (Doctolib-style). #}
-{% macro trade_select(name, trades, selected='', id=None, required=false, lang='fr', placeholder='', chips=true) %}
+{% macro trade_select(name, trades, selected='', id=None, required=false, placeholder='', chips=true, chips_aria='Métier') %}
+{% set icon = '🛠️' %}
+{% for t in trades %}
+  {% if t.key == selected %}{% set icon = t.icon %}{% endif %}
+{% endfor %}
 <div class="trade-picker" data-trade-picker>
   {% if chips %}
-  <div class="trade-picker-chips" role="listbox" aria-label="{{ _('settings.trade_type') }}">
+  <div class="trade-picker-chips" role="listbox" aria-label="{{ chips_aria }}">
     {% for t in trades %}
     <button type="button"
             class="trade-picker-chip{% if selected == t.key %} is-active{% endif %}"
@@ -16,7 +20,7 @@
   </div>
   {% endif %}
   <div class="trade-select-wrap">
-    <span class="trade-select-icon" aria-hidden="true">{% for t in trades if t.key == selected %}{{ t.icon }}{% else %}{% endfor %}{% if not selected %}🛠️{% endif %}</span>
+    <span class="trade-select-icon" aria-hidden="true">{{ icon }}</span>
     <select class="trade-select"
             name="{{ name }}"
             {% if id %}id="{{ id }}"{% endif %}

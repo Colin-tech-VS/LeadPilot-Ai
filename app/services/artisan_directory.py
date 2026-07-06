@@ -1,8 +1,11 @@
 """Public artisan directory — search and profile resolution."""
 
-from app.constants.trades import TRADES, trade_icon, trade_label
+from sqlalchemy import or_
+
+from app.constants.trades import DEFAULT_TRADE, TRADES, trade_icon, trade_label
 from app.core.extensions import db
 from app.models.tenant import Tenant
+from app.utils.slug import unique_public_slug
 
 
 def public_artisans_query(trade=None, city=None, q=None):
@@ -16,7 +19,7 @@ def public_artisans_query(trade=None, city=None, q=None):
         term = city.strip()
         like = f"%{term}%"
         query = query.filter(
-            db.or_(
+            or_(
                 Tenant.city.ilike(like),
                 Tenant.postal_code.ilike(like),
                 Tenant.address.ilike(like),
@@ -25,14 +28,18 @@ def public_artisans_query(trade=None, city=None, q=None):
     if q:
         like = f"%{q.strip()}%"
         query = query.filter(
-            db.or_(
+            or_(
                 Tenant.name.ilike(like),
                 Tenant.city.ilike(like),
                 Tenant.postal_code.ilike(like),
                 Tenant.public_blurb.ilike(like),
             )
         )
-    return query.order_by(Tenant.city.asc().nullslast(), Tenant.name.asc())
+    if db.engine.dialect.name == "postgresql":
+        query = query.order_by(Tenant.city.asc().nullslast(), Tenant.name.asc())
+    else:
+        query = query.order_by(Tenant.city.asc(), Tenant.name.asc())
+    return query
 
 
 def list_public_artisans(trade=None, city=None, q=None, limit=48):
@@ -43,8 +50,7 @@ def list_public_artisans(trade=None, city=None, q=None, limit=48):
 def get_public_artisan_by_slug(slug: str) -> Tenant | None:
     if not slug:
         return None
-    tenant = Tenant.query.filter_by(public_slug=slug, is_public=True).first()
-    return tenant
+    return Tenant.query.filter_by(public_slug=slug, is_public=True).first()
 
 
 def artisan_card_dict(tenant: Tenant, lang: str = "fr") -> dict:
@@ -72,15 +78,25 @@ def search_public_artisans(trade=None, city=None, q=None, limit=48, lang: str = 
 
 
 def backfill_directory_visibility() -> int:
-    """Publish existing tenants who completed their profile but were never listed."""
-    rows = Tenant.query.filter(
-        Tenant.is_public.is_(False),
-        Tenant.public_slug.isnot(None),
-        Tenant.city.isnot(None),
-        Tenant.name.isnot(None),
-    ).all()
+    """Ensure every tenant with a name is listed with a unique public slug."""
+    rows = Tenant.query.filter(Tenant.name.isnot(None)).all()
+    updated = 0
     for tenant in rows:
-        tenant.is_public = True
-    if rows:
+        changed = False
+        if not tenant.public_slug:
+            base = tenant.name
+            if tenant.city:
+                base = f"{tenant.name}-{tenant.city}"
+            tenant.public_slug = unique_public_slug(base, tenant.id)
+            changed = True
+        if not tenant.trade_type or tenant.trade_type not in TRADES:
+            tenant.trade_type = DEFAULT_TRADE
+            changed = True
+        if tenant.is_public is not True:
+            tenant.is_public = True
+            changed = True
+        if changed:
+            updated += 1
+    if updated:
         db.session.commit()
-    return len(rows)
+    return updated

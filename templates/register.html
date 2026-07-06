@@ -51,7 +51,7 @@
                value="{{ form.get('company_name', '') }}" placeholder="Artisan Dupont">
 
         <label for="trade_type">{{ _('register.trade') }}</label>
-        {{ trade_select('trade_type', trades, form.get('trade_type', 'plombier'), id='trade_type', required=true) }}
+        {{ trade_select('trade_type', trades, form.get('trade_type', 'plombier'), id='trade_type', required=true, chips_aria=_('register.trade')) }}
 
         <div class="auth-form-row">
           <div>

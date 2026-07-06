@@ -1,0 +1,127 @@
+{% extends "public_layout.html" %}
+{% from 'macros/trade_picker.html' import trade_select %}
+
+{% block title %}{{ _('client.meta_title') }}{% endblock %}
+{% block body_class %}page-client-home{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ _('client.meta_description') }}">
+<meta name="keywords" content="{{ _('client.meta_keywords') }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ _('client.meta_title') }}">
+<meta property="og:description" content="{{ _('client.meta_description') }}">
+<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "PilotCore",
+  "url": {{ (request.url_root.rstrip('/'))|tojson }},
+  "description": {{ _('client.meta_description')|tojson }},
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {{ (request.url_root.rstrip('/') + '/artisans?q={search_term_string}')|tojson }},
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.client_home') }}" class="public-nav-link public-nav-link--primary active">{{ _('directory.nav') }}</a>
+<a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+<a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
+<a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
+<a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline btn-sm">{{ _('directory.nav_pro_cta') }}</a>
+{% endblock %}
+
+{% block content %}
+<section class="directory-hero directory-hero--doctolib client-home-hero">
+  <div class="container">
+    <p class="directory-hero-kicker">{{ _('client.hero_kicker') }}</p>
+    <h1>{{ _('client.hero_title') }}</h1>
+    <p class="directory-hero-lead">{{ _('client.hero_subtitle') }}</p>
+
+    <form class="directory-search" action="{{ url_for('web.artisan_directory') }}" method="GET">
+      <div class="directory-search-grid">
+        <label>
+          <span>{{ _('directory.search_what') }}</span>
+          <input type="search" name="q" placeholder="{{ _('directory.search_what_ph') }}" autocomplete="off">
+        </label>
+        <label>
+          <span>{{ _('directory.search_trade') }}</span>
+          {{ trade_select('metier', trades, '', id='home-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
+        </label>
+        <label>
+          <span>{{ _('directory.search_where') }}</span>
+          <input type="text" name="ville" placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg directory-search-btn">
+          <span class="directory-search-btn-inner">
+            <span class="directory-search-btn-label">{{ _('directory.search_btn') }}</span>
+          </span>
+        </button>
+      </div>
+    </form>
+
+    <div class="directory-trade-chips">
+      {% for t in trades[:8] %}
+      <a href="{{ url_for('web.artisan_directory', metier=t.key) }}" class="directory-chip">{{ t.icon }} {{ t.label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% if featured_artisans %}
+<section class="landing-section client-featured">
+  <div class="container">
+    <div class="landing-section-head">
+      <h2>{{ _('client.featured_title') }}</h2>
+      <p>{{ _('client.featured_subtitle') }}</p>
+    </div>
+    <div class="directory-grid">
+      {% for a in featured_artisans %}
+      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card landing-fade">
+        <div class="directory-card-icon">{% for t in trades if t.key == a.trade_type %}{{ t.icon }}{% endfor %}</div>
+        <h2>{{ a.name }}</h2>
+        <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>
+        <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}</p>
+        <span class="directory-card-cta">{{ _('directory.book_cta') }} →</span>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="client-more-link"><a href="{{ url_for('web.artisan_directory') }}">{{ _('client.browse_all') }} →</a></p>
+  </div>
+</section>
+{% endif %}
+
+<section class="landing-section client-steps">
+  <div class="container">
+    <div class="landing-section-head">
+      <h2>{{ _('client.steps_title') }}</h2>
+    </div>
+    <ol class="steps-list">
+      <li class="step-item"><span class="step-num">1</span><div><strong>{{ _('client.step_1_title') }}</strong><p>{{ _('client.step_1_desc') }}</p></div></li>
+      <li class="step-item"><span class="step-num">2</span><div><strong>{{ _('client.step_2_title') }}</strong><p>{{ _('client.step_2_desc') }}</p></div></li>
+      <li class="step-item"><span class="step-num">3</span><div><strong>{{ _('client.step_3_title') }}</strong><p>{{ _('client.step_3_desc') }}</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="directory-pro-band">
+  <div class="container directory-pro-inner">
+    <div>
+      <span class="directory-pro-badge">{{ _('directory.pro_badge') }}</span>
+      <h2>{{ _('client.pro_band_title') }}</h2>
+      <p>{{ _('client.pro_band_subtitle') }}</p>
+    </div>
+    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light btn-lg">{{ _('client.pro_band_cta') }}</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
+{% endblock %}

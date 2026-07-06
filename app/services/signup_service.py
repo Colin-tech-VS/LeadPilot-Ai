@@ -60,15 +60,17 @@ def register_plumber(
     user.set_password(password)
     db.session.add(user)
 
-    # Automatically give this plumber their own dedicated AI phone number so the
-    # multi-tenant voice line can route callers to them. Best-effort: a failure
-    # here (Twilio unconfigured, no number available, regulatory bundle missing)
-    # must never block the signup — the tenant simply falls back to the shared
-    # number until a number is provisioned later (see scripts/provision_numbers.py).
+    # Automatically give this artisan a dedicated AI phone number at signup.
+    # The dialed number is the only way to route inbound calls to the right tenant.
     try:
         from app.services.twilio_provisioning import provision_ai_number
 
-        provision_ai_number(tenant)
+        number = provision_ai_number(tenant)
+        if not number and not tenant.ai_phone_number:
+            logger.warning(
+                "No dedicated AI number for tenant=%s — enable TWILIO_AUTO_PROVISION_NUMBERS and PUBLIC_BASE_URL",
+                tenant.id,
+            )
     except Exception:  # pragma: no cover - defensive, provisioning already swallows
         logger.exception("AI number provisioning failed for tenant=%s", tenant.id)
 

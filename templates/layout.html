@@ -21,7 +21,7 @@
     <div class="container topbar-shell">
       <div class="topbar-inner">
         <div class="topbar-left">
-          <a href="{{ url_for('web.dashboard') if session.get('user_id') else url_for('web.landing') }}" class="brand">
+          <a href="{{ url_for('web.dashboard') if session.get('user_id') else url_for('web.client_home') }}" class="brand">
             {{ brand_logo('md', 'nav') }}
             <span class="brand-text">{{ _('app.name') }}</span>
           </a>

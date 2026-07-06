@@ -9,9 +9,9 @@
 {% endblock %}
 
 {% block public_nav %}
-<a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link active">{{ _('directory.nav') }}</a>
-<a href="{{ url_for('web.landing') }}#pro">{{ _('directory.nav_pro') }}</a>
-<a href="{{ url_for('web.landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
+<a href="{{ url_for('web.client_home') }}">{{ _('directory.nav') }}</a>
+<a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link active">{{ _('client.nav_directory') }}</a>
+<a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
 <a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
 <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
 {% endblock %}
@@ -31,7 +31,7 @@
         </label>
         <label>
           <span>{{ _('directory.search_trade') }}</span>
-          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false) }}
+          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
         </label>
         <label>
           <span>{{ _('directory.search_where') }}</span>

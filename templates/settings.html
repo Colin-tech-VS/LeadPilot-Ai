@@ -89,7 +89,7 @@
       <p class="section-hint">{{ _('settings.section.public_hint') }}</p>
 
       <label for="trade_type">{{ _('settings.trade_type') }}</label>
-      {{ trade_select('trade_type', trades, tenant.trade_type, id='trade_type') }}
+      {{ trade_select('trade_type', trades, tenant.trade_type, id='trade_type', chips_aria=_('settings.trade_type')) }}
 
       <label class="db-inline directory-toggle" style="margin-top:12px">
         <input type="checkbox" name="is_public" {% if tenant.is_public %}checked{% endif %}>

@@ -1425,7 +1425,9 @@ html {
 }
 .landing-client-hint { margin: 10px 0 0; font-size: 14px; }
 .landing-client-hint a { color: var(--blue-primary); font-weight: 600; text-decoration: none; }
-.landing-badge--pro { background: #E8F6FC; color: #047BB8; border: 1px solid #B8E4F7; }
+.client-more-link { margin-top: 20px; text-align: center; }
+.client-more-link a { color: var(--blue-primary); font-weight: 700; text-decoration: none; }
+.client-home-hero { padding-top: 40px; }
 
 .directory-hero {
   padding: 48px 0 36px;

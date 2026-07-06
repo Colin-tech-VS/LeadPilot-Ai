@@ -10,7 +10,7 @@
   {% endblock %}
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=9">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=9">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">
   {% block head_extra %}{% endblock %}
 </head>
@@ -18,7 +18,7 @@
   <header class="public-header">
     <div class="container public-shell">
       <div class="public-header-inner">
-        <a href="{{ url_for('web.landing') }}" class="brand">
+        <a href="{{ url_for('web.client_home') }}" class="brand">
           {{ brand_logo('md', 'public') }}
           <span class="brand-text">{{ _('app.name') }}</span>
         </a>
@@ -38,10 +38,9 @@
       <nav class="public-nav" id="public-nav">
         <div class="public-nav-inner">
           {% block public_nav %}
-          <a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link public-nav-link--primary">{{ _('directory.nav') }}</a>
-          <a href="{{ url_for('web.landing') }}#pro">{{ _('directory.nav_pro') }}</a>
-          <a href="{{ url_for('web.landing') }}#demo">{{ _('landing.nav_demo') }}</a>
-          <a href="{{ url_for('web.landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
+          <a href="{{ url_for('web.client_home') }}" class="public-nav-link public-nav-link--primary">{{ _('directory.nav') }}</a>
+          <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+          <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
           <a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
           <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
           {% endblock %}

@@ -180,7 +180,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nAllow: /pro\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -190,6 +190,7 @@ def sitemap_xml():
     urls = [
         ("", "daily", "1.0"),
         ("/artisans", "daily", "0.95"),
+        ("/pro", "weekly", "0.9"),
         ("/register", "monthly", "0.9"),
         ("/login", "monthly", "0.6"),
     ]
@@ -211,12 +212,35 @@ def sitemap_xml():
 
 
 @web_bp.route("/", methods=["GET"])
-def landing():
+def client_home():
+    """Public homepage for customers looking for an artisan."""
+    if session.get("user_id") and session.get("tenant_id"):
+        return redirect(url_for("web.dashboard"))
+    from app.constants.trades import trade_choices
+    from app.services.artisan_directory import list_public_artisans
+
+    lang = getattr(g, "lang", "fr")
+    return render_template(
+        "public/client_home.html",
+        trades=trade_choices(lang),
+        featured_artisans=list_public_artisans(limit=6),
+    )
+
+
+@web_bp.route("/pro", methods=["GET"])
+def pro_landing():
+    """Homepage for artisans — AI voice receptionist, pricing, demo."""
     if session.get("user_id") and session.get("tenant_id"):
         return redirect(url_for("web.dashboard"))
     from app.services import content_studio
 
-    return render_template("landing.html", offers=content_studio.get_offers(active_only=True))
+    return render_template("pro_landing.html", offers=content_studio.get_offers(active_only=True))
+
+
+# Legacy alias
+@web_bp.route("/landing", methods=["GET"])
+def landing():
+    return redirect(url_for("web.pro_landing"), code=301)
 
 
 @web_bp.route("/p/<slug>", methods=["GET"])

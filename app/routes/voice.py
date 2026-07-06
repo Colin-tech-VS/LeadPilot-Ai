@@ -43,16 +43,24 @@ def _get_tenant_id() -> str:
     from app.models.tenant import Tenant
 
     tenant_id = request.args.get("tenant_id") or request.form.get("tenant_id")
-    if not tenant_id:
-        to_number = request.form.get("To") or request.args.get("To")
-        if to_number:
-            to_digits = _normalize_phone_digits(to_number)
+    if tenant_id:
+        try:
+            uuid.UUID(str(tenant_id))
+            return str(tenant_id)
+        except ValueError:
+            raise AppError("Invalid tenant_id format", status_code=422)
+
+    to_number = request.form.get("To") or request.args.get("To")
+    if to_number:
+        to_digits = _normalize_phone_digits(to_number)
+        if to_digits:
             for tenant in Tenant.query.filter(Tenant.ai_phone_number.isnot(None)).all():
                 if _normalize_phone_digits(tenant.ai_phone_number) == to_digits:
                     return str(tenant.id)
-        tenant_id = current_app.config.get("TWILIO_DEFAULT_TENANT_ID")
+
+    tenant_id = current_app.config.get("TWILIO_DEFAULT_TENANT_ID")
     if not tenant_id:
-        raise AppError("tenant_id is required (query param or TWILIO_DEFAULT_TENANT_ID)", status_code=422)
+        raise AppError("tenant_id is required (dedicated AI number or TWILIO_DEFAULT_TENANT_ID)", status_code=422)
     try:
         uuid.UUID(str(tenant_id))
     except ValueError:

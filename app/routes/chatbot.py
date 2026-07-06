@@ -4,6 +4,7 @@ from flask import Blueprint, abort, g, jsonify, render_template, request, url_fo
 
 from app.core.errors import AppError, NotFoundError
 from app.core.extensions import db
+from app.core.security import rate_limit
 from app.core.web_auth import web_tenant_required
 from app.models.tenant import Tenant
 from app.services.chatbot import process_chat_turn
@@ -40,6 +41,7 @@ def public_chat(tenant_id):
 
 
 @chatbot_bp.route("/chat/<tenant_id>/message", methods=["POST"])
+@rate_limit(limit=30, window=60, scope="public_chat")
 def public_chat_message(tenant_id):
     """One chat exchange. Used by both the public page and the owner preview."""
     tenant = _load_public_tenant(tenant_id)

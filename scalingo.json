@@ -4,6 +4,16 @@
   "stack": "scalingo-22",
   "env": {
     "FLASK_ENV": "production",
-    "PREFERRED_URL_SCHEME": "https"
+    "PREFERRED_URL_SCHEME": "https",
+    "TWILIO_AUTO_PROVISION_NUMBERS": "0"
+  },
+  "healthchecks": {
+    "web": [
+      {
+        "path": "/health/ready",
+        "interval": 60,
+        "timeout": 10
+      }
+    ]
   }
 }

@@ -12,14 +12,10 @@ from functools import wraps
 
 from flask import current_app, request
 
-from app.core.errors import AppError
+from app.core.errors import AppError, RateLimitError
 
 # key -> deque[timestamps]
 _HITS = defaultdict(deque)
-
-
-class RateLimitError(AppError):
-    status_code = 429
 
 
 def _client_ip():
@@ -80,6 +76,11 @@ def validate_twilio_request():
         return True
     auth_token = current_app.config.get("TWILIO_AUTH_TOKEN")
     if not auth_token:
+        if current_app.config.get("ENV") == "production":
+            current_app.logger.error(
+                "TWILIO_AUTH_TOKEN unset — rejecting Twilio webhook in production"
+            )
+            return False
         current_app.logger.warning(
             "TWILIO_AUTH_TOKEN unset — Twilio signature not validated on %s",
             request.path,

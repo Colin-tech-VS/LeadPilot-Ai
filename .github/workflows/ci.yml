@@ -1,9 +1,10 @@
-name: Deploy to Scalingo
+name: CI
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
@@ -23,16 +24,3 @@ jobs:
         env:
           FLASK_ENV: development
         run: pytest -q
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Scalingo
-        uses: scalingo/github-actions/deploy@v1
-        with:
-          api-token: ${{ secrets.SCALINGO_API_TOKEN }}
-          app-name: leadpilot-ai
-          region: osc-fr1

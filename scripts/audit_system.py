@@ -44,6 +44,12 @@ with app.app_context():
 r = c.get("/health")
 check("Health check", r.status_code == 200 and r.get_json().get("status") == "ok")
 
+r = c.get("/health/ready")
+check(
+    "Health ready (DB)",
+    r.status_code == 200 and r.get_json().get("database") == "connected",
+)
+
 # API login
 r = c.post("/auth/login", json={"email": AUDIT_EMAIL, "password": AUDIT_PASSWORD})
 token = r.get_json().get("access_token") if r.status_code == 200 else None

@@ -1,4 +1,7 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, current_app, jsonify
+from sqlalchemy import text
+
+from app.core.extensions import db
 
 health_bp = Blueprint("health", __name__)
 
@@ -7,6 +10,7 @@ _API_INDEX = {
     "status": "ok",
     "endpoints": {
         "health": "GET /health",
+        "ready": "GET /health/ready",
         "api_index": "GET /api",
         "register": "POST /auth/register",
         "login": "POST /auth/login",
@@ -35,4 +39,17 @@ def api_index():
 
 @health_bp.route("/health", methods=["GET"])
 def health_check():
+    """Liveness probe — process is up (no database dependency)."""
     return jsonify({"status": "ok"}), 200
+
+
+@health_bp.route("/health/ready", methods=["GET"])
+def health_ready():
+    """Readiness probe — verifies database connectivity (Scalingo / k8s)."""
+    try:
+        db.session.execute(text("SELECT 1"))
+        db.session.commit()
+        return jsonify({"status": "ok", "database": "connected"}), 200
+    except Exception as exc:
+        current_app.logger.exception("Health ready check failed")
+        return jsonify({"status": "error", "database": str(exc)}), 503

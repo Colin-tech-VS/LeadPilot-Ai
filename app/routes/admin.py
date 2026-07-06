@@ -396,7 +396,10 @@ def email_inbound():
     """Provider webhook (Mailgun/SendGrid inbound parse). Public but guarded by
     EMAIL_INBOUND_SECRET when set (?secret= or X-Inbound-Secret header)."""
     secret = current_app.config.get("EMAIL_INBOUND_SECRET")
-    if secret:
+    if not secret:
+        if current_app.config.get("ENV") == "production":
+            abort(503)
+    else:
         provided = request.args.get("secret") or request.headers.get("X-Inbound-Secret", "")
         if provided != secret:
             abort(401)

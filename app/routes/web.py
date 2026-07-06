@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from app.core.errors import AppError
 from app.core.i18n import set_language_preference
 from app.core.extensions import db
-from app.core.security import check_rate
+from app.core.security import check_rate, rate_limit
 from app.core.web_auth import login_user_to_session, logout_user_session, web_tenant_required
 from app.models.appointment import Appointment
 from app.models.lead import Lead
@@ -229,6 +229,7 @@ def site_page(slug):
 
 
 @web_bp.route("/demo/simulate", methods=["POST"])
+@rate_limit(limit=15, window=60, scope="demo_simulate")
 def demo_simulate():
     from app.services.demo_simulate import simulate_inbound_demo
 
@@ -257,45 +258,48 @@ def register():
         from app.services.signup_service import register_plumber
         from app.utils.validation import validate_password
 
-        form = {
-            "company_name": (request.form.get("company_name") or "").strip(),
-            "first_name": (request.form.get("first_name") or "").strip(),
-            "last_name": (request.form.get("last_name") or "").strip(),
-            "email": (request.form.get("email") or "").strip().lower(),
-            "phone": (request.form.get("phone") or "").strip(),
-            "city": (request.form.get("city") or "").strip(),
-        }
-        password = request.form.get("password") or ""
-        confirm = request.form.get("confirm_password") or ""
-
-        if not form["company_name"] or not form["email"] or not password:
-            error = translate("register.error.required")
-        elif password != confirm:
-            error = translate("register.error.password_mismatch")
+        if not check_rate("web_register", limit=5, window=3600):
+            error = translate("login.error.rate_limited")
         else:
-            try:
-                validate_email(form["email"])
-                validate_password(password)
-                user, _tenant = register_plumber(
-                    email=form["email"],
-                    password=password,
-                    company_name=form["company_name"],
-                    phone=form["phone"] or None,
-                    city=form["city"] or None,
-                    first_name=form["first_name"] or None,
-                    last_name=form["last_name"] or None,
-                )
-                login_user_to_session(user)
-                return redirect(url_for("web.dashboard"))
-            except ConflictError:
-                error = translate("register.error.email_taken")
-            except AppError as e:
-                if "email" in str(e.message).lower():
-                    error = translate("login.error.invalid_email")
-                elif "password" in str(e.message).lower():
-                    error = translate("register.error.password_short")
-                else:
-                    error = str(e.message)
+            form = {
+                "company_name": (request.form.get("company_name") or "").strip(),
+                "first_name": (request.form.get("first_name") or "").strip(),
+                "last_name": (request.form.get("last_name") or "").strip(),
+                "email": (request.form.get("email") or "").strip().lower(),
+                "phone": (request.form.get("phone") or "").strip(),
+                "city": (request.form.get("city") or "").strip(),
+            }
+            password = request.form.get("password") or ""
+            confirm = request.form.get("confirm_password") or ""
+
+            if not form["company_name"] or not form["email"] or not password:
+                error = translate("register.error.required")
+            elif password != confirm:
+                error = translate("register.error.password_mismatch")
+            else:
+                try:
+                    validate_email(form["email"])
+                    validate_password(password)
+                    user, _tenant = register_plumber(
+                        email=form["email"],
+                        password=password,
+                        company_name=form["company_name"],
+                        phone=form["phone"] or None,
+                        city=form["city"] or None,
+                        first_name=form["first_name"] or None,
+                        last_name=form["last_name"] or None,
+                    )
+                    login_user_to_session(user)
+                    return redirect(url_for("web.dashboard"))
+                except ConflictError:
+                    error = translate("register.error.email_taken")
+                except AppError as e:
+                    if "email" in str(e.message).lower():
+                        error = translate("login.error.invalid_email")
+                    elif "password" in str(e.message).lower():
+                        error = translate("register.error.password_short")
+                    else:
+                        error = str(e.message)
 
     return render_template("register.html", error=error, form=form)
 

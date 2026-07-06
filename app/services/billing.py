@@ -212,14 +212,16 @@ def handle_webhook(payload: bytes, signature: str) -> bool:
         return False
     stripe = _client()
     secret = current_app.config.get("STRIPE_WEBHOOK_SECRET")
-    if secret:
-        event = stripe.Webhook.construct_event(payload, signature, secret)
-    else:
-        # No signing secret configured — fall back to parsing (dev only).
+    if not secret:
+        if current_app.config.get("ENV") == "production":
+            logger.error("Stripe webhook rejected — STRIPE_WEBHOOK_SECRET missing")
+            raise ValueError("Stripe webhook secret not configured")
         import json
 
         event = json.loads(payload)
         logger.warning("Stripe webhook received without signature verification")
+    else:
+        event = stripe.Webhook.construct_event(payload, signature, secret)
 
     return apply_event(event.get("type"), (event.get("data") or {}).get("object") or {})
 

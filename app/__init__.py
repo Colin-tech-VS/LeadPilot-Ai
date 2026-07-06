@@ -11,6 +11,8 @@ from app.core.i18n import register_i18n
 from app.routes import register_blueprints
 from config import get_config
 
+import app.models  # noqa: F401 — register all ORM models
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -45,13 +47,19 @@ def create_app(config_object=None):
     register_i18n(app)
     register_blueprints(app)
 
+    from app.core.production import register_security_headers, validate_production_config
+
+    register_security_headers(app)
+    validate_production_config(app)
+
     from app.core.tracking import register_tracking
 
     register_tracking(app)
 
     with app.app_context():
-        db.create_all()
-        _ensure_schema_updates()
+        if app.config.get("ENV") != "production":
+            db.create_all()
+            _ensure_schema_updates()
         _backfill_lead_status()
 
     return app

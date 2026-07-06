@@ -13,6 +13,8 @@ webhook_bp = Blueprint("webhook", __name__, url_prefix="/webhook")
 def _verify_webhook_secret():
     expected = current_app.config.get("WEBHOOK_SECRET")
     if not expected:
+        if current_app.config.get("ENV") == "production":
+            raise UnauthorizedError("Webhook secret not configured")
         return
     provided = request.headers.get("X-Webhook-Secret", "")
     if provided != expected:

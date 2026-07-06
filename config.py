@@ -1,4 +1,9 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 
 def _normalize_database_url(url):
@@ -72,7 +77,7 @@ class Config:
     # to the voice webhook automatically at signup — the plumber does nothing.
     # Set TWILIO_AUTO_PROVISION_NUMBERS=0 to disable (e.g. to avoid per-number
     # costs during testing); tenants then share TWILIO_AI_PHONE_NUMBER.
-    TWILIO_AUTO_PROVISION_NUMBERS = os.environ.get("TWILIO_AUTO_PROVISION_NUMBERS", "1") not in ("0", "false", "False", "")
+    TWILIO_AUTO_PROVISION_NUMBERS = os.environ.get("TWILIO_AUTO_PROVISION_NUMBERS", "0") not in ("0", "false", "False", "")
     # Country (ISO-3166 alpha-2) the AI numbers are purchased in, and an optional
     # preferred area/regional code (e.g. "1" for Paris local numbers).
     TWILIO_NUMBER_COUNTRY = os.environ.get("TWILIO_NUMBER_COUNTRY", "FR")
@@ -91,10 +96,7 @@ class Config:
     # so the console works out of the box; override it in production.
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "LeadPilot_Admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
-    ADMIN_PASSWORD_HASH = os.environ.get(
-        "ADMIN_PASSWORD_HASH",
-        "scrypt:32768:8:1$iYS5rlPR2M5YlS8z$5f4ffac38bb021d9a80ad86495f6c581fab7631596ef6f57fc54491b41bbf2c0a549eb6e39132ae74f182ac2caec3a0f075c1d5173ffa1baead954cfe44e1154",
-    )
+    ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
     # ------------------------------------------------------------------ Email
     # Outbound email (admin console + system notices). Sent over SMTP when
@@ -122,6 +124,12 @@ class DevelopmentConfig(Config):
     DEBUG = True
     ENV = "development"
     SQLALCHEMY_DATABASE_URI = Config.DATABASE_URL or "sqlite:///leadpilot_dev.db"
+    # Dev-only fallback so /admin works without extra env vars locally.
+    ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH") or (
+        ""
+        if os.environ.get("ADMIN_PASSWORD")
+        else "scrypt:32768:8:1$iYS5rlPR2M5YlS8z$5f4ffac38bb021d9a80ad86495f6c581fab7631596ef6f57fc54491b41bbf2c0a549eb6e39132ae74f182ac2caec3a0f075c1d5173ffa1baead954cfe44e1154"
+    )
 
 
 class ProductionConfig(Config):

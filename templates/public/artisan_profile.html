@@ -1,0 +1,111 @@
+{% extends "public_layout.html" %}
+{% from 'macros/brand.html' import brand_logo with context %}
+
+{% block title %}{{ tenant.name }} — {{ trade_label }} · {{ _('directory.book_online') }}{% endblock %}
+{% block body_class %}page-artisan-profile{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}?v=2">
+{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.artisan_directory') }}">← {{ _('directory.nav') }}</a>
+{% endblock %}
+
+{% block content %}
+<section class="artisan-hero">
+  <div class="container artisan-hero-grid">
+    <div class="artisan-hero-copy">
+      <span class="artisan-trade-badge">{{ trade_icon }} {{ trade_label }}</span>
+      <h1>{{ tenant.name }}</h1>
+      {% if tenant.city %}
+      <p class="artisan-location">📍 {{ tenant.city }}{% if tenant.postal_code %} ({{ tenant.postal_code }}){% endif %}
+        {% if tenant.service_radius_km %} · {{ _('directory.radius_km', km=tenant.service_radius_km) }}{% endif %}
+      </p>
+      {% endif %}
+      {% if tenant.public_blurb %}
+      <p class="artisan-blurb">{{ tenant.public_blurb }}</p>
+      {% else %}
+      <p class="artisan-blurb">{{ _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) }}</p>
+      {% endif %}
+      {% if tenant.phone_number %}
+      <p class="artisan-phone">📞 <a href="tel:{{ tenant.phone_number }}">{{ tenant.phone_number }}</a></p>
+      {% endif %}
+    </div>
+    <div class="artisan-hero-card">
+      <h2>{{ _('directory.book_title') }}</h2>
+      <p class="artisan-hero-hint">{{ _('directory.book_hint') }}</p>
+      <a href="#booking" class="btn btn-primary btn-block btn-lg">{{ _('directory.book_cta') }}</a>
+    </div>
+  </div>
+</section>
+
+<section id="booking" class="artisan-booking landing-section">
+  <div class="container artisan-booking-grid">
+    <div class="artisan-slots-card landing-fade">
+      <h2>{{ _('directory.slots_title') }}</h2>
+      <p class="section-hint">{{ _('directory.slots_hint') }}</p>
+      {% if slot_items %}
+      <div class="slot-grid" id="slot-grid">
+        {% for slot in slot_items %}
+        <button type="button" class="slot-btn" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="directory-empty-inline">{{ _('directory.no_slots') }}</p>
+      {% endif %}
+      <p class="slot-selected-hint" id="slot-selected-hint" hidden>{{ _('directory.slot_selected') }}</p>
+    </div>
+
+    <div class="artisan-chat-card landing-fade landing-delay-1">
+      <div class="chat-public-header chat-public-header--embedded">
+        <div class="chat-public-avatar" aria-hidden="true">{{ (tenant.ai_assistant_name or tenant.name or '?')[:1]|upper }}</div>
+        <div class="chat-public-ident">
+          <span class="chat-public-name">{{ tenant.ai_assistant_name or _('chatbot.assistant') }}</span>
+          <span class="chat-public-status"><span class="chat-public-dot"></span>{{ _('directory.ai_online') }}</span>
+        </div>
+      </div>
+
+      <div class="lp-chat lp-chat--full lp-chat--profile"
+           data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant.id) }}"
+           data-greeting="{{ _('chatbot.greeting', company=tenant.name) }}"
+           data-label-you="{{ _('chatbot.you') }}"
+           data-label-assistant="{{ tenant.ai_assistant_name or _('chatbot.assistant') }}"
+           data-label-typing="{{ _('chatbot.typing') }}"
+           data-label-error="{{ _('chatbot.error') }}"
+           data-label-captured="{{ _('chatbot.captured') }}"
+           data-slot-prefix="{{ _('directory.slot_message_prefix') }}">
+        <div class="lp-chat-scroll" aria-live="polite"></div>
+        <form class="lp-chat-form">
+          <textarea class="lp-chat-input" rows="1" placeholder="{{ _('directory.chat_placeholder') }}"></textarea>
+          <button type="submit" class="btn btn-primary lp-chat-send" aria-label="{{ _('chatbot.send') }}">
+            <span class="lp-chat-send-icon" aria-hidden="true">➤</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const PARIS = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  document.querySelectorAll('.slot-btn').forEach(function(btn) {
+    const iso = btn.dataset.slotIso;
+    if (iso) btn.textContent = PARIS.format(new Date(iso));
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.slot-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      window.__selectedSlotIso = iso;
+      const hint = document.getElementById('slot-selected-hint');
+      if (hint) hint.hidden = false;
+      const chat = document.querySelector('.lp-chat--profile');
+      if (chat) chat.dataset.selectedSlot = iso;
+    });
+  });
+})();
+</script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=2"></script>
+{% endblock %}

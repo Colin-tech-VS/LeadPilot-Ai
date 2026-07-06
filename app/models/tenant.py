@@ -51,6 +51,11 @@ class Tenant(db.Model):
     # Last calendar month whose call overage was billed to Stripe, as "YYYY-MM".
     # Guards the monthly overage job against double-billing the same period.
     last_overage_period = db.Column(db.String(7), nullable=True)
+    # Public directory (Planity-style client booking)
+    trade_type = db.Column(db.String(30), nullable=False, default="plombier", index=True)
+    public_slug = db.Column(db.String(100), nullable=True, unique=True, index=True)
+    is_public = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    public_blurb = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     users = db.relationship("User", back_populates="tenant", lazy="dynamic")
@@ -122,5 +127,9 @@ class Tenant(db.Model):
             "latitude": self.latitude,
             "longitude": self.longitude,
             "service_radius_km": self.service_radius_km,
+            "trade_type": self.trade_type,
+            "public_slug": self.public_slug,
+            "is_public": self.is_public,
+            "public_blurb": self.public_blurb,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

@@ -18,6 +18,7 @@ def register_plumber(
     city: str | None = None,
     first_name: str | None = None,
     last_name: str | None = None,
+    trade_type: str = "plombier",
 ) -> tuple[User, Tenant]:
     email = validate_email(email)
     validate_password(password)
@@ -28,6 +29,11 @@ def register_plumber(
     if User.query.filter_by(email=email).first():
         raise ConflictError("Email already registered")
 
+    from app.constants.trades import DEFAULT_TRADE, TRADES
+    from app.utils.slug import unique_public_slug
+
+    trade = trade_type if trade_type in TRADES else DEFAULT_TRADE
+
     tenant = Tenant(
         name=company_name,
         first_name=(first_name or "").strip() or None,
@@ -37,6 +43,9 @@ def register_plumber(
         service_radius_km=30,
         plan="trial",
         trial_ends_at=utcnow() + timedelta(days=TRIAL_DAYS),
+        trade_type=trade,
+        public_slug=unique_public_slug(company_name),
+        is_public=False,
     )
     db.session.add(tenant)
     db.session.flush()
@@ -63,3 +72,6 @@ def register_plumber(
 
     db.session.commit()
     return user, tenant
+
+
+register_artisan = register_plumber

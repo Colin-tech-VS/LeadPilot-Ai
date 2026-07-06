@@ -1,0 +1,89 @@
+{% extends "public_layout.html" %}
+
+{% block title %}{{ _('directory.meta_title') }} — {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-directory{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ _('directory.meta_description') }}">
+{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link active">{{ _('directory.nav') }}</a>
+<a href="{{ url_for('web.landing') }}#features">{{ _('landing.nav_features') }}</a>
+<a href="{{ url_for('web.landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
+<a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
+<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('landing.nav_signup') }}</a>
+{% endblock %}
+
+{% block content %}
+<section class="directory-hero">
+  <div class="container">
+    <h1>{{ _('directory.hero_title') }}</h1>
+    <p class="directory-hero-lead">{{ _('directory.hero_subtitle') }}</p>
+
+    <form class="directory-search" method="GET" action="{{ url_for('web.artisan_directory') }}">
+      <div class="directory-search-grid">
+        <label>
+          <span>{{ _('directory.search_what') }}</span>
+          <input type="search" name="q" value="{{ filters.q }}" placeholder="{{ _('directory.search_what_ph') }}">
+        </label>
+        <label>
+          <span>{{ _('directory.search_trade') }}</span>
+          <select name="metier">
+            <option value="">{{ _('directory.all_trades') }}</option>
+            {% for t in trades %}
+            <option value="{{ t.key }}" {% if filters.metier == t.key %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>{{ _('directory.search_where') }}</span>
+          <input type="text" name="ville" value="{{ filters.ville }}" placeholder="{{ _('directory.search_where_ph') }}">
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg">{{ _('directory.search_btn') }}</button>
+      </div>
+    </form>
+
+    <div class="directory-trade-chips">
+      {% for t in trades[:6] %}
+      <a href="?metier={{ t.key }}" class="directory-chip">{{ t.icon }} {{ t.label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="directory-results landing-section">
+  <div class="container">
+    {% if artisans %}
+    <p class="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
+    <div class="directory-grid">
+      {% for a in artisans %}
+      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card landing-fade">
+        <div class="directory-card-icon">{% for t in trades %}{% if t.key == a.trade_type %}{{ t.icon }}{% endif %}{% endfor %}</div>
+        <h2>{{ a.name }}</h2>
+        <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>
+        <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} ({{ a.postal_code }}){% endif %}</p>
+        {% if a.public_blurb %}<p class="directory-card-blurb">{{ a.public_blurb }}</p>{% endif %}
+        <span class="directory-card-cta">{{ _('directory.book_cta') }} →</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="directory-empty">
+      <p>{{ _('directory.empty') }}</p>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary">{{ _('directory.empty_cta') }}</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="directory-pro-band">
+  <div class="container directory-pro-inner">
+    <div>
+      <h2>{{ _('directory.pro_title') }}</h2>
+      <p>{{ _('directory.pro_subtitle') }}</p>
+    </div>
+    <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('directory.pro_cta') }}</a>
+  </div>
+</section>
+{% endblock %}

@@ -83,6 +83,33 @@
       <p class="field-hint">{{ _('settings.service_radius_hint') }}</p>
     </section>
 
+    <section class="card form-card settings-section">
+      <h2>{{ _('settings.section.public') }}</h2>
+      <p class="section-hint">{{ _('settings.section.public_hint') }}</p>
+
+      <label for="trade_type">{{ _('settings.trade_type') }}</label>
+      <select id="trade_type" name="trade_type">
+        {% for key, meta in trades.items() %}
+        <option value="{{ key }}" {% if tenant.trade_type == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label_fr if lang == 'fr' else meta.label_en }}</option>
+        {% endfor %}
+      </select>
+
+      <label class="db-inline" style="margin-top:12px">
+        <input type="checkbox" name="is_public" {% if tenant.is_public %}checked{% endif %}>
+        {{ _('settings.is_public') }}
+      </label>
+
+      <label for="public_slug">{{ _('settings.public_slug') }}</label>
+      <input type="text" id="public_slug" name="public_slug" value="{{ tenant.public_slug or '' }}" placeholder="plomberie-dupont-paris">
+
+      <label for="public_blurb">{{ _('settings.public_blurb') }}</label>
+      <textarea id="public_blurb" name="public_blurb" rows="3" maxlength="500" placeholder="{{ _('settings.public_blurb_ph') }}">{{ tenant.public_blurb or '' }}</textarea>
+
+      {% if public_profile_url %}
+      <p class="field-hint"><a href="{{ public_profile_url }}" target="_blank" rel="noopener">{{ _('settings.public_link') }}</a></p>
+      {% endif %}
+    </section>
+
     <section class="card form-card settings-section settings-section-signature">
       <h2>{{ _('settings.section.signature') }}</h2>
       <p class="section-hint">{{ _('settings.section.signature_hint') }}</p>

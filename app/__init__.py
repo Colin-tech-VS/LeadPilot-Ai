@@ -176,6 +176,10 @@ def _ensure_schema_updates():
         "stripe_customer_id": "VARCHAR(64)",
         "stripe_subscription_id": "VARCHAR(64)",
         "last_overage_period": "VARCHAR(7)",
+        "trade_type": "VARCHAR(30)",
+        "public_slug": "VARCHAR(100)",
+        "is_public": "BOOLEAN",
+        "public_blurb": "VARCHAR(500)",
     }
     for col_name, col_type in tenant_patches.items():
         if col_name not in tenant_columns:

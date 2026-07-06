@@ -97,6 +97,29 @@ def find_next_available_slot(tenant_id, start_from: datetime | None = None) -> d
     return None
 
 
+def list_available_slots(tenant_id, limit: int = 8, start_from=None) -> list[datetime]:
+    """Return the next N free hourly slots for public booking UI."""
+    slots: list[datetime] = []
+    cursor = start_from
+    busy = get_busy_slots(tenant_id)
+    if cursor:
+        paris_start = cursor.astimezone(PARIS_TZ)
+    else:
+        paris_start = datetime.now(PARIS_TZ) + timedelta(hours=1)
+    candidate = _advance_to_business_hours(paris_start)
+    deadline = datetime.now(PARIS_TZ) + timedelta(days=MAX_SEARCH_DAYS)
+
+    while len(slots) < limit and candidate <= deadline:
+        slot_utc = candidate.astimezone(timezone.utc)
+        if _is_business_hour(candidate) and slot_utc > datetime.now(timezone.utc):
+            if slot_utc not in busy:
+                slots.append(slot_utc)
+        candidate += SLOT_DURATION
+        if not _is_business_hour(candidate):
+            candidate = _advance_to_business_hours(candidate)
+    return slots
+
+
 def book_appointment(tenant_id, lead_id, slot_dt: datetime) -> Appointment | None:
     """
     Book an appointment only if the slot is free.

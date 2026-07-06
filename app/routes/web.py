@@ -180,7 +180,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -189,9 +189,15 @@ def sitemap_xml():
     base = request.url_root.rstrip("/")
     urls = [
         ("", "daily", "1.0"),
+        ("/artisans", "daily", "0.95"),
         ("/register", "monthly", "0.9"),
         ("/login", "monthly", "0.6"),
     ]
+    from app.services.artisan_directory import list_public_artisans
+
+    for tenant in list_public_artisans(limit=200):
+        if tenant.public_slug:
+            urls.append((f"/artisans/{tenant.public_slug}", "weekly", "0.8"))
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for path, freq, priority in urls:
         loc = base + path
@@ -226,6 +232,83 @@ def site_page(slug):
     if not page:
         abort(404)
     return render_template("public/site_page.html", page=page, preview=False)
+
+
+@web_bp.route("/artisans", methods=["GET"])
+def artisan_directory():
+    """Public marketplace — find artisans and book online (Planity-style)."""
+    from app.constants.trades import TRADES, trade_label
+    from app.services.artisan_directory import list_public_artisans
+
+    trade = (request.args.get("metier") or "").strip() or None
+    city = (request.args.get("ville") or "").strip() or None
+    q = (request.args.get("q") or "").strip() or None
+    artisans = list_public_artisans(trade=trade, city=city, q=q)
+    lang = getattr(g, "lang", "fr")
+    trades = [
+        {"key": k, "label": trade_label(k, lang), "icon": v["icon"]}
+        for k, v in TRADES.items()
+    ]
+    return render_template(
+        "public/annuaire.html",
+        artisans=artisans,
+        trades=trades,
+        filters={"metier": trade or "", "ville": city or "", "q": q or ""},
+    )
+
+
+@web_bp.route("/artisans/<slug>", methods=["GET"])
+def artisan_profile(slug):
+    from flask import abort
+
+    from app.constants.trades import trade_icon, trade_label
+    from app.services.artisan_directory import get_public_artisan_by_slug
+    from app.services.availability import list_available_slots
+
+    tenant = get_public_artisan_by_slug(slug)
+    if not tenant:
+        abort(404)
+    lang = getattr(g, "lang", "fr")
+    slot_items = [
+        {
+            "iso": s.isoformat(),
+            "label": s.astimezone(__import__("zoneinfo").ZoneInfo("Europe/Paris")).strftime(
+                "%a %d/%m · %H:%M"
+            ),
+        }
+        for s in slots
+    ]
+    return render_template(
+        "public/artisan_profile.html",
+        tenant=tenant,
+        trade_label=trade_label(tenant.trade_type, lang),
+        trade_icon=trade_icon(tenant.trade_type),
+        slot_items=slot_items,
+    )
+
+
+@web_bp.route("/api/public/artisans/<slug>/slots", methods=["GET"])
+def artisan_public_slots(slug):
+    from app.services.artisan_directory import get_public_artisan_by_slug
+    from app.services.availability import list_available_slots
+
+    tenant = get_public_artisan_by_slug(slug)
+    if not tenant:
+        return jsonify({"error": "not found"}), 404
+    slots = list_available_slots(tenant.id, limit=12)
+    return jsonify(
+        {
+            "slots": [
+                {
+                    "iso": s.isoformat(),
+                    "label": s.astimezone(__import__("zoneinfo").ZoneInfo("Europe/Paris")).strftime(
+                        "%a %d/%m · %H:%M"
+                    ),
+                }
+                for s in slots
+            ]
+        }
+    )
 
 
 @web_bp.route("/demo/simulate", methods=["POST"])
@@ -268,6 +351,7 @@ def register():
                 "email": (request.form.get("email") or "").strip().lower(),
                 "phone": (request.form.get("phone") or "").strip(),
                 "city": (request.form.get("city") or "").strip(),
+                "trade_type": (request.form.get("trade_type") or "plombier").strip(),
             }
             password = request.form.get("password") or ""
             confirm = request.form.get("confirm_password") or ""
@@ -288,6 +372,7 @@ def register():
                         city=form["city"] or None,
                         first_name=form["first_name"] or None,
                         last_name=form["last_name"] or None,
+                        trade_type=form["trade_type"],
                     )
                     login_user_to_session(user)
                     return redirect(url_for("web.dashboard"))
@@ -301,7 +386,9 @@ def register():
                     else:
                         error = str(e.message)
 
-    return render_template("register.html", error=error, form=form)
+    from app.constants.trades import TRADES
+
+    return render_template("register.html", error=error, form=form, trades=TRADES)
 
 
 @web_bp.route("/login", methods=["GET", "POST"])
@@ -813,6 +900,10 @@ def settings_page():
         postal_code = (request.form.get("postal_code") or "").strip() or None
         city = (request.form.get("city") or "").strip() or None
         service_radius_raw = (request.form.get("service_radius_km") or "").strip()
+        trade_type = (request.form.get("trade_type") or "plombier").strip()
+        is_public = request.form.get("is_public") == "on"
+        public_blurb = (request.form.get("public_blurb") or "").strip() or None
+        public_slug_raw = (request.form.get("public_slug") or "").strip()
         email = (request.form.get("email") or "").strip().lower()
         new_password = request.form.get("new_password") or ""
         confirm_password = request.form.get("confirm_password") or ""
@@ -851,10 +942,21 @@ def settings_page():
                 error = translate("settings.error.password_mismatch")
 
         if not error:
+            from app.constants.trades import TRADES
+            from app.utils.slug import slugify, unique_public_slug
+
             tenant.name = name
             tenant.first_name = first_name
             tenant.last_name = last_name
             tenant.ai_assistant_name = ai_assistant_name
+            tenant.trade_type = trade_type if trade_type in TRADES else tenant.trade_type
+            tenant.is_public = is_public
+            tenant.public_blurb = public_blurb
+            if is_public:
+                base_slug = slugify(public_slug_raw) or slugify(name) or "artisan"
+                tenant.public_slug = unique_public_slug(base_slug, tenant.id)
+            elif public_slug_raw:
+                tenant.public_slug = unique_public_slug(slugify(public_slug_raw), tenant.id)
             tenant.siret = _normalize_siret(siret_raw) if siret_raw else None
             tenant.phone_number = phone_number
             tenant.ai_phone_number = ai_phone_number
@@ -889,12 +991,20 @@ def settings_page():
             db.session.commit()
             success = translate("settings.success")
 
+    from app.constants.trades import TRADES
+
+    public_profile_url = None
+    if tenant.is_public and tenant.public_slug:
+        public_profile_url = url_for("web.artisan_profile", slug=tenant.public_slug, _external=True)
+
     return render_template(
         "settings.html",
         tenant=tenant,
         user=user,
         success=success,
         error=error,
+        trades=TRADES,
+        public_profile_url=public_profile_url,
     )
 
 

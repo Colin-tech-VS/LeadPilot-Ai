@@ -94,6 +94,17 @@
 
     async function send(text) {
       if (busy || !text) return;
+      var slotIso = root.dataset.selectedSlot;
+      var slotPrefix = root.getAttribute('data-slot-prefix') || '';
+      if (slotIso && slotPrefix) {
+        try {
+          var d = new Date(slotIso);
+          var when = d.toLocaleString(document.documentElement.lang || 'fr-FR', {
+            weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+          });
+          text = slotPrefix.replace('{slot}', when) + ' ' + text;
+        } catch (e) { /* keep original */ }
+      }
       addBubble('user', text);
       history.push({ role: 'user', text: text });
       setBusy(true);

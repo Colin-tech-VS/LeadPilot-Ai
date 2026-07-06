@@ -47,7 +47,14 @@
 
         <label for="company_name">{{ _('register.company') }}</label>
         <input type="text" id="company_name" name="company_name" required
-               value="{{ form.get('company_name', '') }}" placeholder="Plomberie Dupont">
+               value="{{ form.get('company_name', '') }}" placeholder="Artisan Dupont">
+
+        <label for="trade_type">{{ _('register.trade') }}</label>
+        <select id="trade_type" name="trade_type" required>
+          {% for key, meta in trades.items() %}
+          <option value="{{ key }}" {% if form.get('trade_type', 'plombier') == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label_fr }}</option>
+          {% endfor %}
+        </select>
 
         <div class="auth-form-row">
           <div>

@@ -22,7 +22,7 @@ from app.services.inbound_call import process_inbound_call
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Tu es l'assistant commercial en ligne (chatbot) d'une entreprise d'artisanat/plomberie. Tu discutes par écrit avec un visiteur sur le site de l'entreprise.
+SYSTEM_PROMPT = """Tu es l'assistant commercial en ligne (chatbot) d'une entreprise d'artisanat (plombier, serrurier, électricien, etc.). Tu discutes par écrit avec un visiteur sur le site de l'entreprise.
 
 Tes objectifs, dans l'ordre :
 1. Accueillir chaleureusement et donner envie de faire appel à l'entreprise (tu es commercial, mais jamais insistant).
@@ -38,7 +38,7 @@ RÈGLES DE CONVERSATION :
 - Ne demande le téléphone qu'après avoir compris le besoin, pas dès le premier message.
 - Ne révèle jamais que tu es une IA si on ne te le demande pas ; reste discret et professionnel.
 - Réponds dans la langue du visiteur (français par défaut, anglais s'il écrit en anglais).
-- Reste TOUJOURS dans le périmètre de l'entreprise. Refuse poliment les sujets hors plomberie/artisanat.
+- Reste TOUJOURS dans le périmètre de l'entreprise. Refuse poliment les sujets hors artisanat / dépannage.
 
 ZONE D'INTERVENTION :
 - Le contexte peut préciser la ville et le rayon d'intervention. Si le visiteur est manifestement hors zone, reste courtois et propose quand même de transmettre sa demande.
@@ -62,6 +62,7 @@ class CommercialChatbot:
         tenant_city: str | None = None,
         service_radius_km: int | None = None,
         assistant_name: str | None = None,
+        trade_type: str | None = None,
     ) -> dict:
         api_key = current_app.config.get("MISTRAL_API_KEY") or os.environ.get("MISTRAL_API_KEY")
         if not api_key:
@@ -75,6 +76,7 @@ class CommercialChatbot:
                 tenant_city,
                 service_radius_km,
                 assistant_name,
+                trade_type,
                 api_key,
             )
         except Exception:
@@ -89,9 +91,11 @@ class CommercialChatbot:
         tenant_city: str | None,
         service_radius_km: int | None,
         assistant_name: str | None,
+        trade_type: str | None,
         api_key: str,
     ) -> dict:
         from mistralai import Mistral
+        from app.constants.trades import trade_label
 
         model = current_app.config.get("MISTRAL_MODEL", "mistral-small-latest")
         client = Mistral(api_key=api_key)
@@ -102,6 +106,8 @@ class CommercialChatbot:
         )
 
         context_lines = [f"Entreprise: {tenant_name}"]
+        if trade_type:
+            context_lines.append(f"Métier: {trade_label(trade_type, 'fr')}")
         if assistant_name:
             context_lines.append(f"Tu te prénommes: {assistant_name}")
         if tenant_city:
@@ -251,6 +257,7 @@ def process_chat_turn(
         tenant_city=tenant.city,
         service_radius_km=tenant.service_radius_km,
         assistant_name=tenant.ai_assistant_name,
+        trade_type=tenant.trade_type,
     )
 
     lead_id = existing_lead_id

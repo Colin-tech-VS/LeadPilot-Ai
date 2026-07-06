@@ -10,7 +10,7 @@
   {% endblock %}
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=9">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=7">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">
   {% block head_extra %}{% endblock %}
 </head>
@@ -38,6 +38,7 @@
       <nav class="public-nav" id="public-nav">
         <div class="public-nav-inner">
           {% block public_nav %}
+          <a href="{{ url_for('web.artisan_directory') }}">{{ _('directory.nav') }}</a>
           <a href="{{ url_for('web.landing') }}#demo">{{ _('landing.nav_demo') }}</a>
           <a href="{{ url_for('web.landing') }}#features">{{ _('landing.nav_features') }}</a>
           <a href="{{ url_for('web.landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>

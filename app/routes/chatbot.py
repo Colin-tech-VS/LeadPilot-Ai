@@ -21,11 +21,31 @@ MAX_HISTORY = 40
 def chatbot_console():
     """Owner console: live preview + the shareable public link to give clients."""
     tenant = db.session.get(Tenant, g.tenant_id)
-    public_url = url_for("chatbot.public_chat", tenant_id=str(tenant.id), _external=True)
+    public_url = (
+        url_for("web.artisan_profile", slug=tenant.public_slug, _external=True)
+        if tenant.is_public and tenant.public_slug
+        else url_for("chatbot.public_chat", tenant_id=str(tenant.id), _external=True)
+    )
     return render_template(
         "chatbot.html",
         tenant=tenant,
         public_url=public_url,
+    )
+
+
+@chatbot_bp.route("/artisans/<slug>/chat", methods=["GET"])
+def public_chat_by_slug(slug):
+    """Public booking chat resolved by artisan slug (annuaire)."""
+    from app.services.artisan_directory import get_public_artisan_by_slug
+
+    tenant = get_public_artisan_by_slug(slug)
+    if not tenant:
+        abort(404)
+    return render_template(
+        "chat_public.html",
+        tenant=tenant,
+        tenant_id=str(tenant.id),
+        artisan_slug=slug,
     )
 
 
@@ -37,6 +57,7 @@ def public_chat(tenant_id):
         "chat_public.html",
         tenant=tenant,
         tenant_id=str(tenant.id),
+        artisan_slug=tenant.public_slug,
     )
 
 

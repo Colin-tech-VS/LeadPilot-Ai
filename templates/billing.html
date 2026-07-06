@@ -132,9 +132,15 @@
   <p class="billing-manage-note billing-manage-note--error">La gestion de l'abonnement est momentanément indisponible.</p>
   {% endif %}
   {% if tenant.is_paid %}
-  <form method="post" action="{{ url_for('billing.portal') }}" class="billing-manage">
-    <button type="submit" class="billing-manage-link">Gérer ou résilier mon abonnement</button>
-  </form>
+  <div class="billing-manage">
+    <form method="post" action="{{ url_for('billing.portal') }}">
+      <button type="submit" class="billing-manage-btn">
+        <span class="billing-manage-icon" aria-hidden="true">⚙</span>
+        Gérer ou résilier mon abonnement
+      </button>
+    </form>
+    <p class="billing-manage-sub">Sans engagement — résiliation effective en fin de période, via l'espace sécurisé Stripe.</p>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

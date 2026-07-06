@@ -1,16 +1,17 @@
 :root {
-  --blue-primary: #2563EB;
-  --blue-deep: #1E3A8A;
-  --green: #10B981;
-  --red: #EF4444;
-  --bg: #F8FAFC;
+  --blue-primary: #1B57E0;
+  --blue-deep: #133FB0;
+  --green: #12B76A;
+  --red: #F04438;
+  --bg: #F7F8FA;
   --card: #FFFFFF;
-  --border: #E2E8F0;
-  --text: #0F172A;
-  --text-muted: #64748B;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
-  --radius: 8px;
+  --border: #ECEEF2;
+  --text: #0C1220;
+  --text-muted: #667085;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 8px 28px rgba(16, 24, 40, 0.06);
+  --radius: 12px;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
 
 *,
@@ -21,12 +22,14 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
+  letter-spacing: -0.006em;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
@@ -562,28 +565,36 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 11px 20px;
   font-size: 14px;
   font-weight: 600;
-  border-radius: 6px;
-  border: none;
+  letter-spacing: -0.01em;
+  border-radius: 10px;
+  border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .btn:hover {
   text-decoration: none;
 }
 
+.btn:active {
+  transform: translateY(1px);
+}
+
 .btn-primary {
   background: var(--blue-primary);
   color: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.10);
 }
 
 .btn-primary:hover {
   background: var(--blue-deep);
   color: #fff;
+  box-shadow: 0 6px 18px rgba(27, 87, 224, 0.24);
 }
 
 .btn-outline {
@@ -595,13 +606,50 @@ a:hover {
 .btn-outline:hover {
   background: var(--bg);
   color: var(--text);
+  border-color: #D7DBE2;
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 7px 14px;
   font-size: 13px;
   flex: 1;
 }
+
+/* Manage / cancel subscription — clear and clickable, but deliberately
+   understated (never a loud primary CTA). Reveals a subtle danger tone on hover. */
+.billing-manage {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.billing-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.billing-manage-btn:hover {
+  color: var(--red);
+  border-color: #FDA29B;
+  background: #FFFBFA;
+}
+.billing-manage-icon { font-size: 15px; line-height: 1; }
+.billing-manage-sub {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.billing-manage-note { text-align: center; font-size: 13px; color: var(--text-muted); }
+.billing-manage-note--error { color: var(--red); }
 
 /* ── Badges ── */
 .badge {

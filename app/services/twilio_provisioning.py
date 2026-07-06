@@ -126,12 +126,23 @@ def provision_ai_number(tenant) -> str | None:
             return None
 
         friendly = f"PilotCore — {tenant.name}"[:64]
-        incoming = client.incoming_phone_numbers.create(
-            phone_number=candidate,
-            voice_url=voice_url,
-            voice_method="POST",
-            friendly_name=friendly,
-        )
+        try:
+            incoming = client.incoming_phone_numbers.create(
+                phone_number=candidate,
+                voice_url=voice_url,
+                voice_method="POST",
+                friendly_name=friendly,
+            )
+        except Exception as exc:  # noqa: BLE001 - surface the real reason
+            logger.error(
+                "Twilio number PURCHASE failed for tenant=%s (candidate=%s): %s. %s",
+                tenant.id,
+                candidate,
+                exc,
+                _purchase_hint(exc),
+            )
+            return None
+
         number = incoming.phone_number
         tenant.ai_phone_number = number
         logger.info("Provisioned Twilio AI number %s for tenant=%s", number, tenant.id)
@@ -139,3 +150,24 @@ def provision_ai_number(tenant) -> str | None:
     except Exception:
         logger.exception("Twilio number provisioning failed for tenant=%s", tenant.id)
         return None
+
+
+def _purchase_hint(exc) -> str:
+    """Turn a Twilio purchase error into an actionable hint for the logs."""
+    code = getattr(exc, "code", None)
+    text = f"{getattr(exc, 'msg', '')} {exc}".lower()
+    # Trial accounts cannot buy extra numbers; upgrade to a paid account.
+    if "trial" in text or code == 21404:
+        return (
+            "Compte Twilio en mode ESSAI (Trial) — un compte d'essai ne peut pas "
+            "acheter de numéros dédiés. Passez le compte en payant (ajoutez un moyen "
+            "de paiement) dans la console Twilio."
+        )
+    # French numbers are regulated and need an approved Regulatory Bundle + Address.
+    if "bundle" in text or "regulatory" in text or "address" in text or code in (21649, 21631):
+        return (
+            "Numéro FR réglementé — créez et faites approuver un Regulatory Bundle "
+            "(pièce d'identité + adresse) dans Twilio > Regulatory Compliance, ou "
+            "choisissez un pays non réglementé via TWILIO_NUMBER_COUNTRY."
+        )
+    return "Vérifiez le solde, le bundle réglementaire et les permissions du compte Twilio."

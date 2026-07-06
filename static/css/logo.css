@@ -1,4 +1,4 @@
-/* LeadPilot AI — animated brand logo */
+/* PilotCore — animated brand logo */
 .lp-logo {
   display: inline-flex;
   align-items: center;
@@ -42,6 +42,16 @@
   transform-origin: 32px 32px;
 }
 
+.lp-logo--animated .lp-logo__core {
+  animation: lp-logo-core 2.4s ease-in-out infinite;
+  transform-origin: 32px 30px;
+}
+
+.lp-logo--animated .lp-logo__dot {
+  animation: lp-logo-dot 1.8s ease-in-out infinite;
+  transform-origin: 32px 30px;
+}
+
 .lp-logo--animated .lp-logo__wave--1 {
   animation: lp-logo-wave 1.4s ease-in-out infinite;
 }
@@ -56,20 +66,22 @@
 
 .lp-logo--animated .lp-logo__drop {
   animation: lp-logo-drop 2.2s ease-in-out infinite;
-  transform-origin: 18px 48px;
+  transform-origin: 17px 48px;
 }
 
 .lp-logo--animated .lp-logo__spark--1 {
-  animation: lp-logo-spark 2s ease-in-out infinite;
+  animation: lp-logo-spark 2.4s ease-in-out infinite;
+  transform-origin: 49px 18px;
 }
 
-.lp-logo--animated .lp-logo__spark--2 {
-  animation: lp-logo-spark 2s ease-in-out 0.7s infinite;
+.lp-logo--animated .lp-logo__ear--l {
+  animation: lp-logo-ear-l 3s ease-in-out infinite;
+  transform-origin: 22px 22px;
 }
 
-.lp-logo--animated .lp-logo__phone {
-  animation: lp-logo-phone 3s ease-in-out infinite;
-  transform-origin: 32px 34px;
+.lp-logo--animated .lp-logo__ear--r {
+  animation: lp-logo-ear-r 3s ease-in-out 0.4s infinite;
+  transform-origin: 46px 42px;
 }
 
 .brand:hover .lp-logo--animated,
@@ -90,21 +102,31 @@
 
 @keyframes lp-logo-ring {
   0% {
-    opacity: 0.45;
+    opacity: 0.5;
     transform: scale(0.92);
   }
   70% {
     opacity: 0;
-    transform: scale(1.08);
+    transform: scale(1.1);
   }
   100% {
     opacity: 0;
-    transform: scale(1.08);
+    transform: scale(1.1);
   }
 }
 
+@keyframes lp-logo-core {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes lp-logo-dot {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
 @keyframes lp-logo-wave {
-  0%, 100% { opacity: 0.28; }
+  0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
 
@@ -114,14 +136,18 @@
 }
 
 @keyframes lp-logo-spark {
-  0%, 100% { opacity: 0.35; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1.15); }
+  0%, 100% { opacity: 0.5; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.1) rotate(12deg); }
 }
 
-@keyframes lp-logo-phone {
+@keyframes lp-logo-ear-l {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-1.5deg); }
-  75% { transform: rotate(1.5deg); }
+  50% { transform: rotate(-4deg); }
+}
+
+@keyframes lp-logo-ear-r {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(4deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

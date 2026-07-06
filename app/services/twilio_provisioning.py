@@ -82,6 +82,41 @@ def _search_number(client, country: str, area_code: str | None):
     return None
 
 
+def _regulatory_ids(client, country: str):
+    """Return (address_sid, bundle_sid) required to buy a regulated number.
+
+    Prefers explicit config (TWILIO_ADDRESS_SID / TWILIO_BUNDLE_SID), otherwise
+    auto-discovers an Address for ``country`` and a ``twilio-approved`` Regulatory
+    Bundle on the account. Either may be None when not needed/available.
+    """
+    import os as _os
+
+    cfg = current_app.config
+    address_sid = cfg.get("TWILIO_ADDRESS_SID") or _os.environ.get("TWILIO_ADDRESS_SID")
+    bundle_sid = cfg.get("TWILIO_BUNDLE_SID") or _os.environ.get("TWILIO_BUNDLE_SID")
+
+    if not address_sid:
+        try:
+            for a in client.addresses.list(limit=50):
+                if (getattr(a, "iso_country", "") or "").upper() == country:
+                    address_sid = a.sid
+                    break
+        except Exception:
+            logger.debug("Twilio address lookup failed", exc_info=True)
+
+    if not bundle_sid:
+        try:
+            for b in client.numbers.v2.regulatory_compliance.bundles.list(limit=50):
+                if getattr(b, "status", "") == "twilio-approved":
+                    bundle_sid = b.sid
+                    break
+        except Exception:
+            logger.debug("Twilio bundle lookup failed", exc_info=True)
+
+    logger.info("Regulatory ids for %s: address=%s bundle=%s", country, address_sid, bundle_sid)
+    return address_sid, bundle_sid
+
+
 def provision_ai_number(tenant) -> str | None:
     """Buy a dedicated AI number for ``tenant`` and wire its voice webhook.
 
@@ -125,14 +160,23 @@ def provision_ai_number(tenant) -> str | None:
             )
             return None
 
-        friendly = f"PilotCore — {tenant.name}"[:64]
+        # Regulated numbers (e.g. FR, address_requirements="local") require an
+        # Address and, for regulated countries, an approved Regulatory Bundle to
+        # be attached at purchase — otherwise Twilio rejects the create().
+        address_sid, bundle_sid = _regulatory_ids(client, country)
+        create_kwargs = {
+            "phone_number": candidate,
+            "voice_url": voice_url,
+            "voice_method": "POST",
+            "friendly_name": f"PilotCore — {tenant.name}"[:64],
+        }
+        if address_sid:
+            create_kwargs["address_sid"] = address_sid
+        if bundle_sid:
+            create_kwargs["bundle_sid"] = bundle_sid
+
         try:
-            incoming = client.incoming_phone_numbers.create(
-                phone_number=candidate,
-                voice_url=voice_url,
-                voice_method="POST",
-                friendly_name=friendly,
-            )
+            incoming = client.incoming_phone_numbers.create(**create_kwargs)
         except Exception as exc:  # noqa: BLE001 - surface the real reason
             logger.error(
                 "Twilio number PURCHASE failed for tenant=%s (candidate=%s): %s. %s",

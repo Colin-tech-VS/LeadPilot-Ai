@@ -1,8 +1,51 @@
 {% extends "public_layout.html" %}
 {% from 'macros/brand.html' import brand_logo with context %}
 
-{% block title %}{{ tenant.name }} — {{ trade_label }} · {{ _('directory.book_online') }}{% endblock %}
+{% block title %}{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %} · {{ _('directory.book_online') }}{% endblock %}
 {% block body_class %}page-artisan-profile{% endblock %}
+
+{% set _profile_desc = tenant.public_blurb or _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) %}
+{% set _profile_url = request.url_root.rstrip('/') ~ '/artisans/' ~ tenant.public_slug %}
+
+{% block meta %}
+<meta name="description" content="{{ _profile_desc|striptags }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ _profile_url }}">
+<meta property="og:type" content="business.business">
+<meta property="og:title" content="{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %}">
+<meta property="og:description" content="{{ _profile_desc|striptags }}">
+<meta property="og:url" content="{{ _profile_url }}">
+<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": {{ tenant.name|tojson }},
+  "description": {{ (_profile_desc|striptags)|tojson }},
+  "url": {{ _profile_url|tojson }},
+  "image": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.svg') }}"
+  {%- if tenant.phone_number %},
+  "telephone": {{ tenant.phone_number|tojson }}
+  {%- endif %}
+  {%- if tenant.address or tenant.city or tenant.postal_code %},
+  "address": {
+    "@type": "PostalAddress"
+    {%- if tenant.address %}, "streetAddress": {{ tenant.address|tojson }}{% endif %}
+    {%- if tenant.city %}, "addressLocality": {{ tenant.city|tojson }}{% endif %}
+    {%- if tenant.postal_code %}, "postalCode": {{ tenant.postal_code|tojson }}{% endif %},
+    "addressCountry": "FR"
+  }
+  {%- endif %}
+  {%- if tenant.latitude and tenant.longitude %},
+  "geo": { "@type": "GeoCoordinates", "latitude": {{ tenant.latitude|tojson }}, "longitude": {{ tenant.longitude|tojson }} }
+  {%- endif %}
+  {%- if tenant.city %},
+  "areaServed": { "@type": "City", "name": {{ tenant.city|tojson }} }
+  {%- endif %}
+}
+</script>
+{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}?v=2">

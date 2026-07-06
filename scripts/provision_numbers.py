@@ -35,9 +35,21 @@ def main(argv):
             )
             return
 
-        missing = Tenant.query.filter(Tenant.ai_phone_number.is_(None)).all()
+        # A tenant that still carries the shared fallback number (persisted by an
+        # older settings form) is NOT dedicated — treat it as missing so it gets
+        # its own number, otherwise call routing collides between tenants.
+        from sqlalchemy import or_
+
+        shared = app.config.get("TWILIO_AI_PHONE_NUMBER")
+        for t in Tenant.query.filter(Tenant.ai_phone_number == shared).all():
+            t.ai_phone_number = None
+        db.session.commit()
+
+        missing = Tenant.query.filter(
+            or_(Tenant.ai_phone_number.is_(None), Tenant.ai_phone_number == "")
+        ).all()
         if not missing:
-            print("Tous les tenants ont déjà un numéro IA. Rien à faire.")
+            print("Tous les tenants ont déjà un numéro IA dédié. Rien à faire.")
             return
 
         print(f"{len(missing)} tenant(s) sans numéro IA.")

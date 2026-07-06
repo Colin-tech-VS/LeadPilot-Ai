@@ -5,7 +5,7 @@
   "env": {
     "FLASK_ENV": "production",
     "PREFERRED_URL_SCHEME": "https",
-    "TWILIO_AUTO_PROVISION_NUMBERS": "0"
+    "TWILIO_AUTO_PROVISION_NUMBERS": "1"
   },
   "healthchecks": {
     "web": [

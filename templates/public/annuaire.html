@@ -6,6 +6,14 @@
 
 {% block meta %}
 <meta name="description" content="{{ _('directory.meta_description') }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/artisans">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ _('directory.meta_title') }} — {{ _('app.name') }}">
+<meta property="og:description" content="{{ _('directory.meta_description') }}">
+<meta property="og:url" content="{{ request.url_root.rstrip('/') }}/artisans">
+<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<meta name="twitter:card" content="summary_large_image">
 {% endblock %}
 
 {% block public_nav %}
@@ -22,6 +30,21 @@
     <p class="directory-hero-kicker">{{ _('directory.hero_kicker') }}</p>
     <h1>{{ _('directory.hero_title') }}</h1>
     <p class="directory-hero-lead">{{ _('directory.hero_subtitle') }}</p>
+
+    <form class="directory-ai" id="directory-ai-form" role="search">
+      <p class="directory-ai-kicker">{{ _('directory.ai_kicker') }}</p>
+      <div class="directory-ai-bar">
+        <input type="search" id="directory-ai-input" name="q"
+               placeholder="{{ _('directory.ai_placeholder') }}"
+               aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-lg directory-ai-btn">
+          <span class="directory-ai-btn-label">{{ _('directory.ai_btn') }}</span>
+          <span class="directory-search-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+      <p class="directory-ai-hint">{{ _('directory.ai_hint') }}</p>
+      <p class="directory-ai-understood" id="directory-ai-understood" hidden></p>
+    </form>
 
     <form class="directory-search" id="directory-search-form" method="GET" action="{{ url_for('web.artisan_directory') }}">
       <div class="directory-search-grid">
@@ -60,7 +83,10 @@
          data-error="{{ _('directory.search_error') }}"
          data-count-tpl="{{ _('directory.results_count', count='{count}') }}"
          data-book-cta="{{ _('directory.book_cta') }}"
-         data-city-unknown="{{ _('directory.city_unknown') }}">
+         data-city-unknown="{{ _('directory.city_unknown') }}"
+         data-ai-understood="{{ _('directory.ai_understood', what='{what}') }}"
+         data-ai-where="{{ _('directory.ai_understood_where', city='{city}') }}"
+         data-ai-relaxed="{{ _('directory.ai_relaxed') }}">
   <div class="container">
     <p class="directory-count" id="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
 

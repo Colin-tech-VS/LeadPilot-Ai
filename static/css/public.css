@@ -555,6 +555,13 @@ html {
   transform: none;
 }
 
+/* Artisan profile: the booking section (slots + AI chat) is the core of the
+   page — it must never depend on a reveal script to be visible. */
+.page-artisan-profile .landing-fade {
+  opacity: 1;
+  transform: none;
+}
+
 .landing-delay-1 { transition-delay: 0.1s; }
 .landing-delay-2 { transition-delay: 0.2s; }
 .landing-delay-3 { transition-delay: 0.3s; }
@@ -1459,6 +1466,36 @@ html {
   color: #0B1F33;
 }
 .directory-hero-lead { margin: 0 0 24px; color: var(--text-muted); font-size: 17px; max-width: 36rem; }
+
+/* --- AI / natural-language search bar --- */
+.directory-ai { margin: 0 0 18px; }
+.directory-ai-kicker {
+  margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
+  color: var(--blue-primary);
+}
+.directory-ai-bar {
+  display: flex; gap: 10px; align-items: stretch;
+  background: linear-gradient(135deg, rgba(5,156,224,0.06), rgba(99,102,241,0.06));
+  border: 2px solid #B8E4F7; border-radius: 16px; padding: 10px;
+  box-shadow: 0 12px 40px rgba(5, 156, 224, 0.10);
+}
+.directory-ai-bar input {
+  flex: 1 1 auto; min-width: 0; border: none; background: transparent;
+  padding: 12px 14px; font-size: 16px; color: var(--text);
+}
+.directory-ai-bar input:focus { outline: none; }
+.directory-ai-btn { position: relative; white-space: nowrap; display: inline-flex; align-items: center; }
+.directory-ai.is-loading .directory-ai-btn-label { opacity: 0.85; }
+.directory-ai.is-loading .directory-search-spinner { display: inline-block; }
+.directory-ai.is-loading .directory-ai-btn { pointer-events: none; opacity: 0.92; }
+.directory-ai-hint { margin: 8px 2px 0; font-size: 13px; color: var(--text-muted); }
+.directory-ai-understood {
+  margin: 10px 0 0; padding: 8px 14px; border-radius: 10px;
+  background: rgba(5,156,224,0.08); color: #0B1F33; font-weight: 600; font-size: 14px;
+  display: inline-block;
+}
+.directory-ai-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0 16px; color: var(--text-muted); font-size: 13px; }
+
 .directory-search-grid {
   display: grid;
   grid-template-columns: 1.2fr 0.9fr 0.9fr auto;
@@ -1611,6 +1648,12 @@ html {
   .landing-client-search { grid-template-columns: 1fr; }
   .directory-search-grid { grid-template-columns: 1fr; }
   .artisan-hero-grid, .artisan-booking-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .directory-ai-bar { flex-direction: column; padding: 12px; }
+  .directory-ai-bar input { width: 100%; }
+  .directory-ai-btn { width: 100%; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

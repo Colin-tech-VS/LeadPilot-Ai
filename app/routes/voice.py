@@ -53,7 +53,11 @@ def _get_tenant_id() -> str:
     to_number = request.form.get("To") or request.args.get("To")
     if to_number:
         to_digits = _normalize_phone_digits(to_number)
-        if to_digits:
+        # The shared fallback number never identifies a single tenant — a call to
+        # it must route via TWILIO_DEFAULT_TENANT_ID, not to whichever tenant
+        # happens to have it stored.
+        shared_digits = _normalize_phone_digits(current_app.config.get("TWILIO_AI_PHONE_NUMBER"))
+        if to_digits and to_digits != shared_digits:
             for tenant in Tenant.query.filter(Tenant.ai_phone_number.isnot(None)).all():
                 if _normalize_phone_digits(tenant.ai_phone_number) == to_digits:
                     return str(tenant.id)

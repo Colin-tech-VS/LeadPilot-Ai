@@ -143,6 +143,75 @@
     });
   });
 
+  // --- AI / natural-language search ---------------------------------------
+  const aiForm = document.getElementById("directory-ai-form");
+  const aiInput = document.getElementById("directory-ai-input");
+  const aiUnderstood = document.getElementById("directory-ai-understood");
+
+  function showUnderstood(understood, relaxed) {
+    if (!aiUnderstood) return;
+    if (!understood || (!understood.trade && !understood.city)) {
+      aiUnderstood.hidden = true;
+      aiUnderstood.textContent = "";
+      return;
+    }
+    const what = understood.trade_label || understood.query || "";
+    let text = (labels.aiUnderstood || "Compris : {what}").replace("{what}", what);
+    if (understood.city) {
+      text += (labels.aiWhere || " à {city}").replace("{city}", understood.city);
+    }
+    if (relaxed && labels.aiRelaxed) {
+      text += " — " + labels.aiRelaxed;
+    }
+    aiUnderstood.textContent = text;
+    aiUnderstood.hidden = false;
+  }
+
+  function syncStructuredFrom(understood) {
+    // Mirror the AI interpretation into the structured form so the user can refine.
+    if (!understood) return;
+    const tradeSel = form.querySelector('[name="metier"]');
+    const cityInput = form.querySelector('[name="ville"]');
+    const qInput = form.querySelector('[name="q"]');
+    if (tradeSel && understood.trade) tradeSel.value = understood.trade;
+    if (cityInput) cityInput.value = understood.city || "";
+    if (qInput) qInput.value = "";
+  }
+
+  async function runAiSearch() {
+    if (!aiInput) return;
+    const query = aiInput.value.trim();
+    if (!query) return;
+    setLoading(true);
+    if (aiForm) aiForm.classList.add("is-loading");
+    try {
+      const res = await fetch("/api/public/artisans/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ q: query }),
+      });
+      if (!res.ok) throw new Error("ai search failed");
+      const data = await res.json();
+      syncStructuredFrom(data.understood);
+      showUnderstood(data.understood, data.relaxed);
+      render(data);
+    } catch (e) {
+      if (countEl) countEl.textContent = labels.error || "Recherche indisponible";
+      if (grid) grid.hidden = true;
+      if (emptyEl) emptyEl.hidden = false;
+    } finally {
+      setLoading(false);
+      if (aiForm) aiForm.classList.remove("is-loading");
+    }
+  }
+
+  if (aiForm) {
+    aiForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      runAiSearch();
+    });
+  }
+
   document.querySelectorAll(".directory-chip[data-trade]").forEach(function (chip) {
     chip.addEventListener("click", function (e) {
       e.preventDefault();

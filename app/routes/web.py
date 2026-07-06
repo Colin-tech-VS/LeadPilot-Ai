@@ -292,6 +292,23 @@ def artisan_directory_search():
     return jsonify(payload)
 
 
+@web_bp.route("/api/public/artisans/ai-search", methods=["GET", "POST"])
+@rate_limit(limit=20, window=60, scope="ai_search")
+def artisan_directory_ai_search():
+    """Natural-language search — « j'ai une fuite à Lyon » → plombier + Lyon."""
+    from app.services.ai_search import ai_search
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        query = (data.get("q") or data.get("query") or "").strip()
+    else:
+        query = (request.args.get("q") or "").strip()
+    if not query:
+        return jsonify({"error": "query required"}), 422
+    lang = getattr(g, "lang", "fr")
+    return jsonify(ai_search(query, lang=lang))
+
+
 @web_bp.route("/artisans/<slug>", methods=["GET"])
 def artisan_profile(slug):
     from flask import abort
@@ -304,6 +321,7 @@ def artisan_profile(slug):
     if not tenant:
         abort(404)
     lang = getattr(g, "lang", "fr")
+    slots = list_available_slots(tenant.id, limit=12)
     slot_items = [
         {
             "iso": s.isoformat(),
@@ -935,7 +953,6 @@ def settings_page():
         ai_assistant_name = (request.form.get("ai_assistant_name") or "").strip() or None
         siret_raw = (request.form.get("siret") or "").strip()
         phone_number = _normalize_phone(request.form.get("phone_number"))
-        ai_phone_number = _normalize_phone(request.form.get("ai_phone_number"))
         address = (request.form.get("address") or "").strip() or None
         postal_code = (request.form.get("postal_code") or "").strip() or None
         city = (request.form.get("city") or "").strip() or None
@@ -1002,7 +1019,10 @@ def settings_page():
                 tenant.public_slug = unique_public_slug(slugify(public_slug_raw), tenant.id)
             tenant.siret = _normalize_siret(siret_raw) if siret_raw else None
             tenant.phone_number = phone_number
-            tenant.ai_phone_number = ai_phone_number
+            # tenant.ai_phone_number is managed by automatic Twilio provisioning
+            # (see app.services.twilio_provisioning) — never overwritten from the
+            # settings form, which would clobber the dedicated number or persist
+            # the shared fallback onto the tenant and break call routing.
             tenant.address = address
             tenant.postal_code = postal_code
             tenant.city = city

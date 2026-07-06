@@ -13,6 +13,7 @@
     <h1>Connexion</h1>
     <p class="customer-auth-sub">Accédez à votre espace pour réserver et suivre vos rendez-vous.</p>
 
+    {% if request.args.get('reset') %}<div class="alert alert-success">{{ _('login.reset_success') }}</div>{% endif %}
     {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
 
     <form method="post" class="auth-form">
@@ -22,6 +23,8 @@
 
       <label for="password">Mot de passe</label>
       <input type="password" id="password" name="password" required>
+
+      <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
 
       <button type="submit" class="btn btn-primary btn-block btn-lg">Se connecter</button>
     </form>

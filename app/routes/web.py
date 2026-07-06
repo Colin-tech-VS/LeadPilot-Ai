@@ -180,7 +180,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nAllow: /pro\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nDisallow: /client/\nDisallow: /billing\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nAllow: /pro\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nDisallow: /client/\nDisallow: /billing\nDisallow: /reset-password\nDisallow: /forgot-password\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -515,6 +515,83 @@ def logout():
     if lang:
         session["lang"] = lang
     return redirect(url_for("web.client_home"))
+
+
+def _login_url_for(user) -> str:
+    """Send the user back to the login that matches their account type."""
+    if user is not None and getattr(user, "role", None) == "customer":
+        return url_for("customer.login")
+    return url_for("web.login")
+
+
+@web_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Request a reset link. Works for artisan and customer accounts alike."""
+    sent = False
+    error = None
+    email = ""
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        if not check_rate("forgot_password", limit=5, window=900):
+            error = translate("login.error.rate_limited")
+        elif not email:
+            error = translate("forgot.error.email_required")
+        else:
+            # Always report success — never reveal whether an email exists.
+            sent = True
+            try:
+                validate_email(email)
+                user = User.query.filter_by(email=email).first()
+                if user:
+                    from app.services.password_reset import generate_reset_token
+                    from app.services.transactional_email import send_password_reset
+
+                    token = generate_reset_token(user)
+                    reset_url = url_for("web.reset_password", token=token, _external=True)
+                    send_password_reset(user, reset_url)
+            except AppError:
+                pass  # invalid email format — still show generic success
+            except Exception:
+                current_app.logger.exception("Password reset request failed for %s", email)
+
+    return render_template("forgot_password.html", sent=sent, error=error, email=email)
+
+
+@web_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    from app.services.password_reset import verify_reset_token
+
+    user = verify_reset_token(token)
+    if not user:
+        return render_template("reset_password.html", invalid=True)
+
+    error = None
+    if request.method == "POST":
+        from app.utils.validation import validate_password
+
+        new_password = request.form.get("new_password") or ""
+        confirm = request.form.get("confirm_password") or ""
+        if len(new_password) < 8:
+            error = translate("settings.error.password_short")
+        elif new_password != confirm:
+            error = translate("settings.error.password_mismatch")
+        else:
+            try:
+                validate_password(new_password)
+            except AppError:
+                error = translate("settings.error.password_short")
+            else:
+                user.set_password(new_password)
+                db.session.commit()
+                try:
+                    from app.services.transactional_email import send_password_changed
+
+                    send_password_changed(user)
+                except Exception:
+                    current_app.logger.exception("Password-changed email failed user=%s", user.id)
+                return redirect(_login_url_for(user) + "?reset=1")
+
+    return render_template("reset_password.html", invalid=False, error=error, token=token)
 
 
 @web_bp.route("/dashboard", methods=["GET"])

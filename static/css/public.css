@@ -1756,6 +1756,8 @@ html {
 .customer-auth-card .auth-form input:focus { outline: none; border-color: var(--blue-primary); box-shadow: 0 0 0 3px rgba(5,156,224,0.12); }
 .customer-auth-card .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .customer-auth-card .btn-block { margin-top: 22px; }
+.auth-forgot { margin: 10px 0 0; text-align: right; font-size: 13px; }
+.auth-forgot a { color: var(--blue-primary); font-weight: 600; }
 .customer-auth-switch { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--text-muted); }
 .customer-auth-switch a { color: var(--blue-primary); font-weight: 600; }
 .customer-auth-legal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--text-muted); }

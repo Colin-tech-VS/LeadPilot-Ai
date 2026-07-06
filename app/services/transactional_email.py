@@ -161,6 +161,27 @@ def send_customer_welcome(user):
     return _send(user.email, "Votre compte PilotCore est créé", html, text)
 
 
+def send_password_reset(user, reset_url):
+    if not user or not user.email:
+        return None
+    html = render_email(
+        "Réinitialisation de votre mot de passe",
+        "Bonjour,",
+        lines=[
+            "Vous avez demandé à réinitialiser votre mot de passe PilotCore. "
+            "Cliquez sur le bouton ci-dessous pour en choisir un nouveau.",
+            "Ce lien est valable 1 heure. Si vous n'êtes pas à l'origine de cette "
+            "demande, ignorez simplement cet e-mail — votre mot de passe reste inchangé.",
+        ],
+        cta_label="Choisir un nouveau mot de passe",
+        cta_url=reset_url,
+        outro="Pour votre sécurité, ne transférez ce lien à personne.",
+    )
+    text = f"Réinitialisez votre mot de passe PilotCore (valable 1h) : {reset_url}"
+    return _send(user.email, "Réinitialisation de votre mot de passe", html, text,
+                 tenant_id=getattr(user, "tenant_id", None))
+
+
 def send_password_changed(user):
     if not user or not user.email:
         return None

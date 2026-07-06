@@ -26,6 +26,9 @@
       <h2>{{ _('login.subtitle') }}</h2>
       <p class="auth-form-sub">{{ _('login.welcome_back') }}</p>
 
+      {% if request.args.get('reset') %}
+      <div class="alert alert-success">{{ _('login.reset_success') }}</div>
+      {% endif %}
       {% if error %}
       <div class="alert alert-error">{{ error }}</div>
       {% endif %}
@@ -36,6 +39,8 @@
 
         <label for="password">{{ _('login.password') }}</label>
         <input type="password" id="password" name="password" required>
+
+        <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
 
         <button type="submit" class="btn btn-primary btn-auth-submit">{{ _('login.submit') }}</button>
       </form>

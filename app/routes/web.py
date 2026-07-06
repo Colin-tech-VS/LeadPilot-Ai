@@ -180,7 +180,7 @@ def notifications_mark_read():
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     base = request.url_root.rstrip("/")
-    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nAllow: /pro\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nSitemap: {base}/sitemap.xml\n"
+    body = f"User-agent: *\nAllow: /\nAllow: /artisans\nAllow: /pro\nDisallow: /dashboard\nDisallow: /leads\nDisallow: /appointments\nDisallow: /settings\nDisallow: /test-call\nDisallow: /chatbot\nDisallow: /chat/\nDisallow: /client/\nDisallow: /billing\nSitemap: {base}/sitemap.xml\n"
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
@@ -193,6 +193,10 @@ def sitemap_xml():
         ("/pro", "weekly", "0.9"),
         ("/register", "monthly", "0.9"),
         ("/login", "monthly", "0.6"),
+        ("/mentions-legales", "yearly", "0.3"),
+        ("/confidentialite", "yearly", "0.3"),
+        ("/cgu", "yearly", "0.3"),
+        ("/cookies", "yearly", "0.3"),
     ]
     from app.services.artisan_directory import list_public_artisans
 
@@ -256,6 +260,27 @@ def site_page(slug):
     if not page:
         abort(404)
     return render_template("public/site_page.html", page=page, preview=False)
+
+
+# --- Legal / RGPD pages -----------------------------------------------------
+@web_bp.route("/mentions-legales", methods=["GET"])
+def legal_notice():
+    return render_template("public/legal/mentions.html", updated="6 juillet 2026")
+
+
+@web_bp.route("/confidentialite", methods=["GET"])
+def privacy():
+    return render_template("public/legal/confidentialite.html", updated="6 juillet 2026")
+
+
+@web_bp.route("/cgu", methods=["GET"])
+def cgu():
+    return render_template("public/legal/cgu.html", updated="6 juillet 2026")
+
+
+@web_bp.route("/cookies", methods=["GET"])
+def cookies_policy():
+    return render_template("public/legal/cookies.html", updated="6 juillet 2026")
 
 
 @web_bp.route("/artisans", methods=["GET"])
@@ -1048,11 +1073,20 @@ def settings_page():
                 tenant.longitude = None
 
             user.email = email
+            password_changed = bool(new_password)
             if new_password:
                 user.set_password(new_password)
 
             db.session.commit()
             success = translate("settings.success")
+
+            if password_changed:
+                try:
+                    from app.services.transactional_email import send_password_changed
+
+                    send_password_changed(user)
+                except Exception:
+                    current_app.logger.exception("Password-changed email failed user=%s", user.id)
 
     from app.constants.trades import trade_choices
 

@@ -1,0 +1,26 @@
+{% extends "public_layout.html" %}
+{% block body_class %}page-legal{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ self.legal_title() }} — {{ _('app.name') }}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+{% endblock %}
+
+{% block content %}
+<section class="legal-page container">
+  <a href="{{ url_for('web.client_home') }}" class="legal-back">← Accueil</a>
+  <h1>{% block legal_title %}{% endblock %}</h1>
+  {% if updated %}<p class="legal-updated">Dernière mise à jour : {{ updated }}</p>{% endif %}
+  <div class="legal-body">
+    {% block legal_content %}{% endblock %}
+  </div>
+
+  <nav class="legal-nav">
+    <a href="{{ url_for('web.legal_notice') }}">Mentions légales</a>
+    <a href="{{ url_for('web.privacy') }}">Confidentialité</a>
+    <a href="{{ url_for('web.cgu') }}">CGU</a>
+    <a href="{{ url_for('web.cookies_policy') }}">Cookies</a>
+  </nav>
+</section>
+{% endblock %}

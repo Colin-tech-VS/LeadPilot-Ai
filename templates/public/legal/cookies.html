@@ -1,0 +1,38 @@
+{% extends "public/legal/base.html" %}
+{% block title %}Politique cookies — {{ _('app.name') }}{% endblock %}
+{% block legal_title %}Politique de gestion des cookies{% endblock %}
+
+{% block legal_content %}
+<p>
+  Un cookie est un petit fichier déposé sur votre appareil lors de la visite d'un site. PilotCore
+  utilise un nombre limité de cookies, décrits ci-dessous.
+</p>
+
+<h2>Cookies strictement nécessaires</h2>
+<p>
+  Ces cookies sont indispensables au fonctionnement du site et ne peuvent pas être désactivés.
+  Ils incluent le cookie de session (authentification) et le cookie mémorisant votre choix de
+  consentement. Ils ne nécessitent pas votre accord.
+</p>
+
+<h2>Cookies de mesure d'audience</h2>
+<p>
+  Sous réserve de votre consentement, nous pouvons mesurer l'audience du site de façon agrégée
+  afin d'améliorer nos services. Vous pouvez accepter ou refuser ces cookies via le bandeau de
+  consentement.
+</p>
+
+<h2>Gérer votre consentement</h2>
+<p>
+  Vous pouvez à tout moment modifier votre choix en cliquant sur le bouton ci-dessous.
+</p>
+<p>
+  <button type="button" class="btn btn-primary" data-cookie-reopen>Gérer mes préférences cookies</button>
+</p>
+
+<h2>Durée</h2>
+<p>
+  Votre choix de consentement est conservé pendant 6 mois. Passé ce délai, le bandeau vous sera
+  de nouveau présenté.
+</p>
+{% endblock %}

@@ -235,3 +235,16 @@ def _ensure_schema_updates():
         if col_name not in email_columns:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE email_messages ADD COLUMN {col_name} {col_type}"))
+
+    if "users" not in inspector.get_table_names():
+        return
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+    user_patches = {
+        "first_name": "VARCHAR(100)",
+        "last_name": "VARCHAR(100)",
+        "phone": "VARCHAR(50)",
+    }
+    for col_name, col_type in user_patches.items():
+        if col_name not in user_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))

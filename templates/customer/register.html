@@ -1,0 +1,57 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Créer un compte client — {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-customer-auth{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.artisan_directory') }}">← Trouver un artisan</a>
+{% endblock %}
+
+{% block content %}
+<section class="customer-auth">
+  <div class="customer-auth-card">
+    <h1>Créer mon compte</h1>
+    <p class="customer-auth-sub">Réservez un artisan en ligne et suivez vos rendez-vous.</p>
+
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+    <form method="post" class="auth-form">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <div class="form-row">
+        <div>
+          <label for="first_name">Prénom</label>
+          <input type="text" id="first_name" name="first_name" required value="{{ form.first_name or '' }}">
+        </div>
+        <div>
+          <label for="last_name">Nom</label>
+          <input type="text" id="last_name" name="last_name" value="{{ form.last_name or '' }}">
+        </div>
+      </div>
+
+      <label for="email">E-mail</label>
+      <input type="email" id="email" name="email" required value="{{ form.email or '' }}" placeholder="vous@email.fr">
+
+      <label for="phone">Téléphone</label>
+      <input type="tel" id="phone" name="phone" value="{{ form.phone or '' }}" placeholder="+33 6 12 34 56 78">
+
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" name="password" required minlength="8">
+
+      <label for="confirm_password">Confirmer le mot de passe</label>
+      <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Créer mon compte</button>
+    </form>
+
+    <p class="customer-auth-switch">
+      Déjà inscrit ?
+      <a href="{{ url_for('customer.login', next=next) }}">Se connecter</a>
+    </p>
+    <p class="customer-auth-legal">
+      En créant un compte, vous acceptez nos
+      <a href="{{ url_for('web.cgu') }}">conditions</a> et notre
+      <a href="{{ url_for('web.privacy') }}">politique de confidentialité</a>.
+    </p>
+  </div>
+</section>
+{% endblock %}

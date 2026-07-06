@@ -10,7 +10,7 @@
   {% endblock %}
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=9">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=11">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=12">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">
   {% block head_extra %}{% endblock %}
 </head>
@@ -41,7 +41,11 @@
           <a href="{{ url_for('web.client_home') }}" class="public-nav-link public-nav-link--primary">{{ _('directory.nav') }}</a>
           <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
           <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-          <a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
+          {% if session.get('role') == 'customer' %}
+          <a href="{{ url_for('customer.account') }}" class="public-nav-link">Mon espace</a>
+          {% else %}
+          <a href="{{ url_for('customer.login') }}" class="public-nav-link">Espace client</a>
+          {% endif %}
           <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
           {% endblock %}
         </div>
@@ -57,14 +61,22 @@
     <div class="container public-footer-inner">
       <p>&copy; {{ _('landing.footer') }} · {{ _('app.name') }}</p>
       <div class="public-footer-links">
-        <a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
-        <a href="{{ url_for('web.register') }}">{{ _('landing.nav_signup') }}</a>
+        <a href="{{ url_for('web.artisan_directory') }}">Trouver un artisan</a>
+        <a href="{{ url_for('customer.login') }}">Espace client</a>
+        <a href="{{ url_for('web.pro_landing') }}">Espace pro</a>
+        <a href="{{ url_for('web.legal_notice') }}">Mentions légales</a>
+        <a href="{{ url_for('web.privacy') }}">Confidentialité</a>
+        <a href="{{ url_for('web.cgu') }}">CGU</a>
+        <a href="{{ url_for('web.cookies_policy') }}">Cookies</a>
       </div>
     </div>
   </footer>
 
+  {% include 'partials/cookie_consent.html' %}
+
   <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
   <script src="{{ url_for('static', filename='js/public-reveal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/cookie-consent.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

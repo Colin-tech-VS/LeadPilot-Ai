@@ -88,16 +88,32 @@
     <div class="artisan-slots-card landing-fade">
       <h2>{{ _('directory.slots_title') }}</h2>
       <p class="section-hint">{{ _('directory.slots_hint') }}</p>
+
+      {% if request.args.get('booking') == 'taken' %}
+      <div class="alert alert-error">Ce créneau vient d'être réservé. Choisissez-en un autre.</div>
+      {% elif request.args.get('booking') == 'noslot' %}
+      <div class="alert alert-error">Merci de sélectionner un créneau.</div>
+      {% endif %}
+
       {% if slot_items %}
-      <div class="slot-grid" id="slot-grid">
-        {% for slot in slot_items %}
-        <button type="button" class="slot-btn" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
-        {% endfor %}
-      </div>
+      <form method="post" action="{{ url_for('customer.book', slug=tenant.public_slug) }}" id="booking-form">
+        <input type="hidden" name="slot_iso" id="booking-slot-iso" value="">
+        <div class="slot-grid" id="slot-grid">
+          {% for slot in slot_items %}
+          <button type="button" class="slot-btn" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
+          {% endfor %}
+        </div>
+        <p class="slot-selected-hint" id="slot-selected-hint" hidden>{{ _('directory.slot_selected') }}</p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="booking-submit" disabled>
+          Réserver ce créneau
+        </button>
+        {% if session.get('role') != 'customer' %}
+        <p class="booking-login-note">Vous serez invité à vous connecter ou créer un compte pour confirmer.</p>
+        {% endif %}
+      </form>
       {% else %}
       <p class="directory-empty-inline">{{ _('directory.no_slots') }}</p>
       {% endif %}
-      <p class="slot-selected-hint" id="slot-selected-hint" hidden>{{ _('directory.slot_selected') }}</p>
     </div>
 
     <div class="artisan-chat-card landing-fade landing-delay-1">
@@ -146,6 +162,11 @@
       if (hint) hint.hidden = false;
       const chat = document.querySelector('.lp-chat--profile');
       if (chat) chat.dataset.selectedSlot = iso;
+      // Enable real booking submission with the chosen slot.
+      const hidden = document.getElementById('booking-slot-iso');
+      const submit = document.getElementById('booking-submit');
+      if (hidden) hidden.value = iso;
+      if (submit) submit.disabled = false;
     });
   });
 })();

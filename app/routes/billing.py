@@ -56,6 +56,22 @@ def checkout(plan):
     return redirect(url, code=303)
 
 
+@billing_bp.route("/portal", methods=["POST"])
+@web_tenant_required
+def portal():
+    """Redirect to the Stripe Customer Portal to change plan or cancel."""
+    tenant = db.session.get(Tenant, g.tenant_id)
+    return_url = url_for("billing.billing_page", _external=True)
+    try:
+        url = billing.create_portal_session(tenant, return_url)
+    except Exception:
+        logger.exception("Stripe portal session failed tenant=%s", g.tenant_id)
+        url = None
+    if not url:
+        return redirect(url_for("billing.billing_page", status="portal_unavailable"))
+    return redirect(url, code=303)
+
+
 @billing_bp.route("/webhook", methods=["POST"])
 def webhook():
     payload = request.get_data()

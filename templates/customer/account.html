@@ -1,0 +1,54 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Mon espace — {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-customer-account{% endblock %}
+
+{% block public_nav %}
+<a href="{{ url_for('web.artisan_directory') }}">Trouver un artisan</a>
+<a href="{{ url_for('customer.logout') }}" class="public-nav-link">Se déconnecter</a>
+{% endblock %}
+
+{% block content %}
+<section class="customer-account container">
+  <header class="customer-account-head">
+    <div>
+      <h1>Bonjour {{ user.first_name or user.email }} 👋</h1>
+      <p class="customer-account-sub">Vos rendez-vous et réservations.</p>
+    </div>
+    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Réserver un artisan</a>
+  </header>
+
+  {% if request.args.get('booking') == 'ok' %}
+  <div class="alert alert-success">Votre rendez-vous est confirmé ! Un e-mail de confirmation vous a été envoyé.</div>
+  {% endif %}
+
+  {% if bookings %}
+  <div class="customer-bookings">
+    {% for b in bookings %}
+    <div class="customer-booking-card">
+      <div class="customer-booking-main">
+        <h2>{{ b.artisan }}</h2>
+        {% if b.when %}<p class="customer-booking-when">📅 {{ b.when }}</p>{% endif %}
+        {% if b.issue %}<p class="customer-booking-issue">{{ b.issue }}</p>{% endif %}
+      </div>
+      <span class="customer-booking-status status-{{ b.status }}">
+        {% if b.status in ('scheduled', 'confirmed', 'booked') %}Confirmé
+        {% elif b.status == 'completed' %}Terminé
+        {% elif b.status == 'cancelled' %}Annulé
+        {% else %}{{ b.status }}{% endif %}
+      </span>
+      {% if b.artisan_slug %}
+      <a href="{{ url_for('web.artisan_profile', slug=b.artisan_slug) }}" class="customer-booking-link">Voir la fiche →</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="customer-empty">
+    <div class="customer-empty-icon" aria-hidden="true">📭</div>
+    <p>Vous n'avez pas encore de réservation.</p>
+    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Trouver un artisan</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

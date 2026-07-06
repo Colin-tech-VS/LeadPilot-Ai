@@ -357,6 +357,42 @@ def _pk_value(model, row_id):
     return row_id
 
 
+# ------------------------------------------------------------------ clients
+@admin_bp.route("/clients")
+@admin_required
+def clients():
+    """Who our customers (particuliers) are — accounts + their bookings."""
+    from app.models.lead import Lead
+
+    customers = (
+        User.query.filter(User.role == "customer")
+        .order_by(User.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    rows = []
+    for c in customers:
+        booking_count = Lead.query.filter(Lead.email == c.email).count()
+        rows.append(
+            {
+                "id": str(c.id),
+                "name": c.full_name or "—",
+                "email": c.email,
+                "phone": c.phone or "—",
+                "bookings": booking_count,
+                "created_at": c.created_at,
+            }
+        )
+    total_customers = User.query.filter(User.role == "customer").count()
+    total_leads = Lead.query.count()
+    return render_template(
+        "admin/clients.html",
+        customers=rows,
+        total_customers=total_customers,
+        total_leads=total_leads,
+    )
+
+
 # ------------------------------------------------------------------ emails
 @admin_bp.route("/emails")
 @admin_required

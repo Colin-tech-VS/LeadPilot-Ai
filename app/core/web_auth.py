@@ -1,7 +1,7 @@
 import uuid
 from functools import wraps
 
-from flask import g, redirect, session, url_for
+from flask import g, redirect, request, session, url_for
 
 from app.core.extensions import db
 from app.models.user import User
@@ -37,6 +37,31 @@ def web_tenant_required(f):
 
         g.current_user = user
         g.tenant_id = user.tenant_id
+        g.user_role = user.role
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def web_customer_required(f):
+    """Session-based auth for particuliers (customers). Sets g.current_user.
+
+    Redirects to the customer login (preserving the intended destination) when
+    the visitor is not signed in as a customer.
+    """
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id or session.get("role") != "customer":
+            return redirect(url_for("customer.login", next=request.full_path))
+
+        user = db.session.get(User, uuid.UUID(user_id))
+        if not user or user.role != "customer":
+            logout_user_session()
+            return redirect(url_for("customer.login", next=request.full_path))
+
+        g.current_user = user
         g.user_role = user.role
         return f(*args, **kwargs)
 

@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block title %}Clients · Admin{% endblock %}
+{% block page_title %}Clients (particuliers){% endblock %}
+
+{% block content %}
+<p class="admin-hint">
+  Comptes particuliers inscrits pour réserver un artisan en ligne. Total :
+  <strong>{{ total_customers }}</strong> client(s) · <strong>{{ total_leads }}</strong> demande(s) toutes sources confondues.
+</p>
+
+{% if customers %}
+<div class="admin-table-wrap" style="overflow-x:auto;">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>E-mail</th>
+        <th>Téléphone</th>
+        <th>Réservations</th>
+        <th>Inscrit le</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td><a href="{{ url_for('admin.emails', q=c.email) }}">{{ c.email }}</a></td>
+        <td>{{ c.phone }}</td>
+        <td>{{ c.bookings }}</td>
+        <td>{{ c.created_at.strftime('%d/%m/%Y') if c.created_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="admin-empty">Aucun client particulier inscrit pour le moment.</p>
+{% endif %}
+{% endblock %}

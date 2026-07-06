@@ -127,5 +127,14 @@
   <p class="billing-note">
     <span class="billing-note-lock">🔒</span>{{ _('billing.note') }}
   </p>
+
+  {% if checkout_status == 'portal_unavailable' %}
+  <p class="billing-manage-note billing-manage-note--error">La gestion de l'abonnement est momentanément indisponible.</p>
+  {% endif %}
+  {% if tenant.is_paid %}
+  <form method="post" action="{{ url_for('billing.portal') }}" class="billing-manage">
+    <button type="submit" class="billing-manage-link">Gérer ou résilier mon abonnement</button>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}

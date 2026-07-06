@@ -75,7 +75,52 @@ def register_plumber(
         logger.exception("AI number provisioning failed for tenant=%s", tenant.id)
 
     db.session.commit()
+
+    # Automatic branded welcome email (never blocks signup).
+    try:
+        from app.services.transactional_email import send_artisan_welcome
+
+        send_artisan_welcome(user, tenant)
+    except Exception:  # pragma: no cover - defensive; sender already swallows
+        logger.exception("Welcome email failed for tenant=%s", tenant.id)
+
     return user, tenant
 
 
 register_artisan = register_plumber
+
+
+def register_customer(
+    email: str,
+    password: str,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    phone: str | None = None,
+) -> User:
+    """Register a particulier (customer) — a User with role="customer", no tenant."""
+    email = validate_email(email)
+    validate_password(password)
+
+    if User.query.filter_by(email=email).first():
+        raise ConflictError("Email already registered")
+
+    user = User(
+        email=email,
+        tenant_id=None,
+        role="customer",
+        first_name=(first_name or "").strip() or None,
+        last_name=(last_name or "").strip() or None,
+        phone=(phone or "").strip() or None,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    try:
+        from app.services.transactional_email import send_customer_welcome
+
+        send_customer_welcome(user)
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("Customer welcome email failed for %s", email)
+
+    return user

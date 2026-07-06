@@ -1,0 +1,58 @@
+{% extends "public/legal/base.html" %}
+{% block title %}Conditions générales d'utilisation — {{ _('app.name') }}{% endblock %}
+{% block legal_title %}Conditions générales d'utilisation{% endblock %}
+
+{% block legal_content %}
+<h2>1. Objet</h2>
+<p>
+  Les présentes conditions régissent l'utilisation de la plateforme PilotCore, qui propose un
+  service de réceptionniste vocal IA, de prise de rendez-vous et un annuaire d'artisans avec
+  réservation en ligne.
+</p>
+
+<h2>2. Comptes</h2>
+<p>
+  L'accès à certaines fonctionnalités nécessite la création d'un compte (artisan ou particulier).
+  Vous vous engagez à fournir des informations exactes et à préserver la confidentialité de vos
+  identifiants. Vous êtes responsable de toute activité effectuée depuis votre compte.
+</p>
+
+<h2>3. Abonnements (artisans)</h2>
+<p>
+  Les offres payantes (Starter, Pro, Premium) sont facturées mensuellement via Stripe.
+  L'artisan peut à tout moment changer d'offre ou résilier son abonnement depuis son espace de
+  facturation ; la résiliation prend effet à la fin de la période en cours, sans reconduction.
+</p>
+
+<h2>4. Réservations (particuliers)</h2>
+<p>
+  Les rendez-vous pris via l'annuaire mettent en relation un particulier et un artisan
+  indépendant. PilotCore n'est pas partie au contrat de prestation conclu entre eux et ne
+  saurait être tenue responsable de l'exécution des travaux.
+</p>
+
+<h2>5. Disponibilité</h2>
+<p>
+  PilotCore s'efforce d'assurer la disponibilité du service mais ne garantit pas une absence
+  totale d'interruption. La responsabilité de PilotCore ne saurait être engagée en cas
+  d'indisponibilité temporaire.
+</p>
+
+<h2>6. Données personnelles</h2>
+<p>
+  Le traitement de vos données est décrit dans notre
+  <a href="{{ url_for('web.privacy') }}">politique de confidentialité</a>.
+</p>
+
+<h2>7. Modification</h2>
+<p>
+  PilotCore peut modifier les présentes conditions. La version applicable est celle en vigueur
+  au moment de votre utilisation du service.
+</p>
+
+<h2>8. Droit applicable</h2>
+<p>
+  Les présentes conditions sont soumises au droit français. Tout litige relève de la compétence
+  des tribunaux français.
+</p>
+{% endblock %}

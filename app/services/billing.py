@@ -206,6 +206,23 @@ def create_checkout_session(tenant: Tenant, plan_key: str, success_url: str, can
     return session.url
 
 
+def create_portal_session(tenant: Tenant, return_url: str) -> str | None:
+    """Stripe Customer Portal — where the artisan can change plan or cancel.
+
+    Returns the portal URL, or None when there is no Stripe customer yet (never
+    subscribed) or Stripe is not configured. This is the real, Stripe-managed
+    way to change/cancel a subscription — no custom cancel logic to maintain.
+    """
+    if not is_configured() or not tenant.stripe_customer_id:
+        return None
+    stripe = _client()
+    session = stripe.billing_portal.Session.create(
+        customer=tenant.stripe_customer_id,
+        return_url=return_url,
+    )
+    return session.url
+
+
 def handle_webhook(payload: bytes, signature: str) -> bool:
     """Verify a Stripe webhook and apply it. Returns True when handled."""
     if not is_configured():

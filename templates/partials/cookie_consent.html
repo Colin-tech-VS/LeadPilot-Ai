@@ -1,0 +1,17 @@
+<div class="cookie-banner" id="cookie-banner" hidden role="dialog" aria-live="polite"
+     aria-label="Gestion des cookies">
+  <div class="cookie-banner-inner">
+    <div class="cookie-banner-text">
+      <strong>🍪 Nous respectons votre vie privée</strong>
+      <p>
+        Nous utilisons des cookies nécessaires au fonctionnement du site et, avec votre accord,
+        des cookies de mesure d'audience. Consultez notre
+        <a href="{{ url_for('web.cookies_policy') }}">politique cookies</a>.
+      </p>
+    </div>
+    <div class="cookie-banner-actions">
+      <button type="button" class="btn btn-light btn-sm" data-cookie-action="refuse">Refuser</button>
+      <button type="button" class="btn btn-primary btn-sm" data-cookie-action="accept">Tout accepter</button>
+    </div>
+  </div>
+</div>

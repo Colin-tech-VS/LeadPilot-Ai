@@ -1,0 +1,67 @@
+{% extends "public/legal/base.html" %}
+{% block title %}Politique de confidentialité — {{ _('app.name') }}{% endblock %}
+{% block legal_title %}Politique de confidentialité{% endblock %}
+
+{% block legal_content %}
+<p>
+  PilotCore accorde une grande importance à la protection de vos données personnelles,
+  conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi
+  Informatique et Libertés.
+</p>
+
+<h2>Responsable du traitement</h2>
+<p>
+  Le responsable du traitement est PilotCore — <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>.
+</p>
+
+<h2>Données collectées</h2>
+<ul>
+  <li><strong>Artisans</strong> : nom de l'entreprise, prénom/nom, e-mail, téléphone, adresse,
+      SIRET, coordonnées bancaires (pour la facturation), et données d'usage du service.</li>
+  <li><strong>Particuliers</strong> : prénom, nom, e-mail, téléphone et historique de vos
+      rendez-vous pris via la plateforme.</li>
+  <li><strong>Appels traités par l'assistant IA</strong> : transcription et informations
+      nécessaires à la prise de rendez-vous.</li>
+</ul>
+
+<h2>Finalités</h2>
+<ul>
+  <li>Fournir le service (prise de rendez-vous, réceptionniste IA, annuaire).</li>
+  <li>Gérer votre compte et la relation client.</li>
+  <li>Assurer la facturation des abonnements.</li>
+  <li>Vous envoyer les e-mails transactionnels (confirmations, sécurité du compte).</li>
+</ul>
+
+<h2>Base légale</h2>
+<p>
+  Les traitements reposent sur l'exécution du contrat (fourniture du service), le respect
+  d'obligations légales (facturation) et votre consentement (cookies non essentiels).
+</p>
+
+<h2>Durée de conservation</h2>
+<p>
+  Vos données sont conservées pendant la durée de la relation contractuelle, puis archivées
+  conformément aux délais légaux (notamment 10 ans pour les documents comptables).
+</p>
+
+<h2>Destinataires</h2>
+<p>
+  Vos données sont destinées à PilotCore et à ses sous-traitants techniques (hébergeur,
+  prestataire de paiement Stripe, fournisseur d'e-mail et de téléphonie Twilio, service d'IA).
+  Aucune donnée n'est vendue à des tiers.
+</p>
+
+<h2>Vos droits</h2>
+<p>
+  Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition
+  et de portabilité de vos données. Pour les exercer, écrivez à
+  <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>. Vous pouvez également introduire
+  une réclamation auprès de la CNIL (<a href="https://www.cnil.fr" rel="noopener" target="_blank">cnil.fr</a>).
+</p>
+
+<h2>Cookies</h2>
+<p>
+  Le site utilise des cookies. Pour en savoir plus et gérer vos préférences, consultez notre
+  <a href="{{ url_for('web.cookies_policy') }}">politique cookies</a>.
+</p>
+{% endblock %}

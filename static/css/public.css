@@ -1666,3 +1666,103 @@ html {
     transform: none !important;
   }
 }
+
+/* ===================================================================== */
+/*  Cookie consent banner                                                */
+/* ===================================================================== */
+.cookie-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+  padding: 16px; display: flex; justify-content: center;
+  transform: translateY(120%); transition: transform 0.35s ease;
+}
+.cookie-banner.is-visible { transform: translateY(0); }
+.cookie-banner-inner {
+  width: 100%; max-width: 960px; background: #fff; border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: 0 18px 50px rgba(11,31,51,0.18);
+  padding: 18px 22px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.cookie-banner-text { flex: 1 1 320px; }
+.cookie-banner-text strong { display: block; font-size: 15px; color: #0B1F33; margin-bottom: 4px; }
+.cookie-banner-text p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.cookie-banner-text a { color: var(--blue-primary); }
+.cookie-banner-actions { display: flex; gap: 10px; flex-shrink: 0; }
+@media (max-width: 560px) {
+  .cookie-banner-inner { flex-direction: column; align-items: stretch; }
+  .cookie-banner-actions { justify-content: stretch; }
+  .cookie-banner-actions .btn { flex: 1; }
+}
+
+/* ===================================================================== */
+/*  Customer (particulier) auth + account                                */
+/* ===================================================================== */
+.customer-auth {
+  min-height: 60vh; display: flex; justify-content: center; align-items: flex-start;
+  padding: 48px 16px;
+}
+.customer-auth-card {
+  width: 100%; max-width: 460px; background: #fff; border: 1px solid var(--border);
+  border-radius: 20px; padding: 32px; box-shadow: 0 12px 40px rgba(11,31,51,0.06);
+}
+.customer-auth-card h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; color: #0B1F33; }
+.customer-auth-sub { margin: 0 0 22px; color: var(--text-muted); font-size: 15px; }
+.customer-auth-card .auth-form label { display: block; font-size: 13px; font-weight: 600; color: #5B7A8C; margin: 14px 0 6px; }
+.customer-auth-card .auth-form input {
+  width: 100%; border: 1px solid #D5E8F3; border-radius: 12px; padding: 12px 14px; font-size: 15px;
+}
+.customer-auth-card .auth-form input:focus { outline: none; border-color: var(--blue-primary); box-shadow: 0 0 0 3px rgba(5,156,224,0.12); }
+.customer-auth-card .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.customer-auth-card .btn-block { margin-top: 22px; }
+.customer-auth-switch { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--text-muted); }
+.customer-auth-switch a { color: var(--blue-primary); font-weight: 600; }
+.customer-auth-legal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--text-muted); }
+.customer-auth-legal a { color: var(--text-muted); text-decoration: underline; }
+@media (max-width: 460px) { .customer-auth-card .form-row { grid-template-columns: 1fr; } }
+
+.customer-account { padding: 40px 16px; }
+.customer-account-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.customer-account-head h1 { margin: 0; font-size: 26px; font-weight: 800; color: #0B1F33; }
+.customer-account-sub { margin: 4px 0 0; color: var(--text-muted); }
+.customer-bookings { display: grid; gap: 14px; }
+.customer-booking-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.customer-booking-main { flex: 1 1 260px; }
+.customer-booking-main h2 { margin: 0 0 4px; font-size: 17px; color: #0B1F33; }
+.customer-booking-when { margin: 0; color: var(--text); font-weight: 600; }
+.customer-booking-issue { margin: 4px 0 0; color: var(--text-muted); font-size: 14px; }
+.customer-booking-status {
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: #E6F6EC; color: #1B7F43;
+}
+.customer-booking-status.status-cancelled { background: #FCE8E8; color: #B3261E; }
+.customer-booking-status.status-completed { background: #EEF2F7; color: #5B7A8C; }
+.customer-booking-link { color: var(--blue-primary); font-weight: 600; font-size: 14px; text-decoration: none; }
+.customer-empty { text-align: center; padding: 48px 16px; color: var(--text-muted); }
+.customer-empty-icon { font-size: 40px; margin-bottom: 12px; }
+.booking-login-note { margin: 10px 0 0; font-size: 13px; color: var(--text-muted); text-align: center; }
+
+/* ===================================================================== */
+/*  Legal / RGPD pages                                                   */
+/* ===================================================================== */
+.legal-page { max-width: 800px; padding: 40px 16px 64px; }
+.legal-back { display: inline-block; margin-bottom: 16px; color: var(--blue-primary); text-decoration: none; font-weight: 600; }
+.legal-page h1 { font-size: 30px; font-weight: 800; color: #0B1F33; margin: 0 0 6px; letter-spacing: -0.02em; }
+.legal-updated { color: var(--text-muted); font-size: 13px; margin: 0 0 28px; }
+.legal-body h2 { font-size: 19px; color: #0B1F33; margin: 28px 0 10px; }
+.legal-body p, .legal-body li { color: #334155; line-height: 1.7; font-size: 15px; }
+.legal-body ul { padding-left: 20px; }
+.legal-body a { color: var(--blue-primary); }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.legal-nav a { color: var(--text-muted); font-size: 14px; text-decoration: none; }
+.legal-nav a:hover { color: var(--blue-primary); }
+
+/* Discreet subscription management link (intentionally low-emphasis) */
+.billing-manage { text-align: center; margin-top: 18px; }
+.billing-manage-link {
+  background: none; border: none; color: var(--text-muted); font-size: 13px;
+  text-decoration: underline; cursor: pointer; padding: 4px;
+}
+.billing-manage-link:hover { color: var(--blue-primary); }
+.billing-manage-note { text-align: center; font-size: 13px; color: var(--text-muted); }
+.billing-manage-note--error { color: #B3261E; }

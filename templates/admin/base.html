@@ -39,6 +39,9 @@
           <span class="nav-ico">📣</span> Réseaux sociaux
         </a>
         <div class="admin-nav-sep">Système</div>
+        <a href="{{ url_for('admin.clients') }}" class="{% if request.endpoint == 'admin.clients' %}active{% endif %}">
+          <span class="nav-ico">👥</span> Clients
+        </a>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
           <span class="nav-ico">🗄️</span> Base de données
         </a>

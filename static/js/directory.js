@@ -47,7 +47,7 @@
     return (
       '<a href="/artisans/' +
       encodeURIComponent(a.slug) +
-      '" class="directory-card landing-fade">' +
+      '" class="directory-card">' +
       '<div class="directory-card-icon">' +
       escapeHtml(a.trade_icon) +
       "</div>" +

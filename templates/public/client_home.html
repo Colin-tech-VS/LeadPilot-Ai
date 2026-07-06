@@ -83,7 +83,7 @@
     </div>
     <div class="directory-grid">
       {% for a in featured_artisans %}
-      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card landing-fade">
+      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card">
         <div class="directory-card-icon">{% for t in trades if t.key == a.trade_type %}{{ t.icon }}{% endfor %}</div>
         <h2>{{ a.name }}</h2>
         <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>

@@ -546,6 +546,15 @@ html {
   transform: translateY(0);
 }
 
+/* Directory / client home: cards must be visible without landing.js */
+.page-directory .directory-card,
+.page-client-home .directory-card,
+.page-directory .directory-grid .landing-fade,
+.page-client-home .directory-grid .landing-fade {
+  opacity: 1;
+  transform: none;
+}
+
 .landing-delay-1 { transition-delay: 0.1s; }
 .landing-delay-2 { transition-delay: 0.2s; }
 .landing-delay-3 { transition-delay: 0.3s; }

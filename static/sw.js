@@ -83,7 +83,7 @@ self.addEventListener("push", (event) => {
   } catch (e) {
     data = { body: event.data && event.data.text() };
   }
-  const title = data.title || "LeadPilot AI";
+  const title = data.title || "PilotCore";
   const options = {
     body: data.body || "Nouveau rendez-vous planifié.",
     icon: "/static/images/logo.svg",

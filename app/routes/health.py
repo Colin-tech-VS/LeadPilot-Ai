@@ -6,7 +6,7 @@ from app.core.extensions import db
 health_bp = Blueprint("health", __name__)
 
 _API_INDEX = {
-    "name": "LeadPilot AI API",
+    "name": "PilotCore API",
     "status": "ok",
     "endpoints": {
         "health": "GET /health",

@@ -143,7 +143,7 @@ def bill_overage_for_period(tenant, year: int, month: int) -> dict:
         customer=tenant.stripe_customer_id,
         amount=amount,
         currency=CURRENCY,
-        description=f"LeadPilot AI — {calls} appel(s) supplémentaire(s) ({period})",
+        description=f"PilotCore — {calls} appel(s) supplémentaire(s) ({period})",
         metadata={"tenant_id": str(tenant.id), "period": period, "overage_calls": calls},
     )
     tenant.last_overage_period = period
@@ -173,7 +173,7 @@ def _line_item(plan_key: str) -> dict:
             "currency": CURRENCY,
             "unit_amount": plan["amount"],
             "recurring": {"interval": "month"},
-            "product_data": {"name": f"LeadPilot AI — {plan['name']}"},
+            "product_data": {"name": f"PilotCore — {plan['name']}"},
         },
     }
 

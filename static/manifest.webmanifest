@@ -1,6 +1,6 @@
 {
-  "name": "LeadPilot AI — Standardiste & Tableau de bord",
-  "short_name": "LeadPilot",
+  "name": "PilotCore — Standardiste & Tableau de bord",
+  "short_name": "PilotCore",
   "description": "Standardiste téléphonique IA et tableau de bord pour plombiers : leads, rendez-vous et notifications en temps réel.",
   "lang": "fr",
   "start_url": "/dashboard",

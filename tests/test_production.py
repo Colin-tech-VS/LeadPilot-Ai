@@ -33,12 +33,19 @@ def test_production_config_fails_without_secrets():
         assert "SECRET_KEY" in str(exc)
 
 
-def test_production_config_requires_stripe_webhook_when_stripe_enabled():
+def test_production_config_requires_stripe_webhook_when_stripe_live():
     app = _production_app()
-    app.config["STRIPE_SECRET_KEY"] = "sk_test_xxx"
+    app.config["STRIPE_SECRET_KEY"] = "sk_live_xxx"
     app.config["STRIPE_WEBHOOK_SECRET"] = ""
     try:
         validate_production_config(app)
         assert False, "expected RuntimeError"
     except RuntimeError as exc:
         assert "STRIPE_WEBHOOK_SECRET" in str(exc)
+
+
+def test_production_config_allows_stripe_test_without_webhook_secret():
+    app = _production_app()
+    app.config["STRIPE_SECRET_KEY"] = "sk_test_xxx"
+    app.config["STRIPE_WEBHOOK_SECRET"] = ""
+    validate_production_config(app)

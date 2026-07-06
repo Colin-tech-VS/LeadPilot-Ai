@@ -1,5 +1,5 @@
 {
-  "name": "LeadPilot Ai",
+  "name": "PilotCore",
   "description": "Réceptionniste IA vocale pour plombiers — prise de RDV et gestion des leads",
   "stack": "scalingo-22",
   "env": {

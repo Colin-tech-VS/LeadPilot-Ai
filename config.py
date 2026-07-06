@@ -37,6 +37,7 @@ class Config:
     # STRIPE_SECRET_KEY is unset the app runs exactly as before and the
     # billing pages show an "unavailable" notice instead of a checkout.
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     # Optional pre-created Stripe Price IDs. Left empty -> the app creates the
     # monthly prices on the fly via price_data.
@@ -108,7 +109,7 @@ class Config:
     SMTP_USER = os.environ.get("SMTP_USER", "")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
     SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "1") not in ("0", "false", "False", "")
-    EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@leadpilot.ai")
+    EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@pilotcore.fr")
     EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
 
     # Public URL for Twilio webhooks (Scalingo: your-app.osc-fr1.scalingo.io)

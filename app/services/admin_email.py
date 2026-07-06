@@ -58,7 +58,7 @@ def send_email(to_addr, subject, body, is_html=False, tenant_id=None, from_addr=
     try:
         mime = MIMEText(body, "html" if is_html else "plain", "utf-8")
         mime["Subject"] = subject
-        mime["From"] = formataddr(("LeadPilot AI", from_addr))
+        mime["From"] = formataddr(("PilotCore", from_addr))
         mime["To"] = to_addr
 
         host = current_app.config["SMTP_HOST"]

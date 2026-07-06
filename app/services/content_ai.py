@@ -51,7 +51,7 @@ def _complete(system, user, *, json_mode=False, max_tokens=1500, temperature=0.6
 
 
 _PAGE_SYSTEM = (
-    "Tu es un rédacteur web et concepteur marketing pour LeadPilot AI, un "
+    "Tu es un rédacteur web et concepteur marketing pour PilotCore, un "
     "standardiste téléphonique IA pour artisans (plombiers, électriciens, etc.). "
     "Tu produis des pages web en français, claires, persuasives et bien "
     "structurées. Réponds UNIQUEMENT en JSON avec les clés: "
@@ -86,7 +86,7 @@ def generate_page(prompt: str, tone: str = "professionnel") -> dict:
 
 
 _SOCIAL_SYSTEM = (
-    "Tu es community manager pour LeadPilot AI (standardiste téléphonique IA "
+    "Tu es community manager pour PilotCore (standardiste téléphonique IA "
     "pour artisans). Tu écris des posts Facebook en français : accrocheurs, "
     "authentiques, avec un appel à l'action et 2 à 4 emojis pertinents. "
     "Longueur idéale : 3 à 6 phrases. Termine par quelques hashtags pertinents. "

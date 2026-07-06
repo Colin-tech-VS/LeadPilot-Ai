@@ -42,7 +42,9 @@ def validate_production_config(app) -> None:
         errors.append("EMAIL_INBOUND_SECRET must be set")
 
     if app.config.get("STRIPE_SECRET_KEY") and not app.config.get("STRIPE_WEBHOOK_SECRET"):
-        errors.append("STRIPE_WEBHOOK_SECRET required when STRIPE_SECRET_KEY is set")
+        sk = app.config.get("STRIPE_SECRET_KEY", "")
+        if sk.startswith("sk_live_"):
+            errors.append("STRIPE_WEBHOOK_SECRET required when STRIPE_SECRET_KEY is live")
 
     if not app.config.get("MISTRAL_API_KEY"):
         errors.append("MISTRAL_API_KEY must be set")

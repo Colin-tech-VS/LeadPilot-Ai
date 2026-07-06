@@ -126,7 +126,7 @@ def provision_ai_number(tenant) -> str | None:
             )
             return None
 
-        friendly = f"LeadPilot AI — {tenant.name}"[:64]
+        friendly = f"PilotCore — {tenant.name}"[:64]
         incoming = client.incoming_phone_numbers.create(
             phone_number=candidate,
             voice_url=voice_url,

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, g, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, g, jsonify, make_response, redirect, render_template, request, session, url_for
 from sqlalchemy.orm import joinedload
 
 from app.core.errors import AppError
@@ -62,7 +62,7 @@ def _format_phone_display(e164: str | None) -> str:
 @web_bp.route("/set-language/<lang>", methods=["GET"])
 def set_language(lang):
     lang = set_language_preference(lang)
-    redirect_to = request.referrer or url_for("web.landing")
+    redirect_to = request.referrer or url_for("web.client_home")
     response = make_response(redirect(redirect_to))
     response.set_cookie("lang", lang, max_age=365 * 24 * 3600)
     return response
@@ -420,6 +420,10 @@ def register():
                         error = translate("register.error.password_short")
                     else:
                         error = str(e.message)
+                except Exception:
+                    current_app.logger.exception("Registration failed for %s", form.get("email"))
+                    db.session.rollback()
+                    error = translate("register.error.generic")
 
     from app.constants.trades import trade_choices
 
@@ -467,7 +471,7 @@ def logout():
     logout_user_session()
     if lang:
         session["lang"] = lang
-    return redirect(url_for("web.landing"))
+    return redirect(url_for("web.client_home"))
 
 
 @web_bp.route("/dashboard", methods=["GET"])

@@ -29,4 +29,4 @@ def _slug_taken(slug: str, tenant_id=None) -> bool:
     q = Tenant.query.filter(Tenant.public_slug == slug)
     if tenant_id:
         q = q.filter(Tenant.id != tenant_id)
-    return db.session.query(q.exists()).scalar()
+    return q.first() is not None

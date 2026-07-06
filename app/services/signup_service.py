@@ -34,7 +34,7 @@ def register_plumber(
 
     trade = trade_type if trade_type in TRADES else DEFAULT_TRADE
 
-  slug_base = f"{company_name}-{city}" if city else company_name
+    slug_base = f"{company_name}-{city}" if city else company_name
 
     tenant = Tenant(
         name=company_name,

@@ -1,0 +1,91 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ message.subject or 'Email' }} · Admin{% endblock %}
+{% block page_title %}{{ message.subject or '(sans objet)' }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.emails', box='inbox' if message.direction == 'inbound' else 'outbox') }}" class="admin-btn ghost">← Retour</a>
+  {% if message.direction == 'inbound' and smtp_configured %}
+  <a href="{{ url_for('admin.email_reply', message_id=message.id) }}" class="admin-btn">↩️ Répondre</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<article class="mail-detail">
+  <header class="mail-detail-head">
+    <div class="mail-detail-row">
+      <span class="mail-detail-label">De</span>
+      <span>{{ message.from_addr or '—' }}</span>
+    </div>
+    <div class="mail-detail-row">
+      <span class="mail-detail-label">À</span>
+      <span>{{ message.to_addr or '—' }}</span>
+    </div>
+    {% if message.cc_addrs %}
+    <div class="mail-detail-row">
+      <span class="mail-detail-label">Cc</span>
+      <span>{{ message.cc_addrs }}</span>
+    </div>
+    {% endif %}
+    <div class="mail-detail-row">
+      <span class="mail-detail-label">Date</span>
+      <span>{{ message.created_at.strftime('%d/%m/%Y à %H:%M') if message.created_at else '—' }}</span>
+      <span class="mail-status status-{{ message.status }}">{{ message.status }}</span>
+    </div>
+  </header>
+
+  {% if attachments %}
+  <section class="mail-attachments">
+    <h3>📎 Pièces jointes ({{ attachments|length }})</h3>
+    <ul>
+      {% for att in attachments %}
+      <li>
+        <a href="{{ url_for('admin.email_attachment', storage_key=att.storage_key) }}" class="admin-btn tiny ghost">
+          {{ att.filename }}
+          <span class="mail-att-size">({{ (att.size / 1024)|round(1) }} Ko)</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="mail-detail-body">
+    {% if message.html_body and message.is_html %}
+    <div class="mail-html-tabs">
+      <button type="button" class="mail-tab-btn active" data-tab="html">HTML</button>
+      <button type="button" class="mail-tab-btn" data-tab="plain">Texte</button>
+    </div>
+    <div class="mail-tab-panel active" id="tab-html">
+      <iframe class="mail-html-frame" sandbox="allow-same-origin" srcdoc="{{ message.html_body|e }}"></iframe>
+    </div>
+    <div class="mail-tab-panel" id="tab-plain">
+      <pre class="mail-plain">{{ message.body or '' }}</pre>
+    </div>
+    {% else %}
+    <pre class="mail-plain">{{ message.body or message.display_body or '(message vide)' }}</pre>
+    {% endif %}
+  </section>
+
+  {% if thread %}
+  <section class="mail-thread">
+    <h3>Fil de discussion</h3>
+    {% for t in thread %}
+    <a href="{{ url_for('admin.email_detail', message_id=t.id) }}" class="mail-thread-item">
+      <strong>{{ t.subject or '(sans objet)' }}</strong>
+      <span>{{ t.from_addr }} · {{ t.created_at.strftime('%d/%m %H:%M') if t.created_at else '' }}</span>
+    </a>
+    {% endfor %}
+  </section>
+  {% endif %}
+</article>
+
+<script>
+document.querySelectorAll('.mail-tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.mail-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.mail-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+{% endblock %}

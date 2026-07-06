@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}Répondre · Admin{% endblock %}
+{% block page_title %}Répondre — {{ original.subject or '(sans objet)' }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.email_detail', message_id=original.id) }}" class="admin-btn ghost">← Annuler</a>
+{% endblock %}
+
+{% block content %}
+<div class="mail-reply-context">
+  <p><strong>Message original</strong> de {{ original.from_addr }} le {{ original.created_at.strftime('%d/%m/%Y %H:%M') if original.created_at else '' }}</p>
+  <blockquote class="mail-quote">{{ original.preview }}</blockquote>
+</div>
+
+<form method="POST" action="{{ url_for('admin.email_reply', message_id=original.id) }}" class="db-form mail-compose-form">
+  <div class="db-form-grid">
+    <label>De<input type="email" value="{{ default_from }}" disabled></label>
+    <label>À<input type="email" name="to" value="{{ to_addr }}" required></label>
+    <label>Objet<input type="text" name="subject" value="{{ subject }}" required></label>
+  </div>
+  <label>Votre réponse<textarea name="body" rows="14" required>{{ body }}</textarea></label>
+  <label class="db-inline"><input type="checkbox" name="is_html"> Contenu HTML</label>
+  <button type="submit" class="admin-btn">Envoyer la réponse</button>
+</form>
+{% endblock %}

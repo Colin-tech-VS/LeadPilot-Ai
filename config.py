@@ -114,12 +114,21 @@ class Config:
     # received via a provider webhook (Mailgun/SendGrid) at /admin/email/inbound,
     # guarded by EMAIL_INBOUND_SECRET.
     SMTP_HOST = os.environ.get("SMTP_HOST", "")
-    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
     SMTP_USER = os.environ.get("SMTP_USER", "")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "1") not in ("0", "false", "False", "")
-    EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@pilotcore.fr")
+    SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "1") not in ("0", "false", "False", "")
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "0") not in ("0", "false", "False", "")
+    EMAIL_FROM = os.environ.get("EMAIL_FROM", "contact@pilotcore.fr")
     EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
+
+    # IMAP — réception boîte LWS (mail.pilotcore.fr:993)
+    IMAP_HOST = os.environ.get("IMAP_HOST", "")
+    IMAP_PORT = int(os.environ.get("IMAP_PORT", "993"))
+    IMAP_USER = os.environ.get("IMAP_USER", "")
+    IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD", "")
+    IMAP_USE_SSL = os.environ.get("IMAP_USE_SSL", "1") not in ("0", "false", "False", "")
+    IMAP_FOLDER = os.environ.get("IMAP_FOLDER", "INBOX")
 
     # Canonical public URL (https://www.example.com) for Twilio webhooks and links.
     # Accepts PUBLIC_BASE_URL or legacy SERVER_NAME; never passed to Flask as

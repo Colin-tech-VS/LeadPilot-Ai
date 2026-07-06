@@ -17,7 +17,7 @@ from flask import (
     request,
     url_for,
 )
-from sqlalchemy import inspect as sa_inspect
+from sqlalchemy import inspect as sa_inspect, or_
 
 from app.core.admin_auth import (
     admin_required,
@@ -40,7 +40,7 @@ from app.models.site_page import SitePage
 from app.models.social_post import SocialPost
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services import admin_email, analytics, content_ai, content_studio, social, traffic
+from app.services import admin_email, analytics, content_ai, content_studio, imap_mailbox, social, traffic
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
 admin_bp = Blueprint(
@@ -361,34 +361,167 @@ def _pk_value(model, row_id):
 @admin_bp.route("/emails")
 @admin_required
 def emails():
-    box = request.args.get("box", "outbox")
+    box = request.args.get("box", "inbox")
+    q = request.args.get("q", "").strip()
     query = EmailMessage.query
     if box == "inbox":
         query = query.filter(EmailMessage.direction == "inbound")
     elif box == "outbox":
         query = query.filter(EmailMessage.direction == "outbound")
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                EmailMessage.subject.ilike(like),
+                EmailMessage.from_addr.ilike(like),
+                EmailMessage.to_addr.ilike(like),
+                EmailMessage.body.ilike(like),
+            )
+        )
     messages = query.order_by(EmailMessage.created_at.desc()).limit(100).all()
+    unread = EmailMessage.query.filter(
+        EmailMessage.direction == "inbound",
+        EmailMessage.read_at.is_(None),
+    ).count()
     return render_template(
         "admin/emails.html",
         messages=messages,
         box=box,
+        q=q,
+        unread=unread,
+        smtp_configured=admin_email.is_configured(),
+        imap_configured=imap_mailbox.is_configured(),
+        default_from=admin_email.default_from_addr(),
+    )
+
+
+@admin_bp.route("/emails/<uuid:message_id>")
+@admin_required
+def email_detail(message_id):
+    msg = db.session.get(EmailMessage, message_id)
+    if not msg:
+        abort(404)
+    if msg.direction == "inbound" and msg.read_at is None:
+        msg.mark_read()
+        db.session.commit()
+    thread = []
+    if msg.in_reply_to_id:
+        parent = db.session.get(EmailMessage, msg.in_reply_to_id)
+        if parent:
+            thread.append(parent)
+    thread.extend(
+        EmailMessage.query.filter_by(in_reply_to_id=msg.id)
+        .order_by(EmailMessage.created_at.asc())
+        .all()
+    )
+    return render_template(
+        "admin/email_detail.html",
+        message=msg,
+        thread=thread,
+        attachments=msg.attachments(),
         smtp_configured=admin_email.is_configured(),
     )
 
 
-@admin_bp.route("/emails/send", methods=["POST"])
+@admin_bp.route("/emails/<uuid:message_id>/read", methods=["POST"])
 @admin_required
-def emails_send():
+def email_mark_read(message_id):
+    msg = db.session.get(EmailMessage, message_id)
+    if not msg:
+        abort(404)
+    msg.mark_read()
+    db.session.commit()
+    return redirect(url_for("admin.email_detail", message_id=msg.id))
+
+
+@admin_bp.route("/emails/<uuid:message_id>/reply", methods=["GET", "POST"])
+@admin_required
+def email_reply(message_id):
+    original = db.session.get(EmailMessage, message_id)
+    if not original:
+        abort(404)
+
+    if request.method == "GET":
+        quoted = (original.body or original.html_body or "").strip()
+        if quoted:
+            quoted = "\n".join(f"> {line}" for line in quoted.splitlines())
+        return render_template(
+            "admin/email_compose.html",
+            original=original,
+            to_addr=original.from_addr or "",
+            subject=original.reply_subject(),
+            body=f"\n\n{quoted}" if quoted else "",
+            default_from=admin_email.default_from_addr(),
+        )
+
     to_addr = request.form.get("to", "").strip()
     subject = request.form.get("subject", "").strip()
     body = request.form.get("body", "")
     is_html = request.form.get("is_html") == "on"
     if not to_addr or not subject:
         flash("Destinataire et objet obligatoires.", "error")
+        return redirect(url_for("admin.email_reply", message_id=original.id))
+
+    msg = admin_email.send_email(
+        to_addr,
+        subject,
+        body,
+        is_html=is_html,
+        in_reply_to_row=original,
+    )
+    flash(f"Réponse {msg.status} → {to_addr}.", "success")
+    return redirect(url_for("admin.email_detail", message_id=msg.id))
+
+
+@admin_bp.route("/emails/sync", methods=["POST"])
+@admin_required
+def emails_sync():
+    result = imap_mailbox.sync_inbox()
+    if result.get("ok"):
+        flash(
+            f"Synchronisation OK — {result.get('synced', 0)} nouveau(x), "
+            f"{result.get('skipped', 0)} ignoré(s).",
+            "success",
+        )
+    else:
+        flash(f"Échec sync IMAP : {result.get('error', 'erreur inconnue')}", "error")
+    return redirect(url_for("admin.emails", box="inbox"))
+
+
+@admin_bp.route("/emails/attachment/<storage_key>")
+@admin_required
+def email_attachment(storage_key):
+    path = imap_mailbox.get_attachment_path(storage_key)
+    if not path:
+        abort(404)
+    from flask import send_file
+
+    download_name = storage_key
+    row = EmailMessage.query.filter(EmailMessage.attachments_json.contains(storage_key)).first()
+    if row:
+        for att in row.attachments():
+            if att.get("storage_key") == storage_key:
+                download_name = att.get("filename") or download_name
+                break
+    return send_file(path, as_attachment=True, download_name=download_name)
+
+
+@admin_bp.route("/emails/send", methods=["POST"])
+@admin_required
+def emails_send():
+    to_addr = request.form.get("to", "").strip()
+    cc_addrs = request.form.get("cc", "").strip() or None
+    subject = request.form.get("subject", "").strip()
+    body = request.form.get("body", "")
+    is_html = request.form.get("is_html") == "on"
+    if not to_addr or not subject:
+        flash("Destinataire et objet obligatoires.", "error")
         return redirect(url_for("admin.emails", box="outbox"))
-    msg = admin_email.send_email(to_addr, subject, body, is_html=is_html)
+    msg = admin_email.send_email(
+        to_addr, subject, body, is_html=is_html, cc_addrs=cc_addrs
+    )
     flash(f"Email {msg.status} → {to_addr}.", "success")
-    return redirect(url_for("admin.emails", box="outbox"))
+    return redirect(url_for("admin.email_detail", message_id=msg.id))
 
 
 @admin_bp.route("/email/inbound", methods=["POST"])
@@ -409,6 +542,8 @@ def email_inbound():
         to_addr=data.get("to") or data.get("recipient"),
         subject=data.get("subject"),
         body=data.get("body-plain") or data.get("text") or data.get("body"),
+        html_body=data.get("body-html") or data.get("html"),
+        is_html=bool(data.get("body-html") or data.get("html")),
         provider_id=data.get("Message-Id") or data.get("message_id"),
     )
     return jsonify({"ok": True}), 200

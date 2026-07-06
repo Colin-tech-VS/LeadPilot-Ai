@@ -193,3 +193,21 @@ def _ensure_schema_updates():
         if col_name not in quote_columns:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE quotes ADD COLUMN {col_name} {col_type}"))
+
+    if "email_messages" not in inspector.get_table_names():
+        return
+    email_columns = {col["name"] for col in inspector.get_columns("email_messages")}
+    email_patches = {
+        "html_body": "TEXT",
+        "cc_addrs": "VARCHAR(500)",
+        "in_reply_to_id": "UUID",
+        "rfc_in_reply_to": "VARCHAR(255)",
+        "references_header": "TEXT",
+        "imap_uid": "VARCHAR(64)",
+        "imap_folder": "VARCHAR(64)",
+        "attachments_json": "TEXT",
+    }
+    for col_name, col_type in email_patches.items():
+        if col_name not in email_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE email_messages ADD COLUMN {col_name} {col_type}"))

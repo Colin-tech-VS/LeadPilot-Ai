@@ -34,59 +34,103 @@
 {% endblock %}
 
 {% block public_nav %}
-<a href="{{ url_for('web.client_home') }}">{{ _('directory.nav') }}</a>
-<a href="{{ url_for('web.pro_landing') }}" class="public-nav-link active">{{ _('directory.nav_pro') }}</a>
-<a href="#demo">{{ _('landing.nav_demo') }}</a>
+<a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+<a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+<a href="{{ url_for('web.pro_landing') }}" class="active">{{ _('directory.nav_pro') }}</a>
+<a href="#demo">{{ _('vitrine.nav_demo') }}</a>
 <a href="#pricing">{{ _('landing.nav_pricing') }}</a>
-<a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
-<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('landing.nav_signup') }}</a>
+<a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
+<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">{{ _('landing.nav_signup') }}</a>
 {% endblock %}
 
 {% block content %}
-<section class="landing-hero">
-  <div class="container landing-hero-grid">
-    <div class="landing-hero-copy landing-fade">
-      <span class="landing-badge landing-badge--pro">{{ _('landing.hero_badge') }}</span>
+<section class="v-hero v-hero--split">
+  <div class="container v-hero-grid">
+    <div>
+      <p class="v-kicker">{{ _('landing.hero_badge') }}</p>
       <h1>{{ _('landing.hero_title') }}</h1>
-      <p class="landing-hero-lead">{{ _('landing.hero_subtitle') }}</p>
-      <p class="landing-hero-trial">{{ _('landing.hero_trial') }}</p>
-      <div class="landing-hero-cta">
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg landing-cta-primary">{{ _('landing.cta_signup') }}</a>
+      <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
+      <p class="v-search-hint" style="margin-bottom:0;">{{ _('landing.hero_trial') }}</p>
+      <div class="v-hero-cta">
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
         <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_demo') }}</a>
       </div>
-      <ul class="landing-trust">
+      <ul class="v-trust">
         <li>{{ _('landing.trust_1') }}</li>
         <li>{{ _('landing.trust_2') }}</li>
         <li>{{ _('landing.trust_3') }}</li>
       </ul>
     </div>
-    <div class="landing-hero-visual landing-fade landing-delay-1" aria-hidden="true">
-      <div class="hero-orbit hero-orbit-1"></div>
-      <div class="hero-orbit hero-orbit-2"></div>
-      <div class="hero-phone">
-        <div class="hero-phone-notch"></div>
-        <div class="hero-phone-screen">
-          <p class="hero-call-label">{{ _('landing.demo_incoming') }}</p>
-          <p class="hero-call-number">{{ twilio_ai_phone_display }}</p>
-          <div class="hero-call-wave">
-            <span></span><span></span><span></span><span></span><span></span>
+    <div class="v-phone" aria-hidden="true">
+      <div class="v-phone-screen">
+        <p class="v-phone-status">{{ _('landing.demo_incoming') }}</p>
+        <p class="v-phone-number">{{ twilio_ai_phone_display }}</p>
+        <div class="v-phone-transcript">
+          <div class="v-bubble v-bubble--in">
+            <span class="v-bubble-label">{{ _('landing.demo_caller') }}</span>
+            {{ _('landing.scenario_paris_text') }}
           </div>
-          <p class="hero-call-ai">{{ _('landing.demo_ai_speaking') }}</p>
+          <div class="v-bubble v-bubble--out">
+            <span class="v-bubble-label">{{ _('landing.demo_ai_voice') }}</span>
+            {{ _('landing.demo_reply_book') }}
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="demo" class="landing-section landing-demo">
+<section class="v-section">
   <div class="container">
-    <div class="landing-section-head landing-fade">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.capabilities_kicker') }}</p>
+      <h2>{{ _('landing.capabilities_title') }}</h2>
+      <p>{{ _('landing.features_subtitle') }}</p>
+    </div>
+    <div class="v-bento">
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">☎</div>
+        <h3>{{ _('landing.cap_1_title') }}</h3>
+        <p>{{ _('landing.cap_1_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">◎</div>
+        <h3>{{ _('landing.cap_2_title') }}</h3>
+        <p>{{ _('landing.cap_2_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">◷</div>
+        <h3>{{ _('landing.cap_3_title') }}</h3>
+        <p>{{ _('landing.cap_3_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">⊕</div>
+        <h3>{{ _('landing.cap_4_title') }}</h3>
+        <p>{{ _('landing.cap_4_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">▦</div>
+        <h3>{{ _('landing.cap_5_title') }}</h3>
+        <p>{{ _('landing.cap_5_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">◈</div>
+        <h3>{{ _('landing.cap_6_title') }}</h3>
+        <p>{{ _('landing.cap_6_desc') }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="demo" class="landing-section landing-demo v-section">
+  <div class="container">
+    <div class="landing-section-head v-section-head v-section-head--center">
       <span class="demo-notice-badge">{{ _('landing.demo_notice') }}</span>
       <h2>{{ _('landing.demo_title') }}</h2>
       <p>{{ _('landing.demo_subtitle') }}</p>
     </div>
 
-    <div class="demo-grid landing-fade landing-delay-1">
+    <div class="demo-grid">
       <div class="demo-phone-wrap">
         <div class="demo-phone">
           <div class="demo-phone-header">
@@ -142,58 +186,39 @@
   </div>
 </section>
 
-<section id="pro" class="landing-section landing-features">
+<section class="v-section v-section--tight" style="background:var(--v-surface);border-top:1px solid var(--v-border);">
   <div class="container">
-    <div class="landing-section-head landing-fade">
-      <h2>{{ _('landing.features_title') }}</h2>
-      <p>{{ _('landing.features_subtitle') }}</p>
-    </div>
-    <div class="features-grid">
-      <article class="feature-card landing-fade">
-        <span class="feature-icon">🤖</span>
-        <h3>{{ _('landing.feature_1_title') }}</h3>
-        <p>{{ _('landing.feature_1_desc') }}</p>
-      </article>
-      <article class="feature-card landing-fade landing-delay-1">
-        <span class="feature-icon">📍</span>
-        <h3>{{ _('landing.feature_2_title') }}</h3>
-        <p>{{ _('landing.feature_2_desc') }}</p>
-      </article>
-      <article class="feature-card landing-fade landing-delay-2">
-        <span class="feature-icon">📅</span>
-        <h3>{{ _('landing.feature_3_title') }}</h3>
-        <p>{{ _('landing.feature_3_desc') }}</p>
-      </article>
-      <article class="feature-card landing-fade landing-delay-3">
-        <span class="feature-icon">🗺️</span>
-        <h3>{{ _('landing.feature_4_title') }}</h3>
-        <p>{{ _('landing.feature_4_desc') }}</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="landing-section landing-steps">
-  <div class="container">
-    <div class="landing-section-head landing-fade">
+    <div class="v-section-head v-section-head--center">
       <h2>{{ _('landing.steps_title') }}</h2>
     </div>
-    <ol class="steps-list">
-      <li class="step-item landing-fade"><span class="step-num">1</span><div><strong>{{ _('landing.step_1_title') }}</strong><p>{{ _('landing.step_1_desc') }}</p></div></li>
-      <li class="step-item landing-fade landing-delay-1"><span class="step-num">2</span><div><strong>{{ _('landing.step_2_title') }}</strong><p>{{ _('landing.step_2_desc') }}</p></div></li>
-      <li class="step-item landing-fade landing-delay-2"><span class="step-num">3</span><div><strong>{{ _('landing.step_3_title') }}</strong><p>{{ _('landing.step_3_desc') }}</p></div></li>
+    <ol class="v-steps">
+      <li class="v-step">
+        <span class="v-step-num">1</span>
+        <strong>{{ _('landing.step_1_title') }}</strong>
+        <p>{{ _('landing.step_1_desc') }}</p>
+      </li>
+      <li class="v-step">
+        <span class="v-step-num">2</span>
+        <strong>{{ _('landing.step_2_title') }}</strong>
+        <p>{{ _('landing.step_2_desc') }}</p>
+      </li>
+      <li class="v-step">
+        <span class="v-step-num">3</span>
+        <strong>{{ _('landing.step_3_title') }}</strong>
+        <p>{{ _('landing.step_3_desc') }}</p>
+      </li>
     </ol>
   </div>
 </section>
 
-<section id="pricing" class="landing-section landing-pricing">
+<section id="pricing" class="landing-section landing-pricing v-section">
   <div class="container">
-    <div class="landing-section-head landing-fade">
+    <div class="landing-section-head v-section-head v-section-head--center">
       <h2>{{ _('landing.pricing_title') }}</h2>
       <p>{{ _('landing.pricing_subtitle') }}</p>
       <p class="landing-pricing-trial-hint">{{ _('landing.pricing_trial_intro') }}</p>
     </div>
-    <div class="pricing-grid landing-fade landing-delay-1">
+    <div class="pricing-grid">
       <article class="pricing-card pricing-card-trial">
         <span class="pricing-badge pricing-badge-trial">{{ _('landing.pricing_trial_badge') }}</span>
         <h3 class="pricing-name">{{ _('landing.pricing_trial_name') }}</h3>
@@ -224,16 +249,16 @@
       </article>
       {% endfor %}
     </div>
-    <p class="pricing-note landing-fade">{{ _('landing.pricing_note') }}</p>
+    <p class="pricing-note">{{ _('landing.pricing_note') }}</p>
   </div>
 </section>
 
-<section id="faq" class="landing-section landing-faq">
+<section id="faq" class="landing-section landing-faq v-section">
   <div class="container">
-    <div class="landing-section-head landing-fade">
+    <div class="v-section-head v-section-head--center">
       <h2>{{ _('landing.faq_title') }}</h2>
     </div>
-    <div class="faq-list landing-fade landing-delay-1">
+    <div class="faq-list">
       <details class="faq-item" open>
         <summary>{{ _('landing.faq_1_q') }}</summary>
         <p>{{ _('landing.faq_1_a') }}</p>
@@ -254,8 +279,8 @@
   </div>
 </section>
 
-<section class="landing-cta-band">
-  <div class="container landing-cta-inner landing-fade">
+<section class="v-cta-band">
+  <div class="container">
     <h2>{{ _('landing.cta_band_title') }}</h2>
     <p>{{ _('landing.cta_band_sub') }}</p>
     <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>

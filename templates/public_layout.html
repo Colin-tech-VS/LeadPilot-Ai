@@ -13,8 +13,7 @@
   <link rel="canonical" href="{{ canonical_url(request.path) }}">
   {% endblock %}
   {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
-  {# --- Site-wide SEO defaults (no per-page conflict) --- #}
-  <meta name="theme-color" content="#1B57E0">
+  <meta name="theme-color" content="#2563EB">
   <meta property="og:site_name" content="PilotCore">
   <meta property="og:image" content="{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}">
   <meta name="twitter:image" content="{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}">
@@ -34,45 +33,42 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=14">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=16">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=2">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">
   {% block head_extra %}{% endblock %}
 </head>
-<body class="public-page {% block body_class %}{% endblock %}">
-  <header class="public-header">
-    <div class="container public-shell">
-      <div class="public-header-inner">
-        <a href="{{ url_for('web.client_home') }}" class="brand">
-          {{ brand_logo('md', 'public') }}
-          <span class="brand-text">{{ _('app.name') }}</span>
-        </a>
-        <div class="public-header-actions">
-          <div class="lang-switcher">
-            <a href="{{ url_for('web.set_language', lang='fr') }}" class="lang-btn{% if lang == 'fr' %} active{% endif %}">{{ _('lang.fr') }}</a>
-            <span class="lang-sep">|</span>
-            <a href="{{ url_for('web.set_language', lang='en') }}" class="lang-btn{% if lang == 'en' %} active{% endif %}">{{ _('lang.en') }}</a>
-          </div>
-          <button type="button" class="nav-toggle public-nav-toggle" id="public-nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="public-nav">
-            <span class="nav-toggle-bar"></span>
-            <span class="nav-toggle-bar"></span>
-            <span class="nav-toggle-bar"></span>
-          </button>
-        </div>
-      </div>
-      <nav class="public-nav" id="public-nav">
-        <div class="public-nav-inner">
-          {% block public_nav %}
-          <a href="{{ url_for('web.client_home') }}" class="public-nav-link public-nav-link--primary">{{ _('directory.nav') }}</a>
-          <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
-          <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-          {% if session.get('role') == 'customer' %}
-          <a href="{{ url_for('customer.account') }}" class="public-nav-link">Mon espace</a>
-          {% else %}
-          <a href="{{ url_for('customer.login') }}" class="public-nav-link">Espace client</a>
-          {% endif %}
-          <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
-          {% endblock %}
-        </div>
+<body class="public-page vitrine {% block body_class %}{% endblock %}">
+  <header class="v-header">
+    <div class="container v-header-inner">
+      <a href="{{ url_for('web.client_home') }}" class="v-brand brand">
+        {{ brand_logo('md', 'public') }}
+        <span class="brand-text">{{ _('app.name') }}</span>
+      </a>
+      <nav class="v-nav public-nav" id="public-nav">
+        {% block public_nav %}
+        <a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+        <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+        <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
+        {% if session.get('role') == 'customer' %}
+        <a href="{{ url_for('customer.account') }}">Mon espace</a>
+        {% else %}
+        <a href="{{ url_for('customer.login') }}">Espace client</a>
+        {% endif %}
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">{{ _('landing.nav_signup') }}</a>
+        {% endblock %}
       </nav>
+      <div class="v-header-end">
+        <div class="lang-switcher">
+          <a href="{{ url_for('web.set_language', lang='fr') }}" class="lang-btn{% if lang == 'fr' %} active{% endif %}">{{ _('lang.fr') }}</a>
+          <span class="lang-sep">|</span>
+          <a href="{{ url_for('web.set_language', lang='en') }}" class="lang-btn{% if lang == 'en' %} active{% endif %}">{{ _('lang.en') }}</a>
+        </div>
+        <button type="button" class="nav-toggle public-nav-toggle" id="public-nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="public-nav">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -80,20 +76,43 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="public-footer">
-    <div class="container public-footer-inner">
-      <p>&copy; {{ _('landing.footer') }} · {{ _('app.name') }}</p>
-      <div class="public-footer-links">
-        <a href="{{ url_for('web.artisan_directory') }}">Trouver un artisan</a>
-        <a href="{{ url_for('customer.login') }}">Espace client</a>
-        <a href="{{ url_for('web.pro_landing') }}">Espace pro</a>
-        <a href="{{ url_for('web.legal_notice') }}">Mentions légales</a>
-        <a href="{{ url_for('web.privacy') }}">Confidentialité</a>
-        <a href="{{ url_for('web.cgu') }}">CGU</a>
-        <a href="{{ url_for('web.cookies_policy') }}">Cookies</a>
+  <footer class="v-footer">
+    <div class="container">
+      <div class="v-footer-grid">
+        <div class="v-footer-brand">
+          <a href="{{ url_for('web.client_home') }}" class="v-brand brand">
+            {{ brand_logo('sm', 'public') }}
+            <span class="brand-text">{{ _('app.name') }}</span>
+          </a>
+          <p>{{ _('vitrine.footer_tagline') }}</p>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_clients') }}</h4>
+          <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+          <a href="{{ url_for('customer.login') }}">Espace client</a>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_pros') }}</h4>
+          <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
+          <a href="{{ url_for('web.register') }}">{{ _('landing.nav_signup') }}</a>
+          <a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_legal') }}</h4>
+          <a href="{{ url_for('web.legal_notice') }}">Mentions légales</a>
+          <a href="{{ url_for('web.privacy') }}">Confidentialité</a>
+          <a href="{{ url_for('web.cgu') }}">CGU</a>
+          <a href="{{ url_for('web.cookies_policy') }}">Cookies</a>
+        </div>
+      </div>
+      <div class="v-footer-bottom">
+        <span>&copy; {{ _('landing.footer') }} · {{ _('app.name') }}</span>
       </div>
     </div>
   </footer>
+
+  {# Legacy footer kept for auth pages that may override body_class without vitrine styles #}
+  <footer class="public-footer" hidden aria-hidden="true"></footer>
 
   {% include 'partials/cookie_consent.html' %}
 

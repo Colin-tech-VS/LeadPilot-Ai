@@ -17,37 +17,37 @@
 {% endblock %}
 
 {% block public_nav %}
-<a href="{{ url_for('web.client_home') }}">{{ _('directory.nav') }}</a>
-<a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link active">{{ _('client.nav_directory') }}</a>
+<a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+<a href="{{ url_for('web.artisan_directory') }}" class="active">{{ _('client.nav_directory') }}</a>
 <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-<a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
-<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
+<a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
+<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">{{ _('directory.nav_pro_cta') }}</a>
 {% endblock %}
 
 {% block content %}
-<section class="directory-hero directory-hero--doctolib">
+<section class="v-hero v-section--tight" style="padding-bottom:32px;">
   <div class="container">
-    <p class="directory-hero-kicker">{{ _('directory.hero_kicker') }}</p>
-    <h1>{{ _('directory.hero_title') }}</h1>
-    <p class="directory-hero-lead">{{ _('directory.hero_subtitle') }}</p>
+    <p class="v-kicker">{{ _('directory.hero_kicker') }}</p>
+    <h1 style="font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-0.04em;text-align:center;margin:0 auto 16px;max-width:640px;">{{ _('directory.hero_title') }}</h1>
+    <p class="v-hero-lead">{{ _('directory.hero_subtitle') }}</p>
 
-    <form class="directory-ai" id="directory-ai-form" role="search">
-      <p class="directory-ai-kicker">{{ _('directory.ai_kicker') }}</p>
-      <div class="directory-ai-bar">
+    <div class="v-search-wrap">
+      <form class="v-search-primary" id="directory-ai-form" role="search">
         <input type="search" id="directory-ai-input" name="q"
                value="{{ request.args.get('ai', '') }}"
                placeholder="{{ _('directory.ai_placeholder') }}"
                aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
-        <button type="submit" class="btn btn-primary btn-lg directory-ai-btn">
+        <button type="submit" class="btn btn-primary btn-lg">
           <span class="directory-ai-btn-label">{{ _('directory.ai_btn') }}</span>
           <span class="directory-search-spinner" aria-hidden="true"></span>
         </button>
-      </div>
-      <p class="directory-ai-hint">{{ _('directory.ai_hint') }}</p>
+      </form>
+      <p class="v-search-hint">{{ _('directory.ai_hint') }}</p>
       <p class="directory-ai-understood" id="directory-ai-understood" hidden></p>
-    </form>
 
-    <form class="directory-search" id="directory-search-form" method="GET" action="{{ url_for('web.artisan_directory') }}">
+      <details class="v-search-classic">
+        <summary>{{ _('vitrine.classic_search') }}</summary>
+        <form class="directory-search" id="directory-search-form" method="GET" action="{{ url_for('web.artisan_directory') }}">
       <div class="directory-search-grid">
         <label>
           <span>{{ _('directory.search_what') }}</span>
@@ -68,13 +68,15 @@
           </span>
         </button>
       </div>
-    </form>
+        </form>
+      </details>
+    </div>
 
-    <div class="directory-trade-chips">
+    <div class="v-chips">
       {% for t in trades[:8] %}
-      <a href="?metier={{ t.key }}" class="directory-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
+      <a href="?metier={{ t.key }}" class="v-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
       {% endfor %}
-      <a href="?metier=" class="directory-chip directory-chip--muted">{{ _('directory.all_trades') }}</a>
+      <a href="?metier=" class="v-chip">{{ _('directory.all_trades') }}</a>
     </div>
   </div>
 </section>
@@ -110,14 +112,13 @@
   </div>
 </section>
 
-<section class="directory-pro-band">
-  <div class="container directory-pro-inner">
+<section class="v-pro-band">
+  <div class="container v-pro-band-inner">
     <div>
-      <span class="directory-pro-badge">{{ _('directory.pro_badge') }}</span>
       <h2>{{ _('directory.pro_title') }}</h2>
       <p>{{ _('directory.pro_subtitle') }}</p>
     </div>
-    <a href="{{ url_for('web.register') }}" class="btn btn-light btn-lg">{{ _('directory.pro_cta') }}</a>
+    <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('directory.pro_cta') }}</a>
   </div>
 </section>
 {% endblock %}

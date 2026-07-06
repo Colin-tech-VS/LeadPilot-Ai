@@ -1,5 +1,6 @@
 {% extends "public_layout.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
+{% from 'macros/artisan_card.html' import artisan_card with context %}
 
 {% block title %}{{ _('directory.meta_title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-directory{% endblock %}
@@ -35,6 +36,7 @@
       <p class="directory-ai-kicker">{{ _('directory.ai_kicker') }}</p>
       <div class="directory-ai-bar">
         <input type="search" id="directory-ai-input" name="q"
+               value="{{ request.args.get('ai', '') }}"
                placeholder="{{ _('directory.ai_placeholder') }}"
                aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
         <button type="submit" class="btn btn-primary btn-lg directory-ai-btn">
@@ -84,6 +86,11 @@
          data-count-tpl="{{ _('directory.results_count', count='{count}') }}"
          data-book-cta="{{ _('directory.book_cta') }}"
          data-city-unknown="{{ _('directory.city_unknown') }}"
+         data-verified="Vérifié"
+         data-feature-online="{{ _('directory.feature_online') }}"
+         data-feature247="{{ _('directory.feature_247') }}"
+         data-radius-tpl="{{ _('directory.radius_km', km='{km}') }}"
+         data-default-blurb-tpl="{{ _('directory.profile_default_blurb', name='{name}', trade='{trade}') }}"
          data-ai-understood="{{ _('directory.ai_understood', what='{what}') }}"
          data-ai-where="{{ _('directory.ai_understood_where', city='{city}') }}"
          data-ai-relaxed="{{ _('directory.ai_relaxed') }}">
@@ -92,14 +99,7 @@
 
     <div class="directory-grid" id="directory-grid" {% if not artisans %}hidden{% endif %}>
       {% for a in artisans %}
-      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card">
-        <div class="directory-card-icon">{% for t in trades if t.key == a.trade_type %}{{ t.icon }}{% endfor %}</div>
-        <h2>{{ a.name }}</h2>
-        <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>
-        <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} ({{ a.postal_code }}){% endif %}</p>
-        {% if a.public_blurb %}<p class="directory-card-blurb">{{ a.public_blurb }}</p>{% endif %}
-        <span class="directory-card-cta">{{ _('directory.book_cta') }} →</span>
-      </a>
+      {{ artisan_card(a, trades) }}
       {% endfor %}
     </div>
 
@@ -125,5 +125,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=2"></script>
 {% endblock %}

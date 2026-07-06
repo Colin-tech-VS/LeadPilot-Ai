@@ -1,0 +1,27 @@
+{# Rich artisan card, rendered from a Tenant object `a` and the `trades` list.
+   Keep this markup in sync with static/js/directory.js `cardHtml()`. #}
+{% macro artisan_card(a, trades) %}
+{# namespace so the values set inside the loop survive its scope #}
+{% set ns = namespace(label='', icon='🛠️') %}
+{% for t in trades if t.key == a.trade_type %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
+<a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card">
+  <div class="directory-card-top">
+    <div class="directory-card-avatar">{{ ns.icon }}</div>
+    <div class="directory-card-heading">
+      <h2>{{ a.name }}</h2>
+      <span class="directory-card-trade">{{ ns.icon }} {{ ns.label }}</span>
+    </div>
+    <span class="directory-card-verified">✓ Vérifié</span>
+  </div>
+  <div class="directory-card-body">
+    <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} ({{ a.postal_code }}){% endif %}
+      {%- if a.service_radius_km %} · {{ _('directory.radius_km', km=a.service_radius_km) }}{% endif %}</p>
+    <p class="directory-card-blurb">{{ a.public_blurb or _('directory.profile_default_blurb', name=a.name, trade=ns.label) }}</p>
+    <div class="directory-card-features">
+      <span class="directory-card-feature">⚡ {{ _('directory.feature_online') }}</span>
+      <span class="directory-card-feature">🕐 {{ _('directory.feature_247') }}</span>
+    </div>
+    <span class="directory-card-cta">{{ _('directory.book_cta') }} →</span>
+  </div>
+</a>
+{% endmacro %}

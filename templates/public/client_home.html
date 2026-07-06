@@ -1,5 +1,6 @@
 {% extends "public_layout.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
+{% from 'macros/artisan_card.html' import artisan_card with context %}
 
 {% block title %}{{ _('client.meta_title') }}{% endblock %}
 {% block body_class %}page-client-home{% endblock %}
@@ -44,6 +45,18 @@
     <h1>{{ _('client.hero_title') }}</h1>
     <p class="directory-hero-lead">{{ _('client.hero_subtitle') }}</p>
 
+    <form class="directory-ai" action="{{ url_for('web.artisan_directory') }}" method="GET">
+      <p class="directory-ai-kicker">{{ _('directory.ai_kicker') }}</p>
+      <div class="directory-ai-bar">
+        <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}"
+               aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-lg directory-ai-btn">
+          <span class="directory-ai-btn-label">{{ _('directory.ai_btn') }}</span>
+        </button>
+      </div>
+      <p class="directory-ai-hint">{{ _('directory.ai_hint') }}</p>
+    </form>
+
     <form class="directory-search" action="{{ url_for('web.artisan_directory') }}" method="GET">
       <div class="directory-search-grid">
         <label>
@@ -83,13 +96,7 @@
     </div>
     <div class="directory-grid">
       {% for a in featured_artisans %}
-      <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card">
-        <div class="directory-card-icon">{% for t in trades if t.key == a.trade_type %}{{ t.icon }}{% endfor %}</div>
-        <h2>{{ a.name }}</h2>
-        <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>
-        <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}</p>
-        <span class="directory-card-cta">{{ _('directory.book_cta') }} →</span>
-      </a>
+      {{ artisan_card(a, trades) }}
       {% endfor %}
     </div>
     <p class="client-more-link"><a href="{{ url_for('web.artisan_directory') }}">{{ _('client.browse_all') }} →</a></p>

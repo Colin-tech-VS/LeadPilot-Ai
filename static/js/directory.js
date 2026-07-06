@@ -41,29 +41,31 @@
   }
 
   function cardHtml(a) {
+    const icon = escapeHtml(a.trade_icon || "🛠️");
     const city = a.city || labels.cityUnknown || "";
     const postal = a.postal_code ? " (" + a.postal_code + ")" : "";
-    const blurb = a.blurb ? '<p class="directory-card-blurb">' + escapeHtml(a.blurb) + "</p>" : "";
+    const radius = a.radius_km ? " · " + (labels.radiusTpl || "{km} km").replace("{km}", a.radius_km) : "";
+    const blurb = a.blurb || (labels.defaultBlurbTpl || "Artisan {trade}")
+      .replace("{trade}", a.trade_label || "").replace("{name}", a.name || "");
     return (
-      '<a href="/artisans/' +
-      encodeURIComponent(a.slug) +
-      '" class="directory-card">' +
-      '<div class="directory-card-icon">' +
-      escapeHtml(a.trade_icon) +
-      "</div>" +
-      "<h2>" +
-      escapeHtml(a.name) +
-      "</h2>" +
-      '<p class="directory-card-trade">' +
-      escapeHtml(a.trade_label) +
-      "</p>" +
-      '<p class="directory-card-city">📍 ' +
-      escapeHtml(city + postal) +
-      "</p>" +
-      blurb +
-      '<span class="directory-card-cta">' +
-      escapeHtml(labels.bookCta || "Prendre RDV") +
-      " →</span>" +
+      '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="directory-card">' +
+        '<div class="directory-card-top">' +
+          '<div class="directory-card-avatar">' + icon + "</div>" +
+          '<div class="directory-card-heading">' +
+            "<h2>" + escapeHtml(a.name) + "</h2>" +
+            '<span class="directory-card-trade">' + icon + " " + escapeHtml(a.trade_label || "") + "</span>" +
+          "</div>" +
+          '<span class="directory-card-verified">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
+        "</div>" +
+        '<div class="directory-card-body">' +
+          '<p class="directory-card-city">📍 ' + escapeHtml(city + postal + radius) + "</p>" +
+          '<p class="directory-card-blurb">' + escapeHtml(blurb) + "</p>" +
+          '<div class="directory-card-features">' +
+            '<span class="directory-card-feature">⚡ ' + escapeHtml(labels.featureOnline || "RDV en ligne") + "</span>" +
+            '<span class="directory-card-feature">🕐 ' + escapeHtml(labels.feature247 || "Réponse 24/7") + "</span>" +
+          "</div>" +
+          '<span class="directory-card-cta">' + escapeHtml(labels.bookCta || "Prendre RDV") + " →</span>" +
+        "</div>" +
       "</a>"
     );
   }
@@ -210,6 +212,11 @@
       e.preventDefault();
       runAiSearch();
     });
+    // Handoff from the homepage: /artisans?ai=<query> pre-fills the AI input,
+    // so run the AI search automatically on load.
+    if (aiInput && aiInput.value.trim()) {
+      runAiSearch();
+    }
   }
 
   document.querySelectorAll(".directory-chip[data-trade]").forEach(function (chip) {

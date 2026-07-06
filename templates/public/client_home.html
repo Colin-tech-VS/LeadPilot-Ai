@@ -39,82 +39,93 @@
 {% endblock %}
 
 {% block content %}
-<section class="v-hero">
-  <div class="container">
-    <p class="v-kicker">{{ _('client.hero_kicker') }}</p>
-    <h1>{{ _('client.hero_title') }}</h1>
-    <p class="v-hero-lead">{{ _('client.hero_subtitle') }}</p>
+<section class="v-hero v-hero--client">
+  <div class="container v-hero-client-grid">
+    <div>
+      <p class="v-kicker">{{ _('client.hero_kicker') }}</p>
+      <h1>{{ _('client.hero_title') }}</h1>
+      <p class="v-hero-lead">{{ _('client.hero_subtitle') }}</p>
+      <div class="v-trust-pills">
+        <span class="v-trust-pill">{{ _('client.pill_instant') }}</span>
+        <span class="v-trust-pill">{{ _('client.pill_verified') }}</span>
+        <span class="v-trust-pill">{{ _('client.pill_247') }}</span>
+      </div>
 
-    <div class="v-search-wrap">
-      <form class="v-search-primary" action="{{ url_for('web.artisan_directory') }}" method="GET">
-        <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}"
-               aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
-        <button type="submit" class="btn btn-primary btn-lg">{{ _('directory.ai_btn') }}</button>
-      </form>
-      <p class="v-search-hint">{{ _('directory.ai_hint') }}</p>
-
-      <details class="v-search-classic">
-        <summary>{{ _('vitrine.classic_search') }}</summary>
-        <form class="directory-search" action="{{ url_for('web.artisan_directory') }}" method="GET">
-          <div class="directory-search-grid">
-            <label>
-              <span>{{ _('directory.search_what') }}</span>
-              <input type="search" name="q" placeholder="{{ _('directory.search_what_ph') }}" autocomplete="off">
-            </label>
-            <label>
-              <span>{{ _('directory.search_trade') }}</span>
-              {{ trade_select('metier', trades, '', id='home-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
-            </label>
-            <label>
-              <span>{{ _('directory.search_where') }}</span>
-              <input type="text" name="ville" placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
-            </label>
-            <button type="submit" class="btn btn-primary btn-lg directory-search-btn">
-              <span class="directory-search-btn-label">{{ _('directory.search_btn') }}</span>
-            </button>
-          </div>
+      <div class="v-search-wrap" style="margin:0;max-width:none;">
+        <form class="v-search-primary" action="{{ url_for('web.artisan_directory') }}" method="GET">
+          <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}"
+                 aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-lg">{{ _('client.search_cta') }}</button>
         </form>
-      </details>
+        <p class="v-search-hint">{{ _('directory.ai_hint') }}</p>
+      </div>
     </div>
 
-    <div class="v-chips">
-      {% for t in trades[:8] %}
-      <a href="{{ url_for('web.artisan_directory', metier=t.key) }}" class="v-chip">{{ t.icon }} {{ t.label }}</a>
-      {% endfor %}
+    <div class="v-booking-preview v-reveal" id="booking-preview" aria-hidden="true">
+      <div class="v-booking-preview-head">
+        <div class="v-booking-avatar">🔧</div>
+        <div>
+          <strong>{{ _('client.preview_artisan') }}</strong>
+          <span>{{ _('client.preview_meta') }}</span>
+        </div>
+      </div>
+      <div class="v-booking-preview-body">
+        <p class="v-book-label">{{ _('client.preview_slots') }}</p>
+        <div class="v-book-slots">
+          <div class="v-book-slot">{{ _('client.preview_slot_1') }}</div>
+          <div class="v-book-slot">{{ _('client.preview_slot_2') }}</div>
+          <div class="v-book-slot">{{ _('client.preview_slot_3') }}</div>
+        </div>
+        <div class="v-book-confirm">✓ {{ _('client.preview_confirmed') }}</div>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="v-section v-section--tight">
   <div class="container">
-    <div class="v-section-head v-section-head--center">
-      <p class="v-kicker">{{ _('vitrine.tools_kicker') }}</p>
-      <h2>{{ _('vitrine.tools_title') }}</h2>
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('client.scenarios_kicker') }}</p>
+      <h2>{{ _('client.scenarios_title') }}</h2>
+      <p>{{ _('client.scenarios_subtitle') }}</p>
     </div>
-    <div class="v-tools-grid">
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">⌁</div>
-        <h3>{{ _('client.tool_1_title') }}</h3>
-        <p>{{ _('client.tool_1_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">◷</div>
-        <h3>{{ _('client.tool_2_title') }}</h3>
-        <p>{{ _('client.tool_2_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">☎</div>
-        <h3>{{ _('client.tool_3_title') }}</h3>
-        <p>{{ _('client.tool_3_desc') }}</p>
-      </article>
+    <div class="v-scenario-grid">
+      <a href="{{ url_for('web.artisan_directory', metier='plombier') }}?ai=fuite" class="v-scenario-card v-reveal">
+        <div class="v-scenario-icon">💧</div>
+        <h3>{{ _('client.scenario_1_title') }}</h3>
+        <p>{{ _('client.scenario_1_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+      <a href="{{ url_for('web.artisan_directory', metier='electricien') }}?ai=panne" class="v-scenario-card v-reveal v-reveal-delay-1">
+        <div class="v-scenario-icon">⚡</div>
+        <h3>{{ _('client.scenario_2_title') }}</h3>
+        <p>{{ _('client.scenario_2_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+      <a href="{{ url_for('web.artisan_directory', metier='serrurier') }}?ai=porte" class="v-scenario-card v-reveal v-reveal-delay-2">
+        <div class="v-scenario-icon">🔑</div>
+        <h3>{{ _('client.scenario_3_title') }}</h3>
+        <p>{{ _('client.scenario_3_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="v-section">
+  <div class="container">
+    <div class="v-book-cta v-reveal">
+      <h2>{{ _('client.book_cta_title') }}</h2>
+      <p>{{ _('client.book_cta_sub') }}</p>
+      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">{{ _('client.book_cta_btn') }}</a>
     </div>
   </div>
 </section>
 
 {% if featured_artisans %}
-<section class="v-section">
+<section class="v-section v-section--tight" style="background:var(--v-surface);border-top:1px solid var(--v-border);">
   <div class="container">
-    <div class="v-section-head">
+    <div class="v-section-head v-reveal">
       <h2>{{ _('client.featured_title') }}</h2>
       <p>{{ _('client.featured_subtitle') }}</p>
     </div>
@@ -130,23 +141,49 @@
 </section>
 {% endif %}
 
+<section class="v-section v-section--tight">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('vitrine.tools_kicker') }}</p>
+      <h2>{{ _('vitrine.tools_title') }}</h2>
+    </div>
+    <div class="v-tools-grid">
+      <article class="v-tool-card v-reveal">
+        <div class="v-tool-icon" aria-hidden="true">⌁</div>
+        <h3>{{ _('client.tool_1_title') }}</h3>
+        <p>{{ _('client.tool_1_desc') }}</p>
+      </article>
+      <article class="v-tool-card v-reveal v-reveal-delay-1">
+        <div class="v-tool-icon" aria-hidden="true">◷</div>
+        <h3>{{ _('client.tool_2_title') }}</h3>
+        <p>{{ _('client.tool_2_desc') }}</p>
+      </article>
+      <article class="v-tool-card v-reveal v-reveal-delay-2">
+        <div class="v-tool-icon" aria-hidden="true">☎</div>
+        <h3>{{ _('client.tool_3_title') }}</h3>
+        <p>{{ _('client.tool_3_desc') }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section class="v-section v-section--tight" style="background:var(--v-surface);border-top:1px solid var(--v-border);border-bottom:1px solid var(--v-border);">
   <div class="container">
-    <div class="v-section-head v-section-head--center">
+    <div class="v-section-head v-section-head--center v-reveal">
       <h2>{{ _('client.steps_title') }}</h2>
     </div>
     <ol class="v-steps">
-      <li class="v-step">
+      <li class="v-step v-reveal">
         <span class="v-step-num">1</span>
         <strong>{{ _('client.step_1_title') }}</strong>
         <p>{{ _('client.step_1_desc') }}</p>
       </li>
-      <li class="v-step">
+      <li class="v-step v-reveal v-reveal-delay-1">
         <span class="v-step-num">2</span>
         <strong>{{ _('client.step_2_title') }}</strong>
         <p>{{ _('client.step_2_desc') }}</p>
       </li>
-      <li class="v-step">
+      <li class="v-step v-reveal v-reveal-delay-2">
         <span class="v-step-num">3</span>
         <strong>{{ _('client.step_3_title') }}</strong>
         <p>{{ _('client.step_3_desc') }}</p>

@@ -33,7 +33,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=14">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=16">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=4">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">
   {% block head_extra %}{% endblock %}
 </head>
@@ -119,6 +119,7 @@
   <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
   <script src="{{ url_for('static', filename='js/public-reveal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/cookie-consent.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/vitrine-animate.js') }}?v=1"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

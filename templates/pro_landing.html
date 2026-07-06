@@ -37,6 +37,7 @@
 <a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
 <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
 <a href="{{ url_for('web.pro_landing') }}" class="active">{{ _('directory.nav_pro') }}</a>
+<a href="#impact">{{ _('pro.nav_impact') }}</a>
 <a href="#demo">{{ _('vitrine.nav_demo') }}</a>
 <a href="#pricing">{{ _('landing.nav_pricing') }}</a>
 <a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
@@ -77,6 +78,83 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="v-problem-section" id="impact">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('pro.problem_kicker') }}</p>
+      <h2>{{ _('pro.problem_title') }}</h2>
+      <p class="v-section-lead">{{ _('pro.problem_subtitle') }}</p>
+    </div>
+    <div class="v-problem-grid">
+      <article class="v-problem-card v-reveal">
+        <h3>{{ _('pro.problem_1_title') }}</h3>
+        <p>{{ _('pro.problem_1_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-1">
+        <h3>{{ _('pro.problem_2_title') }}</h3>
+        <p>{{ _('pro.problem_2_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-2">
+        <h3>{{ _('pro.problem_3_title') }}</h3>
+        <p>{{ _('pro.problem_3_desc') }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="v-impact-section">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('pro.impact_kicker') }}</p>
+      <h2>{{ _('pro.impact_title') }}</h2>
+      <p>{{ _('pro.impact_subtitle') }}</p>
+    </div>
+    <div class="v-stat-grid">
+      <div class="v-stat-card v-reveal">
+        <span class="v-stat-value" data-count="5" data-suffix="" data-duration="1200">0</span>
+        <span class="v-stat-label">{{ _('pro.stat_missed_calls') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-1">
+        <span class="v-stat-value" data-count="75" data-prefix="~" data-suffix=" €" data-duration="1400">0</span>
+        <span class="v-stat-label">{{ _('pro.stat_cost_call') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-2">
+        <span class="v-stat-value" data-count="10800" data-prefix="~" data-suffix=" €" data-duration="1600">0</span>
+        <span class="v-stat-label">{{ _('pro.stat_lost_year') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-3">
+        <span class="v-stat-value" data-count="62" data-suffix=" %" data-duration="1300">0</span>
+        <span class="v-stat-label">{{ _('pro.stat_competitor') }}</span>
+      </div>
+    </div>
+
+    <div class="v-roi-compare v-reveal">
+      <div class="v-roi-col v-roi-col--before">
+        <h3>{{ _('pro.roi_before_title') }}</h3>
+        <ul>
+          <li><span>{{ _('pro.roi_before_1') }}</span><strong>5/j</strong></li>
+          <li><span>{{ _('pro.roi_before_2') }}</span><strong>1h30/j</strong></li>
+          <li><span>{{ _('pro.roi_before_3') }}</span><strong>~900 €/m</strong></li>
+          <li><span>{{ _('pro.roi_before_4') }}</span><strong>62 %</strong></li>
+        </ul>
+      </div>
+      <div class="v-roi-col v-roi-col--after">
+        <h3>{{ _('pro.roi_after_title') }}</h3>
+        <ul>
+          <li><span>{{ _('pro.roi_after_1') }}</span><strong>95 %+</strong></li>
+          <li><span>{{ _('pro.roi_after_2') }}</span><strong>~1h30/j</strong></li>
+          <li><span>{{ _('pro.roi_after_3') }}</span><strong>+12 000 €/an</strong></li>
+          <li><span>{{ _('pro.roi_after_4') }}</span><strong>149 €/m</strong></li>
+        </ul>
+      </div>
+    </div>
+    <p class="v-sources">{{ _('pro.impact_sources') }}</p>
+    <p style="text-align:center;margin-top:28px;" class="v-reveal">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('pro.impact_cta') }}</a>
+    </p>
   </div>
 </section>
 

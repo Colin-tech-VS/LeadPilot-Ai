@@ -765,8 +765,360 @@
   font-size: 14px;
 }
 
+/* ── Reveal animation ── */
+.vitrine .v-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vitrine .v-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+.vitrine .v-reveal-delay-1 { transition-delay: 0.1s; }
+.vitrine .v-reveal-delay-2 { transition-delay: 0.2s; }
+.vitrine .v-reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ── Client: trust pills + hero split ── */
+.vitrine .v-hero--client {
+  text-align: left;
+  padding: 56px 0 48px;
+}
+.vitrine .v-hero-client-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+}
+.vitrine .v-hero--client h1 {
+  margin: 0 0 16px;
+  max-width: none;
+  text-align: left;
+}
+.vitrine .v-hero--client .v-hero-lead {
+  margin: 0 0 24px;
+  text-align: left;
+}
+.vitrine .v-trust-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.vitrine .v-trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v-text);
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: 999px;
+}
+.vitrine .v-trust-pill::before {
+  content: "✓";
+  color: #059669;
+  font-weight: 800;
+}
+
+/* Booking preview mock */
+.vitrine .v-booking-preview {
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow-lg);
+  overflow: hidden;
+}
+.vitrine .v-booking-preview-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--v-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vitrine .v-booking-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--v-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.vitrine .v-booking-preview-head strong {
+  display: block;
+  font-size: 15px;
+}
+.vitrine .v-booking-preview-head span {
+  font-size: 13px;
+  color: var(--v-muted);
+}
+.vitrine .v-booking-preview-body { padding: 20px; }
+.vitrine .v-book-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--v-muted);
+  margin: 0 0 12px;
+}
+.vitrine .v-book-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.vitrine .v-book-slot {
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  color: var(--v-muted);
+  transition: all 0.35s ease;
+}
+.vitrine .v-book-slot.active {
+  border-color: var(--v-accent);
+  background: var(--v-accent-soft);
+  color: var(--v-accent);
+  transform: scale(1.03);
+}
+.vitrine .v-book-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: var(--v-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: #047857;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+.vitrine .v-book-confirm.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* Scenarios + why book */
+.vitrine .v-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.vitrine .v-scenario-card {
+  padding: 24px 20px;
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+.vitrine .v-scenario-card:hover {
+  border-color: var(--v-accent);
+  box-shadow: var(--v-shadow);
+  transform: translateY(-3px);
+  text-decoration: none;
+}
+.vitrine .v-scenario-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.vitrine .v-scenario-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.vitrine .v-scenario-card p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--v-muted);
+  line-height: 1.5;
+}
+.vitrine .v-scenario-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v-accent);
+}
+
+.vitrine .v-book-cta {
+  text-align: center;
+  padding: 56px 24px;
+  background: linear-gradient(135deg, var(--v-accent-soft) 0%, var(--v-surface) 100%);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+}
+.vitrine .v-book-cta h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.vitrine .v-book-cta p {
+  margin: 0 auto 24px;
+  max-width: 480px;
+  color: var(--v-muted);
+  font-size: 17px;
+}
+
+/* ── Pro: problem + impact stats ── */
+.vitrine .v-problem-section {
+  background: #0F1419;
+  color: #fff;
+  padding: 72px 0;
+}
+.vitrine .v-problem-section .v-kicker { color: #93C5FD; }
+.vitrine .v-problem-section .v-kicker::before { background: #93C5FD; }
+.vitrine .v-problem-section h2 {
+  color: #fff;
+  margin: 0 0 12px;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.vitrine .v-problem-section .v-section-lead {
+  color: rgba(255,255,255,0.72);
+  font-size: 17px;
+  max-width: 560px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+.vitrine .v-problem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.vitrine .v-problem-card {
+  padding: 24px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--v-radius);
+}
+.vitrine .v-problem-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #FCA5A5;
+}
+.vitrine .v-problem-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.75);
+}
+
+.vitrine .v-impact-section {
+  padding: 72px 0;
+  background: var(--v-surface);
+  border-top: 1px solid var(--v-border);
+  border-bottom: 1px solid var(--v-border);
+}
+.vitrine .v-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.vitrine .v-stat-card {
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--v-bg);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+}
+.vitrine .v-stat-value {
+  display: block;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--v-accent);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+.vitrine .v-stat-label {
+  font-size: 13px;
+  color: var(--v-muted);
+  line-height: 1.45;
+}
+
+.vitrine .v-roi-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 40px;
+}
+.vitrine .v-roi-col {
+  padding: 28px 24px;
+  border-radius: var(--v-radius);
+  border: 1px solid var(--v-border);
+}
+.vitrine .v-roi-col--before {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+.vitrine .v-roi-col--after {
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+}
+.vitrine .v-roi-col h3 {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.vitrine .v-roi-col--before h3 { color: #B91C1C; }
+.vitrine .v-roi-col--after h3 { color: #047857; }
+.vitrine .v-roi-col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vitrine .v-roi-col li {
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vitrine .v-roi-col li:last-child { border-bottom: 0; }
+.vitrine .v-roi-col li strong { font-weight: 700; white-space: nowrap; }
+
+.vitrine .v-sources {
+  margin-top: 28px;
+  font-size: 11px;
+  color: var(--v-muted);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ── Mobile nav ── */
 @media (max-width: 900px) {
+  .vitrine .v-hero-client-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .vitrine .v-hero--client h1,
+  .vitrine .v-hero--client .v-hero-lead { text-align: center; margin-left: auto; margin-right: auto; }
+  .vitrine .v-trust-pills { justify-content: center; }
+  .vitrine .v-book-slots { grid-template-columns: 1fr 1fr; }
+  .vitrine .v-scenario-grid,
+  .vitrine .v-problem-grid,
+  .vitrine .v-stat-grid,
+  .vitrine .v-roi-compare {
+    grid-template-columns: 1fr;
+  }
+
   .vitrine .v-header-inner {
     min-height: 60px;
     gap: 12px;

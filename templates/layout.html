@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="LeadPilot">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=12">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=13">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=1">
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -59,6 +59,7 @@
             <span class="nav-toggle-bar"></span>
             <span class="nav-toggle-bar"></span>
           </button>
+          <a href="{{ url_for('web.logout') }}" class="topbar-logout">{{ _('nav.logout') }}</a>
           {% endif %}
         </div>
       </div>
@@ -74,7 +75,7 @@
           <a href="{{ url_for('web.marketing_page') }}" class="{% if request.endpoint == 'web.marketing_page' %}active{% endif %}">{{ _('nav.marketing') }}</a>
           <a href="{{ url_for('billing.billing_page') }}" class="{% if request.endpoint == 'billing.billing_page' %}active{% endif %}">{{ _('nav.billing') }}</a>
           <a href="{{ url_for('web.settings_page') }}" class="{% if request.endpoint == 'web.settings_page' %}active{% endif %}">{{ _('nav.settings') }}</a>
-          <a href="{{ url_for('web.logout') }}" class="nav-logout">{{ _('nav.logout') }}</a>
+          <a href="{{ url_for('web.logout') }}" class="nav-logout nav-logout-mobile">{{ _('nav.logout') }}</a>
         </div>
       </nav>
       {% endif %}

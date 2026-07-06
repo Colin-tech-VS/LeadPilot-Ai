@@ -30,8 +30,8 @@ if (-not $env:SCALINGO_API_TOKEN) {
 
 & $ScalingoExe login --api-token $env:SCALINGO_API_TOKEN | Out-Null
 
-$apps = & $ScalingoExe apps 2>&1
-if ($apps -notmatch $AppName) {
+& $ScalingoExe --app $AppName env 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
     Write-Host "Creating Scalingo app: $AppName ($Region)..."
     & $ScalingoExe create $AppName --region $Region
 }
@@ -44,10 +44,8 @@ Set: `$env:DATABASE_URL = 'postgresql://postgres.REF:PASSWORD@aws-1-eu-central-1
 "@
 }
 
-function New-Secret([int]$Bytes = 32) {
-    $bytes = New-Object byte[] $Bytes
-    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-    return [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_')
+function New-Secret {
+    return ([guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N"))
 }
 
 function Set-EnvVar($name, $value) {

@@ -63,29 +63,77 @@ a:hover {
   z-index: 1000;
 }
 
+.topbar-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  min-height: 60px;
+  position: relative;
+}
+
 .topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   min-height: 60px;
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
-.topbar-shell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 60px;
-  flex-wrap: wrap;
+.app-nav {
+  width: 100%;
+  border-top: 1px solid var(--border);
 }
 
 .app-nav-inner {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 4px 0 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-nav-inner::-webkit-scrollbar {
+  height: 4px;
+}
+
+.app-nav-inner::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.app-nav-inner a {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.topbar-logout {
+  display: none;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.topbar-logout:hover {
+  color: var(--text);
+  border-color: #CBD5E1;
+  background: var(--card);
+  text-decoration: none;
+}
+
+.nav-logout-mobile {
+  display: none;
 }
 
 .nav-toggle {
@@ -185,6 +233,10 @@ a:hover {
   color: var(--text);
   padding-left: 14px;
   border-left: 1px solid var(--border);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge-active {
@@ -2901,14 +2953,38 @@ html.js-enabled .dash-card-in.is-visible {
   }
 }
 
+@media (min-width: 901px) {
+  .topbar-logout {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .nav-logout-mobile {
+    display: none !important;
+  }
+
+  .topbar-left {
+    flex-wrap: nowrap;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .topbar-right {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .container {
     padding: 0 20px;
   }
 
+  .app-nav {
+    border-top: none;
+  }
+
   .topbar-shell {
-    flex-direction: column;
-    align-items: stretch;
     padding-top: 4px;
     padding-bottom: 4px;
   }
@@ -2919,6 +2995,14 @@ html.js-enabled .dash-card-in.is-visible {
 
   .nav-toggle {
     display: flex;
+  }
+
+  .topbar-logout {
+    display: none;
+  }
+
+  .nav-logout-mobile {
+    display: block;
   }
 
   .app-nav {
@@ -2945,6 +3029,8 @@ html.js-enabled .dash-card-in.is-visible {
     flex-direction: column;
     align-items: stretch;
     gap: 2px;
+    padding: 0;
+    overflow-x: visible;
   }
 
   .app-nav-inner a {

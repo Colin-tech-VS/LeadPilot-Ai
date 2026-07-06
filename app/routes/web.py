@@ -236,8 +236,8 @@ def site_page(slug):
 
 @web_bp.route("/artisans", methods=["GET"])
 def artisan_directory():
-    """Public marketplace — find artisans and book online (Planity-style)."""
-    from app.constants.trades import TRADES, trade_label
+    """Public marketplace — find artisans and book online (Doctolib-style)."""
+    from app.constants.trades import trade_choices
     from app.services.artisan_directory import list_public_artisans
 
     trade = (request.args.get("metier") or "").strip() or None
@@ -245,16 +245,27 @@ def artisan_directory():
     q = (request.args.get("q") or "").strip() or None
     artisans = list_public_artisans(trade=trade, city=city, q=q)
     lang = getattr(g, "lang", "fr")
-    trades = [
-        {"key": k, "label": trade_label(k, lang), "icon": v["icon"]}
-        for k, v in TRADES.items()
-    ]
+    trades = trade_choices(lang)
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
         trades=trades,
         filters={"metier": trade or "", "ville": city or "", "q": q or ""},
     )
+
+
+@web_bp.route("/api/public/artisans/search", methods=["GET"])
+def artisan_directory_search():
+    from app.constants.trades import trade_choices
+    from app.services.artisan_directory import search_public_artisans
+
+    trade = (request.args.get("metier") or "").strip() or None
+    city = (request.args.get("ville") or "").strip() or None
+    q = (request.args.get("q") or "").strip() or None
+    lang = getattr(g, "lang", "fr")
+    payload = search_public_artisans(trade=trade, city=city, q=q, lang=lang)
+    payload["trades"] = trade_choices(lang)
+    return jsonify(payload)
 
 
 @web_bp.route("/artisans/<slug>", methods=["GET"])
@@ -386,9 +397,10 @@ def register():
                     else:
                         error = str(e.message)
 
-    from app.constants.trades import TRADES
+    from app.constants.trades import trade_choices
 
-    return render_template("register.html", error=error, form=form, trades=TRADES)
+    lang = getattr(g, "lang", "fr")
+    return render_template("register.html", error=error, form=form, trades=trade_choices(lang))
 
 
 @web_bp.route("/login", methods=["GET", "POST"])
@@ -935,6 +947,9 @@ def settings_page():
             if existing:
                 error = translate("settings.error.email_taken")
 
+        if not error and is_public and not city:
+            error = translate("settings.error.city_required_public")
+
         if not error and new_password:
             if len(new_password) < 8:
                 error = translate("settings.error.password_short")
@@ -991,19 +1006,20 @@ def settings_page():
             db.session.commit()
             success = translate("settings.success")
 
-    from app.constants.trades import TRADES
+    from app.constants.trades import trade_choices
 
     public_profile_url = None
     if tenant.is_public and tenant.public_slug:
         public_profile_url = url_for("web.artisan_profile", slug=tenant.public_slug, _external=True)
 
+    lang = getattr(g, "lang", "fr")
     return render_template(
         "settings.html",
         tenant=tenant,
         user=user,
         success=success,
         error=error,
-        trades=TRADES,
+        trades=trade_choices(lang),
         public_profile_url=public_profile_url,
     )
 

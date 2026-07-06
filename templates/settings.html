@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from 'macros/trade_picker.html' import trade_select %}
 
 {% block title %}{{ _('settings_suffix') }} — {{ _('app.name') }}{% endblock %}
 
@@ -88,16 +89,13 @@
       <p class="section-hint">{{ _('settings.section.public_hint') }}</p>
 
       <label for="trade_type">{{ _('settings.trade_type') }}</label>
-      <select id="trade_type" name="trade_type">
-        {% for key, meta in trades.items() %}
-        <option value="{{ key }}" {% if tenant.trade_type == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label_fr if lang == 'fr' else meta.label_en }}</option>
-        {% endfor %}
-      </select>
+      {{ trade_select('trade_type', trades, tenant.trade_type, id='trade_type') }}
 
-      <label class="db-inline" style="margin-top:12px">
+      <label class="db-inline directory-toggle" style="margin-top:12px">
         <input type="checkbox" name="is_public" {% if tenant.is_public %}checked{% endif %}>
-        {{ _('settings.is_public') }}
+        <span>{{ _('settings.is_public') }}</span>
       </label>
+      <p class="field-hint">{{ _('settings.is_public_hint') }}</p>
 
       <label for="public_slug">{{ _('settings.public_slug') }}</label>
       <input type="text" id="public_slug" name="public_slug" value="{{ tenant.public_slug or '' }}" placeholder="plomberie-dupont-paris">
@@ -166,6 +164,7 @@
   </div>
 </form>
 
+<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 <script>
 (function () {
   var pad = document.getElementById('sig-pad');

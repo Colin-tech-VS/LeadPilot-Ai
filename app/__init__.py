@@ -62,8 +62,21 @@ def create_app(config_object=None):
             _ensure_schema_updates()
         _backfill_lead_status()
         _backfill_completed_appointments()
+        _backfill_directory_visibility()
 
     return app
+
+
+def _backfill_directory_visibility():
+    """Publish tenants who have a profile but were created before auto-listing."""
+    try:
+        from app.services.artisan_directory import backfill_directory_visibility
+
+        n = backfill_directory_visibility()
+        if n:
+            logging.getLogger(__name__).info("Directory backfill: %s tenant(s) published", n)
+    except Exception:
+        logging.getLogger(__name__).exception("directory visibility backfill failed")
 
 
 def _backfill_lead_status():

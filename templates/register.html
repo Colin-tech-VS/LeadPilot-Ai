@@ -1,5 +1,6 @@
 {% extends "public_layout.html" %}
 {% from 'macros/brand.html' import brand_logo with context %}
+{% from 'macros/trade_picker.html' import trade_select %}
 
 {% block body_class %}page-register{% endblock %}
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
@@ -50,11 +51,7 @@
                value="{{ form.get('company_name', '') }}" placeholder="Artisan Dupont">
 
         <label for="trade_type">{{ _('register.trade') }}</label>
-        <select id="trade_type" name="trade_type" required>
-          {% for key, meta in trades.items() %}
-          <option value="{{ key }}" {% if form.get('trade_type', 'plombier') == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label_fr }}</option>
-          {% endfor %}
-        </select>
+        {{ trade_select('trade_type', trades, form.get('trade_type', 'plombier'), id='trade_type', required=true) }}
 
         <div class="auth-form-row">
           <div>
@@ -88,4 +85,5 @@
   </section>
 </div>
 <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 {% endblock %}

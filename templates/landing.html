@@ -34,16 +34,27 @@
 {% endblock %}
 
 {% block content %}
+<section class="landing-client-strip landing-fade">
+  <div class="container">
+    <p class="landing-client-kicker">{{ _('landing.client_kicker') }}</p>
+    <form class="landing-client-search" action="{{ url_for('web.artisan_directory') }}" method="GET">
+      <input type="search" name="q" placeholder="{{ _('directory.search_what_ph') }}" aria-label="{{ _('directory.search_what') }}">
+      <input type="text" name="ville" placeholder="{{ _('directory.search_where_ph') }}" aria-label="{{ _('directory.search_where') }}">
+      <button type="submit" class="btn btn-primary btn-lg">{{ _('directory.search_btn') }}</button>
+    </form>
+    <p class="landing-client-hint"><a href="{{ url_for('web.artisan_directory') }}">{{ _('landing.client_browse') }} →</a></p>
+  </div>
+</section>
+
 <section class="landing-hero">
   <div class="container landing-hero-grid">
     <div class="landing-hero-copy landing-fade">
-      <span class="landing-badge">{{ _('landing.hero_badge') }}</span>
+      <span class="landing-badge landing-badge--pro">{{ _('landing.hero_badge') }}</span>
       <h1>{{ _('landing.hero_title') }}</h1>
       <p class="landing-hero-lead">{{ _('landing.hero_subtitle') }}</p>
       <p class="landing-hero-trial">{{ _('landing.hero_trial') }}</p>
       <div class="landing-hero-cta">
         <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg landing-cta-primary">{{ _('landing.cta_signup') }}</a>
-        <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-outline btn-lg">{{ _('directory.nav') }}</a>
         <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_demo') }}</a>
       </div>
       <ul class="landing-trust">
@@ -134,7 +145,7 @@
   </div>
 </section>
 
-<section id="features" class="landing-section landing-features">
+<section id="pro" class="landing-section landing-features">
   <div class="container">
     <div class="landing-section-head landing-fade">
       <h2>{{ _('landing.features_title') }}</h2>

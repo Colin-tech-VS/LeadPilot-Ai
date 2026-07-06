@@ -4344,3 +4344,22 @@ html.js-enabled .dash-card-in.is-visible {
   margin: 0;
   padding: .2rem 0;
 }
+
+/* Trade picker (settings / dashboard forms) */
+.trade-picker { display: flex; flex-direction: column; gap: 12px; }
+.trade-picker-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.trade-picker-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 999px;
+  border: 1px solid #D5E8F3; background: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.trade-picker-chip.is-active { border-color: #059CE0; background: #E8F6FC; color: #047BB8; }
+.trade-select-wrap { position: relative; }
+.trade-select-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+.trade-select {
+  width: 100%; padding: 12px 36px 12px 40px; border-radius: 12px;
+  border: 1px solid var(--border); font-size: 15px; font-weight: 600;
+  appearance: none; background: #fff;
+}
+.directory-toggle { align-items: flex-start; gap: 10px; font-weight: 600; }

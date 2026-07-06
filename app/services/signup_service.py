@@ -34,6 +34,8 @@ def register_plumber(
 
     trade = trade_type if trade_type in TRADES else DEFAULT_TRADE
 
+  slug_base = f"{company_name}-{city}" if city else company_name
+
     tenant = Tenant(
         name=company_name,
         first_name=(first_name or "").strip() or None,
@@ -44,8 +46,8 @@ def register_plumber(
         plan="trial",
         trial_ends_at=utcnow() + timedelta(days=TRIAL_DAYS),
         trade_type=trade,
-        public_slug=unique_public_slug(company_name),
-        is_public=False,
+        public_slug=unique_public_slug(slug_base),
+        is_public=True,
     )
     db.session.add(tenant)
     db.session.flush()

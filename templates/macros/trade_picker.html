@@ -1,0 +1,34 @@
+{# Styled trade selector — optional chip grid + select (Doctolib-style). #}
+{% macro trade_select(name, trades, selected='', id=None, required=false, lang='fr', placeholder='', chips=true) %}
+<div class="trade-picker" data-trade-picker>
+  {% if chips %}
+  <div class="trade-picker-chips" role="listbox" aria-label="{{ _('settings.trade_type') }}">
+    {% for t in trades %}
+    <button type="button"
+            class="trade-picker-chip{% if selected == t.key %} is-active{% endif %}"
+            data-trade-key="{{ t.key }}"
+            role="option"
+            aria-selected="{{ 'true' if selected == t.key else 'false' }}">
+      <span class="trade-picker-chip-icon" aria-hidden="true">{{ t.icon }}</span>
+      <span class="trade-picker-chip-label">{{ t.label }}</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="trade-select-wrap">
+    <span class="trade-select-icon" aria-hidden="true">{% for t in trades if t.key == selected %}{{ t.icon }}{% else %}{% endfor %}{% if not selected %}🛠️{% endif %}</span>
+    <select class="trade-select"
+            name="{{ name }}"
+            {% if id %}id="{{ id }}"{% endif %}
+            {% if required %}required{% endif %}
+            data-trade-select>
+      {% if placeholder %}
+      <option value="">{{ placeholder }}</option>
+      {% endif %}
+      {% for t in trades %}
+      <option value="{{ t.key }}" data-icon="{{ t.icon }}" {% if selected == t.key %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+{% endmacro %}

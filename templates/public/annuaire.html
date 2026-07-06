@@ -1,4 +1,5 @@
 {% extends "public_layout.html" %}
+{% from 'macros/trade_picker.html' import trade_select %}
 
 {% block title %}{{ _('directory.meta_title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-directory{% endblock %}
@@ -9,57 +10,64 @@
 
 {% block public_nav %}
 <a href="{{ url_for('web.artisan_directory') }}" class="public-nav-link active">{{ _('directory.nav') }}</a>
-<a href="{{ url_for('web.landing') }}#features">{{ _('landing.nav_features') }}</a>
+<a href="{{ url_for('web.landing') }}#pro">{{ _('directory.nav_pro') }}</a>
 <a href="{{ url_for('web.landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
 <a href="{{ url_for('web.login') }}" class="public-nav-link">{{ _('landing.nav_login') }}</a>
-<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('landing.nav_signup') }}</a>
+<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm public-cta-nav">{{ _('directory.nav_pro_cta') }}</a>
 {% endblock %}
 
 {% block content %}
-<section class="directory-hero">
+<section class="directory-hero directory-hero--doctolib">
   <div class="container">
+    <p class="directory-hero-kicker">{{ _('directory.hero_kicker') }}</p>
     <h1>{{ _('directory.hero_title') }}</h1>
     <p class="directory-hero-lead">{{ _('directory.hero_subtitle') }}</p>
 
-    <form class="directory-search" method="GET" action="{{ url_for('web.artisan_directory') }}">
+    <form class="directory-search" id="directory-search-form" method="GET" action="{{ url_for('web.artisan_directory') }}">
       <div class="directory-search-grid">
         <label>
           <span>{{ _('directory.search_what') }}</span>
-          <input type="search" name="q" value="{{ filters.q }}" placeholder="{{ _('directory.search_what_ph') }}">
+          <input type="search" name="q" value="{{ filters.q }}" placeholder="{{ _('directory.search_what_ph') }}" autocomplete="off">
         </label>
         <label>
           <span>{{ _('directory.search_trade') }}</span>
-          <select name="metier">
-            <option value="">{{ _('directory.all_trades') }}</option>
-            {% for t in trades %}
-            <option value="{{ t.key }}" {% if filters.metier == t.key %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
-            {% endfor %}
-          </select>
+          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false) }}
         </label>
         <label>
           <span>{{ _('directory.search_where') }}</span>
-          <input type="text" name="ville" value="{{ filters.ville }}" placeholder="{{ _('directory.search_where_ph') }}">
+          <input type="text" name="ville" value="{{ filters.ville }}" placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
         </label>
-        <button type="submit" class="btn btn-primary btn-lg">{{ _('directory.search_btn') }}</button>
+        <button type="submit" class="btn btn-primary btn-lg directory-search-btn">
+          <span class="directory-search-btn-inner">
+            <span class="directory-search-btn-label">{{ _('directory.search_btn') }}</span>
+            <span class="directory-search-spinner" aria-hidden="true"></span>
+          </span>
+        </button>
       </div>
     </form>
 
     <div class="directory-trade-chips">
-      {% for t in trades[:6] %}
-      <a href="?metier={{ t.key }}" class="directory-chip">{{ t.icon }} {{ t.label }}</a>
+      {% for t in trades[:8] %}
+      <a href="?metier={{ t.key }}" class="directory-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
       {% endfor %}
+      <a href="?metier=" class="directory-chip directory-chip--muted">{{ _('directory.all_trades') }}</a>
     </div>
   </div>
 </section>
 
-<section class="directory-results landing-section">
+<section class="directory-results landing-section" id="directory-results"
+         data-loading="{{ _('directory.loading') }}"
+         data-error="{{ _('directory.search_error') }}"
+         data-count-tpl="{{ _('directory.results_count', count='{count}') }}"
+         data-book-cta="{{ _('directory.book_cta') }}"
+         data-city-unknown="{{ _('directory.city_unknown') }}">
   <div class="container">
-    {% if artisans %}
-    <p class="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
-    <div class="directory-grid">
+    <p class="directory-count" id="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
+
+    <div class="directory-grid" id="directory-grid" {% if not artisans %}hidden{% endif %}>
       {% for a in artisans %}
       <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="directory-card landing-fade">
-        <div class="directory-card-icon">{% for t in trades %}{% if t.key == a.trade_type %}{{ t.icon }}{% endif %}{% endfor %}</div>
+        <div class="directory-card-icon">{% for t in trades if t.key == a.trade_type %}{{ t.icon }}{% endfor %}</div>
         <h2>{{ a.name }}</h2>
         <p class="directory-card-trade">{% for t in trades if t.key == a.trade_type %}{{ t.label }}{% endfor %}</p>
         <p class="directory-card-city">📍 {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} ({{ a.postal_code }}){% endif %}</p>
@@ -68,22 +76,28 @@
       </a>
       {% endfor %}
     </div>
-    {% else %}
-    <div class="directory-empty">
+
+    <div class="directory-empty" id="directory-empty" {% if artisans %}hidden{% endif %}>
+      <div class="directory-empty-icon" aria-hidden="true">🔍</div>
       <p>{{ _('directory.empty') }}</p>
       <a href="{{ url_for('web.register') }}" class="btn btn-primary">{{ _('directory.empty_cta') }}</a>
     </div>
-    {% endif %}
   </div>
 </section>
 
 <section class="directory-pro-band">
   <div class="container directory-pro-inner">
     <div>
+      <span class="directory-pro-badge">{{ _('directory.pro_badge') }}</span>
       <h2>{{ _('directory.pro_title') }}</h2>
       <p>{{ _('directory.pro_subtitle') }}</p>
     </div>
-    <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('directory.pro_cta') }}</a>
+    <a href="{{ url_for('web.register') }}" class="btn btn-light btn-lg">{{ _('directory.pro_cta') }}</a>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}"></script>
 {% endblock %}

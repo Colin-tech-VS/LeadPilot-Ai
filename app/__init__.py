@@ -61,6 +61,7 @@ def create_app(config_object=None):
             db.create_all()
             _ensure_schema_updates()
         _backfill_lead_status()
+        _backfill_completed_appointments()
 
     return app
 
@@ -104,6 +105,27 @@ def _backfill_lead_status():
             conn.execute(text(sql))
     except Exception:
         logging.getLogger(__name__).exception("lead status backfill failed")
+
+
+def _backfill_completed_appointments():
+    """Archived leads should not keep active RDV on the agenda."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    tables = set(inspector.get_table_names())
+    if not {"leads", "appointments"} <= tables:
+        return
+
+    sql = (
+        "UPDATE appointments SET status = 'completed' "
+        "WHERE status IN ('scheduled', 'confirmed') "
+        "AND lead_id IN (SELECT id FROM leads WHERE archived_at IS NOT NULL)"
+    )
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(text(sql))
+    except Exception:
+        logging.getLogger(__name__).exception("completed appointments backfill failed")
 
 
 def _ensure_schema_updates():

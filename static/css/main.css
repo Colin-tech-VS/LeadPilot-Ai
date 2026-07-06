@@ -632,6 +632,11 @@ a:hover {
   color: #B91C1C;
 }
 
+.badge-completed {
+  background: #E2E8F0;
+  color: #475569;
+}
+
 .badge-urgency-high {
   background: #FEE2E2;
   color: var(--red);

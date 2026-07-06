@@ -360,9 +360,11 @@ def dashboard():
         Lead.created_at >= today_start,
         Lead.archived_at.is_(None),
     ).count()
-    appointments_today = Appointment.query.filter(
-        Appointment.tenant_id == g.tenant_id, Appointment.created_at >= today_start
-    ).count()
+    appointments_today = (
+        Appointment.active_query(g.tenant_id)
+        .filter(Appointment.date_time >= today_start, Appointment.date_time < tomorrow)
+        .count()
+    )
     from app.services import quote_engine
 
     pending_quotes = quote_engine.pending_quote_count(g.tenant_id)
@@ -389,14 +391,14 @@ def dashboard():
         .all()
     )
     today_appointments = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .filter(Appointment.date_time >= today_start, Appointment.date_time < tomorrow)
         .options(joinedload(Appointment.lead))
         .order_by(Appointment.date_time.asc())
         .all()
     )
     upcoming_appointments = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .filter(Appointment.date_time >= today_start)
         .options(joinedload(Appointment.lead))
         .order_by(Appointment.date_time.asc())
@@ -406,13 +408,13 @@ def dashboard():
     # Step 4 of the workflow: RDV still to come (today included) — drives the
     # "Rendez-vous" pipeline step count.
     upcoming_count = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .filter(Appointment.date_time >= today_start)
         .count()
     )
     total_leads = Lead.query.filter_by(tenant_id=g.tenant_id).filter(Lead.archived_at.is_(None)).count()
     next_appointment = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .filter(Appointment.date_time >= datetime.now(timezone.utc))
         .options(joinedload(Appointment.lead))
         .order_by(Appointment.date_time.asc())
@@ -465,6 +467,10 @@ def archive_lead(lead_id):
     lead = Lead.query.filter_by(id=lid, tenant_id=g.tenant_id).first()
     if lead:
         lead.archived_at = datetime.now(timezone.utc)
+        for appt in lead.appointments.filter(
+            Appointment.status.in_(Appointment.ACTIVE_STATUSES)
+        ).all():
+            appt.status = "completed"
         db.session.commit()
 
     return redirect(request.referrer or url_for("web.leads_page"))
@@ -605,7 +611,7 @@ def appointments_page():
     DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
     appointments = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .options(joinedload(Appointment.lead))
         .order_by(Appointment.date_time.asc())
         .all()
@@ -712,7 +718,7 @@ def appointments_page():
             lead = appt.lead
             if not lead or lead.latitude is None or lead.longitude is None:
                 continue
-            if appt.status in ("cancelled",):
+            if appt.status in Appointment.INACTIVE_STATUSES:
                 continue
             stops.append(
                 {

@@ -62,7 +62,7 @@ def create_appointment():
 @tenant_required
 def list_appointments():
     appointments = (
-        Appointment.query.filter_by(tenant_id=g.tenant_id)
+        Appointment.active_query(g.tenant_id)
         .order_by(Appointment.date_time.asc())
         .all()
     )

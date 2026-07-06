@@ -10,6 +10,12 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+# Still on the plumber's agenda (map, route, dashboard).
+ACTIVE_STATUSES = ("scheduled", "confirmed")
+# Job done or void — hidden from RDV views; slot freed for rebooking.
+INACTIVE_STATUSES = ("completed", "cancelled")
+
+
 class Appointment(db.Model):
     __tablename__ = "appointments"
 
@@ -22,6 +28,20 @@ class Appointment(db.Model):
 
     tenant = db.relationship("Tenant", back_populates="appointments")
     lead = db.relationship("Lead", back_populates="appointments")
+
+    @classmethod
+    def active_query(cls, tenant_id):
+        """Upcoming / in-progress visits only (excludes done & archived clients)."""
+        from app.models.lead import Lead
+
+        return (
+            cls.query.filter(
+                cls.tenant_id == tenant_id,
+                cls.status.in_(ACTIVE_STATUSES),
+            )
+            .join(Lead, cls.lead_id == Lead.id)
+            .filter(Lead.archived_at.is_(None))
+        )
 
     def to_dict(self):
         return {

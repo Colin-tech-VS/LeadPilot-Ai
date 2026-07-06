@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app.core.extensions import db
-from app.models.appointment import Appointment
+from app.models.appointment import ACTIVE_STATUSES, Appointment
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SLOT_DURATION = timedelta(hours=1)
@@ -11,7 +11,7 @@ BUSINESS_START_HOUR = 9
 BUSINESS_END_HOUR = 17
 MAX_SEARCH_DAYS = 14
 
-BUSY_STATUSES = ("scheduled", "confirmed")
+BUSY_STATUSES = ACTIVE_STATUSES
 
 
 def normalize_slot(dt: datetime) -> datetime:

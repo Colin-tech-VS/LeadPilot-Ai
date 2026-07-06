@@ -172,6 +172,48 @@ def api_traffic_realtime():
 
 
 # ------------------------------------------------------------------ database
+@admin_bp.route("/maintenance/purge-accounts", methods=["POST"])
+@admin_required
+def purge_all_accounts():
+    """Delete every tenant, user, and all dependent rows. Admin auth is env-based."""
+    if request.form.get("confirm") != "TOUT-SUPPRIMER":
+        flash("Confirmation incorrecte — tapez TOUT-SUPPRIMER pour valider.", "error")
+        return redirect(url_for("admin.database_home"))
+    try:
+        from sqlalchemy import text
+
+        tables = [
+            "appointments",
+            "quotes",
+            "notifications",
+            "page_views",
+            "email_messages",
+            "leads",
+            "users",
+            "tenants",
+        ]
+        counts = {}
+        for name in tables:
+            counts[name] = db.session.execute(text(f'DELETE FROM "{name}"')).rowcount
+        db.session.commit()
+        summary = ", ".join(f"{n} {t}" for t, n in counts.items() if n)
+        log_event(
+            CAT_ADMIN,
+            "purge_accounts",
+            summary=f"Purge comptes: {summary or '0 lignes'}",
+            level=LEVEL_WARNING,
+        )
+        flash(
+            f"Comptes supprimés : {counts.get('users', 0)} user(s), "
+            f"{counts.get('tenants', 0)} tenant(s). Données liées effacées.",
+            "success",
+        )
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur pendant la purge : {exc}", "error")
+    return redirect(url_for("admin.database_home"))
+
+
 @admin_bp.route("/maintenance/purge-leads", methods=["POST"])
 @admin_required
 def purge_leads():

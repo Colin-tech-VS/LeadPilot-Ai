@@ -6,11 +6,11 @@
 {% block meta %}
 <meta name="description" content="{{ _('pro.meta_description') }}">
 <meta name="keywords" content="{{ _('pro.meta_keywords') }}">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/pro">
+<link rel="canonical" href="{{ canonical_url('/pro') }}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ _('pro.meta_title') }}">
 <meta property="og:description" content="{{ _('pro.meta_description') }}">
+<meta property="og:url" content="{{ canonical_url('/pro') }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ _('pro.meta_title') }}">

@@ -3,8 +3,7 @@
 
 {% block meta %}
 <meta name="description" content="{{ self.legal_title() }} — {{ _('app.name') }}">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+<link rel="canonical" href="{{ canonical_url(request.path) }}">
 {% endblock %}
 
 {% block content %}

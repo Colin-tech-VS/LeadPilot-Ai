@@ -20,9 +20,13 @@ def register_i18n(app):
             urgency_label,
         )
 
+        from app.utils.seo import canonical_url, site_base_url
+
         lang = get_lang()
         return {
             "lang": lang,
+            "site_base_url": site_base_url,
+            "canonical_url": canonical_url,
             "_": lambda key, **kwargs: translate(key, lang, **kwargs),
             "status_label": lambda s: status_label(s, lang),
             "urgency_label": lambda u: urgency_label(u, lang),

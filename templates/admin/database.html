@@ -24,4 +24,16 @@
     <button type="submit" class="admin-btn danger">Supprimer tous les prospects</button>
   </form>
 </section>
+
+<section class="danger-zone danger-zone--critical">
+  <h2>🚨 Purge totale des comptes</h2>
+  <p>Supprime <strong>tous les comptes artisans</strong> (tenants + users) et toutes leurs données
+     (prospects, RDV, devis, emails…). L'accès <strong>/admin</strong> (mot de passe env) est conservé.
+     Les offres tarifaires restent intactes. <strong>Action irréversible.</strong></p>
+  <form method="POST" action="{{ url_for('admin.purge_all_accounts') }}"
+        onsubmit="return confirm('ATTENTION : supprimer TOUS les comptes et toutes leurs données ?');">
+    <input type="text" name="confirm" placeholder="Tapez TOUT-SUPPRIMER pour confirmer" autocomplete="off" required>
+    <button type="submit" class="admin-btn danger">Supprimer tous les comptes</button>
+  </form>
+</section>
 {% endblock %}

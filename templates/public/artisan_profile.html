@@ -5,11 +5,10 @@
 {% block body_class %}page-artisan-profile{% endblock %}
 
 {% set _profile_desc = tenant.public_blurb or _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) %}
-{% set _profile_url = request.url_root.rstrip('/') ~ '/artisans/' ~ tenant.public_slug %}
+{% set _profile_url = canonical_url('/artisans/' ~ tenant.public_slug) %}
 
 {% block meta %}
 <meta name="description" content="{{ _profile_desc|striptags }}">
-<meta name="robots" content="index, follow">
 <link rel="canonical" href="{{ _profile_url }}">
 <meta property="og:type" content="business.business">
 <meta property="og:title" content="{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %}">
@@ -24,7 +23,7 @@
   "name": {{ tenant.name|tojson }},
   "description": {{ (_profile_desc|striptags)|tojson }},
   "url": {{ _profile_url|tojson }},
-  "image": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.svg') }}"
+  "image": "{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}"
   {%- if tenant.phone_number %},
   "telephone": {{ tenant.phone_number|tojson }}
   {%- endif %}

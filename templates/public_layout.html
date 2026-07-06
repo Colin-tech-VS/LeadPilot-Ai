@@ -10,8 +10,28 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   {% block meta %}
   <meta name="description" content="{{ _('landing.meta_description') }}">
+  <link rel="canonical" href="{{ canonical_url(request.path) }}">
   {% endblock %}
+  {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+  {# --- Site-wide SEO defaults (no per-page conflict) --- #}
+  <meta name="theme-color" content="#1B57E0">
+  <meta property="og:site_name" content="PilotCore">
+  <meta property="og:image" content="{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}">
+  <meta name="twitter:image" content="{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "PilotCore",
+    "url": {{ site_base_url()|tojson }},
+    "logo": "{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}",
+    "description": {{ _('landing.meta_description')|tojson }},
+    "email": "contact@pilotcore.fr",
+    "areaServed": "FR"
+  }
+  </script>
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=14">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=16">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=2">

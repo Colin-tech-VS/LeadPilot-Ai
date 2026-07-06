@@ -322,6 +322,7 @@ a { color: inherit; text-decoration: none; }
 
 .danger-zone { margin-top: 34px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.06);
   border-radius: var(--radius); padding: 20px 22px; }
+.danger-zone--critical { border-color: rgba(248,113,113,.65); background: rgba(248,113,113,.1); }
 .danger-zone h2 { margin: 0 0 6px; font-size: 15px; color: var(--red); }
 .danger-zone p { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 640px; }
 .danger-zone form { display: flex; gap: 10px; flex-wrap: wrap; }

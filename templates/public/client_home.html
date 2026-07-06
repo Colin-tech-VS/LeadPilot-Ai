@@ -8,22 +8,22 @@
 {% block meta %}
 <meta name="description" content="{{ _('client.meta_description') }}">
 <meta name="keywords" content="{{ _('client.meta_keywords') }}">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/">
+<link rel="canonical" href="{{ canonical_url('/') }}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{{ _('client.meta_title') }}">
 <meta property="og:description" content="{{ _('client.meta_description') }}">
+<meta property="og:url" content="{{ canonical_url('/') }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "PilotCore",
-  "url": {{ (request.url_root.rstrip('/'))|tojson }},
+  "url": {{ site_base_url()|tojson }},
   "description": {{ _('client.meta_description')|tojson }},
   "potentialAction": {
     "@type": "SearchAction",
-    "target": {{ (request.url_root.rstrip('/') + '/artisans?q={search_term_string}')|tojson }},
+    "target": {{ (canonical_url('/artisans') ~ '?q={search_term_string}')|tojson }},
     "query-input": "required name=search_term_string"
   }
 }

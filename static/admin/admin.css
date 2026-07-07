@@ -492,3 +492,38 @@ a { color: inherit; text-decoration: none; }
   .offer-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------- diagnostics */
+.diag-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.diag-group { margin: 0; }
+.diag-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.diag-group-head h2 { margin: 0; flex: 1; }
+.diag-icon { font-size: 18px; }
+.diag-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.diag-badge-ok { background: rgba(52, 211, 153, .18); color: var(--green); }
+.diag-badge-missing { background: rgba(248, 113, 113, .18); color: var(--red); }
+.diag-badge-warn { background: rgba(139, 150, 196, .18); color: var(--muted); }
+.diag-group.diag-missing { border-color: rgba(248, 113, 113, .4); }
+.diag-table { width: 100%; border-collapse: collapse; }
+.diag-table td { padding: 8px 6px; border-top: 1px solid var(--border); vertical-align: top; font-size: 13px; }
+.diag-table tr:first-child td { border-top: none; }
+.diag-dot { width: 14px; padding-top: 11px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.dot-ok { background: var(--green); }
+.dot-missing { background: var(--red); }
+.dot-info, .dot-warn { background: var(--muted); }
+.diag-label { color: var(--text); font-weight: 600; }
+.diag-label code { display: inline-block; background: rgba(0,0,0,.3); color: var(--brand); padding: 1px 6px; border-radius: 5px; font-size: 11px; margin-left: 6px; }
+.diag-hint { display: block; color: var(--muted); font-weight: 400; font-size: 11px; margin-top: 3px; }
+.diag-value { text-align: right; white-space: nowrap; }
+.diag-val { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+.diag-missing { color: var(--red); font-weight: 700; font-size: 12px; }
+.diag-optional { color: var(--muted); font-size: 12px; }
+.diag-testmail { margin-bottom: 16px; }
+.diag-testmail-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.diag-testmail-form input { flex: 1; min-width: 200px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-2); color: var(--text); font-size: 14px; }
+@media (max-width: 560px) {
+  .diag-groups { grid-template-columns: 1fr; }
+  .diag-value { text-align: left; }
+}

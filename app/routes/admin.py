@@ -40,7 +40,16 @@ from app.models.site_page import SitePage
 from app.models.social_post import SocialPost
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services import admin_email, analytics, content_ai, content_studio, imap_mailbox, social, traffic
+from app.services import (
+    admin_email,
+    analytics,
+    content_ai,
+    content_studio,
+    diagnostics,
+    imap_mailbox,
+    social,
+    traffic,
+)
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
 admin_bp = Blueprint(
@@ -578,6 +587,89 @@ def emails_sync():
     else:
         flash(f"Échec sync IMAP : {result.get('error', 'erreur inconnue')}", "error")
     return redirect(url_for("admin.emails", box="inbox"))
+
+
+@admin_bp.route("/diagnostics")
+@admin_required
+def diagnostics_page():
+    """System diagnostics — Scalingo variables & integration status."""
+    groups = diagnostics.collect()
+    return render_template(
+        "admin/diagnostics.html",
+        groups=groups,
+        summary=diagnostics.summary(groups),
+        smtp_configured=admin_email.is_configured(),
+        imap_configured=imap_mailbox.is_configured(),
+        default_from=admin_email.default_from_addr(),
+        admin_email_hint=current_app.config.get("EMAIL_FROM") or "",
+    )
+
+
+@admin_bp.route("/diagnostics/smtp-test", methods=["POST"])
+@admin_required
+def diagnostics_smtp_test():
+    """Live SMTP connect + login probe (no message sent)."""
+    result = admin_email.smtp_test()
+    if result.get("ok"):
+        flash(f"SMTP OK — {result.get('detail')}", "success")
+    else:
+        flash(f"SMTP KO — {result.get('detail')}", "error")
+    return redirect(url_for("admin.diagnostics_page"))
+
+
+@admin_bp.route("/diagnostics/db-test", methods=["POST"])
+@admin_required
+def diagnostics_db_test():
+    """Live database connectivity probe."""
+    result = diagnostics.database_probe()
+    if result.get("ok"):
+        flash(f"Base de données OK — {result.get('detail')}", "success")
+    else:
+        flash(f"Base de données KO — {result.get('detail')}", "error")
+    return redirect(url_for("admin.diagnostics_page"))
+
+
+@admin_bp.route("/diagnostics/test-email", methods=["POST"])
+@admin_required
+def diagnostics_test_email():
+    """Send a real branded test email end-to-end and report the result."""
+    to_addr = (request.form.get("to") or "").strip()
+    if not to_addr:
+        flash("Indiquez une adresse de destination pour le test.", "error")
+        return redirect(url_for("admin.diagnostics_page"))
+
+    from app.services.transactional_email import render_email
+
+    html = render_email(
+        "Test d'envoi PilotCore ✅",
+        "Ceci est un e-mail de test.",
+        lines=[
+            "Si vous recevez ce message, la configuration SMTP de PilotCore "
+            "fonctionne : les e-mails transactionnels seront bien délivrés.",
+        ],
+        outro="Envoyé depuis /admin/diagnostics.",
+    )
+    msg = admin_email.send_email(
+        to_addr=to_addr,
+        subject="Test d'envoi PilotCore",
+        body="Ceci est un e-mail de test PilotCore. La configuration SMTP fonctionne.",
+        is_html=True,
+        html_body=html,
+    )
+    if msg.status == "sent":
+        flash(f"Email de test envoyé à {to_addr} (statut : {msg.status}).", "success")
+    elif msg.status == "simulated":
+        flash(
+            f"Email SIMULÉ (statut : {msg.status}) — SMTP non configuré, rien n'a été "
+            "réellement envoyé. Renseignez les variables SMTP_* sur Scalingo.",
+            "error",
+        )
+    else:
+        flash(
+            f"Échec de l'envoi (statut : {msg.status}) — {msg.error or 'voir le journal'}.",
+            "error",
+        )
+    return redirect(url_for("admin.diagnostics_page"))
 
 
 @admin_bp.route("/emails/attachment/<storage_key>")

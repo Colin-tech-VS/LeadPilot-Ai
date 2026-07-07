@@ -58,6 +58,9 @@
         <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
           <span class="nav-ico">📜</span> Journal
         </a>
+        <a href="{{ url_for('admin.diagnostics_page') }}" class="{% if request.endpoint == 'admin.diagnostics_page' %}active{% endif %}">
+          <span class="nav-ico">🩺</span> Diagnostics
+        </a>
       </nav>
       <div class="admin-sidebar-foot">
         <span class="admin-dot"></span> {{ admin_username }}

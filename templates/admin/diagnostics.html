@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %}
+{% block title %}Diagnostics · Admin{% endblock %}
+{% block page_title %}Diagnostics système{% endblock %}
+{% block topbar_actions %}
+  <form method="POST" action="{{ url_for('admin.diagnostics_smtp_test') }}" style="display:inline">
+    <button type="submit" class="admin-btn ghost">✉️ Tester SMTP</button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.diagnostics_db_test') }}" style="display:inline">
+    <button type="submit" class="admin-btn ghost">🗄️ Tester BDD</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+{% if summary.missing_required %}
+<div class="admin-notice">
+  <strong>{{ summary.missing_required }}</strong> variable(s) obligatoire(s) manquante(s).
+  Renseignez-les dans Scalingo → <code>Environment</code>, puis redéployez.
+</div>
+{% endif %}
+{% if not smtp_configured %}
+<div class="admin-notice">
+  ⚠️ SMTP non configuré — les e-mails transactionnels sont <strong>simulés</strong> et
+  <strong>ne sont jamais réellement envoyés</strong>. Renseignez
+  <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code> sur Scalingo.
+</div>
+{% endif %}
+
+<div class="admin-panel diag-testmail">
+  <h2>Envoyer un e-mail de test</h2>
+  <p class="admin-hint">Envoi réel via la configuration SMTP actuelle. Vérifiez ensuite le statut dans <a href="{{ url_for('admin.emails', box='outbox') }}">Emails → Envoyés</a>.</p>
+  <form method="POST" action="{{ url_for('admin.diagnostics_test_email') }}" class="diag-testmail-form">
+    <input type="email" name="to" required placeholder="votre@email.fr"
+           value="{{ admin_email_hint }}">
+    <button type="submit" class="admin-btn">Envoyer le test</button>
+  </form>
+</div>
+
+<div class="diag-groups">
+  {% for g in groups %}
+  <section class="admin-panel diag-group diag-{{ g.status }}">
+    <div class="diag-group-head">
+      <span class="diag-icon">{{ g.icon }}</span>
+      <h2>{{ g.title }}</h2>
+      <span class="diag-badge diag-badge-{{ g.status }}">
+        {% if g.status == 'ok' %}Connecté{% elif g.status == 'missing' %}{{ g.missing_count }} manquant(s){% else %}Non configuré{% endif %}
+      </span>
+    </div>
+    {% if g.note %}<p class="admin-hint">{{ g.note }}</p>{% endif %}
+    <table class="diag-table">
+      <tbody>
+        {% for r in g.rows %}
+        <tr class="diag-row-{{ r.status }}">
+          <td class="diag-dot"><span class="dot dot-{{ r.status }}"></span></td>
+          <td class="diag-label">
+            {{ r.label }}
+            <code>{{ r.key }}</code>
+            {% if r.hint %}<span class="diag-hint">{{ r.hint }}</span>{% endif %}
+          </td>
+          <td class="diag-value">
+            {% if r.present %}<span class="diag-val">{{ r.value }}</span>
+            {% elif r.required %}<span class="diag-missing">Manquant</span>
+            {% else %}<span class="diag-optional">Optionnel</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

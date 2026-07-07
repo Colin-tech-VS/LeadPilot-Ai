@@ -3,11 +3,21 @@ from app import create_app
 from app.services import google_gsc
 
 
-def test_gsc_redirect_uri_uses_callback_route():
+def test_gsc_redirect_uri_uses_public_base_url():
     app = create_app()
     app.config["GOOGLE_GSC_CLIENT_ID"] = "client-id"
     app.config["GOOGLE_GSC_CLIENT_SECRET"] = "client-secret"
     app.config["PUBLIC_BASE_URL"] = "https://www.pilotcore.fr"
+    with app.test_request_context("/admin/gsc"):
+        uri = google_gsc.redirect_uri()
+    assert uri == "https://www.pilotcore.fr/admin/gsc/callback"
+
+
+def test_gsc_redirect_uri_uses_callback_route():
+    app = create_app()
+    app.config["GOOGLE_GSC_CLIENT_ID"] = "client-id"
+    app.config["GOOGLE_GSC_CLIENT_SECRET"] = "client-secret"
+    app.config["PUBLIC_BASE_URL"] = ""
     with app.test_request_context("/admin/gsc"):
         uri = google_gsc.redirect_uri()
     assert uri.endswith("/admin/gsc/callback")
@@ -30,6 +40,7 @@ def test_gsc_status_when_not_configured():
     app.config["GOOGLE_GSC_CLIENT_ID"] = ""
     app.config["GOOGLE_GSC_CLIENT_SECRET"] = ""
     with app.app_context():
+        google_gsc.disconnect()
         status = google_gsc.status()
     assert status["configured"] is False
     assert status["connected"] is False

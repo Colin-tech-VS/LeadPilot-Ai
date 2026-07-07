@@ -50,6 +50,21 @@
   </p>
 </section>
 
+<section class="admin-panel" style="margin-bottom:16px">
+  <h2>Erreur 500 sur la page Google</h2>
+  <p class="admin-hint">
+    Si la page <code>accounts.google.com/.../oauth/consent</code> affiche une <strong>erreur 500</strong>, vérifiez
+    dans <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer">OAuth consent screen</a> :
+  </p>
+  <ol class="admin-hint" style="margin:10px 0 0 18px;line-height:1.6">
+    <li><strong>Authorized domains</strong> : ajoutez <code>pilotcore.fr</code></li>
+    <li><strong>Application home page</strong> : <code>https://www.pilotcore.fr</code></li>
+    <li><strong>Privacy policy</strong> et <strong>Terms of service</strong> : URLs valides (ex. page Confidentialité du site)</li>
+    <li>Sur Scalingo : <code>PUBLIC_BASE_URL=https://www.pilotcore.fr</code> (même host que l'URI de redirection ci-dessus)</li>
+    <li>Au moment de valider, choisissez le <strong>bon compte Google</strong> (celui listé en test user et propriétaire GSC)</li>
+  </ol>
+</section>
+
 {% if gsc.configured %}
   {% if gsc.connected %}
   <div class="connect-banner ok" style="margin-bottom:16px">

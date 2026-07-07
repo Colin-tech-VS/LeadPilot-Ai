@@ -16,10 +16,8 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 SITES_URL = "https://www.googleapis.com/webmasters/v3/sites"
-SCOPES = (
-    "https://www.googleapis.com/auth/webmasters.readonly "
-    "https://www.googleapis.com/auth/userinfo.email"
-)
+# Single scope keeps the Google consent screen simpler (fewer verification issues).
+SCOPES = "https://www.googleapis.com/auth/webmasters.readonly"
 
 SETTING_REFRESH_TOKEN = "gsc_refresh_token"
 SETTING_ACCESS_TOKEN = "gsc_access_token"
@@ -45,24 +43,26 @@ def is_connected() -> bool:
 
 
 def redirect_uri() -> str:
+    """Canonical callback URL — must match Google Cloud « Authorized redirect URIs »."""
+    base = (current_app.config.get("PUBLIC_BASE_URL") or "").rstrip("/")
+    if base:
+        return f"{base}/admin/gsc/callback"
     try:
         return url_for("admin.gsc_callback", _external=True)
     except RuntimeError:
-        base = (current_app.config.get("PUBLIC_BASE_URL") or "").rstrip("/")
-        if base:
-            return f"{base}/admin/gsc/callback"
         return "/admin/gsc/callback"
 
 
-def build_auth_url(state: str) -> str:
+def build_auth_url(state: str, *, oauth_redirect_uri: str | None = None) -> str:
+    uri = (oauth_redirect_uri or "").strip() or redirect_uri()
     params = {
         "client_id": _cfg("GOOGLE_GSC_CLIENT_ID"),
-        "redirect_uri": redirect_uri(),
+        "redirect_uri": uri,
         "response_type": "code",
         "scope": SCOPES,
         "access_type": "offline",
         "include_granted_scopes": "true",
-        "prompt": "consent",
+        "prompt": "consent select_account",
         "state": state,
     }
     return f"{AUTH_URL}?{urlencode(params)}"
@@ -72,34 +72,50 @@ def _save_tokens(data: dict) -> None:
     access = data.get("access_token")
     if not access:
         raise GscError("Réponse Google sans jeton d'accès.")
-    content.set_setting(SETTING_ACCESS_TOKEN, access)
-    expires_in = int(data.get("expires_in") or 3600)
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=max(60, expires_in - 60))
-    content.set_setting(SETTING_TOKEN_EXPIRES, expires_at.isoformat())
-    refresh = data.get("refresh_token")
-    if refresh:
-        content.set_setting(SETTING_REFRESH_TOKEN, refresh)
+    try:
+        content.set_setting(SETTING_ACCESS_TOKEN, access)
+        expires_in = int(data.get("expires_in") or 3600)
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=max(60, expires_in - 60))
+        content.set_setting(SETTING_TOKEN_EXPIRES, expires_at.isoformat())
+        refresh = data.get("refresh_token")
+        if refresh:
+            content.set_setting(SETTING_REFRESH_TOKEN, refresh)
+    except Exception as exc:
+        logger.exception("Failed to persist GSC tokens")
+        raise GscError("Impossible d'enregistrer les jetons Search Console.") from exc
 
 
-def exchange_code(code: str) -> None:
-    resp = requests.post(
-        TOKEN_URL,
-        data={
-            "code": code,
-            "client_id": _cfg("GOOGLE_GSC_CLIENT_ID"),
-            "client_secret": _cfg("GOOGLE_GSC_CLIENT_SECRET"),
-            "redirect_uri": redirect_uri(),
-            "grant_type": "authorization_code",
-        },
-        timeout=20,
-    )
-    data = resp.json()
+def exchange_code(code: str, *, oauth_redirect_uri: str | None = None) -> None:
+    uri = (oauth_redirect_uri or "").strip() or redirect_uri()
+    try:
+        resp = requests.post(
+            TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": _cfg("GOOGLE_GSC_CLIENT_ID"),
+                "client_secret": _cfg("GOOGLE_GSC_CLIENT_SECRET"),
+                "redirect_uri": uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=20,
+        )
+    except requests.RequestException as exc:
+        raise GscError(f"Connexion Google impossible : {exc}") from exc
+
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise GscError("Réponse Google invalide.") from exc
+
     if not resp.ok:
         raise GscError((data.get("error_description") or data.get("error") or resp.text)[:500])
     _save_tokens(data)
     email = _fetch_user_email(data["access_token"])
     if email:
-        content.set_setting(SETTING_USER_EMAIL, email)
+        try:
+            content.set_setting(SETTING_USER_EMAIL, email)
+        except Exception:
+            logger.exception("Failed to save GSC user email")
 
 
 def _fetch_user_email(access_token: str) -> str | None:

@@ -4,6 +4,7 @@ static assets.
 """
 import secrets
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from flask import (
@@ -226,8 +227,10 @@ def gsc_connect():
         flash("Configurez GOOGLE_GSC_CLIENT_ID et GOOGLE_GSC_CLIENT_SECRET.", "error")
         return redirect(url_for("admin.gsc_page"))
     state = secrets.token_urlsafe(32)
+    oauth_redirect_uri = google_gsc.redirect_uri()
     session["gsc_oauth_state"] = state
-    return redirect(google_gsc.build_auth_url(state))
+    session["gsc_oauth_redirect_uri"] = oauth_redirect_uri
+    return redirect(google_gsc.build_auth_url(state, oauth_redirect_uri=oauth_redirect_uri))
 
 
 @admin_bp.route("/gsc/callback")
@@ -257,9 +260,20 @@ def gsc_callback():
         return redirect(url_for("admin.gsc_page"))
 
     try:
-        google_gsc.exchange_code(code)
+        google_gsc.exchange_code(
+            code,
+            oauth_redirect_uri=session.pop("gsc_oauth_redirect_uri", None),
+        )
     except google_gsc.GscError as exc:
         flash(f"Échec de la connexion Search Console : {exc}", "error")
+        return redirect(url_for("admin.gsc_page"))
+    except Exception:
+        logging.getLogger(__name__).exception("GSC OAuth callback failed")
+        flash(
+            "Erreur interne lors de la connexion Search Console. Vérifiez PUBLIC_BASE_URL "
+            "et l'URI de redirection Google, puis réessayez.",
+            "error",
+        )
         return redirect(url_for("admin.gsc_page"))
 
     flash("Google Search Console connecté.", "success")

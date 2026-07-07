@@ -1173,6 +1173,8 @@ def api_pages_generate():
 @admin_bp.route("/social", endpoint="social")
 @admin_required
 def social_page():
+    from app.services.social_links import targets_for_admin
+
     cfg = social.get_config()
     return render_template(
         "admin/social.html",
@@ -1180,6 +1182,7 @@ def social_page():
         facebook_connected=social.is_configured(),
         facebook_config=cfg,
         ai_available=content_ai.is_available(),
+        link_targets=targets_for_admin(),
     )
 
 
@@ -1212,15 +1215,25 @@ def social_disconnect():
 @admin_bp.route("/social/publish", methods=["POST"])
 @admin_required
 def social_publish():
+    from app.services.social_links import display_url, ensure_tracked
+
     message = request.form.get("message", "").strip()
     link = request.form.get("link", "").strip()
+    target_key = (request.form.get("target_key") or "").strip() or None
     ai_flag = request.form.get("generated_by_ai") == "1"
+    content_tag = "ai_post" if ai_flag else "manual_post"
     if not message:
         flash("Le message ne peut pas être vide.", "error")
         return redirect(url_for("admin.social"))
-    post = social.publish_post(message, link=link, generated_by_ai=ai_flag)
+    tracked_link = ensure_tracked(link, target_key=target_key, content=content_tag)
+    post = social.publish_post(message, link=tracked_link, generated_by_ai=ai_flag)
     if post.status == "published":
-        flash("Post publié sur Facebook 🎉", "success")
+        shown = display_url(tracked_link) if tracked_link else ""
+        flash(
+            f"Post publié sur Facebook 🎉"
+            + (f" — lien tracké : {shown}" if shown else ""),
+            "success",
+        )
     else:
         flash(f"Échec de la publication : {post.error}", "error")
     return redirect(url_for("admin.social"))
@@ -1232,11 +1245,17 @@ def api_social_generate():
     data = request.get_json(silent=True) or {}
     prompt = (data.get("prompt") or "").strip()
     tone = (data.get("tone") or "engageant").strip()
+    target_key = (data.get("target_key") or "home").strip()
     if not prompt:
         return jsonify({"error": "Décrivez le sujet du post."}), 400
     try:
-        message = content_ai.generate_social_post(prompt, tone)
+        payload = content_ai.generate_social_post(
+            prompt,
+            tone,
+            target_key=target_key,
+            content_tag="ai_post",
+        )
         log_event(CAT_ADMIN, "social_ai_generate", summary=f"Post généré par IA: {prompt[:80]}")
-        return jsonify({"message": message})
+        return jsonify(payload)
     except content_ai.ContentAIError as exc:
         return jsonify({"error": str(exc)}), 502

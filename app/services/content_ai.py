@@ -85,24 +85,55 @@ def generate_page(prompt: str, tone: str = "professionnel") -> dict:
     }
 
 
+_SOCIAL_BRAND = (
+    "Charte PilotCore (direction artistique du site) :\n"
+    "- Couleurs : bleu #1B57E0, cyan #06B6D4, vert #10B981, fond clair moderne.\n"
+    "- Ton : humain, rassurant, pro mais accessible — jamais corporate froid.\n"
+    "- Vocabulaire site : artisan, RDV en ligne, assistant vocal IA, dépannage, "
+    "standard téléphonique, ne ratez plus aucun appel, essai gratuit 14 jours.\n"
+    "- Structure : accroche courte → bénéfice concret → preuve/confiance → CTA doux.\n"
+    "- 2 à 4 emojis max, pertinents (🔧 📞 ✅ 🛠️), pas de spam.\n"
+    "- Hashtags en fin de post : #PilotCore + 2 à 4 hashtags métier (#Plombier #Artisan…).\n"
+    "- N'inclus JAMAIS d'URL brute dans le texte (le lien est ajouté séparément par la plateforme).\n"
+    "- Termine par un appel à l'action aligné sur la page cible (sans écrire l'URL)."
+)
+
 _SOCIAL_SYSTEM = (
-    "Tu es community manager pour PilotCore (standardiste téléphonique IA "
-    "pour artisans). Tu écris des posts Facebook en français : accrocheurs, "
-    "authentiques, avec un appel à l'action et 2 à 4 emojis pertinents. "
-    "Longueur idéale : 3 à 6 phrases. Termine par quelques hashtags pertinents. "
-    "Réponds uniquement avec le texte du post, sans guillemets ni préambule."
+    "Tu es community manager senior pour PilotCore, plateforme française qui met en "
+    "relation particuliers et artisans (RDV en ligne) et propose un standard téléphonique "
+    "IA aux professionnels du bâtiment.\n"
+    f"{_SOCIAL_BRAND}\n"
+    "Réponds uniquement avec le texte du post Facebook, sans guillemets ni préambule."
 )
 
 
-def generate_social_post(prompt: str, tone: str = "engageant") -> str:
-    """Generate a Facebook post from a short brief. Returns plain text."""
+def generate_social_post(
+    prompt: str,
+    tone: str = "engageant",
+    *,
+    target_key: str = "home",
+    content_tag: str = "ai_post",
+) -> dict:
+    """Generate a Facebook post aligned with PilotCore brand. Returns message + link hints."""
+    from app.services.social_links import build_tracked_url_for_target, display_url, get_target
+
+    target = get_target(target_key) or get_target("home")
+    tracked = build_tracked_url_for_target(target["key"], content=content_tag) if target else None
     user = (
         f"Sujet du post : {prompt.strip()}\n"
         f"Ton : {tone}.\n"
-        "Rédige le post."
+        f"Page cible : {target['label']} — {target['audience']}.\n"
+        f"CTA suggéré (sans URL) : {target['cta']}.\n"
+        "Rédige le post Facebook."
     )
-    text = _complete(_SOCIAL_SYSTEM, user, json_mode=False, max_tokens=500, temperature=0.75)
-    return (text or "").strip().strip('"')
+    text = _complete(_SOCIAL_SYSTEM, user, json_mode=False, max_tokens=550, temperature=0.72)
+    message = (text or "").strip().strip('"')
+    return {
+        "message": message,
+        "link": tracked,
+        "display_link": display_url(tracked) if tracked else "",
+        "target_key": target["key"],
+    }
 
 
 # Very small allow-list scrub: strip script/style/iframe blocks that the model

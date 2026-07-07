@@ -39,13 +39,25 @@
 <!-- Composer -->
 <form method="POST" action="{{ url_for('admin.social_publish') }}" id="social-form">
   <input type="hidden" name="generated_by_ai" id="gen-ai-flag" value="0">
+  <input type="hidden" name="target_key" id="f-target-key" value="home">
+  <input type="hidden" name="link" id="f-link-tracked" value="">
   <div class="social-compose-grid">
     <div class="studio-editor">
+      <label class="field"><span>Page PilotCore à promouvoir</span>
+        <select id="f-target" class="social-target-select">
+          {% for t in link_targets %}
+          <option value="{{ t.key }}" data-display="{{ t.display_url }}" data-tracked="{{ t.tracked_url }}" data-label="{{ t.label }}">{{ t.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <p class="admin-hint social-utm-hint">Le lien public est propre dans l'aperçu ; les paramètres <code>utm_*</code> sont ajoutés automatiquement pour Google Analytics.</p>
+
       {% if ai_available %}
-      <div class="ai-box">
+      <div class="ai-box social-ai-box">
         <h3>🤖 Générer un post avec l'IA (Mistral)</h3>
+        <p class="admin-hint">Ton et vocabulaire alignés sur la charte PilotCore (bleu #1B57E0, ton humain & pro).</p>
         <label class="field"><span>De quoi parle le post ?</span>
-          <textarea id="ai-prompt" rows="2" placeholder="Ex : annoncer que notre IA répond désormais aux appels 24h/24 pour les plombiers, avec une promo essai gratuit."></textarea>
+          <textarea id="ai-prompt" rows="2" placeholder="Ex : annoncer l'annuaire artisans — RDV en ligne 24h/24 pour les particuliers."></textarea>
         </label>
         <div class="field-row">
           <label class="field"><span>Ton</span>
@@ -70,9 +82,15 @@
         <textarea name="message" id="f-message" rows="7" placeholder="Écrivez votre publication…" required>{{ '' }}</textarea>
       </label>
       <div class="char-count"><span id="char-count">0</span> caractères</div>
-      <label class="field"><span>Lien à partager (optionnel)</span>
-        <input type="url" name="link" id="f-link" placeholder="https://…">
+
+      <label class="field"><span>Lien affiché (propre)</span>
+        <input type="text" id="f-link-display" readonly class="social-link-display">
       </label>
+      <details class="social-utm-details">
+        <summary class="admin-hint">Voir le lien tracké (analytics)</summary>
+        <code id="f-link-utm-preview" class="social-utm-code"></code>
+      </details>
+
       <div class="form-actions">
         <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>📣 Publier sur Facebook</button>
         {% if not facebook_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
@@ -82,18 +100,25 @@
     <div class="studio-preview">
       <div class="studio-preview-head">
         <h2>Aperçu Facebook</h2>
-        <span class="studio-preview-dot">temps réel</span>
+        <span class="studio-preview-dot">charte PilotCore</span>
       </div>
       <div class="fb-preview">
         <div class="fb-preview-head">
-          <div class="fb-avatar"></div>
+          <div class="fb-avatar fb-avatar--brand" aria-hidden="true"></div>
           <div>
-            <div class="fb-preview-name">{{ facebook_config.page_name or 'Votre page' }}</div>
+            <div class="fb-preview-name">{{ facebook_config.page_name or 'PilotCore' }}</div>
             <div class="fb-preview-sub">À l'instant · 🌐</div>
           </div>
         </div>
         <div class="fb-preview-body" id="fb-body">Votre message apparaîtra ici…</div>
-        <div class="fb-preview-link" id="fb-link" style="display:none"></div>
+        <div class="fb-preview-link-card" id="fb-link-card" style="display:none">
+          <div class="fb-link-card-bar"></div>
+          <div class="fb-link-card-body">
+            <div class="fb-link-card-domain" id="fb-link-domain">pilotcore.fr</div>
+            <div class="fb-link-card-title" id="fb-link-title">PilotCore</div>
+            <div class="fb-link-card-url" id="fb-link-clean"></div>
+          </div>
+        </div>
         <div class="fb-preview-foot"><span>👍 J'aime</span><span>💬 Commenter</span><span>↗ Partager</span></div>
       </div>
     </div>
@@ -116,6 +141,7 @@
       </div>
       <div class="studio-item-meta">
         {{ post.created_at.strftime('%d/%m/%Y %H:%M') if post.created_at else '' }}
+        {% if post.link %} · <span title="{{ post.link }}">{{ post.link.split('?')[0] }}</span>{% endif %}
         {% if post.error %} · <span style="color:var(--red)">{{ post.error }}</span>{% endif %}
       </div>
     </div>
@@ -135,22 +161,52 @@
 <script>
 (function () {
   var msg = document.getElementById("f-message");
-  var link = document.getElementById("f-link");
+  var targetSelect = document.getElementById("f-target");
+  var targetKey = document.getElementById("f-target-key");
+  var linkTracked = document.getElementById("f-link-tracked");
+  var linkDisplay = document.getElementById("f-link-display");
+  var utmPreview = document.getElementById("f-link-utm-preview");
   var body = document.getElementById("fb-body");
-  var linkBox = document.getElementById("fb-link");
+  var linkCard = document.getElementById("fb-link-card");
+  var linkDomain = document.getElementById("fb-link-domain");
+  var linkTitle = document.getElementById("fb-link-title");
+  var linkClean = document.getElementById("fb-link-clean");
   var count = document.getElementById("char-count");
   var aiFlag = document.getElementById("gen-ai-flag");
+
+  function titleFromTarget(label) {
+    return label || "PilotCore";
+  }
+
+  function applyTarget() {
+    var opt = targetSelect.options[targetSelect.selectedIndex];
+    var display = opt.getAttribute("data-display") || "";
+    var tracked = opt.getAttribute("data-tracked") || "";
+    var label = opt.getAttribute("data-label") || "PilotCore";
+    targetKey.value = targetSelect.value;
+    linkDisplay.value = display;
+    linkTracked.value = tracked;
+    utmPreview.textContent = tracked;
+    try {
+      var u = new URL(display);
+      linkDomain.textContent = u.hostname.replace(/^www\./, "");
+      linkTitle.textContent = titleFromTarget(label);
+      linkClean.textContent = u.pathname === "/" ? u.hostname : (u.hostname + u.pathname);
+      linkCard.style.display = display ? "block" : "none";
+    } catch (e) {
+      linkCard.style.display = "none";
+    }
+    render();
+  }
 
   function render() {
     var text = msg.value.trim();
     body.textContent = text || "Votre message apparaîtra ici…";
     count.textContent = msg.value.length;
-    if (link.value.trim()) { linkBox.style.display = "block"; linkBox.textContent = link.value.trim(); }
-    else { linkBox.style.display = "none"; }
   }
+
+  targetSelect.addEventListener("change", applyTarget);
   msg.addEventListener("input", function () { aiFlag.value = "0"; render(); });
-  link.addEventListener("input", render);
-  render();
 
   var genBtn = document.getElementById("ai-generate");
   if (genBtn) {
@@ -165,18 +221,35 @@
       fetch("{{ url_for('admin.api_social_generate') }}", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt, tone: tone })
+        body: JSON.stringify({
+          prompt: prompt,
+          tone: tone,
+          target_key: targetSelect.value
+        })
       }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
           if (!res.ok) { throw new Error(res.d.error || "Erreur de génération."); }
           msg.value = res.d.message || "";
+          if (res.d.target_key && res.d.target_key !== targetSelect.value) {
+            targetSelect.value = res.d.target_key;
+          }
+          if (res.d.link) {
+            linkTracked.value = res.d.link;
+            linkDisplay.value = res.d.display_link || res.d.link.split("?")[0];
+            utmPreview.textContent = res.d.link;
+          } else {
+            applyTarget();
+          }
           aiFlag.value = "1";
+          applyTarget();
           render();
         })
         .catch(function (e) { errEl.textContent = e.message; errEl.style.display = "block"; })
         .finally(function () { spinner.classList.remove("on"); genBtn.disabled = false; });
     });
   }
+
+  applyTarget();
 })();
 </script>
 {% endblock %}

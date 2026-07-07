@@ -343,27 +343,37 @@
 
 .auth-field__wrap {
   position: relative;
-  display: flex;
-  align-items: center;
+  display: block;
+  isolation: isolate;
 }
 
 .auth-field__icon {
   position: absolute;
   left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 16px;
+  line-height: 1;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.65;
+  z-index: 1;
 }
 
 .auth-field__input {
   width: 100%;
-  padding: 13px 14px 13px 42px;
+  padding: 13px 14px 13px 48px;
   border: 1.5px solid var(--lp-border, #e2e8f0);
   border-radius: 12px;
   font-size: 15px;
   font-family: inherit;
-  background: #f8fafc;
+  background: #fff;
+  position: relative;
+  z-index: 2;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.auth-field__wrap:has(.auth-field__toggle) .auth-field__input {
+  padding-right: 46px;
 }
 
 .auth-field__input:focus {
@@ -380,6 +390,9 @@
 .auth-field__toggle {
   position: absolute;
   right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
   border: none;
   background: transparent;
   cursor: pointer;

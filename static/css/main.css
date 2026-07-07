@@ -1493,13 +1493,18 @@ a:hover {
 }
 
 .form-card input,
-.form-card textarea {
+.form-card textarea,
+.form-card select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 15px;
   font-family: inherit;
+  background: #fff;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
 }
 
 .form-card textarea {
@@ -4470,12 +4475,12 @@ html.js-enabled .dash-card-in.is-visible {
   font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .trade-picker-chip.is-active { border-color: #059CE0; background: #E8F6FC; color: #047BB8; }
-.trade-select-wrap { position: relative; }
-.trade-select-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+.trade-select-wrap { position: relative; isolation: isolate; }
+.trade-select-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; line-height: 1; pointer-events: none; z-index: 1; }
 .trade-select {
-  width: 100%; padding: 12px 36px 12px 40px; border-radius: 12px;
+  width: 100%; padding: 12px 36px 12px 44px; border-radius: 12px;
   border: 1px solid var(--border); font-size: 15px; font-weight: 600;
-  appearance: none; background: #fff;
+  appearance: none; background: #fff; position: relative; z-index: 2;
 }
 .directory-toggle { align-items: flex-start; gap: 10px; font-weight: 600; }
 

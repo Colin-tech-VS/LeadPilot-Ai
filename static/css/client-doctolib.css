@@ -155,14 +155,28 @@
   margin-bottom: 4px;
 }
 
-.dl-search-field input,
-.dl-search-field .trade-select {
+.dl-search-field input {
   border: none;
   padding: 4px 0;
   font-size: 16px;
   font-weight: 500;
   color: var(--dl-text);
   background: transparent;
+  width: 100%;
+  outline: none;
+  box-shadow: none;
+}
+
+.dl-search-field .trade-select-wrap .trade-select {
+  border: none;
+  padding: 4px 0 4px 36px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dl-text);
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235B7A8C' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
   width: 100%;
   outline: none;
   box-shadow: none;

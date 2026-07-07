@@ -30,7 +30,7 @@
       <option value="">{{ placeholder }}</option>
       {% endif %}
       {% for t in trades %}
-      <option value="{{ t.key }}" data-icon="{{ t.icon }}" {% if selected == t.key %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+      <option value="{{ t.key }}" data-icon="{{ t.icon }}" {% if selected == t.key %}selected{% endif %}>{{ t.label }}</option>
       {% endfor %}
     </select>
   </div>

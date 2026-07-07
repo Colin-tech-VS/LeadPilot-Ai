@@ -67,18 +67,18 @@
     var grid = "";
     for (var g = 0; g <= 4; g++) {
       var gy = pad.t + (ih / 4) * g;
-      grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#26315c" stroke-width="1" opacity="0.5"/>';
-      grid += '<text x="4" y="' + (gy + 4) + '" fill="#8b96c4" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
+      grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#e4e9f2" stroke-width="1" opacity="0.5"/>';
+      grid += '<text x="4" y="' + (gy + 4) + '" fill="#64748b" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
     }
-    var dots = pts.map(function (p) { return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.5" fill="#22d3ee"/>'; }).join("");
+    var dots = pts.map(function (p) { return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.5" fill="#06b6d4"/>'; }).join("");
 
     svg.innerHTML =
       '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#6d8bff" stop-opacity="0.35"/>' +
-      '<stop offset="100%" stop-color="#6d8bff" stop-opacity="0"/></linearGradient></defs>' +
+      '<stop offset="0%" stop-color="#059ce0" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="#059ce0" stop-opacity="0"/></linearGradient></defs>' +
       grid +
       '<path d="' + area + '" fill="url(#areaGrad)"/>' +
-      '<path d="' + line + '" fill="none" stroke="#6d8bff" stroke-width="2.5" stroke-linejoin="round" class="chart-line"/>' +
+      '<path d="' + line + '" fill="none" stroke="#059ce0" stroke-width="2.5" stroke-linejoin="round" class="chart-line"/>' +
       dots;
 
     var path = svg.querySelector(".chart-line");
@@ -165,7 +165,7 @@
   var stream = document.getElementById("log-stream");
   var liveToggle = document.getElementById("live-toggle");
   if (stream && window.ADMIN_LOGS_URL) {
-    var catColors = { auth: "#6d8bff", lead: "#34d399", quote: "#fbbf24", email: "#22d3ee", admin: "#f87171", system: "#8b96c4" };
+    var catColors = { auth: "#059ce0", lead: "#059669", quote: "#d97706", email: "#06b6d4", admin: "#dc2626", system: "#64748b" };
     function newest() {
       var first = stream.querySelector(".log-row");
       return first ? first.getAttribute("data-created") : "";
@@ -211,18 +211,18 @@
     var grid = "";
     for (var g = 0; g <= 4; g++) {
       var gy = pad.t + (ih / 4) * g;
-      grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#26315c" opacity="0.5"/>';
-      grid += '<text x="4" y="' + (gy + 4) + '" fill="#8b96c4" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
+      grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#e4e9f2" opacity="0.5"/>';
+      grid += '<text x="4" y="' + (gy + 4) + '" fill="#64748b" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
     }
     var viewsLine = path("views"), visLine = path("visitors");
     var area = viewsLine + " L" + x(n - 1).toFixed(1) + " " + (pad.t + ih) + " L" + x(0).toFixed(1) + " " + (pad.t + ih) + " Z";
     svg.innerHTML =
       '<defs><linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#6d8bff" stop-opacity="0.3"/><stop offset="100%" stop-color="#6d8bff" stop-opacity="0"/></linearGradient></defs>' +
+      '<stop offset="0%" stop-color="#059ce0" stop-opacity="0.3"/><stop offset="100%" stop-color="#059ce0" stop-opacity="0"/></linearGradient></defs>' +
       grid +
       '<path d="' + area + '" fill="url(#tGrad)"/>' +
-      '<path d="' + viewsLine + '" fill="none" stroke="#6d8bff" stroke-width="2.5" class="chart-line"/>' +
-      '<path d="' + visLine + '" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-dasharray="4 4"/>';
+      '<path d="' + viewsLine + '" fill="none" stroke="#059ce0" stroke-width="2.5" class="chart-line"/>' +
+      '<path d="' + visLine + '" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-dasharray="4 4"/>';
     var p = svg.querySelector(".chart-line");
     if (p && p.getTotalLength) {
       var len = p.getTotalLength();
@@ -241,7 +241,7 @@
     var bars = data.map(function (d, i) {
       var bw = W / n - 2;
       var h = (d.v / max) * (H - 10);
-      return '<rect x="' + (x(i) - bw / 2).toFixed(1) + '" y="' + (H - 4 - h).toFixed(1) + '" width="' + Math.max(1.5, bw).toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="1.5" fill="#22d3ee" opacity="0.85"/>';
+      return '<rect x="' + (x(i) - bw / 2).toFixed(1) + '" y="' + (H - 4 - h).toFixed(1) + '" width="' + Math.max(1.5, bw).toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="1.5" fill="#06b6d4" opacity="0.85"/>';
     }).join("");
     svg.innerHTML = bars;
   }

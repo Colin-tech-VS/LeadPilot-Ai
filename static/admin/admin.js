@@ -297,6 +297,15 @@
       var pps = document.getElementById("tk-pps"); if (pps) pps.textContent = k.pages_per_session || 0;
       drawDualLine(document.getElementById("traffic-chart"), d.timeseries || []);
       rankList(document.getElementById("top-pages"), d.top_pages || [], "views");
+      rankList(document.getElementById("top-locations"), (d.top_locations || []).map(function (loc) {
+        return { label: loc.label, views: loc.visitors };
+      }), "views");
+      drawBars(document.getElementById("top-countries"), (d.top_countries || []).map(function (c) {
+        return { label: c.label, count: c.visitors };
+      }));
+      rankList(document.getElementById("utm-campaigns"), (d.utm_campaigns || []).map(function (u) {
+        return { label: u.label, views: u.views };
+      }), "views");
       drawBars(document.getElementById("top-referrers"), (d.top_referrers || []).map(function (r) { return { label: r.host, count: r.views }; }));
       drawBars(document.getElementById("devices"), d.devices || []);
       applyRealtime(d.realtime || {});

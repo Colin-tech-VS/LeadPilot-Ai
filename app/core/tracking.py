@@ -6,6 +6,7 @@ serves is recorded, with a visitor cookie (uniques) and a session cookie
 Admin pages, assets, API and webhook routes are never tracked.
 """
 import hashlib
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
@@ -14,6 +15,8 @@ from flask import request
 
 from app.core.extensions import db
 from app.models.page_view import PageView
+
+logger = logging.getLogger(__name__)
 
 VISITOR_COOKIE = "lp_vid"
 SESSION_COOKIE = "lp_sid"
@@ -116,6 +119,20 @@ def register_tracking(app):
             if device != "bot":
                 ref = request.referrer
                 ip = _client_ip()
+                geo = None
+                if ip:
+                    try:
+                        from app.services.geoip import lookup_ip
+
+                        geo = lookup_ip(ip)
+                    except Exception:
+                        logger.debug("geo lookup skipped", exc_info=True)
+
+                utm_source = (request.args.get("utm_source") or "")[:80] or None
+                utm_medium = (request.args.get("utm_medium") or "")[:80] or None
+                utm_campaign = (request.args.get("utm_campaign") or "")[:120] or None
+                utm_content = (request.args.get("utm_content") or "")[:120] or None
+
                 pv = PageView(
                     visitor_id=visitor_id,
                     session_id=session_id,
@@ -126,6 +143,17 @@ def register_tracking(app):
                     device=device,
                     lang=(request.accept_languages.best or "")[:10] or None,
                     ip_hash=hashlib.sha256(ip.encode()).hexdigest() if ip else None,
+                    geo_country_code=geo.get("country_code") if geo else None,
+                    geo_country=geo.get("country") if geo else None,
+                    geo_region=geo.get("region") if geo else None,
+                    geo_city=geo.get("city") if geo else None,
+                    geo_postal_code=geo.get("postal_code") if geo else None,
+                    geo_latitude=geo.get("latitude") if geo else None,
+                    geo_longitude=geo.get("longitude") if geo else None,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    utm_content=utm_content,
                     is_new_session=new_session,
                 )
                 db.session.add(pv)

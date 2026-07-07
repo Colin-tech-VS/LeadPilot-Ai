@@ -4,6 +4,7 @@ from app.models.event import Event
 from app.models.lead import Lead
 from app.models.notification import Notification
 from app.models.offer import Offer
+from app.models.ip_geo_cache import IpGeoCache
 from app.models.page_view import PageView
 from app.models.quote import Quote
 from app.models.setting import SiteSetting
@@ -26,4 +27,5 @@ __all__ = [
     "EmailMessage",
     "Event",
     "PageView",
+    "IpGeoCache",
 ]

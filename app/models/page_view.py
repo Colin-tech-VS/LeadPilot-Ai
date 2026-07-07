@@ -28,6 +28,17 @@ class PageView(db.Model):
     device = db.Column(db.String(20), nullable=True)  # mobile / desktop / bot
     lang = db.Column(db.String(10), nullable=True)
     ip_hash = db.Column(db.String(64), nullable=True)
+    geo_country_code = db.Column(db.String(2), nullable=True, index=True)
+    geo_country = db.Column(db.String(80), nullable=True)
+    geo_region = db.Column(db.String(100), nullable=True)
+    geo_city = db.Column(db.String(100), nullable=True, index=True)
+    geo_postal_code = db.Column(db.String(20), nullable=True)
+    geo_latitude = db.Column(db.Float, nullable=True)
+    geo_longitude = db.Column(db.Float, nullable=True)
+    utm_source = db.Column(db.String(80), nullable=True, index=True)
+    utm_medium = db.Column(db.String(80), nullable=True, index=True)
+    utm_campaign = db.Column(db.String(120), nullable=True, index=True)
+    utm_content = db.Column(db.String(120), nullable=True)
     is_new_session = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(
         db.DateTime(timezone=True), default=utcnow, nullable=False, index=True
@@ -39,5 +50,10 @@ class PageView(db.Model):
             "path": self.path,
             "referrer_host": self.referrer_host,
             "device": self.device,
+            "geo_city": self.geo_city,
+            "geo_region": self.geo_region,
+            "geo_country_code": self.geo_country_code,
+            "utm_source": self.utm_source,
+            "utm_campaign": self.utm_campaign,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

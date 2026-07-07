@@ -298,3 +298,43 @@ def _ensure_schema_updates():
         if col_name not in user_columns:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+
+    if "page_views" in inspector.get_table_names():
+        pv_columns = {col["name"] for col in inspector.get_columns("page_views")}
+        pv_patches = {
+            "geo_country_code": "VARCHAR(2)",
+            "geo_country": "VARCHAR(80)",
+            "geo_region": "VARCHAR(100)",
+            "geo_city": "VARCHAR(100)",
+            "geo_postal_code": "VARCHAR(20)",
+            "geo_latitude": "FLOAT",
+            "geo_longitude": "FLOAT",
+            "utm_source": "VARCHAR(80)",
+            "utm_medium": "VARCHAR(80)",
+            "utm_campaign": "VARCHAR(120)",
+            "utm_content": "VARCHAR(120)",
+        }
+        for col_name, col_type in pv_patches.items():
+            if col_name not in pv_columns:
+                with db.engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE page_views ADD COLUMN {col_name} {col_type}"))
+
+    if "ip_geo_cache" not in inspector.get_table_names():
+        with db.engine.begin() as conn:
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE ip_geo_cache (
+                        ip_hash VARCHAR(64) PRIMARY KEY,
+                        country_code VARCHAR(2),
+                        country VARCHAR(80),
+                        region VARCHAR(100),
+                        city VARCHAR(100),
+                        postal_code VARCHAR(20),
+                        latitude FLOAT,
+                        longitude FLOAT,
+                        looked_up_at {ts_type}
+                    )
+                    """
+                )
+            )

@@ -98,7 +98,8 @@ TABLES = {
         EmailMessage, "Emails", ["direction", "status", "from_addr", "to_addr",
                                  "subject", "body"]),
     "page_views": TableSpec(
-        PageView, "Pages vues", ["path", "referrer_host", "device"]),
+        PageView, "Pages vues", ["path", "referrer_host", "device", "geo_city",
+                                 "geo_postal_code", "utm_source", "utm_campaign"]),
 }
 
 

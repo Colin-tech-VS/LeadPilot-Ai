@@ -204,6 +204,149 @@ def device_breakdown(days=30):
     return [{"label": d or "inconnu", "count": c} for d, c in rows]
 
 
+def _location_label(city, postal, region, country_code):
+    from app.services.geoip import format_location
+
+    return format_location(
+        {
+            "city": city,
+            "postal_code": postal,
+            "region": region,
+            "country_code": country_code,
+        }
+    )
+
+
+def top_locations(days=30, limit=12):
+    """Most precise visitor locations (city + postal when available)."""
+    since = _since(days)
+    rows = (
+        db.session.query(
+            PageView.geo_city,
+            PageView.geo_postal_code,
+            PageView.geo_region,
+            PageView.geo_country_code,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.visitor_id)),
+        )
+        .filter(PageView.created_at >= since, PageView.geo_city.isnot(None))
+        .group_by(
+            PageView.geo_city,
+            PageView.geo_postal_code,
+            PageView.geo_region,
+            PageView.geo_country_code,
+        )
+        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "label": _location_label(city, postal, region, cc),
+            "city": city,
+            "postal_code": postal,
+            "region": region,
+            "country_code": cc,
+            "views": views,
+            "visitors": visitors,
+        }
+        for city, postal, region, cc, views, visitors in rows
+    ]
+
+
+def top_countries(days=30, limit=8):
+    since = _since(days)
+    rows = (
+        db.session.query(
+            PageView.geo_country_code,
+            PageView.geo_country,
+            func.count(func.distinct(PageView.visitor_id)),
+            func.count(PageView.id),
+        )
+        .filter(PageView.created_at >= since, PageView.geo_country_code.isnot(None))
+        .group_by(PageView.geo_country_code, PageView.geo_country)
+        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "label": (name or code or "?"),
+            "country_code": code,
+            "visitors": visitors,
+            "views": views,
+        }
+        for code, name, visitors, views in rows
+    ]
+
+
+def utm_breakdown(days=30, limit=10):
+    since = _since(days)
+    rows = (
+        db.session.query(
+            PageView.utm_source,
+            PageView.utm_medium,
+            PageView.utm_campaign,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.visitor_id)),
+        )
+        .filter(PageView.created_at >= since, PageView.utm_source.isnot(None))
+        .group_by(PageView.utm_source, PageView.utm_medium, PageView.utm_campaign)
+        .order_by(func.count(PageView.id).desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "label": " / ".join(p for p in (src, med, camp) if p),
+            "utm_source": src,
+            "utm_medium": med,
+            "utm_campaign": camp,
+            "views": views,
+            "visitors": visitors,
+        }
+        for src, med, camp, views, visitors in rows
+    ]
+
+
+def geo_map_points(days=30, limit=40):
+    """Approximate map pins (city centroids from IP)."""
+    since = _since(days)
+    rows = (
+        db.session.query(
+            PageView.geo_city,
+            PageView.geo_country_code,
+            PageView.geo_latitude,
+            PageView.geo_longitude,
+            func.count(func.distinct(PageView.visitor_id)),
+        )
+        .filter(
+            PageView.created_at >= since,
+            PageView.geo_latitude.isnot(None),
+            PageView.geo_longitude.isnot(None),
+        )
+        .group_by(
+            PageView.geo_city,
+            PageView.geo_country_code,
+            PageView.geo_latitude,
+            PageView.geo_longitude,
+        )
+        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "city": city,
+            "country_code": cc,
+            "lat": lat,
+            "lng": lng,
+            "visitors": visitors,
+        }
+        for city, cc, lat, lng, visitors in rows
+    ]
+
+
 def payload(days=30):
     return {
         "realtime": realtime(),
@@ -212,6 +355,10 @@ def payload(days=30):
         "top_pages": top_pages(days),
         "top_referrers": top_referrers(days),
         "devices": device_breakdown(days),
+        "top_locations": top_locations(days),
+        "top_countries": top_countries(days),
+        "utm_campaigns": utm_breakdown(days),
+        "geo_map": geo_map_points(days),
         "range_days": days,
         "generated_at": _utcnow().isoformat(),
     }

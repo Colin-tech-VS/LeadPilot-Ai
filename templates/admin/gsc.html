@@ -145,6 +145,7 @@
     <section class="admin-panel">
       <h2>Top requêtes</h2>
       {% if dashboard.queries %}
+      <div class="admin-table-wrap">
       <table class="data-table accounts-table">
         <thead>
           <tr><th>Requête</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
@@ -161,6 +162,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       {% else %}
       <p class="admin-hint">Pas encore de données pour cette période.</p>
       {% endif %}
@@ -169,6 +171,7 @@
     <section class="admin-panel">
       <h2>Top pages</h2>
       {% if dashboard.pages %}
+      <div class="admin-table-wrap">
       <table class="data-table accounts-table">
         <thead>
           <tr><th>Page</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
@@ -185,6 +188,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       {% else %}
       <p class="admin-hint">Pas encore de données pour cette période.</p>
       {% endif %}

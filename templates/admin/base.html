@@ -1,4 +1,5 @@
 {% from 'macros/brand.html' import brand_logo with context %}
+{% from 'macros/google_places.html' import google_places_scripts with context %}
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
@@ -115,6 +116,7 @@
   {% block auth_content %}{% endblock %}
 {% endif %}
   {% block scripts %}{% endblock %}
+  {{ google_places_scripts() }}
   <script src="{{ url_for('static', filename='admin/admin.js') }}?v=2"></script>
   <script>
     if ('serviceWorker' in navigator) {

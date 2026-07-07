@@ -69,6 +69,9 @@
         <a href="{{ url_for('admin.emails') }}" class="{% if request.endpoint == 'admin.emails' %}active{% endif %}">
           <span class="nav-ico">✉️</span> Emails
         </a>
+        <a href="{{ url_for('admin.prospecting') }}" class="{% if request.endpoint and 'prospect' in request.endpoint %}active{% endif %}">
+          <span class="nav-ico">🎯</span> Prospection
+        </a>
         <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
           <span class="nav-ico">📜</span> Journal
         </a>

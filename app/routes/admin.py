@@ -36,6 +36,7 @@ from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.lead import Lead
 from app.models.notification import Notification
+from app.models.outreach_prospect import OutreachProspect
 from app.models.offer import Offer
 from app.models.page_view import PageView
 from app.models.quote import Quote
@@ -102,6 +103,10 @@ TABLES = {
     "page_views": TableSpec(
         PageView, "Pages vues", ["path", "referrer_host", "device", "geo_city",
                                  "geo_postal_code", "utm_source", "utm_campaign"]),
+    "outreach_prospects": TableSpec(
+        OutreachProspect, "Prospection B2B",
+        ["first_name", "last_name", "company_name", "email", "phone", "trade_type",
+         "city", "status", "notes"]),
 }
 
 
@@ -1565,3 +1570,114 @@ def api_social_generate():
     except Exception as exc:  # noqa: BLE001 — never 500 on IA generate
         current_app.logger.exception("social_ai_generate failed")
         return jsonify({"error": f"Génération impossible : {exc}"}), 502
+
+
+# ------------------------------------------------------------------ prospection B2B
+@admin_bp.route("/prospecting", endpoint="prospecting")
+@admin_required
+def prospecting_page():
+    from app.constants.trades import trade_choices
+    from app.services import prospect_search, prospecting
+
+    status_filter = (request.args.get("status") or "").strip() or None
+    trade_filter = (request.args.get("trade") or "").strip() or None
+    return render_template(
+        "admin/prospecting.html",
+        prospects=prospecting.list_prospects(status=status_filter, trade_type=trade_filter),
+        trades=trade_choices("fr"),
+        status_filter=status_filter,
+        trade_filter=trade_filter,
+        search_provider=prospect_search.search_provider(),
+        ai_available=content_ai.is_available(),
+        smtp_configured=admin_email.is_configured(),
+    )
+
+
+@admin_bp.route("/api/prospecting/search", methods=["POST"])
+@admin_required
+@rate_limit(limit=6, window=3600, scope="admin_prospect_search")
+def api_prospecting_search():
+    from app.services import prospecting
+
+    data = request.get_json(silent=True) or {}
+    trade_type = (data.get("trade_type") or "plombier").strip()
+    city = (data.get("city") or "").strip()
+    max_results = int(data.get("max_results") or 12)
+    try:
+        result = prospecting.run_search(trade_type=trade_type, city=city, max_results=max_results)
+        log_event(
+            CAT_ADMIN,
+            "prospect_search",
+            summary=f"Prospection {trade_type} · {city} — {result['found']} trouvés ({result['with_email']} emails)",
+            level=LEVEL_SUCCESS,
+        )
+        return jsonify(result)
+    except prospecting.ProspectingError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("prospect_search failed")
+        return jsonify({"error": f"Recherche impossible : {exc}"}), 502
+
+
+@admin_bp.route("/api/prospecting/<prospect_id>/generate-email", methods=["POST"])
+@admin_required
+def api_prospecting_generate_email(prospect_id):
+    from app.services import prospecting
+
+    data = request.get_json(silent=True) or {}
+    tone = (data.get("tone") or "professionnel").strip()
+    angle = (data.get("angle") or "").strip()
+    try:
+        prospect = prospecting.generate_outreach_email(prospect_id, tone=tone, angle=angle)
+        log_event(CAT_ADMIN, "prospect_email_generate", summary=f"E-mail IA pour {prospect.email or prospect.id}")
+        return jsonify(prospect.to_dict())
+    except prospecting.ProspectingError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except content_ai.ContentAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@admin_bp.route("/prospecting/<prospect_id>/send", methods=["POST"])
+@admin_required
+def prospecting_send(prospect_id):
+    from app.services import prospecting
+
+    try:
+        result = prospecting.send_outreach_email(prospect_id)
+        log_event(
+            CAT_ADMIN,
+            "prospect_email_send",
+            summary=f"E-mail prospection envoyé à {result['prospect'].get('email')}",
+            level=LEVEL_SUCCESS,
+        )
+        flash(f"E-mail envoyé à {result['prospect'].get('email')} ({result['email_status']}).", "success")
+    except prospecting.ProspectingError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.prospecting"))
+
+
+@admin_bp.route("/prospecting/<prospect_id>/status", methods=["POST"])
+@admin_required
+def prospecting_status(prospect_id):
+    from app.services import prospecting
+
+    status = (request.form.get("status") or "").strip()
+    try:
+        prospecting.update_status(prospect_id, status)
+        flash("Statut mis à jour.", "success")
+    except prospecting.ProspectingError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.prospecting"))
+
+
+@admin_bp.route("/prospecting/<prospect_id>/delete", methods=["POST"])
+@admin_required
+def prospecting_delete(prospect_id):
+    from app.services import prospecting
+
+    try:
+        prospecting.delete_prospect(prospect_id)
+        flash("Prospect supprimé.", "success")
+    except prospecting.ProspectingError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.prospecting"))

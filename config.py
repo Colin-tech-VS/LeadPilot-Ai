@@ -150,6 +150,12 @@ class Config:
     GOOGLE_GSC_CLIENT_ID = os.environ.get("GOOGLE_GSC_CLIENT_ID", "")
     GOOGLE_GSC_CLIENT_SECRET = os.environ.get("GOOGLE_GSC_CLIENT_SECRET", "")
 
+    # Prospection B2B — recherche web d'artisans (admin /admin/prospecting).
+    # SerpAPI (recommandé) ou Google Custom Search JSON API.
+    SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")
+    GOOGLE_CSE_API_KEY = os.environ.get("GOOGLE_CSE_API_KEY", "")
+    GOOGLE_CSE_CX = os.environ.get("GOOGLE_CSE_CX", "")
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""

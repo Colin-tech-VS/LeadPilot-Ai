@@ -1,0 +1,276 @@
+{% extends "admin/base.html" %}
+{% block title %}Prospection · Admin{% endblock %}
+{% block page_title %}Prospection artisans{% endblock %}
+
+{% block content %}
+<div class="connect-banner" style="margin-bottom:20px">
+  <span style="font-size:22px">🎯</span>
+  <div style="flex:1;min-width:260px">
+    <strong>Prospection B2B — acquisition artisans</strong>
+    <div class="studio-item-meta">
+      Recherche web par métier et ville (mêmes cibles que l'inscription artisan), extraction des contacts publics,
+      puis e-mail de prospection généré par Mistral.
+      Moteur actuel : <strong>{{ search_provider }}</strong>
+      {% if search_provider == 'duckduckgo' %} — ajoutez <code>SERPAPI_KEY</code> pour de meilleurs résultats.{% endif %}
+    </div>
+    <p class="admin-hint" style="margin-top:8px">
+      ⚖️ Prospection B2B : utilisez uniquement des coordonnées publiques, personnalisez chaque message et incluez une désinscription.
+      Ne relancez pas les contacts désinscrits.
+    </p>
+  </div>
+</div>
+
+<div class="social-compose-grid">
+  <div class="studio-editor">
+    <h2 style="margin:0 0 12px;font-size:18px">Rechercher des artisans</h2>
+    <div class="db-form-grid">
+      <label>Métier
+        <select id="search-trade">
+          {% for t in trades %}
+          <option value="{{ t.key }}" {% if t.key == 'plombier' %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Ville ou code postal
+        <input type="text" id="search-city" placeholder="Ex : Lyon, 69003" required>
+      </label>
+      <label>Résultats max
+        <input type="number" id="search-max" min="3" max="25" value="12">
+      </label>
+    </div>
+    <div class="form-actions" style="margin-top:12px">
+      <button type="button" class="admin-btn" id="search-btn">🔍 Lancer la recherche IA</button>
+      <span class="ai-spinner" id="search-spinner" style="display:none">Recherche et extraction des e-mails…</span>
+    </div>
+    <span class="mail-error" id="search-error" style="display:none"></span>
+    <div id="search-summary" class="admin-hint" style="margin-top:10px;display:none"></div>
+  </div>
+
+  <div class="studio-preview">
+    <h2 style="margin:0 0 12px;font-size:18px">Filtres liste</h2>
+    <form method="GET" class="db-form-grid">
+      <label>Statut
+        <select name="status">
+          <option value="">Tous</option>
+          {% for s, label in [('new','Nouveau'),('ready','Prêt'),('contacted','Contacté'),('replied','Répondu'),('converted','Converti'),('unsubscribed','Désinscrit'),('skipped','Ignoré')] %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Métier
+        <select name="trade">
+          <option value="">Tous</option>
+          {% for t in trades %}
+          <option value="{{ t.key }}" {% if trade_filter == t.key %}selected{% endif %}>{{ t.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="field" style="justify-content:flex-end">
+        <button type="submit" class="admin-btn ghost">Filtrer</button>
+      </div>
+    </form>
+    {% if not smtp_configured %}
+    <p class="admin-hint" style="margin-top:12px;color:#b45309">SMTP non configuré — les envois seront simulés (visibles dans Emails).</p>
+    {% endif %}
+    {% if not ai_available %}
+    <p class="admin-hint" style="margin-top:8px;color:#b45309">Mistral indisponible — génération d'e-mails désactivée.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="admin-table-wrap" style="margin-top:24px">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Contact</th>
+        <th>Métier / Ville</th>
+        <th>E-mail</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="prospects-body">
+      {% for p in prospects %}
+      <tr data-id="{{ p.id }}">
+        <td>
+          <strong>{{ p.display_name() }}</strong>
+          {% if p.company_name %}<div class="studio-item-meta">{{ p.company_name }}</div>{% endif %}
+          {% if p.phone %}<div class="studio-item-meta">{{ p.phone }}</div>{% endif %}
+        </td>
+        <td>
+          {{ p.trade_type }}<br>
+          <span class="studio-item-meta">{{ p.city or '—' }}</span>
+        </td>
+        <td>
+          {% if p.email %}
+            <a href="mailto:{{ p.email }}">{{ p.email }}</a>
+            {% if p.email_confidence %}<div class="studio-item-meta">conf. {{ p.email_confidence }}</div>{% endif %}
+          {% else %}
+            <span class="studio-item-meta">—</span>
+          {% endif %}
+          {% if p.website_url %}
+          <div><a href="{{ p.website_url }}" target="_blank" rel="noopener" class="studio-item-meta">Site web ↗</a></div>
+          {% endif %}
+        </td>
+        <td><span class="status-pill status-{{ p.status }}">{{ p.status }}</span></td>
+        <td class="prospect-actions">
+          {% if ai_available and p.email and p.status != 'unsubscribed' %}
+          <button type="button" class="admin-btn tiny ghost btn-gen-email" data-id="{{ p.id }}">✨ E-mail IA</button>
+          {% endif %}
+          {% if p.outreach_subject %}
+          <details class="prospect-email-preview">
+            <summary class="admin-btn tiny ghost">Voir l'e-mail</summary>
+            <div class="prospect-email-box">
+              <strong>{{ p.outreach_subject }}</strong>
+              <pre>{{ p.outreach_body }}</pre>
+              {% if p.email and p.status not in ('contacted','converted','unsubscribed') %}
+              <form method="POST" action="{{ url_for('admin.prospecting_send', prospect_id=p.id) }}">
+                <button type="submit" class="admin-btn tiny">Envoyer</button>
+              </form>
+              {% endif %}
+            </div>
+          </details>
+          {% endif %}
+          <form method="POST" action="{{ url_for('admin.prospecting_delete', prospect_id=p.id) }}" style="display:inline" onsubmit="return confirm('Supprimer ce prospect ?')">
+            <button type="submit" class="admin-btn tiny danger ghost">Suppr.</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr id="prospects-empty"><td colspan="5" class="admin-hint" style="text-align:center;padding:32px">Aucun prospect — lancez une recherche ci-dessus.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if ai_available %}
+<div class="ai-box" id="email-modal" style="display:none;margin-top:24px">
+  <h3>✨ E-mail de prospection (Mistral)</h3>
+  <input type="hidden" id="modal-prospect-id">
+  <div class="field-row">
+    <label class="field"><span>Ton</span>
+      <select id="modal-tone">
+        <option value="professionnel">Professionnel</option>
+        <option value="amical">Amical</option>
+        <option value="direct">Direct</option>
+      </select>
+    </label>
+  </div>
+  <label class="field"><span>Angle / brief</span>
+    <textarea id="modal-angle" rows="2" placeholder="Ex : mettre en avant la prise d'appels le soir et le week-end."></textarea>
+  </label>
+  <button type="button" class="admin-btn" id="modal-generate">Générer</button>
+  <span class="ai-spinner" id="modal-spinner" style="display:none">Génération…</span>
+  <span class="mail-error" id="modal-error" style="display:none"></span>
+  <div id="modal-result" style="display:none;margin-top:16px">
+    <label class="field"><span>Objet</span><input type="text" id="modal-subject" readonly></label>
+    <label class="field"><span>Corps</span><textarea id="modal-body" rows="8" readonly></textarea></label>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<style>
+.status-pill { display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase; }
+.status-new { background:#e2e8f0;color:#475569; }
+.status-ready { background:#dbeafe;color:#1d4ed8; }
+.status-contacted { background:#fef3c7;color:#b45309; }
+.status-replied { background:#d1fae5;color:#047857; }
+.status-converted { background:#bbf7d0;color:#15803d; }
+.status-unsubscribed { background:#fee2e2;color:#b91c1c; }
+.status-skipped { background:#f1f5f9;color:#64748b; }
+.prospect-actions { display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start; }
+.prospect-email-box { margin-top:8px;padding:12px;background:#f8fafc;border-radius:10px;max-width:420px; }
+.prospect-email-box pre { white-space:pre-wrap;font-family:inherit;font-size:13px;margin:8px 0; }
+</style>
+<script>
+(function () {
+  const searchBtn = document.getElementById('search-btn');
+  const searchSpinner = document.getElementById('search-spinner');
+  const searchError = document.getElementById('search-error');
+  const searchSummary = document.getElementById('search-summary');
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', async function () {
+      const city = document.getElementById('search-city').value.trim();
+      if (!city) { searchError.textContent = 'Indiquez une ville.'; searchError.style.display = 'block'; return; }
+      searchError.style.display = 'none';
+      searchSummary.style.display = 'none';
+      searchBtn.disabled = true;
+      searchSpinner.style.display = 'inline';
+      try {
+        const res = await fetch('{{ url_for("admin.api_prospecting_search") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trade_type: document.getElementById('search-trade').value,
+            city: city,
+            max_results: parseInt(document.getElementById('search-max').value || '12', 10),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur');
+        searchSummary.textContent = data.found + ' prospect(s) ajouté(s), ' + data.with_email + ' avec e-mail (' + data.provider + ').';
+        searchSummary.style.display = 'block';
+        if (data.found > 0) window.location.reload();
+      } catch (err) {
+        searchError.textContent = err.message;
+        searchError.style.display = 'block';
+      } finally {
+        searchBtn.disabled = false;
+        searchSpinner.style.display = 'none';
+      }
+    });
+  }
+
+  const modal = document.getElementById('email-modal');
+  const modalId = document.getElementById('modal-prospect-id');
+  const modalGenerate = document.getElementById('modal-generate');
+  const modalSpinner = document.getElementById('modal-spinner');
+  const modalError = document.getElementById('modal-error');
+  const modalResult = document.getElementById('modal-result');
+
+  document.querySelectorAll('.btn-gen-email').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!modal) return;
+      modalId.value = btn.dataset.id;
+      modal.style.display = 'block';
+      modalResult.style.display = 'none';
+      modalError.style.display = 'none';
+      modal.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  if (modalGenerate) {
+    modalGenerate.addEventListener('click', async function () {
+      modalError.style.display = 'none';
+      modalSpinner.style.display = 'inline';
+      modalGenerate.disabled = true;
+      try {
+        const res = await fetch('/admin/api/prospecting/' + modalId.value + '/generate-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tone: document.getElementById('modal-tone').value,
+            angle: document.getElementById('modal-angle').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur');
+        document.getElementById('modal-subject').value = data.outreach_subject || '';
+        document.getElementById('modal-body').value = data.outreach_body || '';
+        modalResult.style.display = 'block';
+        setTimeout(function () { window.location.reload(); }, 1200);
+      } catch (err) {
+        modalError.textContent = err.message;
+        modalError.style.display = 'block';
+      } finally {
+        modalSpinner.style.display = 'none';
+        modalGenerate.disabled = false;
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

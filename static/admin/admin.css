@@ -147,7 +147,7 @@ a { color: inherit; text-decoration: none; }
 .bar-val { text-align: right; color: var(--muted); font-weight: 600; }
 
 /* ---------------------------------------------------------------- database */
-.db-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.db-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 14px; }
 .db-card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 4px;
@@ -173,7 +173,7 @@ a { color: inherit; text-decoration: none; }
 .db-add-panel.open { max-height: 900px; margin-bottom: 18px; }
 .db-form { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow-sm); }
 .db-form h3 { margin: 0 0 14px; font-size: 14px; }
-.db-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.db-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; margin-bottom: 14px; }
 .db-form label, .db-inline { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); }
 .db-inline { flex-direction: row; align-items: center; gap: 8px; }
 .db-form input, .db-form textarea, .admin-select {
@@ -185,9 +185,10 @@ a { color: inherit; text-decoration: none; }
 
 /* buttons */
 .admin-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   background: var(--brand); color: #fff; border: 0; border-radius: 10px;
   padding: 9px 16px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all .16s ease;
-  box-shadow: 0 1px 2px rgba(5, 156, 224, .3);
+  box-shadow: 0 1px 2px rgba(5, 156, 224, .3); text-align: center;
 }
 .admin-btn:hover { background: var(--brand-strong); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(5, 156, 224, .28); }
 .admin-btn.ghost { background: var(--panel); border: 1px solid var(--border-strong); color: var(--text); box-shadow: none; }
@@ -397,7 +398,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------------------------------------------------------------- studio */
-.studio-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.studio-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 16px; }
 .studio-tile {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; gap: 8px;
@@ -410,6 +411,7 @@ a { color: inherit; text-decoration: none; }
 .studio-tile-badge { margin-top: auto; font-size: 11px; font-weight: 700; color: var(--brand-strong); }
 
 .studio-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.studio-split--even { grid-template-columns: 1fr 1fr; }
 .studio-editor { display: flex; flex-direction: column; gap: 14px; }
 .studio-preview { position: sticky; top: 84px; }
 .studio-preview-frame {
@@ -464,7 +466,7 @@ a { color: inherit; text-decoration: none; }
 .switch input:checked + .switch-track::after { transform: translateX(18px); background: #fff; }
 
 /* offers editor */
-.offer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.offer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 18px; }
 .offer-card { background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-sm); animation: rise .4s ease backwards; }
 .offer-card.featured { border-color: var(--brand); box-shadow: inset 0 0 0 1px rgba(5, 156, 224, .3); }
@@ -528,7 +530,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------------------------------------------------------------- studio responsive */
 @media (max-width: 900px) {
-  .studio-split { grid-template-columns: 1fr; }
+  .studio-split, .studio-split--even { grid-template-columns: 1fr; }
   .social-compose-grid { grid-template-columns: 1fr; }
   .studio-preview { position: static; top: auto; }
   .studio-preview-frame { min-height: 420px; }
@@ -540,7 +542,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------------------------------------------------------------- diagnostics */
-.diag-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.diag-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
 .diag-group { margin: 0; }
 .diag-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .diag-group-head h2 { margin: 0; flex: 1; }
@@ -724,4 +726,119 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 900px) {
   .accounts-kpi-grid { grid-template-columns: 1fr; }
   .admin-search-input { min-width: 160px; }
+}
+
+/* ================================================================ */
+/* Responsive & webapp overhaul — mobile-first fixes for /admin      */
+/* ================================================================ */
+
+/* ---- dynamic viewport height (iOS URL bar / PWA standalone) ---- */
+@supports (height: 100dvh) {
+  body.admin { min-height: 100dvh; }
+  .admin-shell { min-height: 100dvh; }
+  .admin-sidebar { height: 100dvh; }
+  .admin-login-body { min-height: 100dvh; }
+}
+
+/* ---- smoother native feel ---- */
+.admin-btn, .admin-tab, .accounts-tab, .admin-nav a, .mail-tab-btn,
+.admin-select, .studio-tile, .db-card, .mail-item { touch-action: manipulation; }
+.admin-nav-scroll { overscroll-behavior: contain; }
+.admin-table-wrap, .db-table-wrap { -webkit-overflow-scrolling: touch; max-width: 100%; }
+body.admin.sidebar-open { overflow: hidden; }
+.chart-host svg { display: block; width: 100%; height: 240px; }
+.admin-topbar-right form { display: inline-flex; gap: 8px; margin: 0; }
+
+/* GSC "Top pages" cell — ellipsis on desktop, wraps when stacked */
+.gsc-cell-page { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* long unbreakable tokens (URLs, env vars) must wrap instead of overflowing */
+.admin-panel code, .admin-hint code, .admin-notice code,
+.admin-hint, .studio-item-meta, .diag-val { overflow-wrap: anywhere; }
+
+/* ---- touch devices: bigger targets, no iOS focus zoom ---- */
+@media (pointer: coarse) {
+  .admin-btn { min-height: 42px; }
+  .admin-btn.tiny { min-height: 36px; padding: 6px 12px; }
+  .admin-tab, .accounts-tab { min-height: 40px; display: inline-flex; align-items: center; }
+  .admin-nav a { padding-top: 12px; padding-bottom: 12px; }
+  /* inputs under 16px trigger an automatic zoom on iOS Safari */
+  body.admin input:not([type="checkbox"]):not([type="radio"]),
+  body.admin select,
+  body.admin textarea { font-size: 16px; }
+}
+
+/* ---- laptop / small desktop: keep KPI cards readable ---- */
+@media (max-width: 1180px) and (min-width: 901px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---- tablet & phone (≤900px) ---- */
+@media (max-width: 900px) {
+  /* PWA standalone: respect notch / home-indicator safe areas */
+  .admin-topbar {
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+  .admin-sidebar {
+    padding-top: calc(22px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  }
+  .admin-content {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+  .admin-burger { padding: 8px 10px; margin-left: -10px; }
+}
+
+/* ---- stacked tables: rows become label/value cards (≤700px) ---- */
+@media (max-width: 700px) {
+  .table-stack thead { display: none; }
+  .table-stack tbody, .table-stack tr { display: block; width: 100%; }
+  .table-stack tbody tr { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .table-stack tbody tr:last-child { border-bottom: 0; }
+  .admin-table-wrap .table-stack td, .table-stack td {
+    display: block; width: 100%; padding: 5px 0; border: 0;
+    white-space: normal; word-break: break-word;
+  }
+  .table-stack td[data-label]::before {
+    content: attr(data-label);
+    display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted); margin-bottom: 2px;
+  }
+  .table-stack td:empty { display: none; }
+  .admin-table-wrap .table-stack .gsc-cell-page { max-width: none; white-space: normal; }
+}
+
+/* ---- phones (≤560px) ---- */
+@media (max-width: 560px) {
+  .chart-host svg { height: 200px; }
+  .bar-row { grid-template-columns: 86px 1fr 40px; font-size: 12px; gap: 8px; }
+  .db-cell { max-width: 140px; }
+  .db-pager { flex-wrap: wrap; gap: 10px; }
+  .mail-head { flex-wrap: wrap; }
+  .mail-head strong { min-width: 0; overflow-wrap: anywhere; }
+  .mail-item { padding: 12px 14px; gap: 10px; }
+  .studio-item { flex-wrap: wrap; }
+  .studio-item-actions { width: 100%; justify-content: flex-start; margin-top: 6px; }
+  .studio-item-meta { white-space: normal; }
+  .diag-value { white-space: normal; word-break: break-all; }
+  .admin-topbar-right form { flex: 1 1 auto; }
+  .admin-topbar-right form .admin-btn { flex: 1; }
+  .admin-search-form { width: 100%; }
+  .admin-search-input { flex: 1; width: 100%; min-width: 0; }
+  .connect-banner { padding: 14px; gap: 10px; }
+  .admin-panel { padding: 16px; }
+  .kpi-card { padding: 14px 14px 12px; }
+  .mail-detail-head { padding: 14px 16px; }
+  .mail-plain { padding: 16px; }
+  .mail-html-frame { min-height: 320px; }
+  .studio-preview-frame { min-height: 340px; }
+  .realtime-count { font-size: 32px; }
+  .accounts-panel-head { flex-direction: column; }
+  .accounts-tab { flex: 1 1 auto; justify-content: center; }
+  .prospect-email-box { max-width: 100%; }
 }

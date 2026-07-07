@@ -5,6 +5,7 @@ owner can connect a Page from the admin console without a redeploy. When they
 are absent, publishing is disabled and the UI shows a "connect" prompt — nothing
 breaks.
 """
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -73,31 +74,64 @@ def verify_connection():
         return False, str(exc)
 
 
-def _publish_link_post(cfg, message, link, resolved, image_path):
-    """Link post: image preview is clickable and opens ``link`` (no URL in text)."""
-    from app.services.social_image import image_public_url
+def _graph_error(data) -> dict:
+    return data.get("error") or {}
 
+
+def _is_custom_link_preview_error(data) -> bool:
+    """Meta only allows custom thumbnail/picture when the link domain is verified."""
+    err = _graph_error(data)
+    if err.get("code") != 100:
+        return False
+    msg = (err.get("message") or "").lower()
+    return "only owners of the url" in msg
+
+
+def _cta_payload(link: str) -> str:
+    return json.dumps({"type": "LEARN_MORE", "value": {"link": link}})
+
+
+def _publish_link_post(cfg, message, link, resolved):
+    """Link post with custom thumbnail — requires verified link domain in Meta Business."""
     endpoint = f"{GRAPH_BASE}/{cfg['page_id']}/feed"
     base_data = {"message": message, "link": link, "access_token": cfg["token"]}
 
     with open(resolved, "rb") as image_file:
-        resp = requests.post(
+        return requests.post(
             endpoint,
             data=base_data,
             files={"thumbnail": (resolved.name, image_file, "image/png")},
             timeout=60,
         )
-    if resp.ok:
-        return resp
 
-    picture_url = image_public_url(image_path or "")
-    if picture_url:
-        resp = requests.post(
+
+def _publish_photo_with_cta(cfg, message, link, resolved):
+    """Branded photo + CTA button when custom link previews are blocked."""
+    endpoint = f"{GRAPH_BASE}/{cfg['page_id']}/photos"
+    with open(resolved, "rb") as image_file:
+        return requests.post(
             endpoint,
-            data={**base_data, "picture": picture_url},
+            data={
+                "message": message,
+                "access_token": cfg["token"],
+                "call_to_action": _cta_payload(link),
+            },
+            files={"source": (resolved.name, image_file, "image/png")},
             timeout=60,
         )
-    return resp
+
+
+def _publish_link_only(cfg, message, link):
+    """Standard link post — Facebook scrapes Open Graph tags (no custom thumbnail)."""
+    return requests.post(
+        f"{GRAPH_BASE}/{cfg['page_id']}/feed",
+        data={"message": message, "link": link, "access_token": cfg["token"]},
+        timeout=60,
+    )
+
+
+def _external_id_from_response(data) -> str | None:
+    return data.get("post_id") or data.get("id")
 
 
 def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> SocialPost:
@@ -140,22 +174,49 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
         return post
 
     try:
-        resp = _publish_link_post(cfg, message, link, resolved, image_path)
+        resp = _publish_link_post(cfg, message, link, resolved)
         data = resp.json()
-        if resp.ok and data.get("id"):
+        publish_mode = "link_thumbnail"
+
+        if not resp.ok and _is_custom_link_preview_error(data):
+            resp = _publish_photo_with_cta(cfg, message, link, resolved)
+            data = resp.json()
+            publish_mode = "photo_cta"
+
+        if not resp.ok and _is_custom_link_preview_error(data):
+            resp = _publish_link_only(cfg, message, link)
+            data = resp.json()
+            publish_mode = "link_og"
+
+        external_id = _external_id_from_response(data) if resp.ok else None
+        if resp.ok and external_id:
             post.status = "published"
-            post.external_id = data["id"]
+            post.external_id = external_id
             post.published_at = datetime.now(timezone.utc)
-            post.permalink = f"https://www.facebook.com/{data['id']}"
+            post.permalink = f"https://www.facebook.com/{external_id}"
+            mode_labels = {
+                "link_thumbnail": "lien + visuel cliquable",
+                "photo_cta": "photo + bouton En savoir plus",
+                "link_og": "lien (aperçu Open Graph du site)",
+            }
             log_event(
                 CAT_ADMIN,
                 "facebook_publish",
-                summary=f"Post Facebook publié (lien cliquable): {post.preview(60)}",
+                summary=(
+                    f"Post Facebook publié ({mode_labels.get(publish_mode, publish_mode)}): "
+                    f"{post.preview(60)}"
+                ),
                 level=LEVEL_SUCCESS,
             )
         else:
             post.status = "failed"
-            post.error = (data.get("error") or {}).get("message", "Réponse Facebook invalide.")[:500]
+            post.error = _graph_error(data).get("message", "Réponse Facebook invalide.")[:500]
+            if _is_custom_link_preview_error(data):
+                post.error = (
+                    f"{post.error} "
+                    "Vérifiez le domaine pilotcore.fr dans Meta Business Manager "
+                    "(Sécurité de la marque → Domaines) pour activer le visuel cliquable."
+                )[:500]
             log_event(
                 CAT_ADMIN,
                 "facebook_publish_failed",

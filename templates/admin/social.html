@@ -52,6 +52,9 @@
         </select>
       </label>
       <p class="admin-hint social-utm-hint">Le visuel est cliquable vers la page choisie (sans URL dans le texte). Les paramètres <code>utm_*</code> sont ajoutés en arrière-plan pour Google Analytics.</p>
+      {% if facebook_connected %}
+      <p class="admin-hint">Pour le visuel IA cliquable, vérifiez <strong>pilotcore.fr</strong> dans <a href="https://business.facebook.com/settings/owned-domains" target="_blank" rel="noopener" style="color:var(--brand)">Meta Business → Domaines</a>. Sinon la publication utilise un repli (photo + bouton ou aperçu Open Graph).</p>
+      {% endif %}
 
       {% if ai_available %}
       <div class="ai-box social-ai-box">

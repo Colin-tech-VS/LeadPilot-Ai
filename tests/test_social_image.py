@@ -97,6 +97,122 @@ def test_publish_post_uploads_clickable_link_post(app, monkeypatch, tmp_path):
         assert "https://" not in captured["data"]["message"]
 
 
+def test_publish_post_falls_back_to_photo_when_domain_not_verified(app, monkeypatch, tmp_path):
+    img = tmp_path / "post.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 64)
+    rel = "uploads/social/test-post.png"
+    static_root = tmp_path / "static"
+    (static_root / "uploads" / "social").mkdir(parents=True)
+    (static_root / "uploads" / "social" / "test-post.png").write_bytes(img.read_bytes())
+
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+
+    calls = []
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        calls.append({"url": url, "data": data or {}, "files": files or {}})
+        mock_resp = MagicMock()
+        if url.endswith("/feed") and "thumbnail" in (files or {}):
+            mock_resp.ok = False
+            mock_resp.json.return_value = {
+                "error": {
+                    "code": 100,
+                    "message": (
+                        "(#100) Only owners of the URL have the ability to specify "
+                        "the picture, name, thumbnail or description params."
+                    ),
+                }
+            }
+            return mock_resp
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "photo_1", "post_id": "page1_456"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
+
+    with app.app_context():
+        app.static_folder = str(static_root)
+        from app.services import social
+        from app.services import social_image
+
+        monkeypatch.setattr(
+            social_image,
+            "resolve_image_path",
+            lambda p: static_root / p if p else None,
+        )
+
+        post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
+        assert post.status == "published", post.error
+        assert len(calls) == 2
+        assert calls[0]["url"].endswith("/feed")
+        assert calls[1]["url"].endswith("/photos")
+        assert calls[1]["data"]["call_to_action"]
+        assert "source" in calls[1]["files"]
+
+
+def test_publish_post_falls_back_to_link_only_when_photo_cta_fails(app, monkeypatch, tmp_path):
+    img = tmp_path / "post.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 64)
+    rel = "uploads/social/test-post.png"
+    static_root = tmp_path / "static"
+    (static_root / "uploads" / "social").mkdir(parents=True)
+    (static_root / "uploads" / "social" / "test-post.png").write_bytes(img.read_bytes())
+
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+
+    domain_error = {
+        "error": {
+            "code": 100,
+            "message": (
+                "(#100) Only owners of the URL have the ability to specify "
+                "the picture, name, thumbnail or description params."
+            ),
+        }
+    }
+    calls = []
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        calls.append({"url": url, "data": data or {}, "files": files or {}})
+        mock_resp = MagicMock()
+        if url.endswith("/photos"):
+            mock_resp.ok = False
+            mock_resp.json.return_value = domain_error
+            return mock_resp
+        if url.endswith("/feed") and files:
+            mock_resp.ok = False
+            mock_resp.json.return_value = domain_error
+            return mock_resp
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "page1_789"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
+
+    with app.app_context():
+        app.static_folder = str(static_root)
+        from app.services import social
+        from app.services import social_image
+
+        monkeypatch.setattr(
+            social_image,
+            "resolve_image_path",
+            lambda p: static_root / p if p else None,
+        )
+
+        post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
+        assert post.status == "published", post.error
+        assert len(calls) == 3
+        assert calls[2]["url"].endswith("/feed")
+        assert calls[2]["data"]["link"] == "https://www.pilotcore.fr/pro"
+        assert "thumbnail" not in calls[2]["files"]
+
+
 def test_publish_post_requires_link_for_clickable_image(app, monkeypatch, tmp_path):
     rel = "uploads/social/test-post.png"
     static_root = tmp_path / "static"

@@ -3,8 +3,8 @@
 {% block page_title %}Téléphonie Twilio{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ twilio.billing_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer">Console facturation ↗</a>
-<a href="{{ twilio.console_url }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer">Console Twilio ↗</a>
+<a href="{{ twilio.billing_url }}" class="admin-btn ghost" target="_blank" rel="noopener noreferrer">Console facturation ↗</a>
+<a href="{{ twilio.console_url }}" class="admin-btn" target="_blank" rel="noopener noreferrer">Console Twilio ↗</a>
 {% endblock %}
 
 {% block content %}
@@ -39,7 +39,7 @@
     <h2>Usage ce mois-ci</h2>
     {% if twilio.usage_rows %}
     <div class="admin-table-wrap">
-    <table class="data-table accounts-table">
+    <table class="data-table accounts-table table-stack">
       <thead>
         <tr>
           <th>Catégorie</th>
@@ -50,9 +50,9 @@
       <tbody>
         {% for row in twilio.usage_rows %}
         <tr>
-          <td>{{ row.description }}</td>
-          <td>{% if row.usage %}{{ row.usage }} {{ row.usage_unit or '' }}{% else %}—{% endif %}</td>
-          <td>{{ '%.2f'|format(row.price) }} {{ row.price_unit }}</td>
+          <td data-label="Catégorie">{{ row.description }}</td>
+          <td data-label="Volume">{% if row.usage %}{{ row.usage }} {{ row.usage_unit or '' }}{% else %}—{% endif %}</td>
+          <td data-label="Coût">{{ '%.2f'|format(row.price) }} {{ row.price_unit }}</td>
         </tr>
         {% endfor %}
       </tbody>

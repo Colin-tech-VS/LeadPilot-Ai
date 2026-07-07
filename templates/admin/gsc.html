@@ -3,8 +3,8 @@
 {% block page_title %}Google Search Console{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ gsc.console_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer">Ouvrir GSC ↗</a>
-<a href="{{ gsc.cloud_console_url }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer">Credentials Google ↗</a>
+<a href="{{ gsc.console_url }}" class="admin-btn ghost" target="_blank" rel="noopener noreferrer">Ouvrir GSC ↗</a>
+<a href="{{ gsc.cloud_console_url }}" class="admin-btn" target="_blank" rel="noopener noreferrer">Credentials Google ↗</a>
 {% endblock %}
 
 {% block content %}
@@ -146,18 +146,18 @@
       <h2>Top requêtes</h2>
       {% if dashboard.queries %}
       <div class="admin-table-wrap">
-      <table class="data-table accounts-table">
+      <table class="data-table accounts-table table-stack">
         <thead>
           <tr><th>Requête</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
         </thead>
         <tbody>
           {% for row in dashboard.queries %}
           <tr>
-            <td>{{ row.keys[0] if row.keys else '—' }}</td>
-            <td>{{ row.clicks or 0 }}</td>
-            <td>{{ row.impressions or 0 }}</td>
-            <td>{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
-            <td>{{ '%.1f'|format(row.position or 0) }}</td>
+            <td data-label="Requête">{{ row.keys[0] if row.keys else '—' }}</td>
+            <td data-label="Clics">{{ row.clicks or 0 }}</td>
+            <td data-label="Impressions">{{ row.impressions or 0 }}</td>
+            <td data-label="CTR">{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
+            <td data-label="Position">{{ '%.1f'|format(row.position or 0) }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -172,18 +172,18 @@
       <h2>Top pages</h2>
       {% if dashboard.pages %}
       <div class="admin-table-wrap">
-      <table class="data-table accounts-table">
+      <table class="data-table accounts-table table-stack">
         <thead>
           <tr><th>Page</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
         </thead>
         <tbody>
           {% for row in dashboard.pages %}
           <tr>
-            <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.keys[0] if row.keys else '' }}">{{ row.keys[0] if row.keys else '—' }}</td>
-            <td>{{ row.clicks or 0 }}</td>
-            <td>{{ row.impressions or 0 }}</td>
-            <td>{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
-            <td>{{ '%.1f'|format(row.position or 0) }}</td>
+            <td data-label="Page" class="gsc-cell-page" title="{{ row.keys[0] if row.keys else '' }}">{{ row.keys[0] if row.keys else '—' }}</td>
+            <td data-label="Clics">{{ row.clicks or 0 }}</td>
+            <td data-label="Impressions">{{ row.impressions or 0 }}</td>
+            <td data-label="CTR">{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
+            <td data-label="Position">{{ '%.1f'|format(row.position or 0) }}</td>
           </tr>
           {% endfor %}
         </tbody>

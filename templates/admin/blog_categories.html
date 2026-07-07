@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="studio-split" style="grid-template-columns:1fr 1fr">
+<div class="studio-split studio-split--even">
   <div class="studio-editor">
     <h3 style="margin:0 0 14px">Ajouter une catégorie</h3>
     <form method="POST" action="{{ url_for('admin.blog_category_save') }}" class="db-form">

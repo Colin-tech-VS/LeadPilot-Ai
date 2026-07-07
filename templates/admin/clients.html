@@ -56,7 +56,7 @@
 
   {% if customers %}
   <div class="admin-table-wrap">
-    <table class="data-table accounts-table">
+    <table class="data-table accounts-table table-stack">
       <thead>
         <tr>
           <th>Nom</th>
@@ -69,11 +69,11 @@
       <tbody>
         {% for c in customers %}
         <tr>
-          <td><strong>{{ c.name }}</strong></td>
-          <td><a href="{{ url_for('admin.emails', q=c.email) }}" class="accounts-link">{{ c.email }}</a></td>
-          <td>{% if c.phone != '—' %}<a href="tel:{{ c.phone|replace(' ', '') }}" class="accounts-link">{{ c.phone }}</a>{% else %}—{% endif %}</td>
-          <td><span class="accounts-stat">{{ c.bookings }}</span></td>
-          <td class="accounts-date">{{ c.created_at.strftime('%d/%m/%Y') if c.created_at else '—' }}</td>
+          <td data-label="Nom"><strong>{{ c.name }}</strong></td>
+          <td data-label="E-mail"><a href="{{ url_for('admin.emails', q=c.email) }}" class="accounts-link">{{ c.email }}</a></td>
+          <td data-label="Téléphone">{% if c.phone != '—' %}<a href="tel:{{ c.phone|replace(' ', '') }}" class="accounts-link">{{ c.phone }}</a>{% else %}—{% endif %}</td>
+          <td data-label="Réservations"><span class="accounts-stat">{{ c.bookings }}</span></td>
+          <td data-label="Inscrit le" class="accounts-date">{{ c.created_at.strftime('%d/%m/%Y') if c.created_at else '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -96,7 +96,7 @@
 
   {% if artisans %}
   <div class="admin-table-wrap">
-    <table class="data-table accounts-table">
+    <table class="data-table accounts-table table-stack">
       <thead>
         <tr>
           <th>Entreprise</th>
@@ -112,23 +112,23 @@
       <tbody>
         {% for a in artisans %}
         <tr>
-          <td><strong>{{ a.name }}</strong></td>
-          <td><span class="accounts-trade">{{ a.trade }}</span></td>
-          <td>{{ a.city }}</td>
-          <td>
+          <td data-label="Entreprise"><strong>{{ a.name }}</strong></td>
+          <td data-label="Métier"><span class="accounts-trade">{{ a.trade }}</span></td>
+          <td data-label="Ville">{{ a.city }}</td>
+          <td data-label="Contact">
             {% if a.email != '—' %}<a href="{{ url_for('admin.emails', q=a.email) }}" class="accounts-link">{{ a.email }}</a><br>{% endif %}
             {% if a.phone != '—' %}<span class="accounts-phone">{{ a.phone }}</span>{% else %}—{% endif %}
           </td>
-          <td><span class="plan-badge plan-badge--{{ a.plan }}">{{ a.plan }}</span></td>
-          <td>
+          <td data-label="Plan"><span class="plan-badge plan-badge--{{ a.plan }}">{{ a.plan }}</span></td>
+          <td data-label="Annuaire">
             {% if a.is_public and a.public_slug %}
             <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="accounts-link" target="_blank" rel="noopener">Publique ↗</a>
             {% else %}
             <span class="accounts-muted">Masquée</span>
             {% endif %}
           </td>
-          <td><span class="accounts-stat">{{ a.leads }}</span></td>
-          <td class="accounts-date">{{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '—' }}</td>
+          <td data-label="Leads"><span class="accounts-stat">{{ a.leads }}</span></td>
+          <td data-label="Inscrit le" class="accounts-date">{{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>

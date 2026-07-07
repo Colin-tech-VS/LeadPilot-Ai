@@ -88,7 +88,7 @@
 </div>
 
 <div class="admin-table-wrap" style="margin-top:24px">
-  <table class="data-table accounts-table prospect-table">
+  <table class="data-table accounts-table prospect-table table-stack">
     <thead>
       <tr>
         <th>Contact</th>
@@ -101,16 +101,16 @@
     <tbody id="prospects-body">
       {% for p in prospects %}
       <tr data-id="{{ p.id }}">
-        <td>
+        <td data-label="Contact">
           <strong>{{ p.display_name() }}</strong>
           {% if p.company_name %}<div class="studio-item-meta">{{ p.company_name }}</div>{% endif %}
           {% if p.phone %}<div class="studio-item-meta">{{ p.phone }}</div>{% endif %}
         </td>
-        <td>
+        <td data-label="Métier / Ville">
           {{ p.trade_type }}<br>
           <span class="studio-item-meta">{{ p.city or '—' }}</span>
         </td>
-        <td>
+        <td data-label="E-mail">
           {% if p.email %}
             <a href="mailto:{{ p.email }}">{{ p.email }}</a>
             {% if p.email_confidence %}<div class="studio-item-meta">conf. {{ p.email_confidence }}</div>{% endif %}
@@ -121,8 +121,8 @@
           <div><a href="{{ p.website_url }}" target="_blank" rel="noopener" class="studio-item-meta">Site web ↗</a></div>
           {% endif %}
         </td>
-        <td><span class="status-pill status-{{ p.status }}">{{ p.status }}</span></td>
-        <td class="prospect-actions">
+        <td data-label="Statut"><span class="status-pill status-{{ p.status }}">{{ p.status }}</span></td>
+        <td data-label="Actions" class="prospect-actions">
           {% if ai_available and p.email and p.status != 'unsubscribed' %}
           <button type="button" class="admin-btn tiny ghost btn-gen-email" data-id="{{ p.id }}">✨ E-mail IA</button>
           {% endif %}
@@ -208,6 +208,9 @@
 .status-unsubscribed { background:#fee2e2;color:#b91c1c; }
 .status-skipped { background:#f1f5f9;color:#64748b; }
 .prospect-actions { display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start; }
+@media (max-width: 700px) {
+  .admin-table-wrap .prospect-table td.prospect-actions { display:flex; }
+}
 .prospect-email-box { margin-top:8px;padding:12px;background:#f8fafc;border-radius:10px;max-width:420px; }
 .prospect-email-box pre { white-space:pre-wrap;font-family:inherit;font-size:13px;margin:8px 0; }
 </style>

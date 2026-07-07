@@ -2,10 +2,10 @@
 {% block title %}Diagnostics · Admin{% endblock %}
 {% block page_title %}Diagnostics système{% endblock %}
 {% block topbar_actions %}
-  <form method="POST" action="{{ url_for('admin.diagnostics_smtp_test') }}" style="display:inline">
+  <form method="POST" action="{{ url_for('admin.diagnostics_smtp_test') }}">
     <button type="submit" class="admin-btn ghost">✉️ Tester SMTP</button>
   </form>
-  <form method="POST" action="{{ url_for('admin.diagnostics_db_test') }}" style="display:inline">
+  <form method="POST" action="{{ url_for('admin.diagnostics_db_test') }}">
     <button type="submit" class="admin-btn ghost">🗄️ Tester BDD</button>
   </form>
 {% endblock %}

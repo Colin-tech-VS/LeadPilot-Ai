@@ -4,7 +4,7 @@
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Admin · PilotCore{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=7">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=8">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -117,7 +117,7 @@
 {% endif %}
   {% block scripts %}{% endblock %}
   {{ google_places_scripts() }}
-  <script src="{{ url_for('static', filename='admin/admin.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='admin/admin.js') }}?v=3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

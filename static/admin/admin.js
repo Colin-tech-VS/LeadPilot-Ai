@@ -9,6 +9,7 @@
   function setSidebar(open) {
     if (sidebar) sidebar.classList.toggle("open", open);
     if (backdrop) backdrop.classList.toggle("open", open);
+    document.body.classList.toggle("sidebar-open", open);
   }
   if (burger && sidebar) {
     burger.addEventListener("click", function () {

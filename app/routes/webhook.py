@@ -1,3 +1,4 @@
+import hmac
 import uuid
 
 from flask import Blueprint, current_app, jsonify, request
@@ -17,7 +18,7 @@ def _verify_webhook_secret():
             raise UnauthorizedError("Webhook secret not configured")
         return
     provided = request.headers.get("X-Webhook-Secret", "")
-    if provided != expected:
+    if not hmac.compare_digest(provided, expected):
         raise UnauthorizedError("Invalid webhook secret")
 
 

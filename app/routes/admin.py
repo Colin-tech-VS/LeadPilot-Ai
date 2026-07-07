@@ -2,6 +2,7 @@
 log. Fully separate from the artisan-facing app: its own auth, templates and
 static assets.
 """
+import hmac
 import secrets
 import uuid
 import logging
@@ -944,7 +945,7 @@ def email_inbound():
             abort(503)
     else:
         provided = request.args.get("secret") or request.headers.get("X-Inbound-Secret", "")
-        if provided != secret:
+        if not hmac.compare_digest(provided, secret):
             abort(401)
     data = request.form if request.form else (request.get_json(silent=True) or {})
     admin_email.store_inbound(
@@ -1635,6 +1636,9 @@ def api_prospecting_generate_email(prospect_id):
         return jsonify({"error": str(exc)}), 400
     except content_ai.ContentAIError as exc:
         return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("prospect_email_generate failed")
+        return jsonify({"error": f"Génération impossible : {exc}"}), 502
 
 
 @admin_bp.route("/prospecting/<prospect_id>/send", methods=["POST"])

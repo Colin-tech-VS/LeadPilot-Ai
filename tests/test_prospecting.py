@@ -110,3 +110,60 @@ def test_search_requires_city(client):
     _login_admin(client)
     response = client.post("/admin/api/prospecting/search", json={"trade_type": "plombier", "city": ""})
     assert response.status_code == 400
+
+
+def _make_prospect(app):
+    with app.app_context():
+        from app.core.extensions import db
+
+        prospect = OutreachProspect(
+            id=uuid.uuid4(),
+            company_name="Plomberie Martin",
+            email=f"test-{uuid.uuid4().hex[:8]}@example.com",
+            trade_type="plombier",
+            city="Lyon",
+            status="ready",
+        )
+        db.session.add(prospect)
+        db.session.commit()
+        return str(prospect.id)
+
+
+def test_generate_email_handles_unparseable_ai_json(app, client):
+    """Malformed AI output must not surface as an HTTP 500."""
+    _login_admin(client)
+    pid = _make_prospect(app)
+    with patch(
+        "app.services.prospecting.content_ai.is_available", return_value=True
+    ), patch(
+        "app.services.prospecting.content_ai._complete",
+        return_value="Voici l'e-mail : {oops not json",
+    ):
+        res = client.post(f"/admin/api/prospecting/{pid}/generate-email", json={"tone": "pro"})
+    assert res.status_code == 400
+    assert "error" in res.get_json()
+
+
+def test_generate_email_accepts_fenced_json(app, client):
+    """The model sometimes wraps JSON in ``` fences — it must still parse."""
+    _login_admin(client)
+    pid = _make_prospect(app)
+    fenced = "```json\n" + json.dumps(
+        {"subject": "Bonjour", "body_plain": "Corps de l'e-mail.", "body_html": "<p>Corps</p>"}
+    ) + "\n```"
+    with patch(
+        "app.services.prospecting.content_ai.is_available", return_value=True
+    ), patch(
+        "app.services.prospecting.content_ai._complete", return_value=fenced
+    ):
+        res = client.post(f"/admin/api/prospecting/{pid}/generate-email", json={"tone": "pro"})
+    assert res.status_code == 200
+    assert res.get_json()["outreach_subject"] == "Bonjour"
+
+
+def test_generate_email_bad_uuid_is_clean_error(client):
+    """A malformed prospect id must be a clean JSON error, not a 500."""
+    _login_admin(client)
+    res = client.post("/admin/api/prospecting/not-a-uuid/generate-email", json={})
+    assert res.status_code in (400, 404, 502)
+    assert "error" in res.get_json()

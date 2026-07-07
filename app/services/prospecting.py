@@ -265,7 +265,15 @@ def generate_outreach_email(prospect_id, *, tone: str = "professionnel", angle: 
         f"Lien inscription: {base_url}/register\n"
     )
     raw = content_ai._complete(system, user, json_mode=True, max_tokens=900, temperature=0.55)
-    data = json.loads(raw)
+    try:
+        data = content_ai._parse_json_response(raw)
+    except (json.JSONDecodeError, TypeError) as exc:
+        # The model occasionally wraps JSON in ``` fences or truncates it — never
+        # let that surface as a 500. Mirror the other content_ai generators.
+        logger.warning("Prospect outreach email JSON unparseable: %s", exc)
+        raise ProspectingError("La réponse de l'IA n'était pas exploitable, réessayez.") from exc
+    if not isinstance(data, dict):
+        raise ProspectingError("La réponse de l'IA n'était pas exploitable, réessayez.")
     prospect.outreach_subject = (data.get("subject") or f"PilotCore — standard IA pour {trade}s").strip()[:255]
     prospect.outreach_body = (data.get("body_plain") or "").strip()
     if prospect.status == "new" and prospect.email:

@@ -16,7 +16,7 @@
 
 {% macro pro_zone_nav(active='') %}
 <a href="{{ url_for('web.pro_landing') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('directory.nav_pro') }}</a>
-<a href="{{ url_for('web.pro_landing') }}#impact" class="{% if active == 'impact' %}active{% endif %}">{{ _('pro.nav_impact') }}</a>
+<a href="{{ url_for('web.pro_landing') }}#how" class="{% if active == 'how' %}active{% endif %}">{{ _('pro.nav_how') }}</a>
 <a href="{{ url_for('web.pro_landing') }}#pricing" class="{% if active == 'pricing' %}active{% endif %}">{{ _('landing.nav_pricing') }}</a>
 <span class="nav-zone-sep" aria-hidden="true"></span>
 <a href="{{ url_for('web.login') }}" class="nav-auth {% if active == 'login' %}active{% endif %}">{{ _('pro.nav_login') }}</a>

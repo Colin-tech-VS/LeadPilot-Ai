@@ -24,7 +24,8 @@ def test_pro_landing_seo(client):
     assert 'name="keywords"' in html
     assert "SoftwareApplication" in html
     assert "FAQPage" in html
-    assert "standard téléphonique" in html.lower() or "phone system" in html.lower()
+    assert "pilotcore" in html.lower()
+    assert "occupé" in html.lower() or "busy" in html.lower()
 
 
 def test_directory_seo(client):

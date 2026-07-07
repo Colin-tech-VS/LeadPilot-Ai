@@ -24,3 +24,55 @@
   color: var(--lp-zone-pro);
   font-weight: 600;
 }
+
+/* Timeline 4 étapes — page pro */
+.page-pro .v-timeline--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.page-pro .v-timeline--4::before {
+  left: 12%;
+  right: 12%;
+}
+
+@media (max-width: 900px) {
+  .page-pro .v-timeline--4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px 16px;
+  }
+
+  .page-pro .v-timeline--4::before {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .page-pro .v-timeline--4 {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Carte tarif lancement 249 € */
+.page-pro .pricing-card-launch {
+  max-width: 420px;
+  margin: 0 auto 40px;
+  text-align: center;
+  border: 2px solid var(--lp-zone-pro);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--lp-zone-pro) 18%, transparent);
+}
+
+.page-pro .pricing-card-launch .pricing-price strong {
+  font-size: 2.75rem;
+  letter-spacing: -0.03em;
+}
+
+.page-pro .pricing-card-launch .pricing-features {
+  text-align: left;
+  margin-bottom: 28px;
+}
+
+.page-pro .landing-pricing-trial-hint {
+  text-align: center;
+  margin-bottom: 24px;
+}

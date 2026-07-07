@@ -35,6 +35,44 @@ def test_directory_seo(client):
     assert 'canonical' in html
 
 
+def test_directory_filtered_seo_is_localized(client, app):
+    """A trade+city filter localizes title/description/H1 and self-canonicalizes."""
+    import uuid
+
+    slug = f"serrurier-seo-{uuid.uuid4().hex[:8]}"
+    with app.app_context():
+        from app.core.extensions import db
+
+        tenant = Tenant(
+            name="Serrurier SEO Test",
+            trade_type="serrurier",
+            city="Chaville",
+            postal_code="92370",
+            public_slug=slug,
+            is_public=True,
+            public_blurb="Dépannage serrurerie à Chaville.",
+        )
+        db.session.add(tenant)
+        db.session.commit()
+
+    response = client.get("/artisans?metier=serrurier&ville=Chaville")
+    assert response.status_code == 200
+    html = response.data.decode()
+    # Localized, keyword-rich title + H1 for the metier+ville target
+    assert "Serrurier" in html and "Chaville" in html
+    assert '<meta name="robots" content="index, follow">' in html
+    # Self-referencing canonical so the local combo can rank
+    assert "metier=serrurier" in html and "ville=Chaville" in html
+
+
+def test_directory_empty_filter_is_noindexed(client):
+    """A filter with no matching artisans must not be indexed (thin page)."""
+    response = client.get("/artisans?metier=plombier&ville=VilleInexistante12345")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'name="robots" content="noindex, follow"' in html
+
+
 def test_sitemap_includes_key_pages(client):
     response = client.get("/sitemap.xml")
     assert response.status_code == 200

@@ -4,7 +4,14 @@
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
 
-{% block title %}{{ _('directory.meta_title') }} — {{ _('app.name') }}{% endblock %}
+{% set seo = seo|default({}) %}
+{% set _seo_title = seo.title or _('directory.meta_title') %}
+{% set _seo_desc = seo.description or _('directory.meta_description') %}
+{% set _seo_keywords = seo.keywords or _('client.meta_keywords') %}
+{% set _seo_path = seo.canonical_path or '/artisans' %}
+{% set _seo_robots = seo.robots or 'index, follow' %}
+
+{% block title %}{{ _seo_title }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-directory{% endblock %}
 
 {% block meta %}
@@ -14,9 +21,9 @@
   "@graph": [
     {
       "@type": "CollectionPage",
-      "name": {{ _('directory.meta_title')|tojson }},
-      "description": {{ _('directory.meta_description')|tojson }},
-      "url": {{ canonical_url('/artisans')|tojson }}
+      "name": {{ _seo_title|tojson }},
+      "description": {{ _seo_desc|tojson }},
+      "url": {{ canonical_url(_seo_path)|tojson }}
     }
     {%- if artisans %},
     {
@@ -37,13 +44,13 @@
   ]
 }
 {% endset %}
-{{ seo_meta(_('directory.meta_title') ~ ' — ' ~ _('app.name'), _('directory.meta_description'), '/artisans', _('client.meta_keywords'), 'website', None, 'index, follow', directory_ld, lang) }}
+{{ seo_meta(_seo_title ~ ' — ' ~ _('app.name'), _seo_desc, _seo_path, _seo_keywords, 'website', None, _seo_robots, directory_ld, lang) }}
 {% endblock %}
 
 {% block content %}
 <section class="dl-hero dl-hero--compact">
   <div class="container dl-hero-inner">
-    <h1 class="dl-hero-title dl-hero-title--sm">{{ _('directory.hero_title') }}</h1>
+    <h1 class="dl-hero-title dl-hero-title--sm">{{ seo.h1 or _('directory.hero_title') }}</h1>
 
     <form class="dl-search" id="directory-search-form" role="search">
       <div class="dl-search-fields">

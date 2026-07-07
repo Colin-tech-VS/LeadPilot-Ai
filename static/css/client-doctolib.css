@@ -476,6 +476,39 @@
   color: var(--dl-muted);
 }
 
+/* Home — outils particuliers */
+.dl-client .dl-tools-section {
+  padding: 56px 0 64px;
+  background: var(--dl-surface);
+}
+
+.dl-client .dl-tools-section .v-section-head h2 {
+  color: var(--dl-text);
+}
+
+.dl-client .dl-tools-section .v-kicker {
+  color: var(--dl-primary);
+}
+
+.dl-client .v-tool-card {
+  background: #fff;
+  border: 1px solid var(--dl-border);
+  box-shadow: 0 4px 18px rgba(43, 50, 59, 0.05);
+}
+
+.dl-client .v-tool-card h3 {
+  color: var(--dl-text);
+}
+
+.dl-client .v-tool-card p {
+  color: var(--dl-muted);
+}
+
+.dl-client .v-tool-icon {
+  background: var(--dl-primary-soft);
+  color: var(--dl-primary);
+}
+
 /* Skeleton */
 .directory-card--skeleton {
   min-height: 100px;

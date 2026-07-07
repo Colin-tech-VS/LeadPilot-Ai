@@ -168,9 +168,13 @@ def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
                     {
                         "@type": "Question",
                         "name": item["question"],
-                        "acceptedAnswer": {"@type": "Answer", "text": item["answer"]},
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": (item.get("answer") or "").strip(),
+                        },
                     }
                     for item in faq
+                    if (item.get("question") or "").strip()
                 ],
             }
         )

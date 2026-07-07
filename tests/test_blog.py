@@ -100,3 +100,26 @@ def test_generate_blog_post_shape(app, monkeypatch):
     assert result["meta_keywords"]
     assert result["faq"]
     assert "<h2>" in result["body_html"]
+
+
+def test_blog_article_with_incomplete_faq_json_ld(client, app):
+    with app.app_context():
+        ensure_default_categories()
+        slug = f"test-faq-gap-{uuid.uuid4().hex[:8]}"
+        post = BlogPost(
+            id=uuid.uuid4(),
+            slug=slug,
+            title="Article FAQ incomplète",
+            excerpt="Test",
+            meta_description="Test meta",
+            body_html="<p>Contenu.</p>",
+            status="published",
+            published_at=datetime.now(timezone.utc),
+        )
+        post.faq_json = '[{"question": "Question sans réponse ?"}]'
+        db.session.add(post)
+        db.session.commit()
+
+    response = client.get(f"/blog/{slug}")
+    assert response.status_code == 200, response.get_data(as_text=True)
+    assert "Question sans réponse" in response.get_data(as_text=True)

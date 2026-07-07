@@ -84,7 +84,13 @@ def list_published_posts(limit=50, *, category_id=None):
 
 
 def get_published_post(slug: str) -> BlogPost | None:
-    return BlogPost.query.filter_by(slug=(slug or "").strip(), status="published").first()
+    from sqlalchemy.orm import joinedload
+
+    return (
+        BlogPost.query.options(joinedload(BlogPost.category))
+        .filter_by(slug=(slug or "").strip(), status="published")
+        .first()
+    )
 
 
 def featured_post():
@@ -97,8 +103,10 @@ def featured_post():
 
 
 def related_posts(post: BlogPost, limit=3):
-    if not post or not post.category_id:
-        return list_published_posts(limit=limit, exclude_id=post.id)[:limit]
+    if not post:
+        return []
+    if not post.category_id:
+        return published_posts_query(exclude_id=post.id).limit(limit).all()
     return published_posts_query(category_id=post.category_id, exclude_id=post.id).limit(limit).all()
 
 

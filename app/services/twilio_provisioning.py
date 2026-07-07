@@ -62,23 +62,53 @@ def voice_webhook_url(tenant_id: str) -> str | None:
     return f"{base}/voice/inbound?tenant_id={tenant_id}"
 
 
-def _search_number(client, country: str, area_code: str | None):
-    """Return an available, voice-capable E.164 number, or None.
+def _search_numbers(client, country: str, area_code: str | None, limit: int = 8):
+    """Return a list of available, voice-capable E.164 numbers (local first, then mobile).
 
-    Tries local numbers first, then mobile — some countries only offer one or
-    the other for on-demand purchase.
+    We return several candidates on purpose: in regulated countries (e.g. FR) a
+    given number range may not match the account's approved Regulatory Bundle
+    ("does not have the correct regulation type"), so the caller tries each
+    candidate until one purchase succeeds instead of giving up on the first.
     """
+    candidates: list[str] = []
     for kind in ("local", "mobile"):
         try:
             catalog = getattr(client.available_phone_numbers(country), kind)
-            kwargs = {"voice_enabled": True, "limit": 1}
+            kwargs = {"voice_enabled": True, "limit": limit}
             if area_code and kind == "local":
                 kwargs["area_code"] = area_code
-            found = catalog.list(**kwargs)
-            if found:
-                return found[0].phone_number
+            for n in catalog.list(**kwargs):
+                if n.phone_number not in candidates:
+                    candidates.append(n.phone_number)
         except Exception:
             logger.debug("Twilio %s number search failed for %s", kind, country, exc_info=True)
+    return candidates
+
+
+def _address_from_bundle(client, bundle_sid: str) -> str | None:
+    """Return the address SID embedded in an approved Regulatory Bundle.
+
+    Twilio requires the ``address_sid`` passed at purchase to be the very address
+    the bundle was built from — otherwise it rejects with "Address not contained
+    in bundle". The address lives on one of the bundle's supporting documents
+    (``address_sids`` attribute), so we read it straight from there rather than
+    guessing the first address on the account.
+    """
+    try:
+        assignments = (
+            client.numbers.v2.regulatory_compliance.bundles(bundle_sid)
+            .item_assignments.list(limit=20)
+        )
+        for ia in assignments:
+            osid = getattr(ia, "object_sid", "") or ""
+            if not osid.startswith("RD"):
+                continue
+            doc = client.numbers.v2.regulatory_compliance.supporting_documents(osid).fetch()
+            addrs = (getattr(doc, "attributes", None) or {}).get("address_sids") or []
+            if addrs:
+                return addrs[0]
+    except Exception:
+        logger.debug("Could not derive address from bundle %s", bundle_sid, exc_info=True)
     return None
 
 
@@ -95,15 +125,6 @@ def _regulatory_ids(client, country: str):
     address_sid = cfg.get("TWILIO_ADDRESS_SID") or _os.environ.get("TWILIO_ADDRESS_SID")
     bundle_sid = cfg.get("TWILIO_BUNDLE_SID") or _os.environ.get("TWILIO_BUNDLE_SID")
 
-    if not address_sid:
-        try:
-            for a in client.addresses.list(limit=50):
-                if (getattr(a, "iso_country", "") or "").upper() == country:
-                    address_sid = a.sid
-                    break
-        except Exception:
-            logger.debug("Twilio address lookup failed", exc_info=True)
-
     if not bundle_sid:
         try:
             for b in client.numbers.v2.regulatory_compliance.bundles.list(limit=50):
@@ -112,6 +133,21 @@ def _regulatory_ids(client, country: str):
                     break
         except Exception:
             logger.debug("Twilio bundle lookup failed", exc_info=True)
+
+    # The purchase address MUST be the one contained in the bundle. Derive it from
+    # the bundle itself rather than picking the first FR address on the account
+    # (which may belong to a different bundle → "Address not contained in bundle").
+    if bundle_sid and not address_sid:
+        address_sid = _address_from_bundle(client, bundle_sid)
+
+    if not address_sid:
+        try:
+            for a in client.addresses.list(limit=50):
+                if (getattr(a, "iso_country", "") or "").upper() == country:
+                    address_sid = a.sid
+                    break
+        except Exception:
+            logger.debug("Twilio address lookup failed", exc_info=True)
 
     logger.info("Regulatory ids for %s: address=%s bundle=%s", country, address_sid, bundle_sid)
     return address_sid, bundle_sid
@@ -151,8 +187,8 @@ def provision_ai_number(tenant) -> str | None:
 
         client = Client(cfg["TWILIO_ACCOUNT_SID"], cfg["TWILIO_AUTH_TOKEN"])
 
-        candidate = _search_number(client, country, area_code)
-        if not candidate:
+        candidates = _search_numbers(client, country, area_code)
+        if not candidates:
             logger.warning(
                 "No voice-capable Twilio number available in %s for tenant=%s",
                 country,
@@ -164,33 +200,43 @@ def provision_ai_number(tenant) -> str | None:
         # Address and, for regulated countries, an approved Regulatory Bundle to
         # be attached at purchase — otherwise Twilio rejects the create().
         address_sid, bundle_sid = _regulatory_ids(client, country)
-        create_kwargs = {
-            "phone_number": candidate,
+        base_kwargs = {
             "voice_url": voice_url,
             "voice_method": "POST",
             "friendly_name": f"PilotCore — {tenant.name}"[:64],
         }
         if address_sid:
-            create_kwargs["address_sid"] = address_sid
+            base_kwargs["address_sid"] = address_sid
         if bundle_sid:
-            create_kwargs["bundle_sid"] = bundle_sid
+            base_kwargs["bundle_sid"] = bundle_sid
 
-        try:
-            incoming = client.incoming_phone_numbers.create(**create_kwargs)
-        except Exception as exc:  # noqa: BLE001 - surface the real reason
-            logger.error(
-                "Twilio number PURCHASE failed for tenant=%s (candidate=%s): %s. %s",
-                tenant.id,
-                candidate,
-                exc,
-                _purchase_hint(exc),
-            )
-            return None
+        # Try each candidate until one purchase succeeds. In FR some number ranges
+        # don't match the account's bundle ("does not have the correct regulation
+        # type"); skipping to the next candidate finds a compatible one instead of
+        # abandoning the whole signup after a single failure.
+        last_exc = None
+        for candidate in candidates:
+            try:
+                incoming = client.incoming_phone_numbers.create(
+                    phone_number=candidate, **base_kwargs
+                )
+            except Exception as exc:  # noqa: BLE001 - try the next candidate
+                last_exc = exc
+                logger.warning(
+                    "Twilio purchase attempt failed for tenant=%s (candidate=%s): %s",
+                    tenant.id, candidate, exc,
+                )
+                continue
+            number = incoming.phone_number
+            tenant.ai_phone_number = number
+            logger.info("Provisioned Twilio AI number %s for tenant=%s", number, tenant.id)
+            return number
 
-        number = incoming.phone_number
-        tenant.ai_phone_number = number
-        logger.info("Provisioned Twilio AI number %s for tenant=%s", number, tenant.id)
-        return number
+        logger.error(
+            "All %d Twilio purchase attempts failed for tenant=%s. Last error: %s. %s",
+            len(candidates), tenant.id, last_exc, _purchase_hint(last_exc),
+        )
+        return None
     except Exception:
         logger.exception("Twilio number provisioning failed for tenant=%s", tenant.id)
         return None

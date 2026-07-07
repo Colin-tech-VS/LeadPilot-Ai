@@ -24,7 +24,39 @@ SESSION_MAX_AGE = 60 * 30  # 30 min sliding window ≈ one session
 _SKIP_PREFIXES = ("/admin", "/static", "/voice", "/webhook", "/api", "/health",
                   "/sw.js", "/manifest", "/robots", "/sitemap", "/favicon")
 
-_BOT_RE = re.compile(r"bot|crawl|spider|slurp|bingpreview|facebookexternal|monitor|curl|wget|python-requests", re.I)
+# Broad bot / non-human client detection. Covers crawlers, SEO & monitoring
+# tools, HTTP libraries, headless browsers and link-preview fetchers — anything
+# that would otherwise inflate the traffic stats with non-human hits.
+_BOT_RE = re.compile(
+    r"bot\b|bot/|[-_]bot|crawl|spider|slurp|scrap|"
+    r"bingpreview|facebookexternal|facebot|ia_archiver|mediapartners|"
+    r"monitor|uptime|pingdom|statuscake|site24x7|newrelic|datadog|"
+    r"curl|wget|python-requests|python-httpx|aiohttp|httpx|okhttp|"
+    r"java/|go-http|node-fetch|axios|libwww|lwp::|guzzle|winhttp|restsharp|"
+    r"headless|phantomjs|puppeteer|playwright|selenium|"
+    r"semrush|ahrefs|mj12|dotbot|petalbot|yandex|baidu|sogou|exabot|seznam|"
+    r"censys|masscan|zgrab|nmap|expanse|scan|probe|"
+    r"lighthouse|gtmetrix|pagespeed|"
+    r"whatsapp|telegram|discord|slackbot|twitterbot|linkedinbot|embedly|"
+    r"apache-httpclient|dart:io|scalingo|kube-probe|healthcheck",
+    re.I,
+)
+
+
+def is_bot(ua) -> bool:
+    """True when the User-Agent looks like a bot / tool rather than a real browser.
+
+    Empty or suspiciously short UAs, and anything a real browser never sends
+    (no ``mozilla`` token), are treated as bots too.
+    """
+    ua = (ua or "").strip()
+    if len(ua) < 12:
+        return True
+    if _BOT_RE.search(ua):
+        return True
+    # Real browsers (incl. mobile webviews) send a "Mozilla/..." token; most
+    # scripted clients do not.
+    return "mozilla" not in ua.lower()
 
 
 def _should_track(response):
@@ -47,7 +79,7 @@ def _client_ip():
 
 
 def _device(ua):
-    if _BOT_RE.search(ua):
+    if is_bot(ua):
         return "bot"
     if re.search(r"mobi|android|iphone|ipad|ipod", ua, re.I):
         return "mobile"

@@ -263,6 +263,39 @@ def purge_leads():
     return redirect(url_for("admin.database_home"))
 
 
+@admin_bp.route("/maintenance/purge-bot-views", methods=["POST"])
+@admin_required
+def purge_bot_views():
+    """Remove page-view rows left by bots/tools so analytics only shows humans.
+
+    Newer traffic is already filtered at write time; this cleans the history
+    recorded before the detection was tightened, by re-scanning stored
+    user-agents with the same :func:`is_bot` heuristic.
+    """
+    from app.core.tracking import is_bot
+
+    try:
+        uas = [row[0] for row in db.session.query(PageView.user_agent).distinct().all()]
+        bot_uas = [u for u in uas if u and is_bot(u)]
+        deleted = PageView.query.filter(PageView.user_agent.is_(None)).delete(
+            synchronize_session=False
+        )
+        # Delete in chunks to keep the IN clause reasonable.
+        for i in range(0, len(bot_uas), 100):
+            chunk = bot_uas[i : i + 100]
+            deleted += PageView.query.filter(PageView.user_agent.in_(chunk)).delete(
+                synchronize_session=False
+            )
+        db.session.commit()
+        log_event(CAT_ADMIN, "purge_bot_views",
+                  summary=f"Purge robots: {deleted} vue(s) supprimée(s)", level=LEVEL_WARNING)
+        flash(f"{deleted} vue(s) de robots supprimée(s) des statistiques.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur pendant la purge des robots : {exc}", "error")
+    return redirect(url_for("admin.traffic_page"))
+
+
 @admin_bp.route("/database")
 @admin_required
 def database_home():

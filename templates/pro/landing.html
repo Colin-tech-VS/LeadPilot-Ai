@@ -245,27 +245,10 @@
     <div class="landing-section-head v-section-head v-section-head--center">
       <h2>{{ _('landing.pricing_title') }}</h2>
       <p>{{ _('landing.pricing_subtitle') }}</p>
+      <p class="landing-pricing-trial-hint">{{ _('landing.pricing_trial_intro') }}</p>
     </div>
 
-    <article class="pricing-card pricing-card-launch pricing-card-featured">
-      <span class="pricing-badge pricing-badge-featured">{{ _('landing.pricing_launch_kicker') }}</span>
-      <h3 class="pricing-name">{{ _('app.name') }} Pro</h3>
-      <p class="pricing-price">
-        <strong>{{ _('landing.pricing_launch_price') }}</strong>
-        <span>{{ _('landing.pricing_launch_period') }}</span>
-      </p>
-      <ul class="pricing-features">
-        <li>{{ _('landing.pricing_launch_feat_1') }}</li>
-        <li>{{ _('landing.pricing_launch_feat_2') }}</li>
-        <li>{{ _('landing.pricing_launch_feat_3') }}</li>
-        <li>{{ _('landing.pricing_launch_feat_4') }}</li>
-        <li>{{ _('landing.pricing_launch_feat_5') }}</li>
-      </ul>
-      <a href="#demo" class="btn btn-primary btn-lg">{{ _('landing.pricing_launch_cta') }}</a>
-    </article>
-
-    <p class="landing-pricing-trial-hint">{{ _('landing.pricing_trial_intro') }}</p>
-    <div class="pricing-grid">
+    <div class="pricing-grid pricing-grid--all">
       <article class="pricing-card pricing-card-trial">
         <span class="pricing-badge pricing-badge-trial">{{ _('landing.pricing_trial_badge') }}</span>
         <h3 class="pricing-name">{{ _('landing.pricing_trial_name') }}</h3>
@@ -282,6 +265,24 @@
         </ul>
         <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_trial_cta') }}</a>
       </article>
+
+      <article class="pricing-card pricing-card-launch pricing-card-featured">
+        <span class="pricing-badge pricing-badge-featured">{{ _('landing.pricing_launch_kicker') }}</span>
+        <h3 class="pricing-name">{{ _('app.name') }} Pro</h3>
+        <p class="pricing-price">
+          <strong>{{ _('landing.pricing_launch_price') }}</strong>
+          <span>{{ _('landing.pricing_launch_period') }}</span>
+        </p>
+        <ul class="pricing-features">
+          <li>{{ _('landing.pricing_launch_feat_1') }}</li>
+          <li>{{ _('landing.pricing_launch_feat_2') }}</li>
+          <li>{{ _('landing.pricing_launch_feat_3') }}</li>
+          <li>{{ _('landing.pricing_launch_feat_4') }}</li>
+          <li>{{ _('landing.pricing_launch_feat_5') }}</li>
+        </ul>
+        <a href="#demo" class="btn btn-primary btn-block">{{ _('landing.pricing_launch_cta') }}</a>
+      </article>
+
       {% for offer in offers %}
       <article class="pricing-card{% if offer.featured %} pricing-card-featured{% endif %}">
         {% if offer.badge %}<span class="pricing-badge{% if offer.featured %} pricing-badge-featured{% endif %}">{{ offer.badge }}</span>{% endif %}

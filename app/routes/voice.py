@@ -86,6 +86,24 @@ def _twiml_response(xml: str):
     return xml, 200, {"Content-Type": "text/xml"}
 
 
+def _safe_twilio(handler_fn, *args, **kwargs):
+    """Always return valid TwiML — never JSON 500 to Twilio."""
+    try:
+        xml = handler_fn(*args, **kwargs)
+        return _twiml_response(xml)
+    except Exception:
+        current_app.logger.exception("Twilio voice webhook failed")
+        from app.services.voice.twilio_client import TwilioVoiceClient
+
+        client = TwilioVoiceClient()
+        client.say(
+            "Désolé, un problème technique est survenu. "
+            "Votre demande est notée et un plombier vous rappellera très rapidement."
+        )
+        client.hangup()
+        return _twiml_response(client.to_xml())
+
+
 # --- Twilio production endpoints ---
 
 
@@ -101,8 +119,7 @@ def inbound():
         raise AppError("Missing CallSid or From", status_code=422)
 
     handler = TwilioVoiceHandler()
-    xml = handler.handle_inbound(tenant_id, call_sid, caller_phone)
-    return _twiml_response(xml)
+    return _safe_twilio(handler.handle_inbound, tenant_id, call_sid, caller_phone)
 
 
 @voice_bp.route("/process", methods=["POST"])
@@ -117,14 +134,14 @@ def process_recording():
         raise AppError("Missing CallSid", status_code=422)
 
     handler = TwilioVoiceHandler()
-    xml = handler.handle_process(
+    return _safe_twilio(
+        handler.handle_process,
         tenant_id=tenant_id,
         call_sid=call_sid,
         caller_phone=caller_phone,
         recording_url=data.get("recording_url"),
         speech_text=data.get("speech_text"),
     )
-    return _twiml_response(xml)
 
 
 @voice_bp.route("/continue", methods=["POST"])
@@ -139,13 +156,13 @@ def continue_call():
         raise AppError("Missing CallSid", status_code=422)
 
     handler = TwilioVoiceHandler()
-    xml = handler.handle_continue(
+    return _safe_twilio(
+        handler.handle_continue,
         tenant_id=tenant_id,
         call_sid=call_sid,
         caller_phone=caller_phone,
         speech_text=data.get("speech_text"),
     )
-    return _twiml_response(xml)
 
 
 # --- JSON API endpoints (testing / advanced integrations) ---

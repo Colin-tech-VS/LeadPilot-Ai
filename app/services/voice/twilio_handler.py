@@ -134,6 +134,25 @@ class TwilioVoiceHandler:
         recording_url: str | None = None,
         speech_text: str | None = None,
     ) -> str:
+        try:
+            return self._handle_process_impl(
+                tenant_id, call_sid, caller_phone, recording_url, speech_text
+            )
+        except Exception:
+            logger.exception("Voice handle_process failed call=%s", call_sid)
+            return self._error_twiml(
+                "Désolé, un problème technique est survenu. "
+                "Votre demande est notée et un plombier vous rappellera très rapidement."
+            )
+
+    def _handle_process_impl(
+        self,
+        tenant_id: str,
+        call_sid: str,
+        caller_phone: str,
+        recording_url: str | None = None,
+        speech_text: str | None = None,
+    ) -> str:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
         if not tenant:
             return self._error_twiml("Service temporairement indisponible.")
@@ -232,7 +251,7 @@ class TwilioVoiceHandler:
         skip = set()
         if af.get("customer_user_id"):
             skip.update({"name", "email"})
-        if af.get("guest_mode"):
+        elif af.get("guest_mode") and lead.get("email"):
             skip.add("email")
 
         for slot, _question in REQUIRED_SLOTS:
@@ -252,7 +271,8 @@ class TwilioVoiceHandler:
         return slot, ""
 
     def _ensure_account_flow(self, state) -> None:
-        if not state.account_flow:
+        flow = getattr(state, "account_flow", None)
+        if not flow:
             state.account_flow = vca.default_account_flow()
 
     def _last_account_slot(self, state) -> str | None:
@@ -304,7 +324,6 @@ class TwilioVoiceHandler:
                 af["lookup_failed"] = False
             elif vca.is_no(lower):
                 af["guest_mode"] = True
-                af["account_done"] = True
             return
 
         if last == "account:create_pitch":
@@ -312,7 +331,6 @@ class TwilioVoiceHandler:
                 af["wants_create"] = True
             elif vca.is_no(lower):
                 af["guest_mode"] = True
-                af["account_done"] = True
             return
 
         if last == "account:create_name":

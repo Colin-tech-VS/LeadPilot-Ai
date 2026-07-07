@@ -21,14 +21,23 @@ NO_WORDS = (
 )
 
 
+def _matches_token(text: str, token: str) -> bool:
+    token = (token or "").strip().lower()
+    if not token:
+        return False
+    if " " in token:
+        return token in (text or "").lower()
+    return re.search(rf"(?:^|\s){re.escape(token)}(?:\s|$|[.,!?])", (text or "").lower()) is not None
+
+
 def is_yes(text: str) -> bool:
     lower = (text or "").lower().strip()
-    return any(w in lower for w in YES_WORDS)
+    return any(_matches_token(lower, w) for w in YES_WORDS)
 
 
 def is_no(text: str) -> bool:
     lower = (text or "").lower().strip()
-    return any(w in lower for w in NO_WORDS)
+    return any(_matches_token(lower, w) for w in NO_WORDS)
 
 
 def generate_voice_password() -> str:

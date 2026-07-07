@@ -242,6 +242,22 @@ def _ensure_schema_updates():
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE email_messages ADD COLUMN {col_name} {col_type}"))
 
+    if "voice_call_sessions" not in inspector.get_table_names():
+        with db.engine.begin() as conn:
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE voice_call_sessions (
+                        call_id VARCHAR(64) PRIMARY KEY,
+                        tenant_id VARCHAR(64) NOT NULL,
+                        caller_phone VARCHAR(50),
+                        state_json TEXT NOT NULL,
+                        updated_at {ts_type}
+                    )
+                    """
+                )
+            )
+
     if "users" not in inspector.get_table_names():
         return
     user_columns = {col["name"] for col in inspector.get_columns("users")}

@@ -21,13 +21,30 @@ Variables **obligatoires** en production :
 | `FLASK_ENV` | `production` |
 | `SECRET_KEY` / `JWT_SECRET_KEY` | secrets aléatoires |
 | `DATABASE_URL` | Supabase pooler :6543 |
-| `SERVER_NAME` | `leadpilot-ai.osc-fr1.scalingo.io` |
+| `PUBLIC_BASE_URL` | URL publique canonique (`https://www.pilotcore.fr`) — liens e-mail, webhooks |
 | `ADMIN_PASSWORD` | console `/admin` |
 | `WEBHOOK_SECRET` | header `X-Webhook-Secret` |
 | `EMAIL_INBOUND_SECRET` | webhook email entrant |
 | `MISTRAL_API_KEY` | extraction leads / chat |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | voix |
 | `TWILIO_DEFAULT_TENANT_ID` | UUID tenant par défaut pour le numéro partagé |
+
+### Email sortant (SMTP) — **obligatoire pour les e-mails transactionnels**
+
+Sans ces variables, les envois (bienvenue, réinitialisation de mot de passe,
+confirmation de RDV…) sont **simulés** et jamais réellement délivrés.
+
+| Variable | Description |
+|----------|-------------|
+| `SMTP_HOST` | serveur SMTP (ex. `mail.pilotcore.fr`) |
+| `SMTP_PORT` | `465` (SSL) ou `587` (STARTTLS) |
+| `SMTP_USER` | boîte d'envoi (ex. `contact@pilotcore.fr`) |
+| `SMTP_PASSWORD` | mot de passe de la boîte |
+| `SMTP_USE_SSL` / `SMTP_USE_TLS` | `1`/`0` selon le port |
+| `EMAIL_FROM` | adresse expéditeur affichée |
+
+> **Vérification** : `/admin/diagnostics` liste l'état de chaque variable,
+> teste la connexion SMTP en direct et envoie un e-mail de test.
 
 ## 3. Sécurité
 

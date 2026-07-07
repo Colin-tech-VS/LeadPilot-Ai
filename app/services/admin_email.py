@@ -146,6 +146,47 @@ def _build_mime(
     return mime
 
 
+def smtp_test():
+    """Live connectivity + auth probe against the configured SMTP server.
+
+    Opens the connection (SSL or STARTTLS) and, when credentials are present,
+    performs a LOGIN — the exact same steps a real send does, minus the message.
+    Returns ``{"ok": bool, "detail": str}`` and never raises.
+    """
+    cfg = current_app.config
+    host = cfg.get("SMTP_HOST")
+    if not host:
+        return {"ok": False, "detail": "SMTP_HOST non configuré — les envois sont simulés."}
+    port = int(cfg.get("SMTP_PORT", 587))
+    use_ssl = cfg.get("SMTP_USE_SSL", False)
+    use_tls = cfg.get("SMTP_USE_TLS", True)
+    user = cfg.get("SMTP_USER")
+    pwd = cfg.get("SMTP_PASSWORD")
+    try:
+        if use_ssl:
+            server = smtplib.SMTP_SSL(host, port, timeout=15)
+        else:
+            server = smtplib.SMTP(host, port, timeout=15)
+        try:
+            if not use_ssl and use_tls:
+                server.starttls()
+            if user and pwd:
+                server.login(user, pwd)
+                return {"ok": True, "detail": f"Connexion et authentification OK ({host}:{port})."}
+            if user and not pwd:
+                return {"ok": False,
+                        "detail": f"Connexion OK ({host}:{port}) mais SMTP_PASSWORD manquant."}
+            return {"ok": True, "detail": f"Connexion OK ({host}:{port}) — sans authentification."}
+        finally:
+            try:
+                server.quit()
+            except Exception:
+                pass
+    except Exception as exc:  # pragma: no cover - depends on live SMTP
+        logger.warning("SMTP test failed host=%s port=%s: %s", host, port, exc)
+        return {"ok": False, "detail": f"{type(exc).__name__}: {str(exc)[:250]}"}
+
+
 def _smtp_send(from_addr, recipients, raw_message):
     cfg = current_app.config
     host = cfg["SMTP_HOST"]

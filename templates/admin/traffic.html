@@ -8,6 +8,10 @@
     <option value="30" selected>30 jours</option>
     <option value="90">90 jours</option>
   </select>
+  <form method="POST" action="{{ url_for('admin.purge_bot_views') }}" style="display:inline"
+        onsubmit="return confirm('Supprimer toutes les vues de robots des statistiques ?');">
+    <button type="submit" class="admin-btn ghost" title="Retire les hits de robots/outils déjà enregistrés">🧹 Nettoyer robots</button>
+  </form>
   <span class="admin-live" id="traffic-updated">—</span>
 {% endblock %}
 

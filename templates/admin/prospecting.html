@@ -20,36 +20,41 @@
   </div>
 </div>
 
-<div class="social-compose-grid">
-  <div class="studio-editor">
-    <h2 style="margin:0 0 12px;font-size:18px">Rechercher des artisans</h2>
-    <div class="db-form-grid">
-      <label>Métier
+<div class="prospect-grid">
+  <section class="admin-panel prospect-search-card">
+    <h2 class="prospect-card-title"><span>🔎</span> Rechercher des artisans</h2>
+    <p class="admin-hint">Recherche web par métier et ville, puis extraction des e-mails publics.</p>
+    <div class="prospect-form-grid">
+      <label class="field">
+        <span>Métier</span>
         <select id="search-trade">
           {% for t in trades %}
           <option value="{{ t.key }}" {% if t.key == 'plombier' %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
           {% endfor %}
         </select>
       </label>
-      <label>Ville ou code postal
-        <input type="text" id="search-city" placeholder="Ex : Lyon, 69003" required>
+      <label class="field">
+        <span>Ville ou code postal</span>
+        <input type="text" id="search-city" name="city" data-places-city placeholder="Ex : Lyon, 69003" autocomplete="off" required>
       </label>
-      <label>Résultats max
+      <label class="field field--compact">
+        <span>Résultats max</span>
         <input type="number" id="search-max" min="3" max="25" value="12">
       </label>
     </div>
-    <div class="form-actions" style="margin-top:12px">
+    <div class="form-actions" style="margin-top:16px">
       <button type="button" class="admin-btn" id="search-btn">🔍 Lancer la recherche IA</button>
       <span class="ai-spinner" id="search-spinner" style="display:none">Recherche et extraction des e-mails…</span>
     </div>
     <span class="mail-error" id="search-error" style="display:none"></span>
     <div id="search-summary" class="admin-hint" style="margin-top:10px;display:none"></div>
-  </div>
+  </section>
 
-  <div class="studio-preview">
-    <h2 style="margin:0 0 12px;font-size:18px">Filtres liste</h2>
-    <form method="GET" class="db-form-grid">
-      <label>Statut
+  <section class="admin-panel prospect-filter-card">
+    <h2 class="prospect-card-title"><span>🗂️</span> Filtrer la liste</h2>
+    <form method="GET" class="prospect-form-grid">
+      <label class="field">
+        <span>Statut</span>
         <select name="status">
           <option value="">Tous</option>
           {% for s, label in [('new','Nouveau'),('ready','Prêt'),('contacted','Contacté'),('replied','Répondu'),('converted','Converti'),('unsubscribed','Désinscrit'),('skipped','Ignoré')] %}
@@ -57,7 +62,8 @@
           {% endfor %}
         </select>
       </label>
-      <label>Métier
+      <label class="field">
+        <span>Métier</span>
         <select name="trade">
           <option value="">Tous</option>
           {% for t in trades %}
@@ -65,7 +71,7 @@
           {% endfor %}
         </select>
       </label>
-      <div class="field" style="justify-content:flex-end">
+      <div class="field field--action">
         <button type="submit" class="admin-btn ghost">Filtrer</button>
       </div>
     </form>
@@ -75,11 +81,11 @@
     {% if not ai_available %}
     <p class="admin-hint" style="margin-top:8px;color:#b45309">Mistral indisponible — génération d'e-mails désactivée.</p>
     {% endif %}
-  </div>
+  </section>
 </div>
 
 <div class="admin-table-wrap" style="margin-top:24px">
-  <table class="admin-table">
+  <table class="data-table accounts-table prospect-table">
     <thead>
       <tr>
         <th>Contact</th>
@@ -172,6 +178,21 @@
 
 {% block scripts %}
 <style>
+.prospect-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:18px; align-items:start; margin-bottom:24px; }
+.prospect-card-title { display:flex; align-items:center; gap:8px; margin:0 0 6px; font-size:17px; }
+.prospect-card-title span { font-size:18px; }
+.prospect-form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-top:14px; align-items:end; }
+.prospect-form-grid .field { min-width:0; }
+.prospect-form-grid .field--compact { max-width:150px; }
+.prospect-form-grid .field--action { justify-content:flex-end; }
+.prospect-form-grid .field--action .admin-btn { width:100%; }
+@media (max-width: 900px) {
+  .prospect-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 560px) {
+  .prospect-form-grid { grid-template-columns:1fr; }
+  .prospect-form-grid .field--compact { max-width:none; }
+}
 .status-pill { display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase; }
 .status-new { background:#e2e8f0;color:#475569; }
 .status-ready { background:#dbeafe;color:#1d4ed8; }

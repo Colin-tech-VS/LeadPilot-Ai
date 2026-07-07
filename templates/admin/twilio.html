@@ -38,6 +38,7 @@
   <section class="admin-panel">
     <h2>Usage ce mois-ci</h2>
     {% if twilio.usage_rows %}
+    <div class="admin-table-wrap">
     <table class="data-table accounts-table">
       <thead>
         <tr>
@@ -56,6 +57,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% else %}
     <p class="admin-hint">Aucune donnée d'usage disponible pour le moment.</p>
     {% endif %}

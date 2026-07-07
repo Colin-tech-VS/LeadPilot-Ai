@@ -149,7 +149,6 @@ def test_publish_post_falls_back_to_photo_when_domain_not_verified(app, monkeypa
         assert len(calls) == 2
         assert calls[0]["url"].endswith("/feed")
         assert calls[1]["url"].endswith("/photos")
-        assert calls[1]["data"]["call_to_action"]
         assert "source" in calls[1]["files"]
 
 
@@ -207,10 +206,10 @@ def test_publish_post_falls_back_to_link_only_when_photo_cta_fails(app, monkeypa
 
         post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
         assert post.status == "published", post.error
-        assert len(calls) == 3
-        assert calls[2]["url"].endswith("/feed")
-        assert calls[2]["data"]["link"] == "https://www.pilotcore.fr/pro"
-        assert "thumbnail" not in calls[2]["files"]
+        assert len(calls) == 4
+        assert calls[-1]["url"].endswith("/feed")
+        assert calls[-1]["data"]["link"] == "https://www.pilotcore.fr/pro"
+        assert "thumbnail" not in calls[-1]["files"]
 
 
 def test_publish_post_requires_link_for_clickable_image(app, monkeypatch, tmp_path):
@@ -374,3 +373,57 @@ def test_publish_post_permission_error_hint(app, monkeypatch, tmp_path):
         post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
         assert post.status == "failed"
         assert "pages_manage_posts" in (post.error or "")
+
+
+def test_publish_post_falls_back_to_photo_on_permission_error(app, monkeypatch, tmp_path):
+    img = tmp_path / "post.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 64)
+    rel = "uploads/social/test-post.png"
+    static_root = tmp_path / "static"
+    (static_root / "uploads" / "social").mkdir(parents=True)
+    (static_root / "uploads" / "social" / "test-post.png").write_bytes(img.read_bytes())
+
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+    monkeypatch.setattr(
+        "app.services.social.ensure_publish_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+    monkeypatch.setattr(
+        "app.services.social.is_page_access_token",
+        lambda token, page_id: True,
+    )
+
+    calls = []
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        calls.append(url)
+        mock_resp = MagicMock()
+        if url.endswith("/feed"):
+            mock_resp.ok = False
+            mock_resp.json.return_value = {
+                "error": {"code": 10, "message": "(#10) Application does not have permission for this action"}
+            }
+            return mock_resp
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "photo_1", "post_id": "page1_999"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
+
+    with app.app_context():
+        app.static_folder = str(static_root)
+        from app.services import social
+        from app.services import social_image
+
+        monkeypatch.setattr(
+            social_image,
+            "resolve_image_path",
+            lambda p: static_root / p if p else None,
+        )
+
+        post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
+        assert post.status == "published", post.error
+        assert any(url.endswith("/photos") for url in calls)

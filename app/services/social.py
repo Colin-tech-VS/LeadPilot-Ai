@@ -247,6 +247,103 @@ def _cta_payload(link: str) -> str:
     return json.dumps({"type": "LEARN_MORE", "value": {"link": link}})
 
 
+def _publish_photo_only(cfg, message, resolved):
+    """Branded image post without link parameters — works with most page tokens."""
+    endpoint = f"{GRAPH_BASE}/{cfg['page_id']}/photos"
+    with open(resolved, "rb") as image_file:
+        return requests.post(
+            endpoint,
+            data={"message": message, "access_token": cfg["token"]},
+            files={"source": (resolved.name, image_file, "image/png")},
+            timeout=60,
+        )
+
+
+def _attempt_publish(cfg, message, link, resolved) -> tuple[requests.Response | None, dict, str | None]:
+    """Try several Graph API strategies until one succeeds."""
+    strategies = (
+        ("link_thumbnail", lambda: _publish_link_post(cfg, message, link, resolved)),
+        ("photo", lambda: _publish_photo_only(cfg, message, resolved)),
+        ("photo_cta", lambda: _publish_photo_with_cta(cfg, message, link, resolved)),
+        ("link_og", lambda: _publish_link_only(cfg, message, link)),
+    )
+    last_resp = None
+    last_data: dict = {}
+    for mode, builder in strategies:
+        resp = builder()
+        data = resp.json()
+        last_resp, last_data = resp, data
+        if resp.ok and _external_id_from_response(data):
+            return resp, data, mode
+        err = _graph_error(data).get("message", "")
+        logger.warning("Facebook publish mode %s failed: %s", mode, err)
+    return last_resp, last_data, None
+
+
+def connection_status() -> dict:
+    """Diagnostics for the admin UI — token type and publish readiness."""
+    cfg = get_config()
+    if not (cfg["page_id"] and cfg["token"]):
+        return {
+            "connected": False,
+            "page_id": "",
+            "page_name": "",
+            "token_kind": "missing",
+            "can_read": False,
+            "can_publish": False,
+            "message": "Aucune page connectée.",
+        }
+
+    identity_id, identity_name = token_identity(cfg["token"])
+    token_kind = "page" if is_page_access_token(cfg["token"], cfg["page_id"]) else "user"
+    can_read, read_msg = False, ""
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/{cfg['page_id']}",
+            params={"fields": "name", "access_token": cfg["token"]},
+            timeout=12,
+        )
+        data = resp.json()
+        can_read = resp.ok and bool(data.get("name"))
+        read_msg = data.get("name") if can_read else _graph_error(data).get("message", "Lecture page impossible.")
+    except requests.RequestException as exc:
+        read_msg = str(exc)
+
+    can_publish = False
+    pub_msg = ""
+    if can_read and token_kind == "page":
+        can_publish = True
+        pub_msg = "Token page détecté — publication activée."
+    elif can_read:
+        pub_msg = "Token utilisateur : reconnectez avec le token de page depuis /me/accounts."
+
+    if can_publish:
+        message = "Prêt à publier."
+    elif can_read and token_kind == "page":
+        message = pub_msg
+    elif can_read:
+        message = pub_msg
+    else:
+        message = read_msg or "Connexion invalide."
+
+    return {
+        "connected": True,
+        "page_id": cfg["page_id"],
+        "page_name": cfg["page_name"] or identity_name or read_msg,
+        "token_kind": token_kind,
+        "can_read": can_read,
+        "can_publish": can_publish,
+        "message": message[:500],
+    }
+
+
+def check_publish_ready() -> tuple[bool, str]:
+    cfg = get_config()
+    if not (cfg["page_id"] and cfg["token"]):
+        return False, "Aucune page connectée."
+    return _probe_publish_permission(cfg)
+
+
 def _publish_link_post(cfg, message, link, resolved):
     """Link post with custom thumbnail — requires verified link domain in Meta Business."""
     endpoint = f"{GRAPH_BASE}/{cfg['page_id']}/feed"
@@ -330,28 +427,17 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
         return post
 
     try:
-        resp = _publish_link_post(cfg, message, link, resolved)
-        data = resp.json()
-        publish_mode = "link_thumbnail"
+        _, data, publish_mode = _attempt_publish(cfg, message, link, resolved)
 
-        if not resp.ok and _is_custom_link_preview_error(data):
-            resp = _publish_photo_with_cta(cfg, message, link, resolved)
-            data = resp.json()
-            publish_mode = "photo_cta"
-
-        if not resp.ok and _is_custom_link_preview_error(data):
-            resp = _publish_link_only(cfg, message, link)
-            data = resp.json()
-            publish_mode = "link_og"
-
-        external_id = _external_id_from_response(data) if resp.ok else None
-        if resp.ok and external_id:
+        external_id = _external_id_from_response(data) if publish_mode else None
+        if publish_mode and external_id:
             post.status = "published"
             post.external_id = external_id
             post.published_at = datetime.now(timezone.utc)
             post.permalink = f"https://www.facebook.com/{external_id}"
             mode_labels = {
                 "link_thumbnail": "lien + visuel cliquable",
+                "photo": "photo avec visuel IA",
                 "photo_cta": "photo + bouton En savoir plus",
                 "link_og": "lien (aperçu Open Graph du site)",
             }
@@ -369,12 +455,6 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
             post.error = _permission_error_message(data) if _is_permission_error(data) else (
                 _graph_error(data).get("message", "Réponse Facebook invalide.")[:500]
             )
-            if _is_custom_link_preview_error(data):
-                post.error = (
-                    f"{post.error} "
-                    "Vérifiez le domaine pilotcore.fr dans Meta Business Manager "
-                    "(Sécurité de la marque → Domaines) pour activer le visuel cliquable."
-                )[:500]
             log_event(
                 CAT_ADMIN,
                 "facebook_publish_failed",

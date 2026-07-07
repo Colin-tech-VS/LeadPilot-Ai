@@ -1439,11 +1439,13 @@ def social_page():
     from app.services.social_links import targets_for_admin
 
     cfg = social.get_config()
+    fb_status = social.connection_status()
     return render_template(
         "admin/social.html",
         posts=social.recent_posts(),
         facebook_connected=social.is_configured(),
         facebook_config=cfg,
+        facebook_status=fb_status,
         ai_available=content_ai.is_available(),
         link_targets=targets_for_admin(),
     )
@@ -1460,7 +1462,7 @@ def social_connect():
     pasted_page_token = social.is_page_access_token(token, page_id)
     stored_token, page_name = social.prepare_page_token(page_id, token)
     social.save_connection(page_id, stored_token, page_name or "")
-    ok, message = social.verify_connection(check_publish=True)
+    ok, message = social.verify_connection(check_publish=False)
     if ok:
         if pasted_page_token:
             detail = "Token de page enregistré tel quel."
@@ -1471,7 +1473,7 @@ def social_connect():
         flash(f"Page Facebook « {message} » connectée. {detail}", "success")
         log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {message}", level=LEVEL_SUCCESS)
     else:
-        flash(f"Connexion enregistrée mais vérification échouée : {message}", "error")
+        flash(f"Connexion impossible : {message}", "error")
     return redirect(url_for("admin.social"))
 
 

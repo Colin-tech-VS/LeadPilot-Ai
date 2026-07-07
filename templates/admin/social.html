@@ -10,9 +10,22 @@
   <div style="flex:1;min-width:0">
     <strong>Page Facebook connectée</strong>
     <div class="studio-item-meta">{{ facebook_config.page_name or facebook_config.page_id }}</div>
+    {% if facebook_status %}
+    <div class="studio-item-meta" style="margin-top:6px">
+      Token : <strong>{{ 'page' if facebook_status.token_kind == 'page' else 'utilisateur' }}</strong>
+      · {{ facebook_status.message }}
+    </div>
+    {% endif %}
   </div>
   <details style="width:100%">
-    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Gérer la connexion</summary>
+    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Mettre à jour le token</summary>
+    <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="margin-top:12px">
+      <div class="db-form-grid">
+        <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ facebook_config.page_id }}" required></label>
+        <label>Token d'accès<input type="text" name="token" required placeholder="Collez le nouveau token ici"></label>
+      </div>
+      <button type="submit" class="admin-btn">Enregistrer le token</button>
+    </form>
     <form method="POST" action="{{ url_for('admin.social_disconnect') }}" style="margin-top:12px">
       <button type="submit" class="admin-btn danger tiny">Déconnecter la page</button>
     </form>

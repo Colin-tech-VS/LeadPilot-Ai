@@ -44,7 +44,7 @@ def test_publish_post_requires_image_file(app, monkeypatch):
         assert "Image requise" in (post.error or "")
 
 
-def test_publish_post_uploads_photo(app, monkeypatch, tmp_path):
+def test_publish_post_uploads_clickable_link_post(app, monkeypatch, tmp_path):
     img = tmp_path / "post.png"
     img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 64)
     rel = "uploads/social/test-post.png"
@@ -57,10 +57,18 @@ def test_publish_post_uploads_photo(app, monkeypatch, tmp_path):
         lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
     )
 
-    mock_resp = MagicMock()
-    mock_resp.ok = True
-    mock_resp.json.return_value = {"id": "photo_1", "post_id": "page1_2"}
-    monkeypatch.setattr("app.services.social.requests.post", lambda *a, **k: mock_resp)
+    captured = {}
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        captured["url"] = url
+        captured["data"] = data or {}
+        captured["files"] = files or {}
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "page1_123"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
 
     with app.app_context():
         app.static_folder = str(static_root)
@@ -77,6 +85,37 @@ def test_publish_post_uploads_photo(app, monkeypatch, tmp_path):
         assert post.status == "published", post.error
         assert post.image_path == rel
         assert post.permalink
+        assert captured["url"].endswith("/page1/feed")
+        assert captured["data"]["link"] == "https://www.pilotcore.fr/pro"
+        assert captured["data"]["message"] == "Bonjour"
+        assert "thumbnail" in captured["files"]
+        assert "https://" not in captured["data"]["message"]
+
+
+def test_publish_post_requires_link_for_clickable_image(app, monkeypatch, tmp_path):
+    rel = "uploads/social/test-post.png"
+    static_root = tmp_path / "static"
+    (static_root / "uploads" / "social").mkdir(parents=True)
+    (static_root / "uploads" / "social" / "test-post.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+
+    with app.app_context():
+        app.static_folder = str(static_root)
+        from app.services import social
+        from app.services import social_image
+
+        monkeypatch.setattr(
+            social_image,
+            "resolve_image_path",
+            lambda p: static_root / p if p else None,
+        )
+        post = social.publish_post("Bonjour", image_path=rel)
+        assert post.status == "failed"
+        assert "cliquable" in (post.error or "").lower()
 
 
 def test_generate_payload_includes_image_fields(app, monkeypatch):

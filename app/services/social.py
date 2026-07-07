@@ -73,18 +73,46 @@ def verify_connection():
         return False, str(exc)
 
 
+def _publish_link_post(cfg, message, link, resolved, image_path):
+    """Link post: image preview is clickable and opens ``link`` (no URL in text)."""
+    from app.services.social_image import image_public_url
+
+    endpoint = f"{GRAPH_BASE}/{cfg['page_id']}/feed"
+    base_data = {"message": message, "link": link, "access_token": cfg["token"]}
+
+    with open(resolved, "rb") as image_file:
+        resp = requests.post(
+            endpoint,
+            data=base_data,
+            files={"thumbnail": (resolved.name, image_file, "image/png")},
+            timeout=60,
+        )
+    if resp.ok:
+        return resp
+
+    picture_url = image_public_url(image_path or "")
+    if picture_url:
+        resp = requests.post(
+            endpoint,
+            data={**base_data, "picture": picture_url},
+            timeout=60,
+        )
+    return resp
+
+
 def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> SocialPost:
-    """Publish a photo post (with mandatory image) to the connected Facebook Page."""
+    """Publish a link post with custom thumbnail — image opens the tracked landing URL."""
     from app.services.social_image import resolve_image_path
 
     message = (message or "").strip()
     link = (link or "").strip() or None
+    image_path = (image_path or "").strip() or None
     resolved = resolve_image_path(image_path)
     post = SocialPost(
         platform="facebook",
         message=message,
         link=link,
-        image_path=(image_path or "").strip() or None,
+        image_path=image_path,
         generated_by_ai=generated_by_ai,
         status="draft",
     )
@@ -104,32 +132,36 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
         db.session.commit()
         return post
 
-    full_message = message
-    if link and link not in message:
-        full_message = f"{message}\n\n{link}"
+    if not link:
+        post.status = "failed"
+        post.error = "Sélectionnez une page cible pour rendre le visuel cliquable."
+        db.session.add(post)
+        db.session.commit()
+        return post
 
     try:
-        with open(resolved, "rb") as image_file:
-            resp = requests.post(
-                f"{GRAPH_BASE}/{cfg['page_id']}/photos",
-                data={"message": full_message, "access_token": cfg["token"]},
-                files={"source": (resolved.name, image_file, "image/png")},
-                timeout=60,
-            )
+        resp = _publish_link_post(cfg, message, link, resolved, image_path)
         data = resp.json()
         if resp.ok and data.get("id"):
             post.status = "published"
             post.external_id = data["id"]
             post.published_at = datetime.now(timezone.utc)
-            post_id = data.get("post_id") or data["id"]
-            post.permalink = f"https://www.facebook.com/{post_id}"
-            log_event(CAT_ADMIN, "facebook_publish",
-                      summary=f"Post Facebook publié (photo): {post.preview(60)}", level=LEVEL_SUCCESS)
+            post.permalink = f"https://www.facebook.com/{data['id']}"
+            log_event(
+                CAT_ADMIN,
+                "facebook_publish",
+                summary=f"Post Facebook publié (lien cliquable): {post.preview(60)}",
+                level=LEVEL_SUCCESS,
+            )
         else:
             post.status = "failed"
             post.error = (data.get("error") or {}).get("message", "Réponse Facebook invalide.")[:500]
-            log_event(CAT_ADMIN, "facebook_publish_failed",
-                      summary=f"Échec publication Facebook: {post.error}", level=LEVEL_ERROR)
+            log_event(
+                CAT_ADMIN,
+                "facebook_publish_failed",
+                summary=f"Échec publication Facebook: {post.error}",
+                level=LEVEL_ERROR,
+            )
     except requests.RequestException as exc:
         post.status = "failed"
         post.error = str(exc)[:500]

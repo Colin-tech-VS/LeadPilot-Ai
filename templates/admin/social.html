@@ -51,7 +51,7 @@
           {% endfor %}
         </select>
       </label>
-      <p class="admin-hint social-utm-hint">Le lien public est propre dans l'aperçu ; les paramètres <code>utm_*</code> sont ajoutés automatiquement pour Google Analytics.</p>
+      <p class="admin-hint social-utm-hint">Le visuel est cliquable vers la page choisie (sans URL dans le texte). Les paramètres <code>utm_*</code> sont ajoutés en arrière-plan pour Google Analytics.</p>
 
       {% if ai_available %}
       <div class="ai-box social-ai-box">
@@ -93,7 +93,7 @@
       </details>
 
       <div class="social-image-status" id="image-status">
-        <span class="admin-hint" id="image-hint">Un visuel charte PilotCore accompagne chaque publication (généré avec l'IA ou à la publication).</span>
+        <span class="admin-hint" id="image-hint">Visuel charte PilotCore — cliquable vers la page cible (généré avec l'IA ou à la publication).</span>
         <img id="social-image-preview" class="social-image-thumb" alt="" style="display:none">
       </div>
 
@@ -118,7 +118,9 @@
         </div>
         <div class="fb-preview-body" id="fb-body">Votre message apparaîtra ici…</div>
         <div class="fb-preview-image-wrap" id="fb-image-wrap" style="display:none">
-          <img id="fb-image" class="fb-preview-image" alt="Visuel du post">
+          <a id="fb-image-link" href="#" target="_blank" rel="noopener" class="fb-preview-image-link">
+            <img id="fb-image" class="fb-preview-image" alt="Visuel du post">
+          </a>
         </div>
         <div class="fb-preview-link-card" id="fb-link-card" style="display:none">
           <div class="fb-link-card-bar"></div>
@@ -187,6 +189,7 @@
   var imageHint = document.getElementById("image-hint");
   var fbImageWrap = document.getElementById("fb-image-wrap");
   var fbImage = document.getElementById("fb-image");
+  var fbImageLink = document.getElementById("fb-image-link");
 
   function setImage(url, path) {
     imagePath.value = path || "";
@@ -195,14 +198,17 @@
       imagePreview.style.display = "block";
       fbImage.src = url;
       fbImageWrap.style.display = "block";
-      imageHint.textContent = "Visuel prêt — charte PilotCore.";
+      if (fbImageLink) {
+        fbImageLink.href = linkDisplay.value || "#";
+      }
+      imageHint.textContent = "Visuel prêt — cliquable vers la page cible.";
       imageHint.style.color = "var(--green, #059669)";
     } else {
       imagePreview.removeAttribute("src");
       imagePreview.style.display = "none";
       fbImage.removeAttribute("src");
       fbImageWrap.style.display = "none";
-      imageHint.textContent = "Un visuel charte PilotCore accompagne chaque publication (généré avec l'IA ou à la publication).";
+      imageHint.textContent = "Visuel charte PilotCore — cliquable vers la page cible (généré avec l'IA ou à la publication).";
       imageHint.style.color = "";
     }
   }
@@ -232,6 +238,9 @@
       linkCard.style.display = display ? "block" : "none";
     } catch (e) {
       linkCard.style.display = "none";
+    }
+    if (fbImageLink && linkDisplay.value) {
+      fbImageLink.href = linkDisplay.value;
     }
     render();
   }

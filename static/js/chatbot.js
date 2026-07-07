@@ -31,6 +31,8 @@
 
     var history = [];
     var leadId = null;
+    var accountFlow = null;
+    var askedSlots = [];
     var captured = false;
     var busy = false;
 
@@ -112,6 +114,8 @@
 
       try {
         var payload = { message: text, history: history, lead_id: leadId };
+        if (accountFlow) payload.account_flow = accountFlow;
+        if (askedSlots.length) payload.asked_slots = askedSlots;
         var cp = {
           name: root.getAttribute('data-customer-name'),
           phone: root.getAttribute('data-customer-phone'),
@@ -140,6 +144,8 @@
           history.push({ role: 'assistant', text: reply });
         }
         if (data.lead_id) leadId = data.lead_id;
+        if (data.account_flow) accountFlow = data.account_flow;
+        if (Array.isArray(data.asked_slots)) askedSlots = data.asked_slots;
         if (data.lead_captured && !captured && labels.captured) {
           captured = true;
           addNotice(labels.captured);

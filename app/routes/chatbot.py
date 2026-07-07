@@ -93,6 +93,9 @@ def public_chat_message(tenant_id):
         except (ValueError, TypeError):
             lead_id = None
 
+    account_flow = data.get("account_flow")
+    asked_slots = data.get("asked_slots")
+
     customer_profile = data.get("customer_profile")
     if not isinstance(customer_profile, dict):
         customer_profile = _customer_profile_from_session()
@@ -102,7 +105,9 @@ def public_chat_message(tenant_id):
         history=history,
         message=message,
         existing_lead_id=lead_id,
-        customer_profile=_customer_profile_from_session(),
+        customer_profile=customer_profile,
+        account_flow=account_flow if isinstance(account_flow, dict) else None,
+        asked_slots=asked_slots if isinstance(asked_slots, list) else None,
     )
     return jsonify(result), 200
 

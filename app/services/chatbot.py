@@ -18,7 +18,10 @@ from flask import current_app
 from app.core.errors import NotFoundError
 from app.core.extensions import db
 from app.models.tenant import Tenant
+from app.models.user import User
+from app.services.chat_account_flow import ChatAccountFlow
 from app.services.inbound_call import process_inbound_call
+from app.services.voice import customer_account as vca
 
 logger = logging.getLogger(__name__)
 
@@ -308,6 +311,8 @@ def process_chat_turn(
     message: str,
     existing_lead_id: str | None = None,
     customer_profile: dict | None = None,
+    account_flow: dict | None = None,
+    asked_slots: list[str] | None = None,
 ) -> dict:
     """One chatbot exchange: produce a reply and capture a lead when ready.
 
@@ -326,6 +331,18 @@ def process_chat_turn(
 
     message = (message or "").strip()
     history = history if isinstance(history, list) else []
+    account_flow = _sanitize_account_flow(account_flow)
+    asked_slots = _sanitize_asked_slots(asked_slots)
+    logged_in = bool(customer_profile and customer_profile.get("email"))
+
+    if logged_in:
+        account_flow["account_done"] = True
+        user = vca.lookup_customer(
+            email=customer_profile.get("email"),
+            phone=customer_profile.get("phone"),
+        )
+        if user:
+            account_flow["customer_user_id"] = str(user.id)
 
     bot = CommercialChatbot()
     result = bot.reply(
@@ -338,6 +355,56 @@ def process_chat_turn(
         trade_type=tenant.trade_type,
         customer_profile=customer_profile,
     )
+
+    lead_data = result.get("lead_data") if isinstance(result.get("lead_data"), dict) else {}
+    summary = (lead_data.get("summary") or _summary(history, message)).strip()
+    phone_hint = (
+        (lead_data.get("phone") or "").strip()
+        or _find_phone(message)
+        or _find_phone(" ".join(t.get("text", "") for t in history))
+        or (customer_profile or {}).get("phone")
+    )
+    flow = ChatAccountFlow(account_flow, asked_slots, phone_hint=phone_hint)
+    account_notice = None
+
+    if flow.should_run(summary, logged_in):
+        if flow.last_account_slot():
+            step_notice = flow.update_from_message(message, lead_data)
+            if step_notice:
+                account_notice = step_notice
+            created = flow.maybe_finalize(lead_data)
+            if created:
+                account_notice = created
+
+        nxt = flow.next_question(lead_data)
+        if nxt:
+            slot, question = nxt
+            if slot not in flow.asked_slots:
+                flow.asked_slots.append(slot)
+            prefix = f"{account_notice} " if account_notice else ""
+            result["reply"] = f"{prefix}{question}".strip()
+            result["lead_ready"] = False
+            account_notice = None
+        elif account_notice:
+            result["reply"] = f"{account_notice} {result['reply']}".strip()
+        elif not flow.account_flow.get("account_done"):
+            result["lead_ready"] = False
+
+    account_flow = flow.account_flow
+    asked_slots = flow.asked_slots
+    result["lead_data"] = lead_data
+
+    if account_flow.get("customer_user_id") and not logged_in:
+        try:
+            user = db.session.get(User, uuid.UUID(account_flow["customer_user_id"]))
+        except (ValueError, TypeError):
+            user = None
+        if user:
+            lead_data = vca.apply_customer_to_lead(user, lead_data)
+            result["lead_data"] = lead_data
+
+    if not account_flow.get("account_done") and not logged_in and summary:
+        result["lead_ready"] = False
 
     lead_id = existing_lead_id
     lead_captured = False
@@ -373,7 +440,29 @@ def process_chat_turn(
         "intent": result["intent"],
         "lead_id": lead_id,
         "lead_captured": lead_captured,
+        "account_flow": account_flow,
+        "asked_slots": asked_slots,
     }
+
+
+def _sanitize_account_flow(raw: dict | None) -> dict:
+    base = vca.default_account_flow()
+    if not isinstance(raw, dict):
+        return base
+    for key in base:
+        if key in raw:
+            base[key] = raw[key]
+    return base
+
+
+def _sanitize_asked_slots(raw: list | None) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    clean = []
+    for slot in raw[-40:]:
+        if isinstance(slot, str) and slot.strip():
+            clean.append(slot.strip()[:80])
+    return clean
 
 
 def _build_transcript(history: list[dict], message: str, lead_data: dict) -> str:

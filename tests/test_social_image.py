@@ -269,12 +269,17 @@ def test_resolve_page_access_token_from_user_token(app, monkeypatch):
     def fake_get(url, params=None, timeout=None):
         mock_resp = MagicMock()
         mock_resp.ok = True
-        mock_resp.json.return_value = {
-            "data": [
-                {"id": "page1", "name": "PilotCore", "access_token": "page-token-xyz"},
-            ]
-        }
-        return mock_resp
+        if url.endswith("/me"):
+            mock_resp.json.return_value = {"id": "user1", "name": "Colin"}
+            return mock_resp
+        if url.endswith("/me/accounts"):
+            mock_resp.json.return_value = {
+                "data": [
+                    {"id": "page1", "name": "PilotCore", "access_token": "page-token-xyz"},
+                ]
+            }
+            return mock_resp
+        raise AssertionError(url)
 
     monkeypatch.setattr("app.services.social.requests.get", fake_get)
 
@@ -282,6 +287,49 @@ def test_resolve_page_access_token_from_user_token(app, monkeypatch):
         from app.services import social
 
         token, name = social.resolve_page_access_token("user-token", "page1")
+        assert token == "page-token-xyz"
+        assert name == "PilotCore"
+
+
+def test_prepare_page_token_keeps_page_token(app, monkeypatch):
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append(url)
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "page1", "name": "PilotCore"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.get", fake_get)
+
+    with app.app_context():
+        from app.services import social
+
+        token, name = social.prepare_page_token("page1", "my-page-token")
+        assert token == "my-page-token"
+        assert name == "PilotCore"
+        assert calls == [f"{social.GRAPH_BASE}/me"]
+
+
+def test_prepare_page_token_converts_user_token(app, monkeypatch):
+    def fake_get(url, params=None, timeout=None):
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        if url.endswith("/me"):
+            mock_resp.json.return_value = {"id": "user1", "name": "Colin"}
+        elif url.endswith("/me/accounts"):
+            mock_resp.json.return_value = {
+                "data": [{"id": "page1", "name": "PilotCore", "access_token": "page-token-xyz"}]
+            }
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.get", fake_get)
+
+    with app.app_context():
+        from app.services import social
+
+        token, name = social.prepare_page_token("page1", "user-token")
         assert token == "page-token-xyz"
         assert name == "PilotCore"
 

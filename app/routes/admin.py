@@ -1457,13 +1457,18 @@ def social_connect():
     if not page_id or not token:
         flash("Identifiant de page et token requis.", "error")
         return redirect(url_for("admin.social"))
-    social.save_connection(page_id, token)
-    page_token, page_name = social.resolve_page_access_token(token, page_id)
-    if page_token:
-        social.save_connection(page_id, page_token, page_name or "")
+    pasted_page_token = social.is_page_access_token(token, page_id)
+    stored_token, page_name = social.prepare_page_token(page_id, token)
+    social.save_connection(page_id, stored_token, page_name or "")
     ok, message = social.verify_connection(check_publish=True)
     if ok:
-        flash(f"Page Facebook « {message} » connectée.", "success")
+        if pasted_page_token:
+            detail = "Token de page enregistré tel quel."
+        elif stored_token != token:
+            detail = "Token utilisateur converti en token de page."
+        else:
+            detail = "Token enregistré."
+        flash(f"Page Facebook « {message} » connectée. {detail}", "success")
         log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {message}", level=LEVEL_SUCCESS)
     else:
         flash(f"Connexion enregistrée mais vérification échouée : {message}", "error")

@@ -65,12 +65,72 @@ def disconnect():
     content.set_setting(SETTING_PAGE_NAME, "")
 
 
+def token_identity(token: str) -> tuple[str | None, str | None]:
+    """Return Graph API ``/me`` id and name for this access token."""
+    token = (token or "").strip()
+    if not token:
+        return None, None
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/me",
+            params={"fields": "id,name", "access_token": token},
+            timeout=12,
+        )
+        data = resp.json()
+        if resp.ok:
+            return str(data.get("id") or "") or None, data.get("name")
+    except requests.RequestException:
+        logger.exception("Facebook token identity check failed")
+    return None, None
+
+
+def is_page_access_token(token: str, page_id: str) -> bool:
+    """True when the token already belongs to the target Facebook Page."""
+    identity_id, _ = token_identity(token)
+    return bool(identity_id and identity_id == str(page_id or "").strip())
+
+
+def prepare_page_token(page_id: str, token: str) -> tuple[str, str | None]:
+    """Pick the token to store — never replace a valid page token with a user token."""
+    token = (token or "").strip()
+    page_id = str(page_id or "").strip()
+    if not token or not page_id:
+        return token, None
+
+    identity_id, identity_name = token_identity(token)
+    if identity_id == page_id:
+        return token, identity_name
+
+    resolved, page_name = resolve_page_access_token(token, page_id)
+    if resolved:
+        return resolved, page_name
+
+    return token, identity_name
+
+
+def ensure_publish_config():
+    """Return Facebook config using a page token suitable for publishing."""
+    cfg = get_config()
+    if not (cfg["page_id"] and cfg["token"]):
+        return cfg
+    if is_page_access_token(cfg["token"], cfg["page_id"]):
+        return cfg
+    token, page_name = prepare_page_token(cfg["page_id"], cfg["token"])
+    if token != cfg["token"] or (page_name and page_name != cfg["page_name"]):
+        save_connection(cfg["page_id"], token, page_name or cfg["page_name"])
+        return get_config()
+    return cfg
+
+
 def resolve_page_access_token(token: str, page_id: str) -> tuple[str | None, str | None]:
     """Exchange a user token for the matching page access token when possible."""
     token = (token or "").strip()
     page_id = str(page_id or "").strip()
     if not token or not page_id:
         return None, None
+    if is_page_access_token(token, page_id):
+        _, page_name = token_identity(token)
+        return token, page_name
     try:
         resp = requests.get(
             f"{GRAPH_BASE}/me/accounts",
@@ -142,11 +202,6 @@ def verify_connection(*, check_publish: bool = False):
     cfg = get_config()
     if not (cfg["page_id"] and cfg["token"]):
         return False, "Aucune page connectée."
-
-    page_token, page_name = resolve_page_access_token(cfg["token"], cfg["page_id"])
-    if page_token and page_token != cfg["token"]:
-        save_connection(cfg["page_id"], page_token, page_name or cfg["page_name"])
-        cfg = get_config()
 
     try:
         resp = requests.get(
@@ -252,7 +307,7 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
         status="draft",
     )
 
-    cfg = get_config()
+    cfg = ensure_publish_config()
     if not (cfg["page_id"] and cfg["token"]):
         post.status = "failed"
         post.error = "Page Facebook non connectée."

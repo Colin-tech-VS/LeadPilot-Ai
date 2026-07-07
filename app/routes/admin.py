@@ -1347,7 +1347,12 @@ def blog_preview(post_id):
 def blog_categories():
     from app.services import blog as blog_svc
 
-    return render_template("admin/blog_categories.html", categories=blog_svc.list_categories())
+    blog_svc.ensure_blog_schema()
+    return render_template(
+        "admin/blog_categories.html",
+        categories=blog_svc.list_categories(),
+        post_counts=blog_svc.category_post_counts(),
+    )
 
 
 @admin_bp.route("/blog/categories/save", methods=["POST"])
@@ -1395,10 +1400,13 @@ def blog_category_save():
 @admin_bp.route("/blog/categories/<category_id>/delete", methods=["POST"])
 @admin_required
 def blog_category_delete(category_id):
+    from app.services import blog as blog_svc
+
     cat = db.session.get(BlogCategory, _pk_value(BlogCategory, category_id))
     if not cat:
         abort(404)
-    if cat.posts.count() > 0:
+    counts = blog_svc.category_post_counts()
+    if counts.get(cat.id, 0) > 0:
         flash("Impossible de supprimer une catégorie qui contient des articles.", "error")
         return redirect(url_for("admin.blog_categories"))
     db.session.delete(cat)

@@ -66,6 +66,16 @@ def test_sitemap_includes_blog(client, app):
     assert "/blog/categorie/conseils-artisans" in body
 
 
+def test_category_post_counts(app):
+    with app.app_context():
+        from app.services.blog import category_post_counts, ensure_blog_schema, ensure_default_categories
+
+        ensure_blog_schema()
+        ensure_default_categories()
+        counts = category_post_counts()
+        assert isinstance(counts, dict)
+
+
 def test_generate_blog_post_shape(app, monkeypatch):
     def fake_complete(system, user, **kwargs):
         assert "SEO" in system or "seo" in system.lower()

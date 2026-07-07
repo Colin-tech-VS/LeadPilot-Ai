@@ -132,3 +132,93 @@ def search_posts_public(q: str, limit=20):
 def touch_published_at(post: BlogPost, *, publishing: bool) -> None:
     if publishing and not post.published_at:
         post.published_at = datetime.now(timezone.utc)
+
+
+def category_post_counts() -> dict:
+    """Return {category_id: post_count} for admin UI."""
+    from sqlalchemy import func
+
+    rows = (
+        db.session.query(BlogPost.category_id, func.count(BlogPost.id))
+        .group_by(BlogPost.category_id)
+        .all()
+    )
+    return {category_id: count for category_id, count in rows if category_id}
+
+
+def ensure_blog_schema() -> None:
+    """Idempotent blog tables — matches SQLAlchemy ``Uuid`` on PostgreSQL."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    dialect = db.engine.dialect.name
+    ts_type = "TIMESTAMP WITH TIME ZONE" if dialect == "postgresql" else "DATETIME"
+    id_type = "UUID" if dialect == "postgresql" else "VARCHAR(36)"
+    bool_type = "BOOLEAN" if dialect == "postgresql" else "INTEGER"
+    false_lit = "FALSE" if dialect == "postgresql" else "0"
+
+    with db.engine.begin() as conn:
+        conn.execute(
+            text(
+                f"""
+                CREATE TABLE IF NOT EXISTS blog_categories (
+                    id {id_type} PRIMARY KEY,
+                    name VARCHAR(120) NOT NULL,
+                    slug VARCHAR(120) NOT NULL UNIQUE,
+                    description VARCHAR(400),
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at {ts_type}
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                f"""
+                CREATE TABLE IF NOT EXISTS blog_posts (
+                    id {id_type} PRIMARY KEY,
+                    slug VARCHAR(160) NOT NULL UNIQUE,
+                    title VARCHAR(220) NOT NULL DEFAULT '',
+                    excerpt VARCHAR(400),
+                    meta_description VARCHAR(300),
+                    meta_keywords VARCHAR(400),
+                    body_html TEXT,
+                    category_id {id_type},
+                    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+                    featured {bool_type} NOT NULL DEFAULT {false_lit},
+                    reading_time_min INTEGER,
+                    faq_json TEXT,
+                    published_at {ts_type},
+                    created_at {ts_type},
+                    updated_at {ts_type},
+                    FOREIGN KEY(category_id) REFERENCES blog_categories(id)
+                )
+                """
+            )
+        )
+
+    if dialect != "postgresql" or "blog_categories" not in inspector.get_table_names():
+        return
+
+    id_col = next((c for c in inspector.get_columns("blog_categories") if c["name"] == "id"), None)
+    id_type_name = str(id_col["type"]).upper() if id_col else ""
+    if "VARCHAR" not in id_type_name and "CHARACTER VARYING" not in id_type_name:
+        return
+
+    with db.engine.begin() as conn:
+        conn.execute(text("ALTER TABLE blog_posts DROP CONSTRAINT IF EXISTS blog_posts_category_id_fkey"))
+        conn.execute(text("ALTER TABLE blog_categories ALTER COLUMN id TYPE UUID USING id::uuid"))
+        if "blog_posts" in inspector.get_table_names():
+            conn.execute(text("ALTER TABLE blog_posts ALTER COLUMN id TYPE UUID USING id::uuid"))
+            conn.execute(
+                text(
+                    "ALTER TABLE blog_posts ALTER COLUMN category_id TYPE UUID "
+                    "USING NULLIF(category_id, '')::uuid"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE blog_posts ADD CONSTRAINT blog_posts_category_id_fkey "
+                    "FOREIGN KEY (category_id) REFERENCES blog_categories(id)"
+                )
+            )

@@ -32,11 +32,11 @@
             <label class="field"><span>Ordre</span><input type="number" name="sort_order" value="{{ cat.sort_order }}"></label>
           </div>
           <label class="field"><span>Description</span><textarea name="description" rows="2">{{ cat.description or '' }}</textarea></label>
-          <p class="admin-hint">/blog/categorie/{{ cat.slug }} · {{ cat.posts.count() }} article(s)</p>
+          <p class="admin-hint">/blog/categorie/{{ cat.slug }} · {{ post_counts.get(cat.id, 0) }} article(s)</p>
         </div>
         <div class="studio-item-actions" style="width:100%;margin-top:8px">
           <button type="submit" class="admin-btn tiny">Enregistrer</button>
-          {% if cat.posts.count() == 0 %}
+          {% if post_counts.get(cat.id, 0) == 0 %}
           <button type="submit" formaction="{{ url_for('admin.blog_category_delete', category_id=cat.id) }}" formmethod="POST" class="admin-btn tiny danger" onclick="return confirm('Supprimer cette catégorie ?');">Supprimer</button>
           {% endif %}
         </div>

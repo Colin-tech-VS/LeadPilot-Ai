@@ -139,7 +139,7 @@ def send_artisan_welcome(user, tenant):
         outro="Besoin d'aide ? Répondez simplement à cet e-mail.",
     )
     text = f"{hello}\nVotre compte PilotCore est prêt. Tableau de bord : {base}/dashboard"
-    return _send(user.email, "Bienvenue sur PilotCore 🎉", html, text, tenant_id=getattr(tenant, "id", None))
+    return _send(user.email, "Bienvenue sur PilotCore", html, text, tenant_id=getattr(tenant, "id", None))
 
 
 def send_customer_welcome(user):

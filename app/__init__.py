@@ -59,7 +59,9 @@ def create_app(config_object=None):
     with app.app_context():
         if app.config.get("ENV") != "production":
             db.create_all()
-            _ensure_schema_updates()
+        # Idempotent column patches — must run in production too when Alembic
+        # lags behind the ORM (otherwise /dashboard 500s after deploy).
+        _ensure_schema_updates()
         _backfill_lead_status()
         _backfill_completed_appointments()
         _backfill_directory_visibility()

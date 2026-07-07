@@ -1,6 +1,7 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
+{% set _assistant = tenant.ai_assistant_name or _('chatbot.assistant') %}
 
 {% set _city = tenant.city or _('directory.city_unknown') %}
 {% set _profile_desc = tenant.public_blurb or _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) %}
@@ -102,15 +103,15 @@
 {% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=2">
 {% if has_map %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<nav class="profile-breadcrumb container" aria-label="Fil d'Ariane">
-  <ol class="profile-breadcrumb-list">
+<nav class="ap-breadcrumb container" aria-label="Fil d'Ariane">
+  <ol class="ap-breadcrumb-list">
     <li><a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a></li>
     <li><a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a></li>
     {% if tenant.city %}<li><span>{{ tenant.city }}</span></li>{% endif %}
@@ -118,223 +119,191 @@
   </ol>
 </nav>
 
-<section class="profile-hero">
-  <div class="container profile-hero-grid">
-    <div class="profile-hero-main">
-      <div class="profile-badges">
-        <span class="profile-trade-badge">{{ trade_icon }} {{ trade_label }}</span>
-        <span class="profile-trust-pill">{{ _('profile.trust_247') }}</span>
-        <span class="profile-trust-pill">{{ _('profile.trust_online') }}</span>
-        {% if tenant.city %}<span class="profile-trust-pill">{{ _('profile.trust_local') }}</span>{% endif %}
-      </div>
-      <h1 class="profile-title">
-        <span class="profile-title-trade">{% if tenant.city %}{{ _('profile.hero_title', trade=trade_label, city=tenant.city) }}{% else %}{{ trade_label }}{% endif %}</span>
-        <span class="profile-title-name">{{ tenant.name }}</span>
-      </h1>
-      {% if tenant.public_blurb %}
-      <p class="profile-blurb">{{ tenant.public_blurb }}</p>
-      {% endif %}
-      <div class="profile-quick-facts">
-        {% if tenant.city %}
-        <div class="profile-fact">
-          <span class="profile-fact-icon" aria-hidden="true">📍</span>
-          <span>{{ tenant.city }}{% if tenant.postal_code %} ({{ tenant.postal_code }}){% endif %}</span>
-        </div>
-        {% endif %}
-        {% if tenant.service_radius_km %}
-        <div class="profile-fact">
-          <span class="profile-fact-icon" aria-hidden="true">🗺️</span>
-          <span>{{ _('directory.radius_km', km=tenant.service_radius_km) }}</span>
-        </div>
-        {% endif %}
-        {% if has_address and tenant.address %}
-        <div class="profile-fact">
-          <span class="profile-fact-icon" aria-hidden="true">🏢</span>
-          <span>{{ tenant.address }}</span>
-        </div>
-        {% endif %}
-      </div>
+{# ── Hero compact centré ── #}
+<header class="ap-hero">
+  <div class="ap-hero-inner">
+    <div class="ap-badges">
+      <span class="ap-badge ap-badge--trade">{{ trade_icon }} {{ trade_label }}</span>
+      <span class="ap-badge">{{ _('profile.trust_247') }}</span>
+      <span class="ap-badge">{{ _('profile.trust_online') }}</span>
+      {% if tenant.city %}<span class="ap-badge">{{ _('profile.trust_local') }}</span>{% endif %}
     </div>
+    <h1 class="ap-title">{{ tenant.name }}</h1>
+    <p class="ap-subtitle">
+      {% if tenant.city %}{{ _('profile.hero_title', trade=trade_label, city=tenant.city) }}{% else %}{{ trade_label }}{% endif %}
+      {% if tenant.service_radius_km %} · {{ _('directory.radius_km', km=tenant.service_radius_km) }}{% endif %}
+    </p>
+    {% if tenant.public_blurb %}
+    <p class="ap-blurb">{{ tenant.public_blurb }}</p>
+    {% endif %}
+  </div>
+</header>
 
-    <aside class="profile-cta-card" aria-label="Contact">
-      {% if primary_phone and tel_primary %}
-      <div class="profile-phone-primary">
-        <p class="profile-cta-kicker">{{ _('profile.call_ai') if primary_is_ai else _('profile.direct_phone') }}</p>
-        <a href="{{ tel_primary }}" class="profile-phone-number">{{ primary_phone }}</a>
-        {% if primary_is_ai %}
-        <p class="profile-cta-hint">{{ _('profile.call_ai_hint') }}</p>
-        {% endif %}
-        <a href="{{ tel_primary }}" class="btn btn-primary btn-block btn-lg profile-call-btn">
-          <span aria-hidden="true">📞</span> {{ _('profile.call_ai') if primary_is_ai else primary_phone }}
+{# ── IA au centre — style ChatGPT intégré ── #}
+<section class="ap-ai-stage" aria-labelledby="ap-ai-heading">
+  <div class="ap-ai-wrap">
+    <div class="ap-ai-glow" aria-hidden="true"></div>
+    <div class="ap-ai-card">
+      <div class="ap-ai-head">
+        <div class="ap-ai-avatar" aria-hidden="true">{{ _assistant[:1]|upper }}</div>
+        <div class="ap-ai-ident">
+          <h2 id="ap-ai-heading" class="ap-ai-name">{{ _assistant }}</h2>
+          <p class="ap-ai-status">
+            <span class="ap-ai-pulse" aria-hidden="true"></span>
+            {{ _('profile.ai_subtitle') }}
+          </p>
+        </div>
+        <span class="ap-ai-chip">{{ _('profile.ai_badge') }}</span>
+      </div>
+
+      <p class="ap-ai-prompt">{{ _('profile.ai_prompt') }}</p>
+
+      <div class="lp-chat lp-chat--gpt lp-chat--profile"
+           data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant.id) }}"
+           data-greeting="{% if customer_profile %}Bonjour {{ customer_profile.first_name or customer_profile.name }} ! {% endif %}{{ _('chatbot.greeting', company=tenant.name) }}"
+           data-label-you="{{ _('chatbot.you') }}"
+           data-label-assistant="{{ _assistant }}"
+           data-label-typing="{{ _('chatbot.typing') }}"
+           data-label-error="{{ _('chatbot.error') }}"
+           data-label-captured="{{ _('chatbot.captured') }}"
+           data-slot-prefix="{{ _('directory.slot_message_prefix') }}"
+           {% if customer_profile %}
+           data-customer-name="{{ customer_profile.name }}"
+           data-customer-phone="{{ customer_profile.phone or '' }}"
+           data-customer-email="{{ customer_profile.email }}"
+           {% endif %}>
+        <div class="lp-chat-scroll" aria-live="polite"></div>
+        <form class="lp-chat-form lp-chat-form--gpt">
+          <textarea class="lp-chat-input" rows="1" placeholder="{{ _('directory.chat_placeholder') }}" aria-label="{{ _('directory.chat_placeholder') }}"></textarea>
+          <button type="submit" class="lp-chat-send lp-chat-send--gpt" aria-label="{{ _('chatbot.send') }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <footer class="ap-ai-foot">
+        <span class="ap-ai-powered">{{ _('profile.ai_powered') }}</span>
+        {% if primary_phone and tel_primary and primary_is_ai %}
+        <a href="{{ tel_primary }}" class="ap-ai-call">
+          <span aria-hidden="true">📞</span> {{ _('profile.call_ai') }}
+          <span class="ap-ai-call-num">{{ primary_phone }}</span>
         </a>
-      </div>
-      {% endif %}
-      {% if secondary_phone and tel_secondary %}
-      <div class="profile-phone-secondary">
-        <span class="profile-secondary-label">{{ _('profile.direct_phone') }}</span>
-        <a href="{{ tel_secondary }}" class="profile-secondary-number">{{ secondary_phone }}</a>
-      </div>
-      {% endif %}
-      <a href="#booking" class="btn btn-outline btn-block profile-book-btn">{{ _('profile.book_scroll') }}</a>
-    </aside>
+        {% elif primary_phone and tel_primary %}
+        <a href="{{ tel_primary }}" class="ap-ai-call">
+          <span aria-hidden="true">📞</span> {{ primary_phone }}
+        </a>
+        {% endif %}
+        {% if secondary_phone and tel_secondary %}
+        <a href="{{ tel_secondary }}" class="ap-ai-call ap-ai-call--muted">
+          <span aria-hidden="true">📱</span> {{ _('profile.direct_phone') }} · {{ secondary_phone }}
+        </a>
+        {% endif %}
+      </footer>
+    </div>
   </div>
 </section>
 
-<section class="profile-body">
-  <div class="container profile-body-grid">
-    <div class="profile-info-col">
-      {% if tenant.public_blurb or tenant.city %}
-      <article class="profile-card profile-about">
-        <h2>{{ _('profile.about_title') }}</h2>
-        <p>{{ _profile_desc }}</p>
-        {% if tenant.city and tenant.service_radius_km %}
-        <p class="profile-about-area">{{ _faq_area }}</p>
-        {% endif %}
-      </article>
+{# ── Créneaux + infos secondaires ── #}
+<section class="ap-details" id="ap-booking">
+  <div class="container ap-details-grid">
+
+    <article class="ap-panel ap-panel--booking">
+      <h2>{{ _('directory.slots_title') }}</h2>
+      <p class="ap-hint">{{ _('profile.slots_below') }} — {{ _('directory.slots_hint') }}</p>
+
+      {% if request.args.get('booking') == 'taken' %}
+      <div class="alert alert-error">Ce créneau vient d'être réservé. Choisissez-en un autre.</div>
+      {% elif request.args.get('booking') == 'noslot' %}
+      <div class="alert alert-error">Merci de sélectionner un créneau.</div>
+      {% elif request.args.get('booking') == 'unavailable' %}
+      <div class="alert alert-error">La réservation en ligne n'est pas disponible. Utilisez l'assistant IA ci-dessus.</div>
+      {% elif request.args.get('booking') == 'pending' and pending_booking and customer_profile %}
+      <div class="alert alert-success booking-pending-banner">
+        Créneau sélectionné — <a href="{{ url_for('customer.complete_pending_booking') }}">Confirmer maintenant</a>
+      </div>
       {% endif %}
 
+      {% if customer_profile %}
+      <div class="booking-customer-chip">
+        <span class="booking-customer-avatar" aria-hidden="true">{{ (customer_profile.first_name or customer_profile.name or '?')[:1]|upper }}</span>
+        <div>
+          <strong>{{ customer_profile.name }}</strong>
+          {% if customer_profile.phone %}<span>{{ customer_profile.phone }}</span>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if online_booking_enabled and slot_items %}
+      <form method="post" action="{{ url_for('customer.book', slug=tenant.public_slug) }}" id="booking-form">
+        <input type="hidden" name="slot_iso" id="booking-slot-iso" value="{{ pending_booking.slot_iso if pending_booking and pending_booking.slug == tenant.public_slug else '' }}">
+        <div class="slot-grid ap-slot-grid" id="slot-grid">
+          {% for slot in slot_items %}
+          <button type="button" class="slot-btn{% if pending_booking and pending_booking.slot_iso == slot.iso %} active{% endif %}" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
+          {% endfor %}
+        </div>
+        <label for="booking-issue" class="booking-issue-label">Décrivez brièvement votre besoin (optionnel)</label>
+        <textarea id="booking-issue" name="issue" class="booking-issue-input" rows="2" placeholder="Ex. fuite sous l'évier…">{{ pending_booking.issue if pending_booking and pending_booking.slug == tenant.public_slug else '' }}</textarea>
+        <p class="slot-selected-hint" id="slot-selected-hint" {% if not (pending_booking and pending_booking.slot_iso) %}hidden{% endif %}>{{ _('directory.slot_selected') }}</p>
+        <button type="submit" class="btn btn-primary btn-block" id="booking-submit" {% if not (pending_booking and pending_booking.slot_iso) %}disabled{% endif %}>
+          Demander ce créneau
+        </button>
+        <p class="ap-hint ap-hint--sm">Un devis pré-rempli vous sera envoyé par e-mail. RDV confirmé après signature.</p>
+        {% if not customer_profile %}
+        <p class="ap-hint ap-hint--sm"><a href="{{ url_for('customer.login') }}">Connectez-vous</a> pour pré-remplir vos coordonnées.</p>
+        {% endif %}
+      </form>
+      {% elif not online_booking_enabled %}
+      <p class="directory-empty-inline">Réservation en ligne non activée — discutez avec {{ _assistant }} ci-dessus.</p>
+      {% else %}
+      <p class="directory-empty-inline">{{ _('directory.no_slots') }}</p>
+      {% endif %}
+    </article>
+
+    <div class="ap-side-col">
       {% if has_address or has_map %}
-      <article class="profile-card profile-location">
+      <article class="ap-panel ap-panel--compact">
         <h2>{{ _('profile.location_title') }}</h2>
-        {% if full_address and not tenant.address %}
-        <p class="profile-address">{{ full_address }}</p>
-        {% elif tenant.address %}
-        <p class="profile-address">{{ tenant.address }}{% if tenant.postal_code or tenant.city %}<br>{{ tenant.postal_code }} {{ tenant.city }}{% endif %}</p>
+        {% if tenant.address %}
+        <p class="ap-address">{{ tenant.address }}{% if tenant.postal_code or tenant.city %}<br>{{ tenant.postal_code }} {{ tenant.city }}{% endif %}</p>
         {% elif tenant.city %}
-        <p class="profile-address">{{ tenant.postal_code }} {{ tenant.city }}</p>
+        <p class="ap-address">{{ tenant.postal_code }} {{ tenant.city }}</p>
         {% endif %}
         {% if maps_url %}
-        <a href="{{ maps_url }}" class="profile-maps-link" target="_blank" rel="noopener noreferrer">{{ _('profile.open_maps') }} ↗</a>
+        <a href="{{ maps_url }}" class="ap-link" target="_blank" rel="noopener noreferrer">{{ _('profile.open_maps') }} ↗</a>
         {% endif %}
         {% if has_map %}
-        <div id="artisan-map" class="profile-map"
+        <div id="artisan-map" class="ap-map"
              data-lat="{{ tenant.latitude }}"
              data-lng="{{ tenant.longitude }}"
              data-radius="{{ tenant.service_radius_km or 0 }}"
              data-name="{{ tenant.name }}"
-             aria-label="{{ _('profile.service_area_title') }} — {{ tenant.name }}"></div>
+             aria-label="{{ _('profile.service_area_title') }}"></div>
         {% if tenant.service_radius_km %}
-        <p class="profile-map-caption">{{ _('profile.service_area_title') }} — {{ _('directory.radius_km', km=tenant.service_radius_km) }}</p>
+        <p class="ap-hint ap-hint--sm">{{ _('profile.service_area_title') }} — {{ _('directory.radius_km', km=tenant.service_radius_km) }}</p>
         {% endif %}
         {% endif %}
       </article>
       {% endif %}
 
-      <article class="profile-card profile-faq">
+      <article class="ap-panel ap-panel--compact ap-faq">
         <h2>{{ _('profile.faq_title') }}</h2>
-        <details class="profile-faq-item" open>
+        <details class="ap-faq-item" open>
           <summary>{{ _('profile.faq_book_q', name=tenant.name) }}</summary>
           <p>{{ _('profile.faq_book_a') }}</p>
         </details>
         {% if primary_phone %}
-        <details class="profile-faq-item">
+        <details class="ap-faq-item">
           <summary>{{ _('profile.faq_phone_q') }}</summary>
           <p>{{ _('profile.faq_phone_a', phone=primary_phone) }}</p>
         </details>
         {% endif %}
         {% if tenant.city %}
-        <details class="profile-faq-item">
+        <details class="ap-faq-item">
           <summary>{{ _('profile.faq_area_q') }}</summary>
           <p>{{ _faq_area }}</p>
         </details>
         {% endif %}
       </article>
-    </div>
-
-    <div class="profile-action-col" id="booking">
-      <div class="profile-sticky">
-        <article class="profile-card profile-slots-card">
-          <h2>{{ _('directory.slots_title') }}</h2>
-          <p class="section-hint">{{ _('directory.slots_hint') }}</p>
-
-          {% if request.args.get('booking') == 'taken' %}
-          <div class="alert alert-error">Ce créneau vient d'être réservé. Choisissez-en un autre.</div>
-          {% elif request.args.get('booking') == 'noslot' %}
-          <div class="alert alert-error">Merci de sélectionner un créneau.</div>
-          {% elif request.args.get('booking') == 'unavailable' %}
-          <div class="alert alert-error">La réservation en ligne n'est pas disponible pour cet artisan. Contactez-le par téléphone ou via le chat.</div>
-          {% elif request.args.get('booking') == 'pending' and pending_booking and customer_profile %}
-          <div class="alert alert-success booking-pending-banner">
-            Créneau sélectionné — confirmez votre réservation ci-dessous.
-            <a href="{{ url_for('customer.complete_pending_booking') }}" class="btn btn-primary btn-sm booking-confirm-link">Confirmer maintenant</a>
-          </div>
-          {% endif %}
-
-          {% if customer_profile %}
-          <div class="booking-customer-chip">
-            <span class="booking-customer-avatar" aria-hidden="true">{{ (customer_profile.first_name or customer_profile.name or '?')[:1]|upper }}</span>
-            <div>
-              <strong>Réservation pour {{ customer_profile.name }}</strong>
-              {% if customer_profile.phone %}<span>{{ customer_profile.phone }}</span>{% endif %}
-            </div>
-          </div>
-          {% endif %}
-
-          {% if online_booking_enabled and slot_items %}
-          <form method="post" action="{{ url_for('customer.book', slug=tenant.public_slug) }}" id="booking-form">
-            <input type="hidden" name="slot_iso" id="booking-slot-iso" value="{{ pending_booking.slot_iso if pending_booking and pending_booking.slug == tenant.public_slug else '' }}">
-            <div class="slot-grid profile-slot-grid" id="slot-grid">
-              {% for slot in slot_items %}
-              <button type="button" class="slot-btn{% if pending_booking and pending_booking.slot_iso == slot.iso %} active{% endif %}" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
-              {% endfor %}
-            </div>
-            <label for="booking-issue" class="booking-issue-label">Décrivez brièvement votre besoin (optionnel)</label>
-            <textarea id="booking-issue" name="issue" class="booking-issue-input" rows="2" placeholder="Ex. fuite sous l'évier, remplacement chauffe-eau…">{{ pending_booking.issue if pending_booking and pending_booking.slug == tenant.public_slug else '' }}</textarea>
-            <p class="slot-selected-hint" id="slot-selected-hint" {% if not (pending_booking and pending_booking.slot_iso) %}hidden{% endif %}>{{ _('directory.slot_selected') }}</p>
-            <button type="submit" class="btn btn-primary btn-block btn-lg" id="booking-submit" {% if not (pending_booking and pending_booking.slot_iso) %}disabled{% endif %}>
-              Demander ce créneau
-            </button>
-            <p class="booking-login-note">Un devis pré-rempli vous sera envoyé par e-mail. Le rendez-vous sera confirmé après signature.</p>
-            {% if not customer_profile %}
-            <p class="booking-login-note">Connectez-vous ou <a href="{{ url_for('customer.login') }}">créez un compte</a> — vos coordonnées seront pré-remplies.</p>
-            {% endif %}
-          </form>
-          {% elif not online_booking_enabled %}
-          <p class="directory-empty-inline">La prise de rendez-vous en ligne n'est pas activée. Utilisez le chat ou appelez l'artisan.</p>
-          {% if primary_phone and tel_primary %}
-          <a href="{{ tel_primary }}" class="btn btn-primary btn-block">{{ _('profile.call_ai') }}</a>
-          {% endif %}
-          {% else %}
-          <p class="directory-empty-inline">{{ _('directory.no_slots') }}</p>
-          {% if primary_phone and tel_primary %}
-          <a href="{{ tel_primary }}" class="btn btn-primary btn-block">{{ _('profile.call_ai') }}</a>
-          {% endif %}
-          {% endif %}
-        </article>
-
-        <article class="profile-card profile-chat-card">
-          <div class="chat-public-header chat-public-header--embedded">
-            <div class="chat-public-avatar" aria-hidden="true">{{ (tenant.ai_assistant_name or tenant.name or '?')[:1]|upper }}</div>
-            <div class="chat-public-ident">
-              <span class="chat-public-name">{{ tenant.ai_assistant_name or _('chatbot.assistant') }}</span>
-              <span class="chat-public-status"><span class="chat-public-dot"></span>{{ _('directory.ai_online') }}</span>
-            </div>
-          </div>
-
-          <div class="lp-chat lp-chat--full lp-chat--profile"
-               data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant.id) }}"
-               data-greeting="{% if customer_profile %}Bonjour {{ customer_profile.first_name or customer_profile.name }} ! {% endif %}{{ _('chatbot.greeting', company=tenant.name) }}"
-               data-label-you="{{ _('chatbot.you') }}"
-               data-label-assistant="{{ tenant.ai_assistant_name or _('chatbot.assistant') }}"
-               data-label-typing="{{ _('chatbot.typing') }}"
-               data-label-error="{{ _('chatbot.error') }}"
-               data-label-captured="{{ _('chatbot.captured') }}"
-               data-slot-prefix="{{ _('directory.slot_message_prefix') }}"
-               {% if customer_profile %}
-               data-customer-name="{{ customer_profile.name }}"
-               data-customer-phone="{{ customer_profile.phone or '' }}"
-               data-customer-email="{{ customer_profile.email }}"
-               {% endif %}>
-            <div class="lp-chat-scroll" aria-live="polite"></div>
-            <form class="lp-chat-form">
-              <textarea class="lp-chat-input" rows="1" placeholder="{{ _('directory.chat_placeholder') }}"></textarea>
-              <button type="submit" class="btn btn-primary lp-chat-send" aria-label="{{ _('chatbot.send') }}">
-                <span class="lp-chat-send-icon" aria-hidden="true">➤</span>
-              </button>
-            </form>
-          </div>
-        </article>
-      </div>
     </div>
   </div>
 </section>
@@ -359,6 +328,7 @@
       if (submit) submit.disabled = false;
       const chat = document.querySelector('.lp-chat--profile');
       if (chat) chat.dataset.selectedSlot = iso;
+      document.querySelector('.ap-ai-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 
@@ -367,7 +337,7 @@
   {% endif %}
 })();
 </script>
-<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=5"></script>
 {% if has_map %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{{ url_for('static', filename='js/artisan-profile.js') }}?v=1"></script>

@@ -218,6 +218,7 @@ def _ensure_schema_updates():
         "public_slug": "VARCHAR(100)",
         "is_public": "BOOLEAN",
         "public_blurb": "VARCHAR(500)",
+        "show_direct_phone_public": "BOOLEAN",
     }
     for col_name, col_type in tenant_patches.items():
         if col_name not in tenant_columns:
@@ -228,6 +229,7 @@ def _ensure_schema_updates():
         with db.engine.begin() as conn:
             conn.execute(text("UPDATE tenants SET is_public = TRUE WHERE is_public IS NULL"))
             conn.execute(text("UPDATE tenants SET trade_type = 'plombier' WHERE trade_type IS NULL OR trade_type = ''"))
+            conn.execute(text("UPDATE tenants SET show_direct_phone_public = FALSE WHERE show_direct_phone_public IS NULL"))
     except Exception:
         logging.getLogger(__name__).debug("tenant directory defaults patch skipped", exc_info=True)
 

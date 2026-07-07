@@ -415,9 +415,11 @@ def artisan_profile(slug):
     pending_booking = session.get("pending_booking")
 
     primary_phone = tenant.ai_phone_number or tenant.phone_number
+    show_direct = bool(getattr(tenant, "show_direct_phone_public", False))
     secondary_phone = (
         tenant.phone_number
-        if tenant.ai_phone_number
+        if show_direct
+        and tenant.ai_phone_number
         and tenant.phone_number
         and tenant.ai_phone_number.strip() != tenant.phone_number.strip()
         else None
@@ -1186,6 +1188,22 @@ def _normalize_signature(value):
     return value
 
 
+@web_bp.route("/settings/toggle-direct-phone", methods=["POST"])
+@web_tenant_required
+def toggle_direct_phone_public():
+    """Quick toggle from the dashboard — show/hide personal phone on public profile."""
+    tenant = db.session.get(Tenant, g.tenant_id)
+    if not tenant:
+        return jsonify({"error": "not found"}), 404
+    data = request.get_json(silent=True) or {}
+    if "enabled" in data:
+        tenant.show_direct_phone_public = bool(data.get("enabled"))
+    else:
+        tenant.show_direct_phone_public = not bool(tenant.show_direct_phone_public)
+    db.session.commit()
+    return jsonify({"ok": True, "show_direct_phone_public": tenant.show_direct_phone_public})
+
+
 @web_bp.route("/settings", methods=["GET", "POST"])
 @web_tenant_required
 def settings_page():
@@ -1209,6 +1227,7 @@ def settings_page():
         service_radius_raw = (request.form.get("service_radius_km") or "").strip()
         trade_type = (request.form.get("trade_type") or "plombier").strip()
         is_public = request.form.get("is_public") == "on"
+        show_direct_phone_public = request.form.get("show_direct_phone_public") == "on"
         public_blurb = (request.form.get("public_blurb") or "").strip() or None
         public_slug_raw = (request.form.get("public_slug") or "").strip()
         email = (request.form.get("email") or "").strip().lower()
@@ -1263,6 +1282,7 @@ def settings_page():
                 tenant.ai_assistant_name = ai_assistant_name
             tenant.trade_type = trade_type if trade_type in TRADES else tenant.trade_type
             tenant.is_public = is_public
+            tenant.show_direct_phone_public = show_direct_phone_public
             tenant.public_blurb = public_blurb
             if is_public:
                 base_slug = slugify(public_slug_raw) or slugify(name) or "artisan"

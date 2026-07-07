@@ -56,6 +56,8 @@ class Tenant(db.Model):
     public_slug = db.Column(db.String(100), nullable=True, unique=True, index=True)
     is_public = db.Column(db.Boolean, nullable=False, default=False, index=True)
     public_blurb = db.Column(db.String(500), nullable=True)
+    # When False (default), only the AI line is shown on the public profile.
+    show_direct_phone_public = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     users = db.relationship("User", back_populates="tenant", lazy="dynamic")
@@ -131,5 +133,6 @@ class Tenant(db.Model):
             "public_slug": self.public_slug,
             "is_public": self.is_public,
             "public_blurb": self.public_blurb,
+            "show_direct_phone_public": bool(self.show_direct_phone_public),
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

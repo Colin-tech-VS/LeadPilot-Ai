@@ -180,6 +180,23 @@
   </section>
 
   <aside class="dashboard-sidebar">
+    <div class="sidebar-card dash-animate dash-delay-2" id="direct-phone-toggle-card">
+      <div class="sidebar-card-head">
+        <h2>{{ _('dashboard.direct_phone_toggle') }}</h2>
+      </div>
+      <p class="sidebar-hint">{{ _('dashboard.direct_phone_toggle_hint') }}</p>
+      <label class="dash-toggle">
+        <input type="checkbox" id="toggle-direct-phone" {% if tenant.show_direct_phone_public %}checked{% endif %}>
+        <span class="dash-toggle-track" aria-hidden="true"></span>
+        <span class="dash-toggle-label" id="toggle-direct-phone-label">
+          {% if tenant.show_direct_phone_public %}{{ _('settings.show_direct_phone_public') }}{% else %}Masqué{% endif %}
+        </span>
+      </label>
+      {% if tenant.public_slug and tenant.is_public %}
+      <a href="{{ url_for('web.artisan_profile', slug=tenant.public_slug) }}" class="sidebar-link" target="_blank" rel="noopener">Voir ma fiche publique ↗</a>
+      {% endif %}
+    </div>
+
     <div class="sidebar-card sidebar-card-highlight dash-animate dash-delay-3">
       <div class="sidebar-card-head">
         <h2><span class="dash-panel-step">5</span> {{ _('dashboard.my_day') }}</h2>
@@ -245,5 +262,5 @@
     locale: {{ lang|tojson }},
   };
 </script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=3"></script>
 {% endblock %}

@@ -56,6 +56,12 @@
       <label for="phone_number">{{ _('settings.phone') }}</label>
       <input type="tel" id="phone_number" name="phone_number" value="{{ tenant.phone_number or '' }}" placeholder="+33612345678">
 
+      <label class="db-inline directory-toggle" style="margin-top:10px">
+        <input type="checkbox" name="show_direct_phone_public" {% if tenant.show_direct_phone_public %}checked{% endif %}>
+        <span>{{ _('settings.show_direct_phone_public') }}</span>
+      </label>
+      <p class="field-hint">{{ _('settings.show_direct_phone_public_hint') }}</p>
+
       <label for="ai_phone_number">{{ _('settings.ai_phone') }}</label>
       {% if tenant.ai_phone_number and tenant.ai_phone_number != twilio_ai_phone_e164 %}
       <input type="tel" id="ai_phone_number" value="{{ tenant.ai_phone_number }}" readonly>

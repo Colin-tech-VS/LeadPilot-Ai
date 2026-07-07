@@ -54,4 +54,18 @@
   setDate();
   initCounters();
   initReveal();
+
+  var phoneToggle = document.getElementById("toggle-direct-phone");
+  if (phoneToggle) {
+    phoneToggle.addEventListener("change", function () {
+      var enabled = phoneToggle.checked;
+      fetch("/settings/toggle-direct-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: enabled }),
+      }).catch(function () {
+        phoneToggle.checked = !enabled;
+      });
+    });
+  }
 })();

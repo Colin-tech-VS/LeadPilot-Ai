@@ -489,8 +489,9 @@ def contact():
 @web_bp.route("/artisans", methods=["GET"])
 def artisan_directory():
     """Public marketplace — find artisans and book online (Doctolib-style)."""
-    from app.constants.trades import trade_choices
+    from app.constants.trades import TRADES, trade_choices, trade_label
     from app.services.artisan_directory import list_public_artisans
+    from app.utils.seo import directory_seo
 
     trade = (request.args.get("metier") or "").strip() or None
     city = (request.args.get("ville") or "").strip() or None
@@ -498,10 +499,19 @@ def artisan_directory():
     artisans = list_public_artisans(trade=trade, city=city, q=q)
     lang = getattr(g, "lang", "fr")
     trades = trade_choices(lang)
+    seo = directory_seo(
+        trade_key=trade if trade in TRADES else None,
+        trade_label=trade_label(trade, lang) if trade in TRADES else None,
+        city=city,
+        q=q,
+        lang=lang,
+        result_count=len(artisans),
+    )
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
         trades=trades,
+        seo=seo,
         filters={"metier": trade or "", "ville": city or "", "q": q or ""},
     )
 

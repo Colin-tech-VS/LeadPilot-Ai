@@ -25,11 +25,82 @@ def canonical_url(path: str = "/") -> str:
 def hreflang_alternates(path: str = "/") -> list[tuple[str, str]]:
     """Return (hreflang, absolute URL) pairs for FR / EN / x-default."""
     base = canonical_url(path)
+    sep = "&" if "?" in base else "?"
     return [
         ("fr", base),
-        ("en", f"{base}?lang=en"),
+        ("en", f"{base}{sep}lang=en"),
         ("x-default", base),
     ]
+
+
+def directory_seo(
+    *,
+    trade_key: str | None = None,
+    trade_label: str | None = None,
+    city: str | None = None,
+    q: str | None = None,
+    lang: str = "fr",
+    result_count: int = 0,
+) -> dict[str, str]:
+    """Localized SEO for the /artisans directory, driven by the active filters.
+
+    A trade + city filter (e.g. « serrurier Chaville ») yields a keyword-rich
+    title/description/H1 and a self-referencing canonical so the combo can rank
+    for local-intent queries. Free-text searches and empty result sets are kept
+    out of the index to avoid thin/duplicate pages.
+    """
+    from urllib.parse import quote
+
+    from app.utils.i18n import translate
+
+    def t(key: str, **kw) -> str:
+        return translate(key, lang, **kw)
+
+    city = (city or "").strip()
+    q = (q or "").strip()
+
+    seo = {
+        "title": t("directory.meta_title"),
+        "description": t("directory.meta_description"),
+        "h1": t("directory.hero_title"),
+        "keywords": t("client.meta_keywords"),
+        "canonical_path": "/artisans",
+        "robots": "index, follow",
+    }
+
+    # Free-text search results are per-query and shouldn't be indexed as URLs.
+    if q:
+        seo["robots"] = "noindex, follow"
+        return seo
+
+    if trade_label and city:
+        seo["title"] = t("directory.meta_title_trade_city", trade=trade_label, city=city)
+        seo["description"] = t("directory.meta_description_trade_city", trade=trade_label, city=city)
+        seo["h1"] = t("directory.hero_title_trade_city", trade=trade_label, city=city)
+        seo["keywords"] = profile_keywords(trade_label, city, None, lang)
+    elif trade_label:
+        seo["title"] = t("directory.meta_title_trade", trade=trade_label)
+        seo["description"] = t("directory.meta_description_trade", trade=trade_label)
+        seo["h1"] = t("directory.hero_title_trade", trade=trade_label)
+        seo["keywords"] = profile_keywords(trade_label, "", None, lang)
+    elif city:
+        seo["title"] = t("directory.meta_title_city", city=city)
+        seo["description"] = t("directory.meta_description_city", city=city)
+        seo["h1"] = t("directory.hero_title_city", city=city)
+
+    has_filter = bool(trade_key or city)
+    if has_filter and result_count > 0:
+        params = []
+        if trade_key:
+            params.append("metier=" + quote(trade_key))
+        if city:
+            params.append("ville=" + quote(city))
+        seo["canonical_path"] = "/artisans?" + "&".join(params)
+    elif has_filter and result_count == 0:
+        # Thin/empty filtered view — keep it out of the index.
+        seo["robots"] = "noindex, follow"
+
+    return seo
 
 
 def profile_keywords(trade_label: str, city: str, postal_code: str | None, lang: str = "fr") -> str:

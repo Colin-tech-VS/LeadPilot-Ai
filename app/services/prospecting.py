@@ -24,6 +24,29 @@ class ProspectingError(Exception):
     pass
 
 
+def _column_limits() -> dict[str, int]:
+    """Max length of every bounded ``String`` column on the prospect table."""
+    limits = {}
+    for col in OutreachProspect.__table__.columns:
+        length = getattr(col.type, "length", None)
+        if length:
+            limits[col.name] = length
+    return limits
+
+
+def _fit_to_columns(**values):
+    """Clamp string values to their column length so an over-long field (a long
+    URL, a chatty AI ``company_name``) never raises StringDataRightTruncation."""
+    limits = _column_limits()
+    out = {}
+    for key, value in values.items():
+        limit = limits.get(key)
+        if limit and isinstance(value, str) and len(value) > limit:
+            value = value[:limit]
+        out[key] = value
+    return out
+
+
 def _coerce_id(prospect_id):
     if isinstance(prospect_id, uuid.UUID):
         return prospect_id
@@ -195,20 +218,22 @@ def run_search(
                 continue
 
             prospect = OutreachProspect(
-                first_name=enriched.get("first_name"),
-                last_name=enriched.get("last_name"),
-                company_name=enriched.get("company_name"),
-                email=email,
-                phone=enriched.get("phone"),
-                trade_type=trade_type,
-                city=city,
-                website_url=url,
-                source_url=url,
-                source="web_search",
-                status="ready" if email else "new",
-                email_confidence=enriched.get("email_confidence"),
-                search_query=query,
-                notes=enriched.get("notes"),
+                **_fit_to_columns(
+                    first_name=enriched.get("first_name"),
+                    last_name=enriched.get("last_name"),
+                    company_name=enriched.get("company_name"),
+                    email=email,
+                    phone=enriched.get("phone"),
+                    trade_type=trade_type,
+                    city=city,
+                    website_url=url,
+                    source_url=url,
+                    source="web_search",
+                    status="ready" if email else "new",
+                    email_confidence=enriched.get("email_confidence"),
+                    search_query=query,
+                    notes=enriched.get("notes"),
+                )
             )
             db.session.add(prospect)
             db.session.flush()

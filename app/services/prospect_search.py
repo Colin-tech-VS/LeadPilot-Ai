@@ -167,10 +167,16 @@ def _normalize_ddg_url(href: str) -> str:
     if href.startswith("//"):
         href = "https:" + href
     parsed = urlparse(href)
-    if "duckduckgo.com" in parsed.netloc and parsed.path.startswith("/l/"):
+    if "duckduckgo.com" in parsed.netloc:
         qs = parse_qs(parsed.query)
-        uddg = qs.get("uddg", [""])[0]
-        return unquote(uddg)
+        # Organic redirect: the real destination lives in ?uddg=
+        if parsed.path.startswith("/l/"):
+            return unquote(qs.get("uddg", [""])[0])
+        # Sponsored ad redirect (/y.js): recover the advertiser domain instead
+        # of storing the 700+ char tracking URL (which overflows the DB column).
+        if parsed.path.startswith("/y.js"):
+            ad_domain = qs.get("ad_domain", [""])[0].strip().strip("/")
+            return f"https://{ad_domain}" if ad_domain else ""
     return href
 
 

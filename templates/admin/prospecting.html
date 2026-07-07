@@ -2,332 +2,248 @@
 {% block title %}Prospection · Admin{% endblock %}
 {% block page_title %}Prospection artisans{% endblock %}
 
-{% block content %}
-<p class="dash-intro">Recherche web d'artisans par métier et ville, extraction de contacts publics et e-mails de prospection.</p>
+{% block topbar_actions %}
+<span class="prospect-chip prospect-chip--engine" title="Moteur de recherche web">🔎 {{ search_provider }}</span>
+<span class="prospect-chip {% if smtp_configured %}prospect-chip--ok{% else %}prospect-chip--warn{% endif %}">
+  {% if smtp_configured %}✓ SMTP{% else %}⚠ SMTP simulé{% endif %}
+</span>
+<span class="prospect-chip {% if ai_available %}prospect-chip--ok{% else %}prospect-chip--warn{% endif %}">
+  {% if ai_available %}✓ Mistral{% else %}⚠ IA off{% endif %}
+</span>
+{% endblock %}
 
-<div class="connect-banner dash-banner" style="margin-bottom:0">
-  <span style="font-size:22px">🎯</span>
-  <div style="flex:1;min-width:260px">
-    <strong>Prospection B2B — acquisition artisans</strong>
-    <div class="studio-item-meta">
-      Recherche web par métier et ville (mêmes cibles que l'inscription artisan), extraction des contacts publics,
-      puis e-mail de prospection généré par Mistral.
-      Moteur actuel : <strong>{{ search_provider }}</strong>
-      {% if search_provider == 'duckduckgo' %} — ajoutez <code>SERPAPI_KEY</code> pour de meilleurs résultats.{% endif %}
-    </div>
-    <p class="admin-hint" style="margin-top:8px">
-      ⚖️ Prospection B2B : utilisez uniquement des coordonnées publiques, personnalisez chaque message et incluez une désinscription.
-      Ne relancez pas les contacts désinscrits.
-    </p>
+{% block content %}
+<p class="dash-intro">Trouvez des artisans en ligne, récupérez leurs contacts publics et envoyez des e-mails personnalisés.</p>
+
+<div class="prospect-kpi-row">
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--total">
+    <span class="kpi-label">Prospects</span>
+    <span class="kpi-value">{{ stats.total }}</span>
+    <span class="kpi-sub">dans la base</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Avec e-mail</span>
+    <span class="kpi-value">{{ stats.with_email }}</span>
+    <span class="kpi-sub">contactables</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Prêts</span>
+    <span class="kpi-value">{{ stats.ready }}</span>
+    <span class="kpi-sub">e-mail généré ou qualifié</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Contactés</span>
+    <span class="kpi-value">{{ stats.contacted }}</span>
+    <span class="kpi-sub">e-mail envoyé / réponse</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--win">
+    <span class="kpi-label">Convertis</span>
+    <span class="kpi-value">{{ stats.converted }}</span>
+    <span class="kpi-sub">inscrits PilotCore</span>
   </div>
 </div>
 
-<div class="prospect-grid">
-  <section class="admin-panel prospect-search-card">
-    <h2 class="prospect-card-title"><span>🔎</span> Rechercher des artisans</h2>
-    <p class="admin-hint">Recherche web par métier et ville, puis extraction des e-mails publics.</p>
-    <div class="prospect-form-grid">
-      <label class="field">
-        <span>Métier</span>
-        <select id="search-trade">
-          {% for t in trades %}
-          <option value="{{ t.key }}" {% if t.key == 'plombier' %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="field">
-        <span>Ville ou code postal</span>
-        <input type="text" id="search-city" name="city" data-places-city placeholder="Ex : Lyon, 69003" autocomplete="off" required>
-      </label>
-      <label class="field field--compact">
-        <span>Résultats max</span>
-        <input type="number" id="search-max" min="3" max="25" value="12">
-      </label>
+<section class="prospect-search-hero admin-panel" id="prospect-search"
+         data-search-url="{{ url_for('admin.api_prospecting_search') }}">
+  <div class="prospect-search-head">
+    <div>
+      <h2>Nouvelle recherche</h2>
+      <p class="admin-panel-lead">Métier + ville → extraction des e-mails publics sur le web.</p>
     </div>
-    <div class="form-actions" style="margin-top:16px">
-      <button type="button" class="admin-btn" id="search-btn">🔍 Lancer la recherche IA</button>
-      <span class="ai-live" id="search-live">
-        <span class="ai-live-dot"></span>
-        <span class="ai-live-text" id="search-live-text">Préparation de la recherche…</span>
-      </span>
-    </div>
-    <span class="mail-error" id="search-error" style="display:none"></span>
-    <div id="search-summary" class="admin-hint" style="margin-top:10px;display:none"></div>
-  </section>
+    <span class="prospect-search-badge">Acquisition B2B</span>
+  </div>
 
-  <section class="admin-panel prospect-filter-card">
-    <h2 class="prospect-card-title"><span>🗂️</span> Filtrer la liste</h2>
-    <form method="GET" class="prospect-form-grid">
-      <label class="field">
-        <span>Statut</span>
-        <select name="status">
-          <option value="">Tous</option>
-          {% for s, label in [('new','Nouveau'),('ready','Prêt'),('contacted','Contacté'),('replied','Répondu'),('converted','Converti'),('unsubscribed','Désinscrit'),('skipped','Ignoré')] %}
-          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="field">
-        <span>Métier</span>
-        <select name="trade">
-          <option value="">Tous</option>
-          {% for t in trades %}
-          <option value="{{ t.key }}" {% if trade_filter == t.key %}selected{% endif %}>{{ t.label }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <div class="field field--action">
-        <button type="submit" class="admin-btn ghost">Filtrer</button>
-      </div>
-    </form>
-    {% if not smtp_configured %}
-    <p class="admin-hint" style="margin-top:12px;color:#b45309">SMTP non configuré — les envois seront simulés (visibles dans Emails).</p>
-    {% endif %}
-    {% if not ai_available %}
-    <p class="admin-hint" style="margin-top:8px;color:#b45309">Mistral indisponible — génération d'e-mails désactivée.</p>
-    {% endif %}
-  </section>
-</div>
-
-<div class="admin-table-wrap" style="margin-top:24px">
-  <table class="data-table accounts-table prospect-table table-stack">
-    <thead>
-      <tr>
-        <th>Contact</th>
-        <th>Métier / Ville</th>
-        <th>E-mail</th>
-        <th>Statut</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="prospects-body">
-      {% for p in prospects %}
-      <tr data-id="{{ p.id }}">
-        <td data-label="Contact">
-          <strong>{{ p.display_name() }}</strong>
-          {% if p.company_name %}<div class="studio-item-meta">{{ p.company_name }}</div>{% endif %}
-          {% if p.phone %}<div class="studio-item-meta">{{ p.phone }}</div>{% endif %}
-        </td>
-        <td data-label="Métier / Ville">
-          {{ p.trade_type }}<br>
-          <span class="studio-item-meta">{{ p.city or '—' }}</span>
-        </td>
-        <td data-label="E-mail">
-          {% if p.email %}
-            <a href="mailto:{{ p.email }}">{{ p.email }}</a>
-            {% if p.email_confidence %}<div class="studio-item-meta">conf. {{ p.email_confidence }}</div>{% endif %}
-          {% else %}
-            <span class="studio-item-meta">—</span>
-          {% endif %}
-          {% if p.website_url %}
-          <div><a href="{{ p.website_url }}" target="_blank" rel="noopener" class="studio-item-meta">Site web ↗</a></div>
-          {% endif %}
-        </td>
-        <td data-label="Statut"><span class="status-pill status-{{ p.status }}">{{ p.status }}</span></td>
-        <td data-label="Actions" class="prospect-actions">
-          {% if ai_available and p.email and p.status != 'unsubscribed' %}
-          <button type="button" class="admin-btn tiny ghost btn-gen-email" data-id="{{ p.id }}">✨ E-mail IA</button>
-          {% endif %}
-          {% if p.outreach_subject %}
-          <details class="prospect-email-preview">
-            <summary class="admin-btn tiny ghost">Voir l'e-mail</summary>
-            <div class="prospect-email-box">
-              <strong>{{ p.outreach_subject }}</strong>
-              <pre>{{ p.outreach_body }}</pre>
-              {% if p.email and p.status not in ('contacted','converted','unsubscribed') %}
-              <form method="POST" action="{{ url_for('admin.prospecting_send', prospect_id=p.id) }}">
-                <button type="submit" class="admin-btn tiny">Envoyer</button>
-              </form>
-              {% endif %}
-            </div>
-          </details>
-          {% endif %}
-          <form method="POST" action="{{ url_for('admin.prospecting_delete', prospect_id=p.id) }}" style="display:inline" onsubmit="return confirm('Supprimer ce prospect ?')">
-            <button type="submit" class="admin-btn tiny danger ghost">Suppr.</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr id="prospects-empty"><td colspan="5" class="admin-hint" style="text-align:center;padding:32px">Aucun prospect — lancez une recherche ci-dessus.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-{% if ai_available %}
-<div class="ai-box" id="email-modal" style="display:none;margin-top:24px">
-  <h3>✨ E-mail de prospection (Mistral)</h3>
-  <input type="hidden" id="modal-prospect-id">
-  <div class="field-row">
-    <label class="field"><span>Ton</span>
-      <select id="modal-tone">
-        <option value="professionnel">Professionnel</option>
-        <option value="amical">Amical</option>
-        <option value="direct">Direct</option>
+  <div class="prospect-search-form">
+    <label class="field prospect-field">
+      <span>Métier</span>
+      <select id="search-trade" class="admin-select">
+        {% for t in trades %}
+        <option value="{{ t.key }}" {% if t.key == 'plombier' %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+        {% endfor %}
       </select>
     </label>
+    <label class="field prospect-field prospect-field--grow">
+      <span>Ville ou code postal</span>
+      <input type="text" id="search-city" class="admin-input" data-places-city placeholder="Ex : Lyon, 69003" autocomplete="off" required>
+    </label>
+    <label class="field prospect-field prospect-field--narrow">
+      <span>Max</span>
+      <input type="number" id="search-max" class="admin-input" min="3" max="25" value="12">
+    </label>
+    <div class="prospect-search-action">
+      <button type="button" class="admin-btn prospect-search-btn" id="search-btn">🔍 Lancer la recherche</button>
+    </div>
   </div>
-  <label class="field"><span>Angle / brief</span>
-    <textarea id="modal-angle" rows="2" placeholder="Ex : mettre en avant la prise d'appels le soir et le week-end."></textarea>
-  </label>
-  <button type="button" class="admin-btn" id="modal-generate">Générer</button>
-  <span class="ai-live" id="modal-live">
-    <span class="ai-live-dot"></span>
-    <span class="ai-live-text" id="modal-live-text">Rédaction de l'e-mail…</span>
-  </span>
-  <span class="mail-error" id="modal-error" style="display:none"></span>
-  <div id="modal-result" style="display:none;margin-top:16px">
-    <label class="field"><span>Objet</span><input type="text" id="modal-subject" readonly></label>
-    <label class="field"><span>Corps</span><textarea id="modal-body" rows="8" readonly></textarea></label>
+
+  <div class="prospect-search-foot">
+    <span class="ai-live" id="search-live">
+      <span class="ai-live-dot"></span>
+      <span class="ai-live-text" id="search-live-text">Préparation…</span>
+    </span>
+    <span class="mail-error" id="search-error" hidden></span>
+    <p class="admin-hint prospect-search-summary" id="search-summary" hidden></p>
+  </div>
+
+  <p class="prospect-legal-hint">
+    ⚖️ Coordonnées publiques uniquement · personnalisez chaque message · lien de désinscription obligatoire.
+    {% if search_provider == 'duckduckgo' %} — Ajoutez <code>SERPAPI_KEY</code> pour de meilleurs résultats.{% endif %}
+  </p>
+</section>
+
+<div class="prospect-toolbar">
+  <nav class="prospect-tabs" aria-label="Filtrer par statut">
+    {% set base_qs = {'trade': trade_filter} if trade_filter else {} %}
+    <a href="{{ url_for('admin.prospecting', **base_qs) }}"
+       class="prospect-tab{% if not status_filter %} active{% endif %}">
+      Tous <span class="prospect-tab-count">{{ stats.total }}</span>
+    </a>
+    {% for code, label in status_labels.items() %}
+    {% set count = stats.by_status.get(code, 0) %}
+    {% if count > 0 or status_filter == code %}
+    <a href="{{ url_for('admin.prospecting', status=code, **({'trade': trade_filter} if trade_filter else {})) }}"
+       class="prospect-tab prospect-tab--{{ code }}{% if status_filter == code %} active{% endif %}">
+      {{ label }} <span class="prospect-tab-count">{{ count }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </nav>
+
+  <form method="GET" class="prospect-trade-filter">
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <label class="field prospect-field prospect-field--inline">
+      <span>Métier</span>
+      <select name="trade" class="admin-select" onchange="this.form.submit()">
+        <option value="">Tous les métiers</option>
+        {% for t in trades %}
+        <option value="{{ t.key }}" {% if trade_filter == t.key %}selected{% endif %}>{{ t.icon }} {{ t.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+</div>
+
+{% if prospects %}
+<div class="prospect-list" id="prospects-list">
+  {% for p in prospects %}
+  {% set trade = trade_lookup.get(p.trade_type) %}
+  {% set initial = (p.display_name()[:1] or '?')|upper %}
+  <article class="prospect-card" data-id="{{ p.id }}">
+    <div class="prospect-card-top">
+      <div class="prospect-avatar" aria-hidden="true">{{ initial }}</div>
+      <div class="prospect-card-main">
+        <div class="prospect-card-title-row">
+          <h3>{{ p.display_name() }}</h3>
+          <span class="status-pill status-{{ p.status }}">{{ status_labels.get(p.status, p.status) }}</span>
+        </div>
+        {% if p.company_name and p.company_name != p.display_name() %}
+        <p class="prospect-company">{{ p.company_name }}</p>
+        {% endif %}
+        <div class="prospect-meta-chips">
+          <span class="prospect-chip-inline">{{ trade.icon if trade else '🔧' }} {{ trade.label if trade else p.trade_type }}</span>
+          {% if p.city %}<span class="prospect-chip-inline">📍 {{ p.city }}</span>{% endif %}
+          {% if p.phone %}<span class="prospect-chip-inline">📞 {{ p.phone }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="prospect-card-contact">
+      {% if p.email %}
+      <a href="mailto:{{ p.email }}" class="prospect-email">{{ p.email }}</a>
+      {% if p.email_confidence %}<span class="prospect-conf">conf. {{ p.email_confidence }}</span>{% endif %}
+      {% else %}
+      <span class="prospect-no-email">Pas d'e-mail trouvé</span>
+      {% endif %}
+      {% if p.website_url %}
+      <a href="{{ p.website_url }}" target="_blank" rel="noopener" class="prospect-website">Site web ↗</a>
+      {% endif %}
+    </div>
+
+    {% if p.outreach_subject %}
+    <details class="prospect-email-preview">
+      <summary>Voir l'e-mail de prospection</summary>
+      <div class="prospect-email-box">
+        <strong>{{ p.outreach_subject }}</strong>
+        <pre>{{ p.outreach_body }}</pre>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="prospect-card-actions">
+      {% if ai_available and p.email and p.status != 'unsubscribed' %}
+      <button type="button" class="admin-btn tiny btn-gen-email" data-id="{{ p.id }}" data-name="{{ p.display_name() }}">✨ E-mail IA</button>
+      {% endif %}
+      {% if p.outreach_subject and p.email and p.status not in ('contacted', 'converted', 'unsubscribed') %}
+      <form method="POST" action="{{ url_for('admin.prospecting_send', prospect_id=p.id) }}">
+        <button type="submit" class="admin-btn tiny">📤 Envoyer</button>
+      </form>
+      {% endif %}
+      {% if p.status not in ('converted', 'unsubscribed') %}
+      <form method="POST" action="{{ url_for('admin.prospecting_status', prospect_id=p.id) }}" class="prospect-status-form">
+        <select name="status" class="admin-select admin-select--tiny" aria-label="Changer le statut" onchange="this.form.submit()">
+          {% for code, label in status_labels.items() %}
+          <option value="{{ code }}" {% if p.status == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('admin.prospecting_delete', prospect_id=p.id) }}" onsubmit="return confirm('Supprimer ce prospect ?')">
+        <button type="submit" class="admin-btn tiny danger ghost">Supprimer</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="prospect-empty admin-panel">
+  <div class="prospect-empty-icon" aria-hidden="true">🎯</div>
+  <h3>Aucun prospect{% if status_filter or trade_filter %} pour ce filtre{% endif %}</h3>
+  <p class="admin-hint">Lancez une recherche ci-dessus pour peupler la liste — plombier à Lyon, électricien à Marseille…</p>
+  <a href="#prospect-search" class="admin-btn">🔍 Nouvelle recherche</a>
+</div>
+{% endif %}
+
+{% if ai_available %}
+<div class="admin-modal-overlay" id="prospect-email-modal" aria-hidden="true">
+  <div class="admin-modal prospect-modal" role="dialog" aria-labelledby="prospect-modal-title" aria-modal="true">
+    <div class="admin-modal-head">
+      <div>
+        <p class="admin-modal-kicker">Mistral · prospection</p>
+        <h3 id="prospect-modal-title">E-mail pour <span id="modal-prospect-name">—</span></h3>
+      </div>
+      <button type="button" class="admin-modal-close" id="prospect-modal-close" aria-label="Fermer">×</button>
+    </div>
+    <input type="hidden" id="modal-prospect-id">
+    <div class="prospect-modal-body">
+      <div class="prospect-modal-fields">
+        <label class="field">
+          <span>Ton</span>
+          <select id="modal-tone" class="admin-select">
+            <option value="professionnel">Professionnel</option>
+            <option value="amical">Amical</option>
+            <option value="direct">Direct</option>
+          </select>
+        </label>
+        <label class="field prospect-field--grow">
+          <span>Angle / brief</span>
+          <textarea id="modal-angle" class="admin-input" rows="2" placeholder="Ex : insister sur les appels manqués le soir et le week-end."></textarea>
+        </label>
+      </div>
+      <div class="prospect-modal-actions">
+        <button type="button" class="admin-btn" id="modal-generate">✨ Générer l'e-mail</button>
+        <span class="ai-live" id="modal-live">
+          <span class="ai-live-dot"></span>
+          <span class="ai-live-text" id="modal-live-text">Rédaction…</span>
+        </span>
+      </div>
+      <span class="mail-error" id="modal-error" hidden></span>
+      <div id="modal-result" class="prospect-modal-result" hidden>
+        <label class="field"><span>Objet</span><input type="text" id="modal-subject" class="admin-input" readonly></label>
+        <label class="field"><span>Corps</span><textarea id="modal-body" class="admin-input" rows="8" readonly></textarea></label>
+      </div>
+    </div>
   </div>
 </div>
 {% endif %}
-{% endblock %}
 
-{% block scripts %}
-<style>
-.prospect-card-title span { font-size: 18px; }
-.status-pill { display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase; }
-.status-new { background:#e2e8f0;color:#475569; }
-.status-ready { background:#dbeafe;color:#1d4ed8; }
-.status-contacted { background:#fef3c7;color:#b45309; }
-.status-replied { background:#d1fae5;color:#047857; }
-.status-converted { background:#bbf7d0;color:#15803d; }
-.status-unsubscribed { background:#fee2e2;color:#b91c1c; }
-.status-skipped { background:#f1f5f9;color:#64748b; }
-.prospect-actions { display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start; }
-@media (max-width: 700px) {
-  .admin-table-wrap .prospect-table td.prospect-actions { display:flex; }
-}
-.prospect-email-box { margin-top:8px;padding:12px;background:#f8fafc;border-radius:10px;max-width:420px; }
-.prospect-email-box pre { white-space:pre-wrap;font-family:inherit;font-size:13px;margin:8px 0; }
-</style>
-<script>
-(function () {
-  // Rotating "live" status loader. The backend runs synchronously, so we can't
-  // stream real progress — instead we walk through the actual pipeline phases at
-  // a natural pace so the admin sees what the assistant is doing.
-  function liveLoader(boxId, textId, steps) {
-    const box = document.getElementById(boxId);
-    const text = document.getElementById(textId);
-    let timer = null;
-    let i = 0;
-    return {
-      start() {
-        if (!box || !text) return;
-        i = 0;
-        text.textContent = steps[0];
-        box.classList.add('on');
-        timer = setInterval(function () {
-          // Advance but hold on the last step until the request resolves.
-          i = Math.min(i + 1, steps.length - 1);
-          text.textContent = steps[i];
-        }, 1600);
-      },
-      stop() {
-        if (timer) { clearInterval(timer); timer = null; }
-        if (box) box.classList.remove('on');
-      },
-    };
-  }
-
-  const searchLive = liveLoader('search-live', 'search-live-text', [
-    'Préparation des requêtes de recherche…',
-    'Recherche web des artisans…',
-    'Analyse des sites et extraction des e-mails…',
-    'Enrichissement IA des contacts (nom, entreprise)…',
-    'Déduplication et enregistrement des prospects…',
-  ]);
-  const modalLive = liveLoader('modal-live', 'modal-live-text', [
-    'Analyse du profil du prospect…',
-    'Rédaction de l’e-mail personnalisé par l’IA…',
-    'Mise en forme et objet…',
-    'Finalisation…',
-  ]);
-
-  const searchBtn = document.getElementById('search-btn');
-  const searchError = document.getElementById('search-error');
-  const searchSummary = document.getElementById('search-summary');
-
-  if (searchBtn) {
-    searchBtn.addEventListener('click', async function () {
-      const city = document.getElementById('search-city').value.trim();
-      if (!city) { searchError.textContent = 'Indiquez une ville.'; searchError.style.display = 'block'; return; }
-      searchError.style.display = 'none';
-      searchSummary.style.display = 'none';
-      searchBtn.disabled = true;
-      searchLive.start();
-      try {
-        const res = await fetch('{{ url_for("admin.api_prospecting_search") }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trade_type: document.getElementById('search-trade').value,
-            city: city,
-            max_results: parseInt(document.getElementById('search-max').value || '12', 10),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erreur');
-        searchSummary.textContent = data.found + ' prospect(s) ajouté(s), ' + data.with_email + ' avec e-mail (' + data.provider + ').';
-        searchSummary.style.display = 'block';
-        if (data.found > 0) window.location.reload();
-      } catch (err) {
-        searchError.textContent = err.message;
-        searchError.style.display = 'block';
-      } finally {
-        searchBtn.disabled = false;
-        searchLive.stop();
-      }
-    });
-  }
-
-  const modal = document.getElementById('email-modal');
-  const modalId = document.getElementById('modal-prospect-id');
-  const modalGenerate = document.getElementById('modal-generate');
-  const modalError = document.getElementById('modal-error');
-  const modalResult = document.getElementById('modal-result');
-
-  document.querySelectorAll('.btn-gen-email').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (!modal) return;
-      modalId.value = btn.dataset.id;
-      modal.style.display = 'block';
-      modalResult.style.display = 'none';
-      modalError.style.display = 'none';
-      modal.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-
-  if (modalGenerate) {
-    modalGenerate.addEventListener('click', async function () {
-      modalError.style.display = 'none';
-      modalLive.start();
-      modalGenerate.disabled = true;
-      try {
-        const res = await fetch('/admin/api/prospecting/' + modalId.value + '/generate-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tone: document.getElementById('modal-tone').value,
-            angle: document.getElementById('modal-angle').value,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erreur');
-        document.getElementById('modal-subject').value = data.outreach_subject || '';
-        document.getElementById('modal-body').value = data.outreach_body || '';
-        modalResult.style.display = 'block';
-        setTimeout(function () { window.location.reload(); }, 1200);
-      } catch (err) {
-        modalError.textContent = err.message;
-        modalError.style.display = 'block';
-      } finally {
-        modalLive.stop();
-        modalGenerate.disabled = false;
-      }
-    });
-  }
-})();
-</script>
+<p class="prospect-foot-note">{{ prospects|length }} prospect(s) affiché(s) · max 200 · triés par date d'ajout.</p>
 {% endblock %}

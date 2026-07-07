@@ -424,4 +424,167 @@
   } else if (window.ADMIN_TRAFFIC_RT_URL) {
     // (not on traffic page) — nothing
   }
+
+  // ---- prospection B2B ----
+  function liveLoader(boxId, textId, steps) {
+    var box = document.getElementById(boxId);
+    var text = document.getElementById(textId);
+    var timer = null;
+    var i = 0;
+    return {
+      start: function () {
+        if (!box || !text) return;
+        i = 0;
+        text.textContent = steps[0];
+        box.classList.add("on");
+        timer = setInterval(function () {
+          i = Math.min(i + 1, steps.length - 1);
+          text.textContent = steps[i];
+        }, 1600);
+      },
+      stop: function () {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (box) box.classList.remove("on");
+      },
+    };
+  }
+
+  var searchRoot = document.getElementById("prospect-search");
+  if (searchRoot) {
+    var searchLive = liveLoader("search-live", "search-live-text", [
+      "Préparation des requêtes…",
+      "Recherche web des artisans…",
+      "Extraction des e-mails publics…",
+      "Enrichissement des contacts…",
+      "Enregistrement des prospects…",
+    ]);
+    var searchBtn = document.getElementById("search-btn");
+    var searchError = document.getElementById("search-error");
+    var searchSummary = document.getElementById("search-summary");
+
+    if (searchBtn) {
+      searchBtn.addEventListener("click", function () {
+        var cityEl = document.getElementById("search-city");
+        var city = cityEl ? cityEl.value.trim() : "";
+        if (!city) {
+          if (searchError) {
+            searchError.textContent = "Indiquez une ville.";
+            searchError.hidden = false;
+          }
+          return;
+        }
+        if (searchError) searchError.hidden = true;
+        if (searchSummary) searchSummary.hidden = true;
+        searchBtn.disabled = true;
+        searchLive.start();
+        fetch(searchRoot.getAttribute("data-search-url"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trade_type: document.getElementById("search-trade").value,
+            city: city,
+            max_results: parseInt(document.getElementById("search-max").value || "12", 10),
+          }),
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) throw new Error(data.error || "Erreur");
+            if (searchSummary) {
+              searchSummary.textContent = data.found + " prospect(s), " + data.with_email + " avec e-mail (" + data.provider + ").";
+              searchSummary.hidden = false;
+            }
+            if (data.found > 0) window.location.reload();
+          });
+        }).catch(function (err) {
+          if (searchError) {
+            searchError.textContent = err.message;
+            searchError.hidden = false;
+          }
+        }).finally(function () {
+          searchBtn.disabled = false;
+          searchLive.stop();
+        });
+      });
+    }
+
+    var modalOverlay = document.getElementById("prospect-email-modal");
+    var modalId = document.getElementById("modal-prospect-id");
+    var modalName = document.getElementById("modal-prospect-name");
+    var modalGenerate = document.getElementById("modal-generate");
+    var modalError = document.getElementById("modal-error");
+    var modalResult = document.getElementById("modal-result");
+    var modalClose = document.getElementById("prospect-modal-close");
+
+    function openModal(id, name) {
+      if (!modalOverlay) return;
+      if (modalId) modalId.value = id;
+      if (modalName) modalName.textContent = name || "—";
+      if (modalResult) modalResult.hidden = true;
+      if (modalError) modalError.hidden = true;
+      modalOverlay.classList.add("is-open");
+      modalOverlay.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+      if (!modalOverlay) return;
+      modalOverlay.classList.remove("is-open");
+      modalOverlay.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    document.querySelectorAll(".btn-gen-email").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        openModal(btn.dataset.id, btn.dataset.name);
+      });
+    });
+
+    if (modalClose) modalClose.addEventListener("click", closeModal);
+    if (modalOverlay) {
+      modalOverlay.addEventListener("click", function (e) {
+        if (e.target === modalOverlay) closeModal();
+      });
+    }
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modalOverlay && modalOverlay.classList.contains("is-open")) closeModal();
+    });
+
+    if (modalGenerate) {
+      var modalLive = liveLoader("modal-live", "modal-live-text", [
+        "Analyse du profil…",
+        "Rédaction personnalisée…",
+        "Mise en forme…",
+        "Finalisation…",
+      ]);
+      modalGenerate.addEventListener("click", function () {
+        if (!modalId || !modalId.value) return;
+        if (modalError) modalError.hidden = true;
+        modalLive.start();
+        modalGenerate.disabled = true;
+        fetch("/admin/api/prospecting/" + modalId.value + "/generate-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tone: document.getElementById("modal-tone").value,
+            angle: document.getElementById("modal-angle").value,
+          }),
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) throw new Error(data.error || "Erreur");
+            document.getElementById("modal-subject").value = data.outreach_subject || "";
+            document.getElementById("modal-body").value = data.outreach_body || "";
+            if (modalResult) modalResult.hidden = false;
+            setTimeout(function () { window.location.reload(); }, 1200);
+          });
+        }).catch(function (err) {
+          if (modalError) {
+            modalError.textContent = err.message;
+            modalError.hidden = false;
+          }
+        }).finally(function () {
+          modalLive.stop();
+          modalGenerate.disabled = false;
+        });
+      });
+    }
+  }
 })();

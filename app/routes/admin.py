@@ -1582,10 +1582,14 @@ def prospecting_page():
 
     status_filter = (request.args.get("status") or "").strip() or None
     trade_filter = (request.args.get("trade") or "").strip() or None
+    trades = trade_choices("fr")
     return render_template(
         "admin/prospecting.html",
         prospects=prospecting.list_prospects(status=status_filter, trade_type=trade_filter),
-        trades=trade_choices("fr"),
+        trades=trades,
+        trade_lookup={t["key"]: t for t in trades},
+        stats=prospecting.prospect_stats(),
+        status_labels=prospecting.OUTREACH_STATUS_LABELS,
         status_filter=status_filter,
         trade_filter=trade_filter,
         search_provider=prospect_search.search_provider(),

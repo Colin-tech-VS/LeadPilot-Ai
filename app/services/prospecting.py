@@ -66,6 +66,42 @@ def list_prospects(*, status: str | None = None, trade_type: str | None = None, 
     return q.limit(limit).all()
 
 
+def prospect_stats() -> dict:
+    """Aggregate counts for the admin prospection dashboard."""
+    from sqlalchemy import func
+
+    rows = (
+        db.session.query(OutreachProspect.status, func.count())
+        .group_by(OutreachProspect.status)
+        .all()
+    )
+    by_status = {status: count for status, count in rows}
+    total = sum(by_status.values())
+    with_email = OutreachProspect.query.filter(
+        OutreachProspect.email.isnot(None),
+        OutreachProspect.email != "",
+    ).count()
+    return {
+        "total": total,
+        "with_email": with_email,
+        "ready": by_status.get("ready", 0),
+        "contacted": by_status.get("contacted", 0) + by_status.get("replied", 0),
+        "converted": by_status.get("converted", 0),
+        "by_status": by_status,
+    }
+
+
+OUTREACH_STATUS_LABELS = {
+    "new": "Nouveau",
+    "ready": "Prêt",
+    "contacted": "Contacté",
+    "replied": "Répondu",
+    "converted": "Converti",
+    "unsubscribed": "Désinscrit",
+    "skipped": "Ignoré",
+}
+
+
 def _existing_emails() -> set[str]:
     rows = OutreachProspect.query.filter(OutreachProspect.email.isnot(None)).all()
     return {r.email.lower() for r in rows if r.email}

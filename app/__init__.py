@@ -331,14 +331,16 @@ def _ensure_schema_updates():
             with db.engine.begin() as conn:
                 conn.execute(text("ALTER TABLE social_posts ADD COLUMN image_path VARCHAR(300)"))
 
-    if "blog_categories" not in inspector.get_table_names():
-        id_type = "VARCHAR(36)"
-        bool_type = "BOOLEAN" if db.engine.dialect.name == "postgresql" else "INTEGER"
+    table_names = set(inspector.get_table_names())
+    id_type = "VARCHAR(36)"
+    bool_type = "BOOLEAN" if db.engine.dialect.name == "postgresql" else "INTEGER"
+
+    if "blog_categories" not in table_names:
         with db.engine.begin() as conn:
             conn.execute(
                 text(
                     f"""
-                    CREATE TABLE blog_categories (
+                    CREATE TABLE IF NOT EXISTS blog_categories (
                         id {id_type} PRIMARY KEY,
                         name VARCHAR(120) NOT NULL,
                         slug VARCHAR(120) NOT NULL UNIQUE,
@@ -349,10 +351,13 @@ def _ensure_schema_updates():
                     """
                 )
             )
+
+    if "blog_posts" not in table_names:
+        with db.engine.begin() as conn:
             conn.execute(
                 text(
                     f"""
-                    CREATE TABLE blog_posts (
+                    CREATE TABLE IF NOT EXISTS blog_posts (
                         id {id_type} PRIMARY KEY,
                         slug VARCHAR(160) NOT NULL UNIQUE,
                         title VARCHAR(220) NOT NULL DEFAULT '',
@@ -374,7 +379,7 @@ def _ensure_schema_updates():
                 )
             )
 
-    if "ip_geo_cache" not in inspector.get_table_names():
+    if "ip_geo_cache" not in table_names:
         with db.engine.begin() as conn:
             conn.execute(
                 text(

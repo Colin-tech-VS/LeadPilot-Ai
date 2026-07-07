@@ -137,6 +137,44 @@ def search_posts_public(q: str, limit=20):
     )
 
 
+def prepare_article_body(body_html: str) -> tuple[str, list[tuple[str, str]]]:
+    """Inject ``id`` anchors on ``h2`` headings and build a table of contents."""
+    import re
+    import unicodedata
+
+    def slug_anchor(text: str) -> str:
+        normalized = unicodedata.normalize("NFKD", text)
+        ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+        cleaned = re.sub(r"[^\w\s-]", "", ascii_text.lower())
+        return re.sub(r"[-\s]+", "-", cleaned).strip("-")[:80] or "section"
+
+    toc: list[tuple[str, str]] = []
+    if not (body_html or "").strip():
+        return "", toc
+
+    used: set[str] = set()
+
+    def repl(match: re.Match) -> str:
+        attrs, inner = match.group(1) or "", match.group(2)
+        if re.search(r"\bid\s*=", attrs, re.I):
+            return match.group(0)
+        label = re.sub(r"<[^>]+>", "", inner).strip()
+        if not label:
+            return match.group(0)
+        anchor = slug_anchor(label)
+        base = anchor
+        n = 2
+        while anchor in used:
+            anchor = f"{base}-{n}"
+            n += 1
+        used.add(anchor)
+        toc.append((anchor, label))
+        return f"<h2{attrs} id=\"{anchor}\">{inner}</h2>"
+
+    html = re.sub(r"<h2([^>]*)>(.*?)</h2>", repl, body_html, flags=re.I | re.S)
+    return html, toc
+
+
 def touch_published_at(post: BlogPost, *, publishing: bool) -> None:
     if publishing and not post.published_at:
         post.published_at = datetime.now(timezone.utc)

@@ -1327,17 +1327,22 @@ def blog_delete(post_id):
 @admin_bp.route("/blog/<post_id>/preview")
 @admin_required
 def blog_preview(post_id):
-    from app.utils.seo import blog_posting_json_ld, json_ld_script
+    from app.services import blog as blog_svc
+    from app.utils.seo import blog_posting_json_ld, json_ld_script, logo_url
 
     post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
     if not post:
         abort(404)
+    body_html, toc = blog_svc.prepare_article_body(post.body_html or "")
     return render_template(
         "public/blog/article.html",
         post=post,
+        body_html=body_html,
+        toc=toc,
         related=[],
         preview=True,
         nav_active="blog",
+        og_image=logo_url(),
         json_ld=json_ld_script(blog_posting_json_ld(post)),
     )
 

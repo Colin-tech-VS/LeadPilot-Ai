@@ -1,4 +1,4 @@
-{% macro seo_meta(title, description, path='/', keywords=None, og_type='website', og_image=None, robots='index, follow', json_ld=None, lang='fr') %}
+{% macro seo_meta(title, description, path='/', keywords=None, og_type='website', og_image=None, robots='index, follow', json_ld=None, lang='fr', article_published=None, article_modified=None, article_section=None) %}
 <meta name="description" content="{{ description }}">
 {% if keywords %}<meta name="keywords" content="{{ keywords }}">{% endif %}
 <link rel="canonical" href="{{ canonical_url(path) }}">
@@ -14,7 +14,11 @@
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <meta property="og:locale:alternate" content="{{ 'en_GB' if lang == 'fr' else 'fr_FR' }}">
 <meta property="og:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
-<meta property="og:image:alt" content="PilotCore — logo">
+<meta property="og:image:alt" content="{{ title }}">
+{% if article_published %}<meta property="article:published_time" content="{{ article_published }}">{% endif %}
+{% if article_modified %}<meta property="article:modified_time" content="{{ article_modified }}">{% endif %}
+{% if article_section %}<meta property="article:section" content="{{ article_section }}">{% endif %}
+<meta property="article:author" content="PilotCore">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ title }}">
 <meta name="twitter:description" content="{{ description }}">

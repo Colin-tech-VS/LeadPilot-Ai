@@ -45,6 +45,19 @@ def test_blog_index_and_seo(client, app):
     assert "BlogPosting" in art_html
     assert "FAQPage" in art_html
     assert "Comment ne plus rater" in art_html
+    assert "blog-article-shell" in art_html
+    assert "blog-toc-list" in art_html or "blog-mid-cta" in art_html
+    assert "article:published_time" in art_html or "article:section" in art_html
+
+
+def test_prepare_article_body_toc(app):
+    with app.app_context():
+        from app.services.blog import prepare_article_body
+
+        html, toc = prepare_article_body("<h2>Le problème</h2><p>Texte.</p><h2>La solution</h2>")
+        assert 'id="le-probleme"' in html
+        assert len(toc) == 2
+        assert toc[0][1] == "Le problème"
 
 
 def test_blog_category_page(client, app):

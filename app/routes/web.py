@@ -395,11 +395,17 @@ def blog_article(slug):
     if not post:
         abort(404)
     related = blog_svc.related_posts(post, limit=3)
+    body_html, toc = blog_svc.prepare_article_body(post.body_html or "")
+    from app.utils.seo import blog_posting_json_ld, json_ld_script, logo_url
+
     return render_template(
         "public/blog/article.html",
         nav_active="blog",
         post=post,
+        body_html=body_html,
+        toc=toc,
         related=related,
+        og_image=logo_url(),
         json_ld=json_ld_script(blog_posting_json_ld(post)),
     )
 

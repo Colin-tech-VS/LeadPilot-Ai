@@ -9,14 +9,17 @@
   '/blog/' ~ post.slug,
   post.meta_keywords,
   'article',
-  None,
+  og_image,
   'noindex, nofollow' if preview else 'index, follow',
   json_ld,
-  lang
+  lang,
+  post.published_at.isoformat() if post.published_at else none,
+  post.updated_at.isoformat() if post.updated_at else none,
+  post.category.name if post.category else 'Blog'
 ) }}
 {% endblock %}
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -24,10 +27,17 @@
 <div class="blog-preview-banner">👁️ Aperçu — cet article est un brouillon.</div>
 {% endif %}
 
+<div class="blog-read-progress" id="blog-read-progress" aria-hidden="true"></div>
+
 <article class="blog-article" itemscope itemtype="https://schema.org/BlogPosting">
+  <meta itemprop="mainEntityOfPage" content="{{ canonical_url('/blog/' ~ post.slug) }}">
+  {% if post.published_at %}<meta itemprop="datePublished" content="{{ post.published_at.isoformat() }}">{% endif %}
+  {% if post.updated_at %}<meta itemprop="dateModified" content="{{ post.updated_at.isoformat() }}">{% endif %}
+
   <header class="blog-article-hero">
+    <div class="blog-article-hero-bg" aria-hidden="true"></div>
     <div class="container blog-article-hero-inner">
-      <nav class="blog-breadcrumb" aria-label="Fil d'Ariane">
+      <nav class="blog-breadcrumb blog-breadcrumb--light" aria-label="Fil d'Ariane">
         <a href="{{ url_for('web.client_home') }}">Accueil</a>
         <span aria-hidden="true">›</span>
         <a href="{{ url_for('web.blog_index') }}">Blog</a>
@@ -36,63 +46,186 @@
         <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}">{{ post.category.name }}</a>
         {% endif %}
       </nav>
-      {% if post.category %}
-      <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}" class="blog-badge">{{ post.category.name }}</a>
-      {% endif %}
+      <div class="blog-article-hero-top">
+        {% if post.category %}
+        <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}" class="blog-badge blog-badge--light">{{ post.category.name }}</a>
+        {% endif %}
+        <div class="blog-article-chips">
+          {% if post.reading_time_min %}<span class="blog-chip">⏱ {{ post.reading_time_min }} min</span>{% endif %}
+          {% if post.published_at %}
+          <time class="blog-chip" datetime="{{ post.published_at.isoformat() }}" itemprop="datePublished">{{ post.published_at.strftime('%d/%m/%Y') }}</time>
+          {% endif %}
+        </div>
+      </div>
       <h1 class="blog-article-title" itemprop="headline">{{ post.title }}</h1>
       {% if post.excerpt %}<p class="blog-article-lead" itemprop="description">{{ post.excerpt }}</p>{% endif %}
-      <div class="blog-meta blog-article-meta">
-        <span itemprop="author" itemscope itemtype="https://schema.org/Organization"><span itemprop="name">PilotCore</span></span>
-        {% if post.published_at %}
-        <time datetime="{{ post.published_at.isoformat() }}" itemprop="datePublished">{{ post.published_at.strftime('%d %B %Y') }}</time>
-        {% endif %}
-        {% if post.reading_time_min %}<span>{{ post.reading_time_min }} min de lecture</span>{% endif %}
+      <div class="blog-article-author" itemprop="author" itemscope itemtype="https://schema.org/Organization">
+        <span class="blog-author-avatar" aria-hidden="true">P</span>
+        <div>
+          <span class="blog-author-name" itemprop="name">PilotCore</span>
+          <span class="blog-author-role">Experts artisans &amp; dépannage · France</span>
+        </div>
       </div>
     </div>
   </header>
 
-  <div class="container blog-article-layout">
-    <div class="blog-article-body" itemprop="articleBody">
-      {{ post.body_html | safe }}
+  <div class="container blog-article-shell">
+    <div class="blog-article-grid">
+      <div class="blog-article-main">
+        <div class="blog-article-body" itemprop="articleBody">
+          {{ (body_html or post.body_html) | safe }}
+        </div>
+
+        <aside class="blog-mid-cta" aria-label="Trouver un artisan">
+          <div class="blog-mid-cta-copy">
+            <p class="blog-mid-cta-kicker">Besoin d'un pro près de chez vous ?</p>
+            <h2>Prenez RDV en ligne en 2 minutes</h2>
+            <p>Plombier, électricien, serrurier… l'annuaire PilotCore vous met en relation avec un artisan disponible.</p>
+          </div>
+          <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">Trouver un artisan →</a>
+        </aside>
+
+        {% set faq = post.get_faq() %}
+        {% if faq %}
+        <section class="blog-faq blog-faq--article" aria-labelledby="blog-faq-title" itemscope itemtype="https://schema.org/FAQPage">
+          <div class="blog-faq-head">
+            <p class="blog-faq-kicker">FAQ</p>
+            <h2 id="blog-faq-title">Questions fréquentes</h2>
+          </div>
+          <div class="blog-faq-list">
+            {% for item in faq %}
+            <details class="blog-faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+              <summary itemprop="name">{{ item.question }}</summary>
+              <div class="blog-faq-answer" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                <p itemprop="text">{{ item.answer or '' }}</p>
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
+        <div class="blog-author-box">
+          <div class="blog-author-box-avatar" aria-hidden="true">P</div>
+          <div>
+            <h2 class="blog-author-box-title">À propos de PilotCore</h2>
+            <p>PilotCore aide les particuliers à trouver un artisan fiable et les professionnels à ne plus rater d'appels grâce à un standard téléphonique IA. Nos guides sont rédigés pour vous faire gagner du temps sur le terrain comme à la maison.</p>
+            <div class="blog-author-box-links">
+              <a href="{{ url_for('web.artisan_directory') }}">Annuaire artisans</a>
+              <a href="{{ url_for('web.pro_landing') }}">Solution pour les pros</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="blog-article-aside" aria-label="Navigation et actions">
+        {% if toc %}
+        <nav class="blog-toc-card" aria-label="Sommaire">
+          <h2 class="blog-toc-title">Sommaire</h2>
+          <ol class="blog-toc-list">
+            {% for anchor, label in toc %}
+            <li><a href="#{{ anchor }}">{{ label }}</a></li>
+            {% endfor %}
+          </ol>
+        </nav>
+        {% endif %}
+
+        <div class="blog-aside-cta blog-aside-cta--primary">
+          <span class="blog-aside-icon" aria-hidden="true">🔧</span>
+          <h3>Un dépannage urgent ?</h3>
+          <p>Recherchez un artisan par métier et par ville — réponse rapide 24h/24.</p>
+          <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Annuaire artisans</a>
+        </div>
+
+        <div class="blog-aside-cta blog-aside-cta--pro">
+          <span class="blog-aside-icon" aria-hidden="true">📞</span>
+          <h3>Vous êtes artisan ?</h3>
+          <p>Ne ratez plus les appels en intervention : standard IA + RDV en ligne.</p>
+          <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light">Découvrir PilotCore Pro</a>
+        </div>
+
+        <ul class="blog-trust-list">
+          <li>✓ RDV en ligne 24h/24</li>
+          <li>✓ Assistant vocal IA</li>
+          <li>✓ Artisans vérifiés</li>
+        </ul>
+      </aside>
     </div>
   </div>
-
-  {% set faq = post.get_faq() %}
-  {% if faq %}
-  <section class="container blog-faq" aria-labelledby="blog-faq-title">
-    <h2 id="blog-faq-title">Questions fréquentes</h2>
-    <div class="blog-faq-list">
-      {% for item in faq %}
-      <details class="blog-faq-item">
-        <summary>{{ item.question }}</summary>
-        <p>{{ item.answer }}</p>
-      </details>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
-
-  <aside class="container blog-article-cta">
-    <div class="blog-inline-cta">
-      <h3>Besoin d'un artisan près de chez vous ?</h3>
-      <p>Consultez l'annuaire PilotCore et prenez RDV en ligne 24h/24.</p>
-      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Trouver un artisan</a>
-    </div>
-  </aside>
 </article>
 
+<section class="blog-dual-cta">
+  <div class="container blog-dual-cta-grid">
+    <div class="blog-dual-card">
+      <p class="blog-dual-kicker">Particuliers</p>
+      <h2>Trouvez le bon artisan</h2>
+      <p>Recherche par métier, zone et disponibilités — sans perdre de temps au téléphone.</p>
+      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Consulter l'annuaire</a>
+    </div>
+    <div class="blog-dual-card blog-dual-card--dark">
+      <p class="blog-dual-kicker">Artisans</p>
+      <h2>Convertissez chaque appel</h2>
+      <p>Standard téléphonique IA, prise de RDV et visibilité sur PilotCore.</p>
+      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light">Essayer PilotCore Pro</a>
+    </div>
+  </div>
+</section>
+
 {% if related %}
-<section class="container blog-related">
-  <h2>À lire aussi</h2>
+<section class="container blog-related blog-related--rich">
+  <div class="blog-related-head">
+    <p class="blog-related-kicker">À lire aussi</p>
+    <h2>Articles similaires</h2>
+  </div>
   <div class="blog-grid blog-grid--compact">
     {% for rel in related %}
-    <article class="blog-card">
-      {% if rel.category %}<span class="blog-badge">{{ rel.category.name }}</span>{% endif %}
-      <h3 class="blog-card-title"><a href="{{ url_for('web.blog_article', slug=rel.slug) }}">{{ rel.title }}</a></h3>
-      <p class="blog-card-excerpt">{{ rel.excerpt or rel.meta_description or '' }}</p>
+    <article class="blog-card blog-card--linked">
+      <div class="blog-card-visual" aria-hidden="true"></div>
+      <div class="blog-card-body">
+        {% if rel.category %}<span class="blog-badge">{{ rel.category.name }}</span>{% endif %}
+        <h3 class="blog-card-title"><a href="{{ url_for('web.blog_article', slug=rel.slug) }}">{{ rel.title }}</a></h3>
+        <p class="blog-card-excerpt">{{ rel.excerpt or rel.meta_description or '' }}</p>
+        <a href="{{ url_for('web.blog_article', slug=rel.slug) }}" class="blog-card-link">Lire l'article →</a>
+      </div>
     </article>
     {% endfor %}
   </div>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var bar = document.getElementById("blog-read-progress");
+  if (!bar) return;
+  function onScroll() {
+    var doc = document.documentElement;
+    var scrollTop = doc.scrollTop || document.body.scrollTop;
+    var height = doc.scrollHeight - doc.clientHeight;
+    bar.style.width = (height > 0 ? (scrollTop / height) * 100 : 0) + "%";
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  var tocLinks = document.querySelectorAll(".blog-toc-list a");
+  if (!tocLinks.length || !("IntersectionObserver" in window)) return;
+  var headings = [];
+  tocLinks.forEach(function (a) {
+    var id = (a.getAttribute("href") || "").replace("#", "");
+    var el = document.getElementById(id);
+    if (el) headings.push({ link: a, el: el });
+  });
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      tocLinks.forEach(function (l) { l.classList.remove("is-active"); });
+      headings.forEach(function (h) {
+        if (h.el === e.target) h.link.classList.add("is-active");
+      });
+    });
+  }, { rootMargin: "-20% 0px -70% 0px", threshold: 0 });
+  headings.forEach(function (h) { io.observe(h.el); });
+})();
+</script>
 {% endblock %}

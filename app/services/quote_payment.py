@@ -26,18 +26,24 @@ def deposit_checkout_available() -> bool:
     return is_configured()
 
 
-def deposit_required(quote: Quote) -> bool:
+def deposit_required(quote: Quote, tenant=None) -> bool:
     """True when the client should pay the deposit by card (Stripe Checkout)."""
-    return card_deposit_available(quote)
+    return card_deposit_available(quote, tenant)
 
 
-def card_deposit_available(quote: Quote) -> bool:
+def card_deposit_available(quote: Quote, tenant=None) -> bool:
     amount = quote.deposit_amount
     if not amount or amount <= 0:
         return False
     if quote.deposit_paid_at:
         return False
     if not deposit_checkout_available():
+        return False
+    if tenant is None:
+        return False
+    from app.services import stripe_connect
+
+    if not stripe_connect.connect_ready(tenant):
         return False
     return int(round(amount * 100)) >= MIN_DEPOSIT_CENTS
 
@@ -55,7 +61,7 @@ def wire_deposit_available(quote: Quote, tenant) -> bool:
 def payment_context(quote: Quote, tenant) -> dict:
     """Describe which deposit channels the client can use on the public devis page."""
     has_deposit = bool(quote.deposit_amount and quote.deposit_amount > 0)
-    card = card_deposit_available(quote) if has_deposit else False
+    card = card_deposit_available(quote, tenant) if has_deposit else False
     wire = wire_deposit_available(quote, tenant) if has_deposit else False
     if card:
         default_method = "card"
@@ -79,15 +85,31 @@ def _stripe():
     return stripe
 
 
-def create_deposit_session(quote: Quote, success_url: str, cancel_url: str) -> str:
+def create_deposit_session(quote: Quote, tenant, success_url: str, cancel_url: str) -> str:
     """Create a one-time Checkout session for the devis acompte. Caller commits."""
+    from app.services import stripe_connect
+
     if not deposit_checkout_available():
         raise RuntimeError("Stripe is not configured")
+    if not stripe_connect.connect_ready(tenant):
+        raise RuntimeError("Stripe Connect account not ready for this artisan")
     amount_cents = int(round((quote.deposit_amount or 0) * 100))
     if amount_cents < MIN_DEPOSIT_CENTS:
         raise ValueError("Deposit amount too small for card payment")
 
     stripe = _stripe()
+    payment_intent_data = {
+        "transfer_data": {"destination": tenant.stripe_connect_account_id},
+        "metadata": {
+            "kind": "quote_deposit",
+            "quote_id": str(quote.id),
+            "tenant_id": str(quote.tenant_id),
+        },
+    }
+    fee = stripe_connect.application_fee_cents(amount_cents)
+    if fee > 0:
+        payment_intent_data["application_fee_amount"] = fee
+
     session = stripe.checkout.Session.create(
         mode="payment",
         line_items=[
@@ -112,6 +134,7 @@ def create_deposit_session(quote: Quote, success_url: str, cancel_url: str) -> s
             "quote_id": str(quote.id),
             "tenant_id": str(quote.tenant_id),
         },
+        payment_intent_data=payment_intent_data,
         success_url=success_url,
         cancel_url=cancel_url,
     )

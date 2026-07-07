@@ -1204,6 +1204,47 @@ def toggle_direct_phone_public():
     return jsonify({"ok": True, "show_direct_phone_public": tenant.show_direct_phone_public})
 
 
+@web_bp.route("/settings/stripe-connect", methods=["POST"])
+@web_tenant_required
+def stripe_connect_start():
+    """Start or resume Stripe Connect Express onboarding for card deposits."""
+    from app.services import stripe_connect
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    if not tenant:
+        return redirect(url_for("web.settings_page"))
+
+    return_url = url_for("web.stripe_connect_return", _external=True)
+    refresh_url = url_for("web.stripe_connect_refresh", _external=True)
+    try:
+        url = stripe_connect.create_onboarding_link(tenant, return_url, refresh_url)
+        db.session.commit()
+    except Exception:
+        logger.exception("Stripe Connect onboarding failed tenant=%s", g.tenant_id)
+        return redirect(url_for("web.settings_page", connect="error") + "#paiements")
+    return redirect(url, code=303)
+
+
+@web_bp.route("/settings/stripe-connect/return", methods=["GET"])
+@web_tenant_required
+def stripe_connect_return():
+    from app.services import stripe_connect
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    if tenant:
+        stripe_connect.sync_connect_status(tenant)
+        db.session.commit()
+    status = "success" if tenant and tenant.stripe_connect_ready else "pending"
+    return redirect(url_for("web.settings_page", connect=status) + "#paiements")
+
+
+@web_bp.route("/settings/stripe-connect/refresh", methods=["GET"])
+@web_tenant_required
+def stripe_connect_refresh():
+    """Stripe redirects here when the onboarding link expires — issue a fresh one."""
+    return stripe_connect_start()
+
+
 @web_bp.route("/settings", methods=["GET", "POST"])
 @web_tenant_required
 def settings_page():
@@ -1342,6 +1383,12 @@ def settings_page():
         public_profile_url = url_for("web.artisan_profile", slug=tenant.public_slug, _external=True)
 
     lang = getattr(g, "lang", "fr")
+    from app.services import stripe_connect
+
+    if tenant and tenant.stripe_connect_account_id and stripe_connect.connect_available():
+        stripe_connect.sync_connect_status(tenant)
+        db.session.commit()
+
     return render_template(
         "artisan/settings.html",
         tenant=tenant,
@@ -1350,6 +1397,9 @@ def settings_page():
         error=error,
         trades=trade_choices(lang),
         public_profile_url=public_profile_url,
+        stripe_connect_available=stripe_connect.connect_available(),
+        stripe_connect_ready=stripe_connect.connect_ready(tenant) if tenant else False,
+        connect_status=request.args.get("connect"),
     )
 
 

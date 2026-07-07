@@ -213,6 +213,8 @@ def _ensure_schema_updates():
         "trial_ends_at": ts_type,
         "stripe_customer_id": "VARCHAR(64)",
         "stripe_subscription_id": "VARCHAR(64)",
+        "stripe_connect_account_id": "VARCHAR(64)",
+        "stripe_connect_charges_enabled": "BOOLEAN",
         "last_overage_period": "VARCHAR(7)",
         "trade_type": "VARCHAR(30)",
         "public_slug": "VARCHAR(100)",
@@ -230,6 +232,7 @@ def _ensure_schema_updates():
             conn.execute(text("UPDATE tenants SET is_public = TRUE WHERE is_public IS NULL"))
             conn.execute(text("UPDATE tenants SET trade_type = 'plombier' WHERE trade_type IS NULL OR trade_type = ''"))
             conn.execute(text("UPDATE tenants SET show_direct_phone_public = FALSE WHERE show_direct_phone_public IS NULL"))
+            conn.execute(text("UPDATE tenants SET stripe_connect_charges_enabled = FALSE WHERE stripe_connect_charges_enabled IS NULL"))
     except Exception:
         logging.getLogger(__name__).debug("tenant directory defaults patch skipped", exc_info=True)
 

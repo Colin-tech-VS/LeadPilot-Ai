@@ -145,6 +145,34 @@
       </div>
     </section>
 
+    <section class="card form-card settings-section" id="paiements">
+      <h2>{{ _('settings.section.payments') }}</h2>
+      <p class="section-hint">{{ _('settings.section.payments_hint') }}</p>
+
+      {% if connect_status == 'success' and stripe_connect_ready %}
+      <div class="alert alert-success">{{ _('settings.stripe_connect_success') }}</div>
+      {% elif connect_status == 'pending' %}
+      <div class="alert alert-warning">{{ _('settings.stripe_connect_pending') }}</div>
+      {% elif connect_status == 'error' %}
+      <div class="alert alert-error">{{ _('settings.stripe_connect_error') }}</div>
+      {% endif %}
+
+      {% if stripe_connect_ready %}
+      <p class="field-hint stripe-connect-status stripe-connect-status--ok">✓ {{ _('settings.stripe_connect_active') }}</p>
+      <p class="field-hint">{{ _('settings.stripe_connect_active_hint') }}</p>
+      <form method="post" action="{{ url_for('web.stripe_connect_start') }}" class="settings-inline-form">
+        <button type="submit" class="btn btn-outline btn-sm">{{ _('settings.stripe_connect_manage') }}</button>
+      </form>
+      {% elif stripe_connect_available %}
+      <p class="field-hint">{{ _('settings.stripe_connect_intro') }}</p>
+      <form method="post" action="{{ url_for('web.stripe_connect_start') }}" class="settings-inline-form">
+        <button type="submit" class="btn btn-primary btn-sm">{{ _('settings.stripe_connect_cta') }}</button>
+      </form>
+      {% else %}
+      <p class="field-hint">{{ _('settings.stripe_connect_unavailable') }}</p>
+      {% endif %}
+    </section>
+
     <section class="card form-card settings-section" id="rib">
       <h2>{{ _('settings.section.bank') }}</h2>
       <p class="section-hint">{{ _('settings.section.bank_hint') }}</p>

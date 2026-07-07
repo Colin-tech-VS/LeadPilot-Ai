@@ -48,6 +48,9 @@ class Tenant(db.Model):
     trial_ends_at = db.Column(db.DateTime(timezone=True), nullable=True)
     stripe_customer_id = db.Column(db.String(64), nullable=True)
     stripe_subscription_id = db.Column(db.String(64), nullable=True)
+    # Stripe Connect Express — client card deposits are paid out to this account.
+    stripe_connect_account_id = db.Column(db.String(64), nullable=True)
+    stripe_connect_charges_enabled = db.Column(db.Boolean, nullable=False, default=False)
     # Last calendar month whose call overage was billed to Stripe, as "YYYY-MM".
     # Guards the monthly overage job against double-billing the same period.
     last_overage_period = db.Column(db.String(7), nullable=True)
@@ -73,6 +76,14 @@ class Tenant(db.Model):
     def has_bank_details(self):
         """True once an IBAN is configured — required to invoice the acompte."""
         return bool((self.iban or "").strip())
+
+    @property
+    def stripe_connect_ready(self):
+        """Cached flag: Connect onboarding done and card payouts enabled."""
+        return bool(
+            (self.stripe_connect_account_id or "").strip()
+            and self.stripe_connect_charges_enabled
+        )
 
     @property
     def trial_end_date(self):

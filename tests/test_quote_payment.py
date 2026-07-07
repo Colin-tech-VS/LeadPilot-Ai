@@ -20,17 +20,21 @@ def _quote(deposit=100.0, paid=False):
     return q
 
 
-def _tenant(iban=None):
+def _tenant(iban=None, connect_ready=False):
     t = Tenant(name="Test Artisan")
     t.iban = iban
+    t.stripe_connect_account_id = "acct_test" if connect_ready else None
+    t.stripe_connect_charges_enabled = connect_ready
     return t
 
 
-def test_payment_context_card_preferred_when_both_available():
+def test_payment_context_card_preferred_when_both_available(app):
     quote = _quote()
-    tenant = _tenant(iban="FR7612345678901234567890123")
-    with patch.object(quote_payment, "deposit_checkout_available", return_value=True):
-        ctx = quote_payment.payment_context(quote, tenant)
+    tenant = _tenant(iban="FR7612345678901234567890123", connect_ready=True)
+    with app.app_context():
+        app.config["STRIPE_SECRET_KEY"] = "sk_test_x"
+        with patch.object(quote_payment, "deposit_checkout_available", return_value=True):
+            ctx = quote_payment.payment_context(quote, tenant)
     assert ctx["card_available"] is True
     assert ctx["wire_available"] is True
     assert ctx["default_method"] == "card"
@@ -64,9 +68,12 @@ def test_payment_context_no_deposit_always_collectable():
     assert ctx["can_collect_deposit"] is True
 
 
-def test_deposit_required_matches_card_availability():
+def test_deposit_required_matches_card_availability(app):
     quote = _quote()
-    with patch.object(quote_payment, "deposit_checkout_available", return_value=True):
-        assert quote_payment.deposit_required(quote) is True
-    with patch.object(quote_payment, "deposit_checkout_available", return_value=False):
-        assert quote_payment.deposit_required(quote) is False
+    tenant = _tenant(connect_ready=True)
+    with app.app_context():
+        app.config["STRIPE_SECRET_KEY"] = "sk_test_x"
+        with patch.object(quote_payment, "deposit_checkout_available", return_value=True):
+            assert quote_payment.deposit_required(quote, tenant) is True
+        with patch.object(quote_payment, "deposit_checkout_available", return_value=False):
+            assert quote_payment.deposit_required(quote, tenant) is False

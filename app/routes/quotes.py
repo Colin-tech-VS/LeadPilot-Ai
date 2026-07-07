@@ -520,6 +520,7 @@ def public_decision(quote_id, token):
                     try:
                         checkout_url = quote_payment.create_deposit_session(
                             quote,
+                            tenant,
                             quote_payment.deposit_success_url(quote, token),
                             quote_payment.deposit_cancel_url(quote, token),
                         )

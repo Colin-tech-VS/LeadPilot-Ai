@@ -298,6 +298,11 @@ def apply_event(event_type: str, obj: dict) -> bool:
             return True
         return False
 
+    if event_type == "account.updated":
+        from app.services import stripe_connect
+
+        return stripe_connect.handle_account_updated(obj)
+
     return False
 
 

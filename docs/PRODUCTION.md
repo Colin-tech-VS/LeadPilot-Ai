@@ -67,14 +67,17 @@ Méthode : `POST`
 ## 5. Stripe
 
 1. Créer les produits Starter (149 €), Pro (349 €), Premium (699 €).
-2. Webhook endpoint :
+2. **Activer Stripe Connect** (Express) dans le Dashboard Stripe — les acomptes carte client sont versés sur le compte Stripe de l'artisan.
+3. Webhook endpoint :
 
 ```
 https://PilotCore-ai.osc-fr1.scalingo.io/billing/webhook
 ```
 
-Événements : `checkout.session.completed`, `customer.subscription.*`  
+Événements : `checkout.session.completed`, `customer.subscription.*`, `account.updated`  
 Copier `STRIPE_WEBHOOK_SECRET` dans Scalingo.
+
+Optionnel : `STRIPE_CONNECT_FEE_PERCENT` (0 par défaut) pour une commission plateforme sur les acomptes carte.
 
 ## 6. Health checks
 

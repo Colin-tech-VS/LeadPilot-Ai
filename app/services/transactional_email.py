@@ -34,6 +34,7 @@ def render_email(
     cta_url: str | None = None,
     outro: str | None = None,
     preheader: str | None = None,
+    summary_html: str | None = None,
 ) -> str:
     """Return the full branded HTML for a transactional email.
 
@@ -42,6 +43,8 @@ def render_email(
     """
     base = _base_url()
     body_blocks = [f'<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">{intro}</p>']
+    if summary_html:
+        body_blocks.append(summary_html)
     for ln in lines or []:
         body_blocks.append(
             f'<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155;">{ln}</p>'
@@ -95,6 +98,43 @@ def render_email(
   </td></tr>
 </table>
 </body></html>'''
+
+
+def _quote_summary_box(*, quote_number: str | None, total_ttc: float, artisan_name: str) -> str:
+    number = (quote_number or "—").strip()
+    return f'''<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 20px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748B;">Récapitulatif</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:6px 0;font-size:14px;color:#64748B;">Devis</td>
+        <td style="padding:6px 0;font-size:14px;font-weight:700;color:#0F172A;text-align:right;">{number}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;font-size:14px;color:#64748B;">Montant TTC</td>
+        <td style="padding:6px 0;font-size:18px;font-weight:800;color:{BRAND_COLOR};text-align:right;">{total_ttc:.2f} €</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;font-size:14px;color:#64748B;">Artisan</td>
+        <td style="padding:6px 0;font-size:14px;font-weight:600;color:#0F172A;text-align:right;">{artisan_name}</td>
+      </tr>
+    </table>
+  </td></tr>
+</table>'''
+
+
+def _rib_box(rib_lines: list[str] | None) -> str:
+    if not rib_lines:
+        return ""
+    items = "".join(
+        f'<p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:#334155;">{line}</p>'
+        for line in rib_lines
+    )
+    return f'''<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;">
+  <tr><td style="padding:14px 16px;">{items}</td></tr>
+</table>'''
 
 
 def _send(to_addr, subject, html, text_body, tenant_id=None):
@@ -306,10 +346,13 @@ def send_devis_to_client(
     hello = f"Bonjour {customer_name.strip()}," if (customer_name or "").strip() else "Bonjour,"
     number = (quote_number or "").strip()
     title = f"Votre devis {number}" if number else "Votre devis"
+    summary = _quote_summary_box(
+        quote_number=number or None,
+        total_ttc=quote_total_ttc,
+        artisan_name=artisan_name,
+    )
     lines = [
-        f"<strong>{artisan_name}</strong> vous adresse un devis "
-        f"de <strong>{quote_total_ttc:.2f} € TTC</strong>.",
-        "Consultez-le, signez-le en ligne et réglez l'acompte si nécessaire.",
+        "Consultez votre devis en ligne, signez-le et réglez l'acompte si nécessaire.",
     ]
     if deposit_amount:
         pct = f" ({deposit_percent} %)" if deposit_percent else ""
@@ -317,16 +360,19 @@ def send_devis_to_client(
             f"Un acompte de <strong>{deposit_amount:.2f} €</strong>{pct} "
             "est demandé pour confirmer l'intervention."
         )
-    for rib in rib_lines or []:
-        lines.append(rib)
+    rib_html = _rib_box(rib_lines)
+    if rib_html:
+        lines.append(rib_html)
 
     html = render_email(
         title,
         hello,
         lines=lines,
+        summary_html=summary,
         cta_label="Voir et signer le devis",
         cta_url=sign_url,
         outro="Merci de votre confiance.",
+        preheader=f"{artisan_name} vous a envoyé un devis de {quote_total_ttc:.2f} € TTC.",
     )
     text_lines = [
         hello,
@@ -357,18 +403,24 @@ def send_booking_quote_for_signature(
     if not to_addr or not sign_url:
         return None
     hello = f"Bonjour {customer_name}," if customer_name else "Bonjour,"
+    summary = _quote_summary_box(
+        quote_number=None,
+        total_ttc=quote_total_ttc,
+        artisan_name=artisan_name,
+    )
     html = render_email(
         "Signez votre devis pour confirmer le rendez-vous",
         hello,
         lines=[
-            f"Vous avez demandé un créneau avec <strong>{artisan_name}</strong> "
-            f"le <strong>{when_label}</strong>.",
-            f"Un devis pré-rempli ({quote_total_ttc:.2f} € TTC) vous attend.",
-            "L'artisan ne se déplace qu'après validation du devis en ligne.",
+            f"Vous avez demandé un créneau le <strong>{when_label}</strong>.",
+            "Un devis pré-rempli vous attend. L'artisan ne se déplace qu'après "
+            "validation du devis en ligne.",
         ],
+        summary_html=summary,
         cta_label="Signer le devis",
         cta_url=sign_url,
         outro="Le créneau reste réservé temporairement le temps de votre signature.",
+        preheader=f"Confirmez votre RDV du {when_label} en signant votre devis.",
     )
     text = (
         f"{hello}\nSignez votre devis pour confirmer le RDV du {when_label} "

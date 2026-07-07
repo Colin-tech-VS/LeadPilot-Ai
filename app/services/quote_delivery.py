@@ -11,23 +11,23 @@ summary of what was sent so the UI can tell the plumber exactly what happened.
 
 import logging
 
-from flask import url_for
-
-from app.services import admin_email
+from app.core.extensions import db
+from app.models.email_message import STATUS_SENT, STATUS_SIMULATED
 from app.services.sms import normalize_msisdn, send_sms
 
 logger = logging.getLogger(__name__)
 
 
 def _public_link(quote):
+    """Build the client-facing devis URL (requires app + request context)."""
     quote.ensure_token()
+    token = (quote.public_token or "").strip()
+    if not token:
+        return None
     try:
-        return url_for(
-            "quotes.public_quote",
-            quote_id=quote.id,
-            token=quote.public_token,
-            _external=True,
-        )
+        from app.utils.seo import canonical_url
+
+        return canonical_url(f"/quotes/public/{quote.id}/{token}")
     except Exception:
         logger.exception("Could not build public devis link (quote=%s)", quote.id)
         return None
@@ -89,35 +89,63 @@ def send_quote(quote, tenant, channels=None):
     attempted where a destination exists. Result::
 
         {"email": True/False/None, "sms": True/False/None,
-         "channel": "email+sms", "any": True, "rib": True}
+         "channel": "email+sms", "any": True, "rib": True, "error": str|None}
 
     A ``None`` value means the channel was not attempted (no address for it).
     """
+    quote.ensure_token()
+    try:
+        db.session.flush()
+    except Exception:
+        logger.exception("Could not persist public token before send quote=%s", quote.id)
+
     link = _public_link(quote)
     if not link:
-        return {"email": None, "sms": None, "channel": None, "any": False, "rib": False, "error": "link"}
+        return {
+            "email": None,
+            "sms": None,
+            "channel": None,
+            "any": False,
+            "rib": False,
+            "error": "link",
+        }
 
-    body = build_message(quote, tenant, link)
     wants = set(channels) if channels else {"email", "sms"}
+    if not wants:
+        wants = {"email", "sms"}
 
     email_res = None
     to_email = (quote.client_email or "").strip()
     if "email" in wants and to_email:
         subject = f"Votre devis {quote.number or ''} — {(tenant.name or '').strip()}".strip()
         try:
-            msg = admin_email.send_email(
-                to_email, subject, body, is_html=False, tenant_id=tenant.id
+            from app.services.transactional_email import send_devis_to_client
+
+            msg = send_devis_to_client(
+                to_email,
+                customer_name=quote.client_name,
+                artisan_name=(tenant.name or "votre artisan").strip(),
+                quote_number=quote.number,
+                quote_total_ttc=quote.total_ttc,
+                sign_url=link,
+                deposit_amount=quote.deposit_amount,
+                deposit_percent=quote.deposit_percent,
+                rib_lines=_rib_lines(tenant),
+                tenant_id=tenant.id,
             )
-            # "sent" or "simulated" both mean the message left the app cleanly.
-            email_res = getattr(msg, "status", None) in ("sent", "simulated")
+            email_res = msg is not None and getattr(msg, "status", None) in (
+                STATUS_SENT,
+                STATUS_SIMULATED,
+            )
         except Exception:
             logger.exception("Devis email failed (quote=%s)", quote.id)
             email_res = False
 
     sms_res = None
     to_phone = (quote.client_phone or "").strip()
+    sms_body = build_message(quote, tenant, link)
     if "sms" in wants and normalize_msisdn(to_phone):
-        sms_res = send_sms(to_phone, body)
+        sms_res = send_sms(to_phone, sms_body)
 
     sent_channels = []
     if email_res:
@@ -126,10 +154,35 @@ def send_quote(quote, tenant, channels=None):
         sent_channels.append("sms")
     channel = "+".join(sent_channels) or None
 
+    error = None
+    if not sent_channels:
+        if not to_email and not normalize_msisdn(to_phone):
+            error = "no_contact"
+        elif "email" in wants and to_email and email_res is False:
+            error = "email_failed"
+        elif "sms" in wants and normalize_msisdn(to_phone) and sms_res is False:
+            error = "sms_failed"
+        else:
+            error = "none"
+
     return {
         "email": email_res,
         "sms": sms_res,
         "channel": channel,
         "any": bool(sent_channels),
         "rib": tenant.has_bank_details and bool(quote.deposit_amount),
+        "error": error,
     }
+
+
+def resolve_channels(quote, requested):
+    """Pick delivery channels from the form, falling back to available contacts."""
+    chosen = [c for c in (requested or []) if c in ("email", "sms")]
+    if chosen:
+        return chosen
+    auto = []
+    if (quote.client_email or "").strip():
+        auto.append("email")
+    if normalize_msisdn((quote.client_phone or "").strip()):
+        auto.append("sms")
+    return auto or None

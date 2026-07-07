@@ -4,8 +4,14 @@
 
 {% block content %}
 {% if owner_view %}
-{% if sent_result == 'none' %}
-<div class="alert alert-error no-print quote-send-alert">{{ _('quotes.send_failed') }}</div>
+{% if sent_result == 'none' or sent_result == 'email_failed' or sent_result == 'sms_failed' or sent_result == 'no_contact' or sent_result == 'link' %}
+<div class="alert alert-error no-print quote-send-alert">
+  {% if sent_result == 'no_contact' %}{{ _('quotes.send_no_contact') }}
+  {% elif sent_result == 'email_failed' %}{{ _('quotes.send_email_failed') }}
+  {% elif sent_result == 'sms_failed' %}{{ _('quotes.send_sms_failed') }}
+  {% elif sent_result == 'link' %}{{ _('quotes.send_link_failed') }}
+  {% else %}{{ _('quotes.send_failed') }}{% endif %}
+</div>
 {% elif sent_result %}
 <div class="alert alert-success no-print quote-send-alert">{{ _('quotes.send_ok') }}
   {%- if 'email' in sent_result %} · {{ _('quotes.by_email') }}{% endif %}

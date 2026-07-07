@@ -286,6 +286,63 @@ def send_new_booking_to_artisan(to_addr, when_label, customer_name, *, tenant_id
     return _send(to_addr, "Nouvelle demande de rendez-vous", html, text, tenant_id=tenant_id)
 
 
+def send_devis_to_client(
+    to_addr,
+    *,
+    customer_name=None,
+    artisan_name,
+    quote_number=None,
+    quote_total_ttc,
+    sign_url,
+    deposit_amount=None,
+    deposit_percent=None,
+    rib_lines=None,
+    tenant_id=None,
+):
+    """Send a devis link to the client (manual send from artisan dashboard)."""
+    if not to_addr or not sign_url:
+        return None
+
+    hello = f"Bonjour {customer_name.strip()}," if (customer_name or "").strip() else "Bonjour,"
+    number = (quote_number or "").strip()
+    title = f"Votre devis {number}" if number else "Votre devis"
+    lines = [
+        f"<strong>{artisan_name}</strong> vous adresse un devis "
+        f"de <strong>{quote_total_ttc:.2f} € TTC</strong>.",
+        "Consultez-le, signez-le en ligne et réglez l'acompte si nécessaire.",
+    ]
+    if deposit_amount:
+        pct = f" ({deposit_percent} %)" if deposit_percent else ""
+        lines.append(
+            f"Un acompte de <strong>{deposit_amount:.2f} €</strong>{pct} "
+            "est demandé pour confirmer l'intervention."
+        )
+    for rib in rib_lines or []:
+        lines.append(rib)
+
+    html = render_email(
+        title,
+        hello,
+        lines=lines,
+        cta_label="Voir et signer le devis",
+        cta_url=sign_url,
+        outro="Merci de votre confiance.",
+    )
+    text_lines = [
+        hello,
+        "",
+        f"{artisan_name} vous adresse un devis de {quote_total_ttc:.2f} € TTC.",
+        f"Consultez et signez-le en ligne : {sign_url}",
+    ]
+    if deposit_amount:
+        text_lines.append(f"Acompte demandé : {deposit_amount:.2f} €.")
+    for rib in rib_lines or []:
+        text_lines.append(rib)
+    text = "\n".join(text_lines)
+    subject = f"{title} — {artisan_name}".strip(" —")
+    return _send(to_addr, subject, html, text, tenant_id=tenant_id)
+
+
 def send_booking_quote_for_signature(
     to_addr,
     *,

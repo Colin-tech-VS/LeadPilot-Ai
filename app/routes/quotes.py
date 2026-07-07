@@ -288,7 +288,7 @@ def send_quote(quote_id):
 
     tenant = db.session.get(Tenant, g.tenant_id)
 
-    channels = request.form.getlist("channel") or None
+    channels = quote_delivery.resolve_channels(quote, request.form.getlist("channel"))
     result = quote_delivery.send_quote(quote, tenant, channels=channels)
 
     if result["any"]:
@@ -298,7 +298,7 @@ def send_quote(quote_id):
         notifications.notify_quote_sent(quote)
         status = result["channel"]
     else:
-        status = "none"
+        status = result.get("error") or "none"
 
     return redirect(url_for("quotes.quote_detail", quote_id=quote.id, sent=status))
 
@@ -306,10 +306,23 @@ def send_quote(quote_id):
 @quotes_bp.route("/<quote_id>/remind", methods=["POST"])
 @web_tenant_required
 def remind(quote_id):
+    """Relance client — renvoie réellement le devis par e-mail / SMS."""
+    from app.services import quote_delivery
+
     quote = _get_quote(quote_id)
+    if quote.is_invoice:
+        return redirect(url_for("quotes.quotes_page", view="factures"))
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    result = quote_delivery.send_quote(quote, tenant)
     quote_engine.mark_reminded(quote)
+    if result["any"]:
+        if quote.status == STATUS_DRAFT:
+            quote_engine.mark_sent(quote)
+        quote.sent_channel = result["channel"]
     db.session.commit()
-    return redirect(request.referrer or url_for("quotes.quotes_page"))
+    sent = result["channel"] if result["any"] else (result.get("error") or "none")
+    return redirect(url_for("quotes.quote_detail", quote_id=quote.id, sent=sent))
 
 
 @quotes_bp.route("/<quote_id>/convert", methods=["POST"])

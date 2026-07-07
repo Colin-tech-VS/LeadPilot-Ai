@@ -1,0 +1,21 @@
+{
+  "name": "PilotCore Admin Console",
+  "short_name": "PC Admin",
+  "description": "Console d'administration PilotCore : analytics, trafic, clients et gestion de contenu.",
+  "lang": "fr",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/static/images/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1420,6 +1420,14 @@
   .vitrine .v-header-inner {
     min-height: 60px;
     gap: 12px;
+    justify-content: space-between;
+  }
+
+  /* On mobile the centered nav is hidden, so the header end (lang + burger)
+     no longer has a flex-grow neighbour to push it right. Anchor it to the
+     right edge so the hamburger sits on the far right, not next to the logo. */
+  .vitrine .v-header-end {
+    margin-left: auto;
   }
 
   .vitrine .v-brand .brand-text {

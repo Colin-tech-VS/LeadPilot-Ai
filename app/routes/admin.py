@@ -131,6 +131,20 @@ def logout():
     return redirect(url_for("admin.login"))
 
 
+# -------------------------------------------------------------------- PWA
+@admin_bp.route("/manifest.webmanifest", methods=["GET"])
+def admin_manifest():
+    """PWA manifest for the admin console — makes /admin installable as its own
+    standalone webapp. Public so the browser can fetch it from the login page."""
+    from flask import send_from_directory
+
+    return send_from_directory(
+        current_app.static_folder,
+        "admin.webmanifest",
+        mimetype="application/manifest+json",
+    )
+
+
 # ------------------------------------------------------------------ dashboard
 @admin_bp.route("")
 @admin_bp.route("/")

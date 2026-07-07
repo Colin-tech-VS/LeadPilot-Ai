@@ -1,0 +1,21 @@
+{
+  "name": "PilotCore — Artisans de confiance",
+  "short_name": "PilotCore",
+  "description": "Trouvez un artisan de confiance près de chez vous et gérez vos demandes avec PilotCore.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAFBFC",
+  "theme_color": "#2563EB",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/static/images/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

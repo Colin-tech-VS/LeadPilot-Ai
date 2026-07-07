@@ -1,0 +1,38 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PilotCore">
+  <!-- Safe padding for Facebook circular profile crop (~5% margin) -->
+  <g transform="translate(51.2 51.2) scale(14.4)">
+    <defs>
+      <linearGradient id="lp-bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#0F2D6E"/>
+        <stop offset="0.5" stop-color="#1B57E0"/>
+        <stop offset="1" stop-color="#2563EB"/>
+      </linearGradient>
+      <linearGradient id="lp-shine" x1="16" y1="8" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FFFFFF" stop-opacity="0.28"/>
+        <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="lp-needle" x1="32" y1="18" x2="32" y2="46" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FFFFFF"/>
+        <stop offset="1" stop-color="#BFDBFE"/>
+      </linearGradient>
+      <linearGradient id="lp-accent" x1="20" y1="40" x2="44" y2="52" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#06B6D4"/>
+        <stop offset="1" stop-color="#10B981"/>
+      </linearGradient>
+    </defs>
+    <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#lp-bg)"/>
+    <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#lp-shine)"/>
+    <circle cx="32" cy="32" r="20" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1.5"/>
+    <circle cx="32" cy="32" r="14" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1"/>
+    <path d="M32 20 L36 38 L32 34 L28 38 Z" fill="url(#lp-needle)"/>
+    <circle cx="32" cy="32" r="4.5" fill="#FFFFFF" opacity="0.95"/>
+    <circle cx="32" cy="32" r="2" fill="#1B57E0"/>
+    <g stroke="#06B6D4" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85">
+      <path d="M46 24c5 0 9 4 9 9"/>
+      <path d="M48 20c8 0 14 6 14 14"/>
+    </g>
+    <path d="M18 46h28" stroke="url(#lp-accent)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="18" cy="46" r="2.5" fill="#10B981"/>
+    <circle cx="46" cy="46" r="2.5" fill="#06B6D4"/>
+  </g>
+</svg>

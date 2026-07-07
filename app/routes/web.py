@@ -342,6 +342,11 @@ def cookies_policy():
     return render_template("public/legal/cookies.html", updated="6 juillet 2026")
 
 
+@web_bp.route("/suppression-donnees", methods=["GET"])
+def data_deletion():
+    return render_template("public/legal/suppression_donnees.html", updated="7 juillet 2026")
+
+
 @web_bp.route("/contact", methods=["GET", "POST"])
 def contact():
     from app.services.contact_form import submit_contact

@@ -1,0 +1,67 @@
+{% extends "public/legal/base.html" %}
+{% block title %}Suppression des données — {{ _('app.name') }}{% endblock %}
+{% block legal_title %}Suppression des données utilisateur{% endblock %}
+
+{% block legal_content %}
+<p>
+  Conformément au Règlement Général sur la Protection des Données (RGPD), vous pouvez demander
+  la suppression des données personnelles que PilotCore détient à votre sujet.
+</p>
+
+<h2>Qui peut faire une demande ?</h2>
+<ul>
+  <li><strong>Artisans</strong> inscrits sur PilotCore (compte professionnel).</li>
+  <li><strong>Particuliers</strong> ayant créé un compte client ou pris rendez-vous via la plateforme.</li>
+  <li>Toute personne dont des données ont été traitées par nos services (appels IA, formulaires, e-mails).</li>
+</ul>
+
+<h2>Comment demander la suppression ?</h2>
+<p>Envoyez un e-mail à <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a> avec :</p>
+<ul>
+  <li>l'objet <strong>« Demande de suppression de données »</strong> ;</li>
+  <li>votre nom et prénom ;</li>
+  <li>l'adresse e-mail associée à votre compte PilotCore (si applicable) ;</li>
+  <li>une brève description de votre demande.</li>
+</ul>
+<p>
+  Nous pouvons vous demander une pièce d'identité ou une confirmation par e-mail afin de vérifier
+  que vous êtes bien la personne concernée.
+</p>
+
+<h2>Délai de traitement</h2>
+<p>
+  Nous accusons réception de votre demande sous <strong>72 heures</strong> et procédons à la suppression
+  ou à l'anonymisation de vos données dans un délai maximal de <strong>30 jours</strong>, sauf obligation
+  légale de conservation (documents comptables, litiges en cours, etc.).
+</p>
+
+<h2>Données concernées</h2>
+<p>La suppression peut porter notamment sur :</p>
+<ul>
+  <li>identité et coordonnées (nom, e-mail, téléphone, adresse) ;</li>
+  <li>compte utilisateur et historique de rendez-vous ;</li>
+  <li>transcriptions d'appels et échanges avec l'assistant IA ;</li>
+  <li>données de facturation strictement nécessaires, conservées le cas échéant selon la loi.</li>
+</ul>
+
+<h2>Suppression d'un compte artisan</h2>
+<p>
+  Les artisans peuvent également demander la fermeture de leur compte depuis leur espace
+  <strong>Paramètres</strong> ou par e-mail à
+  <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>.
+  La fiche publique annuaire sera retirée lors de la désactivation du compte.
+</p>
+
+<h2>Application Facebook / Meta</h2>
+<p>
+  PilotCore utilise l'API Facebook uniquement pour publier des contenus sur une Page Facebook
+  administrée par PilotCore. Aucune donnée personnelle Facebook des visiteurs n'est stockée par
+  cette intégration. Pour toute question liée à Facebook, vous pouvez aussi nous contacter à
+  <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>.
+</p>
+
+<p>
+  Pour en savoir plus sur vos droits, consultez notre
+  <a href="{{ url_for('web.privacy') }}">politique de confidentialité</a>.
+</p>
+{% endblock %}

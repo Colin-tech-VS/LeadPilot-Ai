@@ -230,6 +230,9 @@ class TwilioVoiceHandler:
             slot, question = nxt
             if slot not in state.asked_slots:
                 state.asked_slots.append(slot)
+            if slot.startswith("account:"):
+                counts = state.account_flow.setdefault("ask_counts", {})
+                counts[slot] = counts.get(slot, 0) + 1
             prompt = f"{self._acknowledge(state)} {question}"
             state.last_ai_response = prompt
             state.append_transcript("assistant", prompt)
@@ -358,6 +361,8 @@ class TwilioVoiceHandler:
                 first, last_name = vca.split_name(name)
                 af["create_first_name"] = first
                 af["create_last_name"] = last_name
+            else:
+                af["create_name_attempts"] = af.get("create_name_attempts", 0) + 1
             return
 
         if last == "account:create_email":
@@ -365,6 +370,8 @@ class TwilioVoiceHandler:
             if email:
                 af["pending_email"] = email
                 lead["email"] = email
+            else:
+                af["create_email_attempts"] = af.get("create_email_attempts", 0) + 1
             return
 
         if last == "account:email_confirm":
@@ -374,6 +381,12 @@ class TwilioVoiceHandler:
                 af["pending_email"] = None
                 lead.pop("email", None)
                 af.pop("email_confirmed", None)
+            else:
+                # Not a clear yes/no — the caller likely re-dictated the address.
+                new_email = vca.extract_email_from_transcript(text)
+                if new_email and new_email != af.get("pending_email"):
+                    af["pending_email"] = new_email
+                    lead["email"] = new_email
             return
 
         if last == "account:guest_email":
@@ -381,6 +394,8 @@ class TwilioVoiceHandler:
             if email:
                 lead["email"] = email
                 af["account_done"] = True
+            else:
+                af["guest_email_attempts"] = af.get("guest_email_attempts", 0) + 1
 
     def _maybe_finalize_account_creation(self, state) -> None:
         af = state.account_flow
@@ -411,6 +426,44 @@ class TwilioVoiceHandler:
         af["account_done"] = True
         vca.send_credentials_email(user, password)
 
+    def _resolve_account_stalls(self, state) -> None:
+        """Break out of yes/no questions the caller never answers clearly.
+
+        After a slot has been asked twice without a usable reply, pick a sensible
+        default so the call keeps moving instead of repeating the same question."""
+        af = state.account_flow
+        counts = af.get("ask_counts", {})
+
+        def stuck(slot: str) -> bool:
+            return counts.get(slot, 0) >= 2
+
+        # Can't tell whether they have an account → assume none and offer to help.
+        if af.get("has_account") is None and stuck("account:has_account"):
+            af["has_account"] = False
+        # Can't confirm creating an account after a failed lookup → continue as guest.
+        if (
+            af.get("lookup_failed")
+            and af.get("wants_create") is None
+            and not af.get("guest_mode")
+            and stuck("account:lookup_retry")
+        ):
+            af["guest_mode"] = True
+        # No clear answer to the account pitch → continue as guest.
+        if (
+            not af.get("has_account")
+            and af.get("wants_create") is None
+            and not af.get("guest_mode")
+            and stuck("account:create_pitch")
+        ):
+            af["guest_mode"] = True
+        # Keeps not confirming the e-mail → accept the address as dictated.
+        if (
+            af.get("pending_email")
+            and not af.get("email_confirmed")
+            and stuck("account:email_confirm")
+        ):
+            af["email_confirmed"] = True
+
     def _next_account_question(self, state) -> tuple[str, str] | None:
         self._ensure_account_flow(state)
         af = state.account_flow
@@ -418,6 +471,8 @@ class TwilioVoiceHandler:
 
         if af.get("account_done"):
             return None
+
+        self._resolve_account_stalls(state)
 
         if af.get("has_account") is None:
             if "account:has_account" in state.asked_slots:
@@ -461,18 +516,36 @@ class TwilioVoiceHandler:
                 af["wants_create"] = False
                 return None
             if not af.get("create_first_name"):
+                # Give up on account creation after two tries: fall back to guest
+                # mode so we can still capture the lead without looping.
+                if af.get("create_name_attempts", 0) >= 2:
+                    af["wants_create"] = False
+                    af["guest_mode"] = True
+                    return None
                 if "account:create_name" not in state.asked_slots or not lead.get("name"):
                     return (
                         "account:create_name",
                         "Parfait ! Quel est votre prénom et votre nom, s'il vous plaît ?",
                     )
             if not af.get("pending_email"):
+                # After two failed attempts, stop asking for the e-mail — the
+                # lead is saved and the plumber collects it on callback.
+                if af.get("create_email_attempts", 0) >= 2:
+                    af["email_capture_failed"] = True
+                    af["account_done"] = True
+                    if "email" not in state.asked_slots:
+                        state.asked_slots.append("email")
+                    return None
                 if "account:create_email" not in state.asked_slots or not lead.get("email"):
-                    return (
-                        "account:create_email",
+                    prompt = (
                         "Merci. Quelle est votre adresse e-mail ? "
-                        "Épellez-la clairement, par exemple « jean point dupont arobase gmail point com ».",
+                        "Épellez-la clairement, par exemple « jean point dupont arobase gmail point com »."
+                        if af.get("create_email_attempts", 0) == 0
+                        else "Je n'ai pas bien saisi. Redites votre e-mail lentement : "
+                        "d'abord ce qui est avant l'arobase, puis le fournisseur, "
+                        "par exemple « gmail point com »."
                     )
+                    return ("account:create_email", prompt)
             if af.get("pending_email") and not af.get("email_confirmed"):
                 email = af["pending_email"]
                 spelled = email.replace("@", " arobase ").replace(".", " point ")
@@ -488,11 +561,23 @@ class TwilioVoiceHandler:
 
         if af.get("guest_mode"):
             if not lead.get("email"):
-                return (
-                    "account:guest_email",
+                # Two attempts max, then proceed without the e-mail so the call
+                # never gets stuck re-asking the same question.
+                if af.get("guest_email_attempts", 0) >= 2:
+                    af["email_capture_failed"] = True
+                    af["account_done"] = True
+                    if "email" not in state.asked_slots:
+                        state.asked_slots.append("email")
+                    return None
+                prompt = (
                     "Pas de souci. Donnez-moi simplement votre adresse e-mail pour recevoir le devis. "
-                    "Épellez-la si besoin, par exemple « marie point martin arobase orange point fr ».",
+                    "Épellez-la si besoin, par exemple « marie point martin arobase orange point fr »."
+                    if af.get("guest_email_attempts", 0) == 0
+                    else "Je n'ai pas bien entendu votre e-mail. Redites-le doucement, "
+                    "en disant « arobase » et « point », "
+                    "par exemple « marie point martin arobase orange point fr »."
                 )
+                return ("account:guest_email", prompt)
             af["account_done"] = True
             return None
 
@@ -530,8 +615,11 @@ class TwilioVoiceHandler:
 
     def _acknowledge(self, state) -> str:
         lead = state.extracted_lead_data
-        if (lead.get("urgency_level") or "").lower() == "high":
-            return "Je comprends, c'est une urgence, je note tout de suite."
+        # Acknowledge the emergency ONCE — repeating "c'est une urgence" on every
+        # question sounds robotic. After that, use short natural fillers.
+        if (lead.get("urgency_level") or "").lower() == "high" and not state.urgency_ack_done:
+            state.urgency_ack_done = True
+            return "Je comprends, c'est urgent, je m'en occupe en priorité."
         acks = ["Entendu.", "Très bien.", "D'accord, je note.", "Parfait."]
         return acks[state.turn_count % len(acks)]
 

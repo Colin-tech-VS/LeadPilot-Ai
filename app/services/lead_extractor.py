@@ -55,6 +55,141 @@ FALLBACK_ISSUE_PATTERNS = [
     (r"\b(flood|inond)\b", "flooding"),
 ]
 
+# --- Spoken-email reconstruction --------------------------------------------
+# On the phone the caller dictates an address ("jean point dupont arobase gmail
+# point com"), so we translate spoken separators back into symbols and glue the
+# pieces together. This must work WITHOUT any "mon email est…" prefix, because
+# the reply to "quelle est votre e-mail ?" rarely contains one.
+_EMAIL_AT_WORDS = {"arobase", "arrobase", "arobas", "arrobas", "aroba", "at", "chez"}
+_EMAIL_DOT_WORDS = {"point", "points", "dot"}
+_EMAIL_DASH_WORDS = {"tiret", "dash", "moins"}
+_EMAIL_UNDERSCORE_WORDS = {"underscore", "souligné", "souligne"}
+_EMAIL_FILLER_WORDS = {
+    "mon", "ma", "mes", "courriel", "adresse", "c'est", "cest", "est",
+    "voila", "voilà", "alors", "donc", "oui", "euh", "ben", "eh", "ok",
+    "je", "vous", "donne", "en", "tout", "attaché", "attache", "collé",
+    "colle", "ensemble", "minuscule", "minuscules", "voici",
+}
+_KNOWN_EMAIL_DOMAINS = (
+    "gmail", "hotmail", "outlook", "yahoo", "orange", "free", "wanadoo",
+    "protonmail", "proton", "sfr", "laposte", "live", "icloud", "gmx",
+    "bbox", "numericable", "neuf", "aol", "msn",
+)
+
+
+def _insert_at_before_known_domain(candidate: str) -> str:
+    """When the caller forgot to say "arobase", split before a known provider."""
+    for dom in _KNOWN_EMAIL_DOMAINS:
+        idx = candidate.find(dom)
+        if idx > 0:
+            return candidate[:idx] + "@" + candidate[idx:]
+    return candidate
+
+
+_EMAIL_SYMBOLS = {"@", ".", "-", "_"}
+
+
+def _collect_side(tokens: list[str], start: int, step: int) -> list[str]:
+    """Walk away from the "@" collecting the address atoms on one side.
+
+    Glues symbols and spelled single characters, and accepts ONE plain word
+    adjacent to each symbol — so "paul . durand" is kept whole, but a preceding
+    natural-speech word ("le suivant paul …") stops the walk.
+    """
+    collected: list[str] = []
+    prev_was_word = False
+    i = start
+    while 0 <= i < len(tokens):
+        tok = tokens[i]
+        if tok in _EMAIL_SYMBOLS:
+            collected.append(tok)
+            prev_was_word = False
+        elif re.fullmatch(r"[a-z0-9]+", tok):
+            if len(tok) == 1:
+                collected.append(tok)  # spelled-out letter/digit
+            elif prev_was_word:
+                break  # two plain words in a row → speech boundary
+            else:
+                collected.append(tok)
+                prev_was_word = True
+        else:
+            break
+        i += step
+    return collected if step > 0 else collected[::-1]
+
+
+def reconstruct_spoken_email(transcript: str) -> str | None:
+    """Rebuild an e-mail address from a dictated phone transcript.
+
+    Handles the literal form (jean.dupont@gmail.com) and the spoken form
+    (jean point dupont arobase gmail point com), including missing "arobase"
+    and a natural-speech preface ("alors mon adresse c'est …").
+    Returns a validated lowercase address, or None when nothing usable is found.
+    """
+    if not transcript:
+        return None
+
+    # Fast path: the transcript already contains a literal address.
+    direct = re.search(
+        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", transcript
+    )
+    if direct:
+        return direct.group(0).strip().lower()
+
+    text = transcript.lower().replace("’", "'")
+    # Drop the words that introduce the address but are never part of it.
+    text = re.sub(r"\be-?\s*mail\b", " ", text)
+    text = re.sub(r"\bmail\b", " ", text)
+    text = re.sub(r"\badresse\b", " ", text)
+    # Multi-word separators first, then map spoken separators to symbols and let
+    # single symbols tokenise on their own.
+    text = re.sub(r"\b(?:tiret|trait)\s+(?:du|de)\s+bas\b", " _ ", text)
+    text = re.sub(r"\btrait\s+d'?\s*union\b", " - ", text)
+    text = re.sub(r"([@._\-])", r" \1 ", text)
+
+    tokens: list[str] = []
+    for tok in re.split(r"\s+", text):
+        tok = tok.strip(",;:!?\"'()[]")
+        if not tok:
+            continue
+        if tok in _EMAIL_AT_WORDS:
+            tokens.append("@")
+        elif tok in _EMAIL_DOT_WORDS:
+            tokens.append(".")
+        elif tok in _EMAIL_DASH_WORDS:
+            tokens.append("-")
+        elif tok in _EMAIL_UNDERSCORE_WORDS:
+            tokens.append("_")
+        elif tok in _EMAIL_SYMBOLS:
+            tokens.append(tok)
+        elif tok in _EMAIL_FILLER_WORDS:
+            continue
+        else:
+            tokens.append(tok)
+
+    if "@" in tokens:
+        # Anchor on the "@" and grab only the tightly-connected atoms so a
+        # spoken preface never bleeds into the local part.
+        at = tokens.index("@")
+        local = "".join(_collect_side(tokens, at - 1, -1))
+        domain = "".join(_collect_side(tokens, at + 1, 1))
+        candidate = f"{local}@{domain}"
+    else:
+        # No "arobase" was spoken — glue everything and split before a known
+        # provider as a best effort.
+        candidate = "".join(t for t in tokens if t != "@")
+        candidate = _insert_at_before_known_domain(candidate)
+
+    candidate = re.sub(r"@{2,}", "@", candidate)
+    candidate = re.sub(r"\.{2,}", ".", candidate)
+    candidate = candidate.strip(".-_@")
+
+    if candidate.count("@") != 1:
+        return None
+    if re.fullmatch(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", candidate):
+        return candidate
+    return None
+
 
 class LeadExtractor:
     """Extract structured lead data from call transcripts via Mistral LLM."""
@@ -172,30 +307,34 @@ class LeadExtractor:
     def _guess_email(self, transcript: str) -> str | None:
         if not transcript:
             return None
-        spoken = re.search(
-            r"(?:e-?mail|mail|courriel|adresse mail)\s*(?:est\s+)?"
-            r"([^\s,;]+(?:\s+(?:point|arobase|at)\s+[^\s,;]+)+)",
-            transcript,
-            re.IGNORECASE,
-        )
-        if spoken:
-            return self._normalize_spoken_email(spoken.group(1))
+        # A literal address anywhere wins.
         direct = re.search(
             r"([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})",
             transcript,
         )
         if direct:
             return direct.group(1).strip().lower()
+        # A phrase introducing a dictated address ("mon email est jean point…").
+        spoken = re.search(
+            r"(?:e-?mail|mail|courriel|adresse mail)\s*(?:est\s+)?"
+            r"([^\s,;]+(?:\s+(?:point|points|dot|arobase|arrobase|at|chez|tiret|underscore)\s+[^\s,;]+)+)",
+            transcript,
+            re.IGNORECASE,
+        )
+        if spoken:
+            got = reconstruct_spoken_email(spoken.group(1))
+            if got:
+                return got
+        # A dictated address with no introducing keyword, but clear spoken
+        # separators ("… arobase …" together with "… point …").
+        if re.search(r"\barobase\b|\bchez\b|@", transcript, re.IGNORECASE) and re.search(
+            r"\bpoint\b|\bdot\b|\.", transcript, re.IGNORECASE
+        ):
+            return reconstruct_spoken_email(transcript)
         return None
 
     def _normalize_spoken_email(self, raw: str) -> str | None:
-        text = (raw or "").strip().lower()
-        text = text.replace(" arobase ", "@").replace(" at ", "@")
-        text = text.replace("arobase", "@").replace(" point ", ".")
-        text = re.sub(r"\s+", "", text)
-        if "@" in text and "." in text.split("@")[-1]:
-            return text
-        return None
+        return reconstruct_spoken_email(raw)
 
     def _normalize(self, data: dict, phone: str, transcript: str) -> dict:
         urgency = (data.get("urgency_level") or "low").lower()

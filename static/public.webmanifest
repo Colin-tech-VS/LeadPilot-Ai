@@ -1,7 +1,7 @@
 {
-  "name": "LeadPilot AI — Artisans de confiance",
-  "short_name": "LeadPilot",
-  "description": "Trouvez un artisan de confiance près de chez vous et réservez en ligne avec LeadPilot AI.",
+  "name": "PilotCore — Artisans de confiance",
+  "short_name": "PilotCore",
+  "description": "Trouvez un artisan de confiance près de chez vous et réservez en ligne avec PilotCore.",
   "lang": "fr",
   "start_url": "/",
   "scope": "/",

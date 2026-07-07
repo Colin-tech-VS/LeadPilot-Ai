@@ -1,7 +1,7 @@
 {
-  "name": "LeadPilot AI Admin",
+  "name": "PilotCore Admin",
   "short_name": "LP Admin",
-  "description": "Console d'administration LeadPilot AI : analytics, trafic, clients et gestion de contenu.",
+  "description": "Console d'administration PilotCore : analytics, trafic, clients et gestion de contenu.",
   "lang": "fr",
   "start_url": "/admin",
   "scope": "/admin",

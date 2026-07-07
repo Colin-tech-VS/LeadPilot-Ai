@@ -49,6 +49,7 @@ from app.services import (
     imap_mailbox,
     social,
     traffic,
+    twilio_admin,
 )
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
@@ -455,40 +456,105 @@ def _pk_value(model, row_id):
     return row_id
 
 
-# ------------------------------------------------------------------ clients
+# ------------------------------------------------------------------ clients / accounts
 @admin_bp.route("/clients")
 @admin_required
 def clients():
-    """Who our customers (particuliers) are — accounts + their bookings."""
-    from app.models.lead import Lead
+    """Particuliers (customers) and artisans (tenants) — unified accounts view."""
+    from app.constants.trades import trade_label
 
-    customers = (
-        User.query.filter(User.role == "customer")
-        .order_by(User.created_at.desc())
-        .limit(500)
-        .all()
-    )
-    rows = []
-    for c in customers:
-        booking_count = Lead.query.filter(Lead.email == c.email).count()
-        rows.append(
-            {
-                "id": str(c.id),
-                "name": c.full_name or "—",
-                "email": c.email,
-                "phone": c.phone or "—",
-                "bookings": booking_count,
-                "created_at": c.created_at,
-            }
-        )
+    tab = request.args.get("tab", "particuliers")
+    if tab not in ("particuliers", "artisans"):
+        tab = "particuliers"
+    q = request.args.get("q", "").strip()
+
     total_customers = User.query.filter(User.role == "customer").count()
+    total_artisans = Tenant.query.count()
+    total_public_artisans = Tenant.query.filter(Tenant.is_public.is_(True)).count()
     total_leads = Lead.query.count()
+
+    customers = []
+    artisans = []
+
+    if tab == "particuliers":
+        query = User.query.filter(User.role == "customer")
+        if q:
+            like = f"%{q}%"
+            query = query.filter(
+                or_(
+                    User.email.ilike(like),
+                    User.first_name.ilike(like),
+                    User.last_name.ilike(like),
+                    User.phone.ilike(like),
+                )
+            )
+        for c in query.order_by(User.created_at.desc()).limit(500).all():
+            booking_count = Lead.query.filter(Lead.email == c.email).count()
+            customers.append(
+                {
+                    "id": str(c.id),
+                    "name": c.full_name or "—",
+                    "email": c.email,
+                    "phone": c.phone or "—",
+                    "bookings": booking_count,
+                    "created_at": c.created_at,
+                }
+            )
+    else:
+        query = Tenant.query
+        if q:
+            like = f"%{q}%"
+            query = query.filter(
+                or_(
+                    Tenant.name.ilike(like),
+                    Tenant.city.ilike(like),
+                    Tenant.postal_code.ilike(like),
+                    Tenant.public_slug.ilike(like),
+                    Tenant.phone_number.ilike(like),
+                    Tenant.ai_phone_number.ilike(like),
+                )
+            )
+        for t in query.order_by(Tenant.created_at.desc()).limit(500).all():
+            admin_user = (
+                User.query.filter(User.tenant_id == t.id, User.role == "admin")
+                .order_by(User.created_at.asc())
+                .first()
+            )
+            lead_count = Lead.query.filter(Lead.tenant_id == t.id).count()
+            artisans.append(
+                {
+                    "id": str(t.id),
+                    "name": t.name,
+                    "trade": trade_label(t.trade_type, "fr"),
+                    "city": t.city or "—",
+                    "email": admin_user.email if admin_user else "—",
+                    "phone": t.ai_phone_number or t.phone_number or "—",
+                    "plan": t.plan or "—",
+                    "is_public": t.is_public,
+                    "public_slug": t.public_slug,
+                    "leads": lead_count,
+                    "created_at": t.created_at,
+                }
+            )
+
     return render_template(
         "admin/clients.html",
-        customers=rows,
+        tab=tab,
+        q=q,
+        customers=customers,
+        artisans=artisans,
         total_customers=total_customers,
+        total_artisans=total_artisans,
+        total_public_artisans=total_public_artisans,
         total_leads=total_leads,
     )
+
+
+# Legacy alias kept for bookmarks
+@admin_bp.route("/clients/")
+@admin_required
+def clients_redirect():
+    return redirect(url_for("admin.clients", **request.args))
 
 
 # ------------------------------------------------------------------ emails
@@ -620,6 +686,14 @@ def emails_sync():
     else:
         flash(f"Échec sync IMAP : {result.get('error', 'erreur inconnue')}", "error")
     return redirect(url_for("admin.emails", box="inbox"))
+
+
+@admin_bp.route("/twilio")
+@admin_required
+def twilio_page():
+    """Twilio balance, usage and billing console links."""
+    status = twilio_admin.collect_status()
+    return render_template("admin/twilio.html", twilio=status)
 
 
 @admin_bp.route("/diagnostics")

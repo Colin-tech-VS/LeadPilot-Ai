@@ -1,4 +1,4 @@
-"""Full system audit for LeadPilot AI.
+"""Full system audit for PilotCore.
 
 Credentials come from the environment so nothing sensitive is committed:
     AUDIT_EMAIL=you@example.com AUDIT_PASSWORD=... python scripts/audit_system.py

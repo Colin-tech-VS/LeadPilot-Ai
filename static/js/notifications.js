@@ -1,4 +1,4 @@
-/* LeadPilot AI — live event notifications (PC + mobile).
+/* PilotCore — live event notifications (PC + mobile).
  * Two surfaces, one poll:
  *   1. A notification centre (bell + panel) in the top bar with an unread
  *      badge, a scrollable history and "mark all read".
@@ -7,7 +7,7 @@
  *      session is open on the web app.
  */
 (function () {
-  var cfg = window.LEADPILOT_NOTIFY || {};
+  var cfg = window.PilotCore_NOTIFY || {};
   var endpoint = cfg.endpoint;
   if (!endpoint) return;
 
@@ -19,7 +19,7 @@
           empty: "No notifications.", now: "just now", min: "min", h: "h", d: "d" },
   }[lang];
 
-  var STORAGE_KEY = "leadpilot:lastNotifSeen:" + (cfg.tenant || "default");
+  var STORAGE_KEY = "PilotCore:lastNotifSeen:" + (cfg.tenant || "default");
   var POLL_MS = 15000;
 
   if ("serviceWorker" in navigator) {

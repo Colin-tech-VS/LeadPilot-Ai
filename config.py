@@ -104,7 +104,7 @@ class Config:
     # The username is not secret. The password is read from ADMIN_PASSWORD
     # (plaintext, preferred in prod) or ADMIN_PASSWORD_HASH. A default hash ships
     # so the console works out of the box; override it in production.
-    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "LeadPilot_Admin")
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "PilotCore_Admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
     ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
@@ -146,7 +146,7 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
     ENV = "development"
-    SQLALCHEMY_DATABASE_URI = Config.DATABASE_URL or "sqlite:///leadpilot_dev.db"
+    SQLALCHEMY_DATABASE_URI = Config.DATABASE_URL or "sqlite:///PilotCore_dev.db"
     # Dev-only fallback so /admin works without extra env vars locally.
     ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH") or (
         ""

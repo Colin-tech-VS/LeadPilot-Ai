@@ -295,6 +295,11 @@ html {
   color: var(--blue-primary);
 }
 
+.auth-switch--zone {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
 .auth-animate {
   opacity: 0;
   transform: translateY(20px);
@@ -1757,6 +1762,7 @@ html {
   width: 100%; max-width: 460px; background: #fff; border: 1px solid var(--border);
   border-radius: 20px; padding: 32px; box-shadow: 0 12px 40px rgba(11,31,51,0.06);
 }
+.customer-auth-card .zone-badge--card { display: inline-block; margin-bottom: 12px; }
 .customer-auth-card h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; color: #0C1220; }
 .customer-auth-sub { margin: 0 0 22px; color: var(--text-muted); font-size: 15px; }
 .customer-auth-card .auth-form label { display: block; font-size: 13px; font-weight: 600; color: #5B7A8C; margin: 14px 0 6px; }
@@ -1769,6 +1775,7 @@ html {
 .auth-forgot { margin: 10px 0 0; text-align: right; font-size: 13px; }
 .auth-forgot a { color: var(--blue-primary); font-weight: 600; }
 .customer-auth-switch { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--text-muted); }
+.customer-auth-switch--zone { margin-top: 10px; font-size: 13px; }
 .customer-auth-switch a { color: var(--blue-primary); font-weight: 600; }
 .customer-auth-legal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--text-muted); }
 .customer-auth-legal a { color: var(--text-muted); text-decoration: underline; }
@@ -1801,6 +1808,7 @@ html {
 /* Customer dashboard */
 .customer-dashboard { padding: 40px 16px 64px; }
 .customer-dashboard-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
+.customer-dashboard-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .customer-dashboard-kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--lp-brand, var(--blue-primary)); }
 .customer-dashboard-head h1 { margin: 0; font-size: clamp(1.6rem, 3vw, 2rem); font-weight: 800; color: #0C1220; }
 .customer-dashboard-sub { margin: 8px 0 0; color: var(--text-muted); }

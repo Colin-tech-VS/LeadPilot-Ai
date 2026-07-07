@@ -1,4 +1,4 @@
--- LeadPilot AI schema (Supabase / PostgreSQL)
+-- PilotCore schema (Supabase / PostgreSQL)
 -- Tables are also created automatically by Flask on first boot (db.create_all).
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

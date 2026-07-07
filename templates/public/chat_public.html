@@ -1,10 +1,7 @@
 {% extends "layouts/public.html" %}
+{% set nav_active = 'directory' %}
 
 {% block title %}{{ tenant.name }} — {{ _('chatbot.title') }}{% endblock %}
-
-{% block public_nav %}
-<a href="{{ url_for('web.client_home') }}" class="public-nav-link">{{ _('app.name') }}</a>
-{% endblock %}
 
 {% block content %}
 <div class="container chat-public-wrap">

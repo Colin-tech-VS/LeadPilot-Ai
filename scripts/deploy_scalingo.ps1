@@ -1,4 +1,4 @@
-# Deploy LeadPilot AI to Scalingo + Supabase
+# Deploy PilotCore to Scalingo + Supabase
 # Usage (PowerShell):
 #   $env:SCALINGO_API_TOKEN = "your-token"
 #   $env:DATABASE_URL = "postgresql://postgres.REF:PASSWORD@...pooler.supabase.com:6543/postgres"
@@ -9,7 +9,7 @@
 #   .\scripts\deploy_scalingo.ps1
 
 param(
-    [string]$AppName = "leadpilot-ai",
+    [string]$AppName = "PilotCore-ai",
     [string]$Region = "osc-fr1",
     [string]$ScalingoExe = ""
 )
@@ -76,7 +76,7 @@ Set-EnvVar "PUBLIC_BASE_URL" $publicBaseUrl
 Set-EnvVar "SECRET_KEY" $env:SECRET_KEY
 Set-EnvVar "JWT_SECRET_KEY" $env:JWT_SECRET_KEY
 Set-EnvVar "DATABASE_URL" $env:DATABASE_URL
-Set-EnvVar "ADMIN_USERNAME" $(if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "LeadPilot_Admin" })
+Set-EnvVar "ADMIN_USERNAME" $(if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "PilotCore_Admin" })
 Set-EnvVar "ADMIN_PASSWORD" $env:ADMIN_PASSWORD
 Set-EnvVar "WEBHOOK_SECRET" $env:WEBHOOK_SECRET
 Set-EnvVar "EMAIL_INBOUND_SECRET" $env:EMAIL_INBOUND_SECRET

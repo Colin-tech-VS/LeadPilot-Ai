@@ -2,6 +2,7 @@
 {% from 'macros/trade_picker.html' import trade_select %}
 {% from 'macros/artisan_card.html' import artisan_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'directory' %}
 
 {% block title %}{{ _('directory.meta_title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-directory{% endblock %}
@@ -10,72 +11,51 @@
 {{ seo_meta(_('directory.meta_title') ~ ' — ' ~ _('app.name'), _('directory.meta_description'), '/artisans', _('client.meta_keywords'), 'website', None, 'index, follow', None, lang) }}
 {% endblock %}
 
-{% block public_nav %}
-<a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
-<a href="{{ url_for('web.artisan_directory') }}" class="active">{{ _('client.nav_directory') }}</a>
-<a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-<a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
-<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">{{ _('directory.nav_pro_cta') }}</a>
-{% endblock %}
-
 {% block content %}
-<section class="v-hero v-section--tight" style="padding-bottom:32px;">
-  <div class="container">
-    <p class="v-kicker">{{ _('directory.hero_kicker') }}</p>
-    <h1 style="font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-0.04em;text-align:center;margin:0 auto 16px;max-width:640px;">{{ _('directory.hero_title') }}</h1>
-    <p class="v-hero-lead">{{ _('directory.hero_subtitle') }}</p>
+<section class="dl-hero dl-hero--compact">
+  <div class="container dl-hero-inner">
+    <h1 class="dl-hero-title dl-hero-title--sm">{{ _('directory.hero_title') }}</h1>
 
-    <div class="v-search-wrap">
-      <form class="v-search-primary" id="directory-ai-form" role="search">
-        <input type="search" id="directory-ai-input" name="q"
-               value="{{ request.args.get('ai', '') }}"
-               placeholder="{{ _('directory.ai_placeholder') }}"
-               aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
-        <button type="submit" class="btn btn-primary btn-lg">
-          <span class="directory-ai-btn-label">{{ _('directory.ai_btn') }}</span>
-          <span class="directory-search-spinner" aria-hidden="true"></span>
-        </button>
-      </form>
-      <p class="v-search-hint">{{ _('directory.ai_hint') }}</p>
-      <p class="directory-ai-understood" id="directory-ai-understood" hidden></p>
-
-      <details class="v-search-classic">
-        <summary>{{ _('vitrine.classic_search') }}</summary>
-        <form class="directory-search" id="directory-search-form" method="GET" action="{{ url_for('web.artisan_directory') }}">
-      <div class="directory-search-grid">
-        <label>
-          <span>{{ _('directory.search_what') }}</span>
-          <input type="search" name="q" value="{{ filters.q }}" placeholder="{{ _('directory.search_what_ph') }}" autocomplete="off">
+    <form class="dl-search" id="directory-search-form" role="search">
+      <div class="dl-search-fields">
+        <label class="dl-search-field">
+          <span class="dl-search-label">{{ _('directory.search_what') }}</span>
+          <input type="search" id="directory-ai-input" name="q"
+                 value="{{ request.args.get('ai', '') or filters.q }}"
+                 placeholder="{{ _('directory.ai_placeholder') }}" autocomplete="off">
         </label>
-        <label>
-          <span>{{ _('directory.search_trade') }}</span>
-          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
-        </label>
-        <label>
-          <span>{{ _('directory.search_where') }}</span>
+        <label class="dl-search-field">
+          <span class="dl-search-label">{{ _('directory.search_where') }}</span>
           <input type="text" name="ville" value="{{ filters.ville }}" placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
         </label>
-        <button type="submit" class="btn btn-primary btn-lg directory-search-btn">
-          <span class="directory-search-btn-inner">
-            <span class="directory-search-btn-label">{{ _('directory.search_btn') }}</span>
-            <span class="directory-search-spinner" aria-hidden="true"></span>
-          </span>
+        <button type="submit" class="btn btn-primary dl-search-btn">
+          <span class="directory-ai-btn-label">{{ _('directory.search_btn') }}</span>
+          <span class="directory-search-spinner" aria-hidden="true"></span>
         </button>
       </div>
-        </form>
-      </details>
-    </div>
+    </form>
+    <p class="directory-ai-understood" id="directory-ai-understood" hidden></p>
 
-    <div class="v-chips">
-      {% for t in trades[:8] %}
-      <a href="?metier={{ t.key }}" class="v-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
+    <details class="dl-search-classic">
+      <summary>{{ _('vitrine.classic_search') }}</summary>
+      <div class="dl-search-fields dl-search-fields--classic">
+        <label class="dl-search-field">
+          <span class="dl-search-label">{{ _('directory.search_trade') }}</span>
+          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
+        </label>
+      </div>
+    </details>
+
+    <div class="dl-chips">
+      {% for t in trades[:10] %}
+      <a href="?metier={{ t.key }}" class="dl-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
       {% endfor %}
-      <a href="?metier=" class="v-chip">{{ _('directory.all_trades') }}</a>
+      <a href="?metier=" class="dl-chip">{{ _('directory.all_trades') }}</a>
     </div>
   </div>
 </section>
 
-<section class="directory-results landing-section" id="directory-results"
+<section class="dl-results-section directory-results" id="directory-results"
          data-loading="{{ _('directory.loading') }}"
          data-error="{{ _('directory.search_error') }}"
          data-count-tpl="{{ _('directory.results_count', count='{count}') }}"
@@ -90,34 +70,24 @@
          data-ai-where="{{ _('directory.ai_understood_where', city='{city}') }}"
          data-ai-relaxed="{{ _('directory.ai_relaxed') }}">
   <div class="container">
-    <p class="directory-count" id="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
+    <p class="dl-results-count" id="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
 
-    <div class="directory-grid" id="directory-grid" {% if not artisans %}hidden{% endif %}>
+    <div class="dl-results-list" id="directory-grid" {% if not artisans %}hidden{% endif %}>
       {% for a in artisans %}
       {{ artisan_card(a, trades) }}
       {% endfor %}
     </div>
 
-    <div class="directory-empty" id="directory-empty" {% if artisans %}hidden{% endif %}>
-      <div class="directory-empty-icon" aria-hidden="true">🔍</div>
+    <div class="dl-empty" id="directory-empty" {% if artisans %}hidden{% endif %}>
+      <div class="dl-empty-icon" aria-hidden="true">🔍</div>
       <p>{{ _('directory.empty') }}</p>
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary">{{ _('directory.empty_cta') }}</a>
+      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline">{{ _('directory.empty_cta') }}</a>
     </div>
-  </div>
-</section>
-
-<section class="v-pro-band">
-  <div class="container v-pro-band-inner">
-    <div>
-      <h2>{{ _('directory.pro_title') }}</h2>
-      <p>{{ _('directory.pro_subtitle') }}</p>
-    </div>
-    <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('directory.pro_cta') }}</a>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=3"></script>
 {% endblock %}

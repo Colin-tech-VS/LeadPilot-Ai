@@ -3,14 +3,14 @@
 {% if keywords %}<meta name="keywords" content="{{ keywords }}">{% endif %}
 <link rel="canonical" href="{{ canonical_url(path) }}">
 <meta name="robots" content="{{ robots }}">
-<meta property="og:site_name" content="LeadPilot AI">
+<meta property="og:site_name" content="PilotCore">
 <meta property="og:type" content="{{ og_type }}">
 <meta property="og:title" content="{{ title }}">
 <meta property="og:description" content="{{ description }}">
 <meta property="og:url" content="{{ canonical_url(path) }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <meta property="og:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
-<meta property="og:image:alt" content="LeadPilot AI — logo">
+<meta property="og:image:alt" content="PilotCore — logo">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ title }}">
 <meta name="twitter:description" content="{{ description }}">

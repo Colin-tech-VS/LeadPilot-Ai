@@ -378,10 +378,17 @@ def artisan_directory_ai_search():
 @web_bp.route("/artisans/<slug>", methods=["GET"])
 def artisan_profile(slug):
     from flask import abort
+    from urllib.parse import quote
 
-    from app.constants.trades import trade_icon, trade_label
+    from app.constants.trades import trade_icon, trade_label, trade_schema_type
     from app.services.artisan_directory import get_public_artisan_by_slug
     from app.services.availability import list_available_slots
+
+    def _tel_href(phone):
+        if not phone:
+            return None
+        cleaned = "".join(c for c in phone.strip() if c.isdigit() or c == "+")
+        return f"tel:{cleaned}" if cleaned else None
 
     tenant = get_public_artisan_by_slug(slug)
     if not tenant:
@@ -401,14 +408,42 @@ def artisan_profile(slug):
 
     customer_profile = customer_session_payload()
     pending_booking = session.get("pending_booking")
+
+    primary_phone = tenant.ai_phone_number or tenant.phone_number
+    secondary_phone = (
+        tenant.phone_number
+        if tenant.ai_phone_number
+        and tenant.phone_number
+        and tenant.ai_phone_number.strip() != tenant.phone_number.strip()
+        else None
+    )
+    has_map = bool(tenant.latitude and tenant.longitude)
+    full_address = tenant.full_address or None
+    has_address = bool(tenant.address or tenant.city or tenant.postal_code)
+    maps_url = None
+    if has_map:
+        maps_url = f"https://www.google.com/maps?q={tenant.latitude},{tenant.longitude}"
+    elif full_address:
+        maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(full_address)}"
+
     return render_template(
         "public/artisan_profile.html",
         tenant=tenant,
         trade_label=trade_label(tenant.trade_type, lang),
         trade_icon=trade_icon(tenant.trade_type),
+        trade_schema_type=trade_schema_type(tenant.trade_type),
         slot_items=slot_items,
         customer_profile=customer_profile,
         pending_booking=pending_booking,
+        primary_phone=primary_phone,
+        primary_is_ai=bool(tenant.ai_phone_number),
+        secondary_phone=secondary_phone,
+        tel_primary=_tel_href(primary_phone),
+        tel_secondary=_tel_href(secondary_phone),
+        has_map=has_map,
+        has_address=has_address,
+        full_address=full_address,
+        maps_url=maps_url,
     )
 
 

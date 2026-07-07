@@ -1,11 +1,11 @@
 {% extends "layouts/pro.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('login.title') ~ ' — ' ~ _('app.name'), _('login.tagline'), '/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 {% from 'macros/brand.html' import brand_logo with context %}
 
 {% block body_class %}page-login{% endblock %}
 {% block title %}{{ _('login_suffix') }} — {{ _('app.name') }}{% endblock %}
-{% block pro_nav %}{% endblock %}
 
 {% block content %}
 <div class="auth-split auth-split-reverse">
@@ -50,6 +50,10 @@
       <p class="auth-switch">
         {{ _('login.no_account') }}
         <a href="{{ url_for('web.register') }}">{{ _('login.register_link') }}</a>
+      </p>
+      <p class="auth-switch auth-switch--zone">
+        {{ _('auth.switch_to_client') }}
+        <a href="{{ url_for('customer.login') }}">{{ _('auth.switch_to_client_link') }}</a>
       </p>
     </div>
   </section>

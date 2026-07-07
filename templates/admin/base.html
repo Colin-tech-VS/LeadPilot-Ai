@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>{% block title %}Admin · LeadPilot AI{% endblock %}</title>
+  <title>{% block title %}Admin · PilotCore{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
@@ -15,11 +15,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="LeadPilot Admin">
+  <meta name="apple-mobile-web-app-title" content="PilotCore Admin">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=6">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -29,7 +29,7 @@
       <div class="admin-brand">
         {{ brand_logo('sm', 'admin', false) }}
         <div>
-          <strong>LeadPilot AI</strong>
+          <strong>PilotCore</strong>
           <span class="admin-brand-sub">Admin Console</span>
           <span class="zone-badge">{{ _('zone.admin') }}</span>
         </div>
@@ -54,7 +54,7 @@
         </a>
         <div class="admin-nav-sep">Système</div>
         <a href="{{ url_for('admin.clients') }}" class="{% if request.endpoint == 'admin.clients' %}active{% endif %}">
-          <span class="nav-ico">👥</span> Clients
+          <span class="nav-ico">👥</span> Comptes
         </a>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
           <span class="nav-ico">🗄️</span> Base de données
@@ -64,6 +64,9 @@
         </a>
         <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
           <span class="nav-ico">📜</span> Journal
+        </a>
+        <a href="{{ url_for('admin.twilio_page') }}" class="{% if request.endpoint == 'admin.twilio_page' %}active{% endif %}">
+          <span class="nav-ico">📞</span> Twilio
         </a>
         <a href="{{ url_for('admin.diagnostics_page') }}" class="{% if request.endpoint == 'admin.diagnostics_page' %}active{% endif %}">
           <span class="nav-ico">🩺</span> Diagnostics

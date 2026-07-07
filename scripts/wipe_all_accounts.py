@@ -4,7 +4,7 @@ L'admin /admin n'est PAS dans la table users — auth via ADMIN_PASSWORD env.
 Les offres tarifaires (table offers) sont conservées.
 
 Usage local :    python scripts/wipe_all_accounts.py
-Usage Scalingo : scalingo --app leadpilot-ai run python scripts/wipe_all_accounts.py
+Usage Scalingo : scalingo --app PilotCore-ai run python scripts/wipe_all_accounts.py
 Dry-run :        python scripts/wipe_all_accounts.py --dry-run
 """
 import sys

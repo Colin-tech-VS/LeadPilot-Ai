@@ -23,7 +23,7 @@ def geocode_address(address: str) -> tuple[float, float] | None:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/search",
             params={"q": address.strip(), "format": "json", "limit": 1},
-            headers={"User-Agent": "LeadPilotAI/1.0 (plumber-saas)"},
+            headers={"User-Agent": "PilotCoreAI/1.0 (plumber-saas)"},
             timeout=8,
         )
         _last_request_at = time.time()

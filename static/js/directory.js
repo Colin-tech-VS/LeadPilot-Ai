@@ -43,28 +43,25 @@
   function cardHtml(a) {
     const icon = escapeHtml(a.trade_icon || "🛠️");
     const city = a.city || labels.cityUnknown || "";
-    const postal = a.postal_code ? " (" + a.postal_code + ")" : "";
+    const postal = a.postal_code ? " · " + a.postal_code : "";
     const radius = a.radius_km ? " · " + (labels.radiusTpl || "{km} km").replace("{km}", a.radius_km) : "";
-    const blurb = a.blurb || (labels.defaultBlurbTpl || "Artisan {trade}")
-      .replace("{trade}", a.trade_label || "").replace("{name}", a.name || "");
+    const blurb = a.blurb
+      ? '<p class="dl-card-blurb">' + escapeHtml(a.blurb) + "</p>"
+      : "";
     return (
-      '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="directory-card">' +
-        '<div class="directory-card-top">' +
-          '<div class="directory-card-avatar">' + icon + "</div>" +
-          '<div class="directory-card-heading">' +
-            "<h2>" + escapeHtml(a.name) + "</h2>" +
-            '<span class="directory-card-trade">' + icon + " " + escapeHtml(a.trade_label || "") + "</span>" +
+      '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="dl-card directory-card">' +
+        '<div class="dl-card-main">' +
+          '<div class="dl-card-avatar" aria-hidden="true">' + icon + "</div>" +
+          '<div class="dl-card-info">' +
+            '<h2 class="dl-card-name">' + escapeHtml(a.name) + "</h2>" +
+            '<p class="dl-card-specialty">' + icon + " " + escapeHtml(a.trade_label || "") + "</p>" +
+            '<p class="dl-card-location">📍 ' + escapeHtml(city + postal + radius) + "</p>" +
+            blurb +
           "</div>" +
-          '<span class="directory-card-verified">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
         "</div>" +
-        '<div class="directory-card-body">' +
-          '<p class="directory-card-city">📍 ' + escapeHtml(city + postal + radius) + "</p>" +
-          '<p class="directory-card-blurb">' + escapeHtml(blurb) + "</p>" +
-          '<div class="directory-card-features">' +
-            '<span class="directory-card-feature">⚡ ' + escapeHtml(labels.featureOnline || "RDV en ligne") + "</span>" +
-            '<span class="directory-card-feature">🕐 ' + escapeHtml(labels.feature247 || "Réponse 24/7") + "</span>" +
-          "</div>" +
-          '<span class="directory-card-cta">' + escapeHtml(labels.bookCta || "Prendre RDV") + " →</span>" +
+        '<div class="dl-card-aside">' +
+          '<span class="dl-card-badge">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
+          '<span class="dl-card-cta btn btn-primary">' + escapeHtml(labels.bookCta || "Prendre RDV") + "</span>" +
         "</div>" +
       "</a>"
     );
@@ -131,7 +128,12 @@
   let debounce;
   form.addEventListener("submit", function (e) {
     e.preventDefault();
-    runSearch();
+    const aiInput = document.getElementById("directory-ai-input");
+    if (aiInput && aiInput.value.trim()) {
+      runAiSearch();
+    } else {
+      runSearch();
+    }
   });
 
   form.querySelectorAll("input, select").forEach(function (el) {
@@ -146,7 +148,6 @@
   });
 
   // --- AI / natural-language search ---------------------------------------
-  const aiForm = document.getElementById("directory-ai-form");
   const aiInput = document.getElementById("directory-ai-input");
   const aiUnderstood = document.getElementById("directory-ai-understood");
 
@@ -185,7 +186,7 @@
     const query = aiInput.value.trim();
     if (!query) return;
     setLoading(true);
-    if (aiForm) aiForm.classList.add("is-loading");
+    form.classList.add("is-loading");
     try {
       const res = await fetch("/api/public/artisans/ai-search", {
         method: "POST",
@@ -203,23 +204,19 @@
       if (emptyEl) emptyEl.hidden = false;
     } finally {
       setLoading(false);
-      if (aiForm) aiForm.classList.remove("is-loading");
+      form.classList.remove("is-loading");
     }
   }
 
-  if (aiForm) {
-    aiForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      runAiSearch();
-    });
+  if (aiInput) {
     // Handoff from the homepage: /artisans?ai=<query> pre-fills the AI input,
     // so run the AI search automatically on load.
-    if (aiInput && aiInput.value.trim()) {
+    if (aiInput.value.trim()) {
       runAiSearch();
     }
   }
 
-  document.querySelectorAll(".directory-chip[data-trade]").forEach(function (chip) {
+  document.querySelectorAll(".dl-chip[data-trade], .directory-chip[data-trade]").forEach(function (chip) {
     chip.addEventListener("click", function (e) {
       e.preventDefault();
       const sel = form.querySelector('[name="metier"]');

@@ -1,4 +1,4 @@
-/* LeadPilot AI — "Install the app" prompt.
+/* PilotCore — "Install the app" prompt.
  * Captures the browser's beforeinstallprompt event and surfaces a floating
  * button so the user can add the dashboard to their home screen. On iOS
  * (which never fires the event) it shows a short "Add to Home Screen" hint. */
@@ -18,7 +18,7 @@
     },
   }[lang];
 
-  var DISMISS_KEY = "leadpilot:installDismissed";
+  var DISMISS_KEY = "PilotCore:installDismissed";
 
   function isStandalone() {
     return (

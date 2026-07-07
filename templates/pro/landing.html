@@ -1,5 +1,6 @@
 {% extends "layouts/pro.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'home' %}
 
 {% block title %}{{ _('pro.meta_title') }}{% endblock %}
 {% block body_class %}page-landing{% endblock %}
@@ -9,7 +10,7 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "LeadPilot AI Pro",
+  "name": "PilotCore Pro",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
   "description": {{ _('pro.meta_description')|tojson }},

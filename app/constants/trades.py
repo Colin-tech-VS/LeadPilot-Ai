@@ -19,6 +19,24 @@ TRADES = {
 
 DEFAULT_TRADE = "plombier"
 
+# schema.org @type for local SEO on artisan profile pages
+TRADE_SCHEMA_TYPES = {
+    "plombier": "Plumber",
+    "serrurier": "Locksmith",
+    "electricien": "Electrician",
+    "chauffagiste": "HVACBusiness",
+    "climaticien": "HVACBusiness",
+    "vitrier": "HomeAndConstructionBusiness",
+    "menuisier": "HomeAndConstructionBusiness",
+    "peintre": "HousePainter",
+    "macon": "HomeAndConstructionBusiness",
+    "couvreur": "RoofingContractor",
+    "carreleur": "HomeAndConstructionBusiness",
+    "charpentier": "HomeAndConstructionBusiness",
+    "paysagiste": "LandscapingBusiness",
+    "autre": "HomeAndConstructionBusiness",
+}
+
 
 def trade_label(trade_key: str | None, lang: str = "fr") -> str:
     key = trade_key if trade_key in TRADES else DEFAULT_TRADE
@@ -29,6 +47,11 @@ def trade_label(trade_key: str | None, lang: str = "fr") -> str:
 def trade_icon(trade_key: str | None) -> str:
     key = trade_key if trade_key in TRADES else DEFAULT_TRADE
     return TRADES[key]["icon"]
+
+
+def trade_schema_type(trade_key: str | None) -> str:
+    key = trade_key if trade_key in TRADES else DEFAULT_TRADE
+    return TRADE_SCHEMA_TYPES.get(key, "HomeAndConstructionBusiness")
 
 
 def trade_choices(lang: str = "fr") -> list[dict]:

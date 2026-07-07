@@ -1,7 +1,7 @@
-/* LeadPilot AI — service worker (PWA shell + notifications) */
+/* PilotCore — service worker (PWA shell + notifications) */
 /* Bump CACHE on every asset change: the activate handler purges every older
    cache, so returning users can never be stuck on a stale bundle. */
-const CACHE = "leadpilot-v5";
+const CACHE = "PilotCore-v5";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",
@@ -89,12 +89,12 @@ self.addEventListener("push", (event) => {
   } catch (e) {
     data = { body: event.data && event.data.text() };
   }
-  const title = data.title || "LeadPilot AI";
+  const title = data.title || "PilotCore";
   const options = {
     body: data.body || "Nouveau rendez-vous planifié.",
     icon: "/static/images/logo.svg",
     badge: "/static/images/logo.svg",
-    tag: data.tag || "leadpilot-appointment",
+    tag: data.tag || "PilotCore-appointment",
     data: { url: data.url || "/dashboard" },
   };
   event.waitUntil(self.registration.showNotification(title, options));

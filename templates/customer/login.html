@@ -1,19 +1,17 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
-{% block meta %}{{ seo_meta('Connexion client — ' ~ _('app.name'), _('client.meta_description'), '/client/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
+{% set nav_active = 'login' %}
+{% block meta %}{{ seo_meta(_('customer.login.title') ~ ' — ' ~ _('app.name'), _('customer.login.subtitle'), '/client/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
-{% block title %}Connexion client — {{ _('app.name') }}{% endblock %}
+{% block title %}{{ _('customer.login.title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-customer-auth{% endblock %}
-
-{% block public_nav %}
-<a href="{{ url_for('web.artisan_directory') }}">← Trouver un artisan</a>
-{% endblock %}
 
 {% block content %}
 <section class="customer-auth">
   <div class="customer-auth-card">
-    <h1>Connexion</h1>
-    <p class="customer-auth-sub">Accédez à votre espace pour réserver et suivre vos rendez-vous.</p>
+    <span class="zone-badge zone-badge--card">{{ _('zone.public') }}</span>
+    <h1>{{ _('customer.login.title') }}</h1>
+    <p class="customer-auth-sub">{{ _('customer.login.subtitle') }}</p>
 
     {% if request.args.get('reset') %}<div class="alert alert-success">{{ _('login.reset_success') }}</div>{% endif %}
     {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
@@ -23,17 +21,19 @@
       <label for="email">E-mail</label>
       <input type="email" id="email" name="email" required autofocus placeholder="vous@email.fr">
 
-      <label for="password">Mot de passe</label>
+      <label for="password">{{ _('login.password') }}</label>
       <input type="password" id="password" name="password" required>
 
-      <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
-
-      <button type="submit" class="btn btn-primary btn-block btn-lg">Se connecter</button>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('customer.login.submit') }}</button>
     </form>
 
     <p class="customer-auth-switch">
-      Pas encore de compte ?
-      <a href="{{ url_for('customer.register', next=next) }}">Créer un compte</a>
+      {{ _('customer.login.no_account') }}
+      <a href="{{ url_for('customer.register', next=next) }}">{{ _('customer.login.register_link') }}</a>
+    </p>
+    <p class="customer-auth-switch customer-auth-switch--zone">
+      {{ _('auth.switch_to_pro') }}
+      <a href="{{ url_for('web.login') }}">{{ _('auth.switch_to_pro_link') }}</a>
     </p>
   </div>
 </section>

@@ -2,6 +2,7 @@
 {% from 'macros/trade_picker.html' import trade_select %}
 {% from 'macros/artisan_card.html' import artisan_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'home' %}
 
 {% block title %}{{ _('client.meta_title') }}{% endblock %}
 {% block body_class %}page-client-home{% endblock %}
@@ -11,12 +12,12 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "LeadPilot AI",
+  "name": {{ _('app.name')|tojson }},
   "url": {{ site_base_url()|tojson }},
   "description": {{ _('client.meta_description')|tojson }},
   "potentialAction": {
     "@type": "SearchAction",
-    "target": {{ (canonical_url('/artisans') ~ '?q={search_term_string}')|tojson }},
+    "target": {{ (canonical_url('/artisans') ~ '?ai={search_term_string}')|tojson }},
     "query-input": "required name=search_term_string"
   }
 }
@@ -24,147 +25,42 @@
 {{ seo_meta(_('client.meta_title'), _('client.meta_description'), '/', _('client.meta_keywords'), 'website', None, 'index, follow', site_ld, lang) }}
 {% endblock %}
 
-{% block public_nav %}
-<a href="{{ url_for('web.client_home') }}" class="active">{{ _('vitrine.nav_home') }}</a>
-<a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
-<a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-<a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
-<a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline btn-sm">{{ _('directory.nav_pro_cta') }}</a>
-{% endblock %}
-
 {% block content %}
-{# ── 1. Hero : recherche + mock réservation ── #}
-<section class="v-hero v-hero--client v-hero--mesh">
-  <div class="container v-hero-client-grid">
-    <div>
-      <p class="v-kicker">{{ _('client.hero_kicker') }}</p>
-      <h1>{{ _('client.hero_title') }}</h1>
-      <p class="v-hero-lead">{{ _('client.hero_subtitle') }}</p>
-      <div class="v-trust-pills">
-        <span class="v-trust-pill">{{ _('client.pill_instant') }}</span>
-        <span class="v-trust-pill">{{ _('client.pill_verified') }}</span>
-        <span class="v-trust-pill">{{ _('client.pill_247') }}</span>
-      </div>
-      <div class="v-search-wrap v-search-wrap--hero">
-        <form class="v-search-primary" action="{{ url_for('web.artisan_directory') }}" method="GET">
-          <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}"
-                 aria-label="{{ _('directory.ai_label') }}" autocomplete="off">
-          <button type="submit" class="btn btn-primary btn-lg">{{ _('client.search_cta') }}</button>
-        </form>
-        <p class="v-search-hint">{{ _('directory.ai_hint') }}</p>
-      </div>
-    </div>
-    <div class="v-booking-preview v-reveal" id="booking-preview" aria-hidden="true">
-      <div class="v-booking-preview-head">
-        <div class="v-booking-avatar">🔧</div>
-        <div>
-          <strong>{{ _('client.preview_artisan') }}</strong>
-          <span>{{ _('client.preview_meta') }}</span>
-        </div>
-      </div>
-      <div class="v-booking-preview-body">
-        <p class="v-book-label">{{ _('client.preview_slots') }}</p>
-        <div class="v-book-slots">
-          <div class="v-book-slot">{{ _('client.preview_slot_1') }}</div>
-          <div class="v-book-slot">{{ _('client.preview_slot_2') }}</div>
-          <div class="v-book-slot">{{ _('client.preview_slot_3') }}</div>
-        </div>
-        <div class="v-book-confirm">✓ {{ _('client.preview_confirmed') }}</div>
-      </div>
-    </div>
-  </div>
-</section>
+<section class="dl-hero">
+  <div class="container dl-hero-inner">
+    <h1 class="dl-hero-title">{{ _('client.hero_title') }}</h1>
+    <p class="dl-hero-lead">{{ _('client.hero_subtitle') }}</p>
 
-{# ── 2. Bandeau avantages : ligne fine, pas de cartes ── #}
-<section class="v-benefit-strip" aria-label="{{ _('vitrine.tools_title') }}">
-  <div class="container v-benefit-strip-inner">
-    <div class="v-benefit-item v-reveal">
-      <span class="v-benefit-num">01</span>
-      <div>
-        <strong>{{ _('client.tool_1_title') }}</strong>
-        <p>{{ _('client.tool_1_desc') }}</p>
+    <form class="dl-search" action="{{ url_for('web.artisan_directory') }}" method="GET" role="search">
+      <div class="dl-search-fields">
+        <label class="dl-search-field">
+          <span class="dl-search-label">{{ _('directory.search_what') }}</span>
+          <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}" autocomplete="off" autofocus>
+        </label>
+        <label class="dl-search-field">
+          <span class="dl-search-label">{{ _('directory.search_where') }}</span>
+          <input type="text" name="ville" placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
+        </label>
+        <button type="submit" class="btn btn-primary dl-search-btn">{{ _('directory.search_btn') }}</button>
       </div>
-    </div>
-    <div class="v-benefit-divider" aria-hidden="true"></div>
-    <div class="v-benefit-item v-reveal v-reveal-delay-1">
-      <span class="v-benefit-num">02</span>
-      <div>
-        <strong>{{ _('client.tool_2_title') }}</strong>
-        <p>{{ _('client.tool_2_desc') }}</p>
-      </div>
-    </div>
-    <div class="v-benefit-divider" aria-hidden="true"></div>
-    <div class="v-benefit-item v-reveal v-reveal-delay-2">
-      <span class="v-benefit-num">03</span>
-      <div>
-        <strong>{{ _('client.tool_3_title') }}</strong>
-        <p>{{ _('client.tool_3_desc') }}</p>
-      </div>
-    </div>
-  </div>
-</section>
+    </form>
 
-{# ── 3. Urgences : fond sombre, cartes colorées ── #}
-<section class="v-section v-section--urgency">
-  <div class="container">
-    <div class="v-section-head v-section-head--left v-reveal">
-      <p class="v-kicker v-kicker--light">{{ _('client.scenarios_kicker') }}</p>
-      <h2>{{ _('client.scenarios_title') }}</h2>
-      <p class="v-section-lead-light">{{ _('client.scenarios_subtitle') }}</p>
+    <div class="dl-chips" aria-label="{{ _('directory.search_trade') }}">
+      {% for t in trades[:10] %}
+      <a href="{{ url_for('web.artisan_directory', metier=t.key) }}" class="dl-chip">{{ t.icon }} {{ t.label }}</a>
+      {% endfor %}
     </div>
-    <div class="v-scenario-grid v-scenario-grid--accent">
-      <a href="{{ url_for('web.artisan_directory', metier='plombier') }}?ai=fuite"
-         class="v-scenario-card v-scenario-card--water v-reveal">
-        <span class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</span>
-        <div class="v-scenario-icon">💧</div>
-        <h3>{{ _('client.scenario_1_title') }}</h3>
-        <p>{{ _('client.scenario_1_desc') }}</p>
-        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
-      </a>
-      <a href="{{ url_for('web.artisan_directory', metier='electricien') }}?ai=panne"
-         class="v-scenario-card v-scenario-card--electric v-reveal v-reveal-delay-1">
-        <span class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</span>
-        <div class="v-scenario-icon">⚡</div>
-        <h3>{{ _('client.scenario_2_title') }}</h3>
-        <p>{{ _('client.scenario_2_desc') }}</p>
-        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
-      </a>
-      <a href="{{ url_for('web.artisan_directory', metier='serrurier') }}?ai=porte"
-         class="v-scenario-card v-scenario-card--lock v-reveal v-reveal-delay-2">
-        <span class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</span>
-        <div class="v-scenario-icon">🔑</div>
-        <h3>{{ _('client.scenario_3_title') }}</h3>
-        <p>{{ _('client.scenario_3_desc') }}</p>
-        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
-      </a>
-    </div>
-  </div>
-</section>
-
-{# ── 4. CTA pleine largeur ── #}
-<section class="v-strip-cta v-reveal">
-  <div class="container v-strip-cta-inner">
-    <div class="v-strip-cta-copy">
-      <h2>{{ _('client.book_cta_title') }}</h2>
-      <p>{{ _('client.book_cta_sub') }}</p>
-    </div>
-    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-light btn-lg v-strip-cta-btn">
-      {{ _('client.book_cta_btn') }} →
-    </a>
   </div>
 </section>
 
 {% if featured_artisans %}
-{# ── 5. Artisans : layout éditorial ── #}
-<section class="v-section v-section--featured">
-  <div class="container v-featured-layout">
-    <aside class="v-featured-aside v-reveal">
-      <p class="v-kicker">{{ _('client.featured_kicker') }}</p>
+<section class="dl-results-section">
+  <div class="container">
+    <div class="dl-results-head">
       <h2>{{ _('client.featured_title') }}</h2>
-      <p>{{ _('client.featured_subtitle') }}</p>
-      <a href="{{ url_for('web.artisan_directory') }}" class="v-featured-link">{{ _('client.browse_all') }} →</a>
-    </aside>
-    <div class="directory-grid v-featured-grid">
+      <a href="{{ url_for('web.artisan_directory') }}" class="dl-results-more">{{ _('client.browse_all') }} →</a>
+    </div>
+    <div class="dl-results-list">
       {% for a in featured_artisans %}
       {{ artisan_card(a, trades) }}
       {% endfor %}
@@ -172,42 +68,6 @@
   </div>
 </section>
 {% endif %}
-
-{# ── 6. Étapes : timeline horizontale ── #}
-<section class="v-section v-section--steps">
-  <div class="container">
-    <h2 class="v-steps-heading v-reveal">{{ _('client.steps_title') }}</h2>
-    <ol class="v-timeline v-reveal">
-      <li class="v-timeline-step">
-        <span class="v-timeline-dot">1</span>
-        <strong>{{ _('client.step_1_title') }}</strong>
-        <p>{{ _('client.step_1_desc') }}</p>
-      </li>
-      <li class="v-timeline-step">
-        <span class="v-timeline-dot">2</span>
-        <strong>{{ _('client.step_2_title') }}</strong>
-        <p>{{ _('client.step_2_desc') }}</p>
-      </li>
-      <li class="v-timeline-step">
-        <span class="v-timeline-dot">3</span>
-        <strong>{{ _('client.step_3_title') }}</strong>
-        <p>{{ _('client.step_3_desc') }}</p>
-      </li>
-    </ol>
-  </div>
-</section>
-
-{# ── 7. Pro : bandeau sombre contrasté ── #}
-<section class="v-pro-band v-pro-band--dark">
-  <div class="container v-pro-band-inner">
-    <div>
-      <p class="v-kicker v-kicker--light">{{ _('directory.pro_badge') }}</p>
-      <h2>{{ _('client.pro_band_title') }}</h2>
-      <p>{{ _('client.pro_band_subtitle') }}</p>
-    </div>
-    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light btn-lg">{{ _('client.pro_band_cta') }}</a>
-  </div>
-</section>
 {% endblock %}
 
 {% block scripts %}

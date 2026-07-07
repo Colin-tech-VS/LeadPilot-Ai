@@ -1,6 +1,6 @@
 {
-  "name": "LeadPilot AI — Espace artisan",
-  "short_name": "LeadPilot Pro",
+  "name": "PilotCore — Espace artisan",
+  "short_name": "PilotCore Pro",
   "description": "Standardiste vocal IA et tableau de bord pour artisans : leads, rendez-vous et devis.",
   "lang": "fr",
   "start_url": "/dashboard",

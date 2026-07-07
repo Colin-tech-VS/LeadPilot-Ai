@@ -1,4 +1,4 @@
-# Mise en production — LeadPilot AI
+# Mise en production — PilotCore
 
 Checklist dans l’ordre recommandé.
 
@@ -10,7 +10,7 @@ Checklist dans l’ordre recommandé.
 
 ## 2. Scalingo
 
-- App : `leadpilot-ai` (région `osc-fr1`).
+- App : `PilotCore-ai` (région `osc-fr1`).
 - Script : `.\scripts\deploy_scalingo.ps1` (nécessite `SCALINGO_API_TOKEN`, `DATABASE_URL`, `ADMIN_PASSWORD`).
 - CI GitHub : tests pytest puis deploy (`deploy-scalingo.yml`).
 
@@ -59,7 +59,7 @@ Numéro : **+33 1 59 16 96 91** (`+33159169691`)
 Configurer dans la console Twilio → numéro → **A CALL COMES IN** :
 
 ```
-https://leadpilot-ai.osc-fr1.scalingo.io/voice/inbound
+https://PilotCore-ai.osc-fr1.scalingo.io/voice/inbound
 ```
 
 Méthode : `POST`
@@ -70,7 +70,7 @@ Méthode : `POST`
 2. Webhook endpoint :
 
 ```
-https://leadpilot-ai.osc-fr1.scalingo.io/billing/webhook
+https://PilotCore-ai.osc-fr1.scalingo.io/billing/webhook
 ```
 
 Événements : `checkout.session.completed`, `customer.subscription.*`  

@@ -1,5 +1,6 @@
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/zone_nav.html' import public_zone_nav %}
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
@@ -12,40 +13,31 @@
   {% block meta %}
   {{ seo_meta(_('app.name'), _('landing.meta_description'), '/', None, 'website', None, 'index, follow', None, lang) }}
   {% endblock %}
-  <meta name="theme-color" content="#1B57E0">
+  <meta name="theme-color" content="#0596DE">
   <link rel="manifest" href="{{ url_for('web.public_manifest') }}">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="LeadPilot AI">
+  <meta name="apple-mobile-web-app-title" content="PilotCore">
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=15">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=17">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=18">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=7">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
   {% block head_extra %}{% endblock %}
 </head>
-<body class="zone-public public-page vitrine {% block body_class %}{% endblock %}">
-  <header class="v-header">
+<body class="zone-public public-page vitrine dl-client {% block body_class %}{% endblock %}">
+  <header class="v-header v-header--client">
     <div class="container v-header-inner">
       <a href="{{ url_for('web.client_home') }}" class="v-brand brand">
         {{ brand_logo('md', 'public') }}
         <span class="brand-text">{{ _('app.name') }}</span>
-        <span class="zone-badge">{{ _('zone.public') }}</span>
       </a>
-      <nav class="v-nav public-nav" id="public-nav">
-        {% block public_nav %}
-        <a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
-        <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
-        <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-        {% if session.get('role') == 'customer' %}
-        <a href="{{ url_for('customer.account') }}">{{ _('zone.customer_space') }}</a>
-        {% else %}
-        <a href="{{ url_for('customer.login') }}">{{ _('zone.customer_space') }}</a>
-        {% endif %}
-        {% endblock %}
+      <nav class="v-nav public-nav" id="public-nav" aria-label="{{ _('zone.public') }}">
+        {{ public_zone_nav(nav_active|default('')) }}
       </nav>
       <div class="v-header-end">
         <div class="lang-switcher">
@@ -66,7 +58,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="v-footer">
+  <footer class="v-footer v-footer--client">
     <div class="container">
       <div class="v-footer-grid">
         <div class="v-footer-brand">
@@ -79,12 +71,14 @@
         <div class="v-footer-col">
           <h4>{{ _('vitrine.footer_clients') }}</h4>
           <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
-          <a href="{{ url_for('customer.login') }}">{{ _('zone.customer_space') }}</a>
+          <a href="{{ url_for('customer.login') }}">{{ _('client.nav_login') }}</a>
+          <a href="{{ url_for('customer.register') }}">{{ _('client.nav_register') }}</a>
         </div>
         <div class="v-footer-col">
           <h4>{{ _('vitrine.footer_pros') }}</h4>
           <a href="{{ url_for('web.pro_landing') }}">{{ _('directory.nav_pro') }}</a>
-          <a href="{{ url_for('web.register') }}">{{ _('landing.nav_signup') }}</a>
+          <a href="{{ url_for('web.login') }}">{{ _('pro.nav_login') }}</a>
+          <a href="{{ url_for('web.register') }}">{{ _('pro.nav_register') }}</a>
         </div>
         <div class="v-footer-col">
           <h4>{{ _('vitrine.footer_legal') }}</h4>
@@ -95,7 +89,7 @@
         </div>
       </div>
       <div class="v-footer-bottom">
-        <span>&copy; {{ _('landing.footer') }} · LeadPilot AI</span>
+        <span>&copy; {{ _('landing.footer') }} · {{ _('app.name') }}</span>
       </div>
     </div>
   </footer>

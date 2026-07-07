@@ -37,7 +37,7 @@ def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
     return {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "LeadPilot AI",
+        "name": "PilotCore",
         "alternateName": "PilotCore",
         "url": site_base_url(),
         "logo": logo_url(),

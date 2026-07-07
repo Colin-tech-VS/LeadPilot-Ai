@@ -1,4 +1,4 @@
-/* LeadPilot Admin — dynamic dashboard, animated charts, live log stream. */
+/* PilotCore Admin — dynamic dashboard, animated charts, live log stream. */
 (function () {
   "use strict";
 

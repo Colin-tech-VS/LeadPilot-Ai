@@ -15,7 +15,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="LeadPilot Pro">
+  <meta name="apple-mobile-web-app-title" content="PilotCore Pro">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=15">
@@ -125,7 +125,7 @@
   </script>
   {% if session.get('user_id') %}
   <script>
-    window.LEADPILOT_NOTIFY = {
+    window.PilotCore_NOTIFY = {
       endpoint: {{ url_for('web.notifications_feed')|tojson }},
       readEndpoint: {{ url_for('web.notifications_mark_read')|tojson }},
       tenant: {{ ((current_tenant.id|string) if current_tenant else '')|tojson }},

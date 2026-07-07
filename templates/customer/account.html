@@ -1,15 +1,10 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'account' %}
 {% block meta %}{{ seo_meta('Mon espace — ' ~ _('app.name'), _('client.meta_description'), '/client/account', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
 {% block title %}Mon espace — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-customer-dashboard{% endblock %}
-
-{% block public_nav %}
-<a href="{{ url_for('web.artisan_directory') }}">Trouver un artisan</a>
-<a href="{{ url_for('customer.account') }}" class="active">{{ _('zone.customer_space') }}</a>
-<a href="{{ url_for('customer.logout') }}" class="public-nav-link">Se déconnecter</a>
-{% endblock %}
 
 {% block content %}
 <section class="customer-dashboard container">
@@ -19,7 +14,10 @@
       <h1>Bonjour {{ user.first_name or user.email }} 👋</h1>
       <p class="customer-dashboard-sub">Gérez vos rendez-vous et réservez en quelques clics.</p>
     </div>
-    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">+ Nouvelle réservation</a>
+    <div class="customer-dashboard-actions">
+      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">+ Nouvelle réservation</a>
+      <a href="{{ url_for('customer.logout') }}" class="btn btn-outline">Se déconnecter</a>
+    </div>
   </header>
 
   {% if request.args.get('quote_pending') == 'ok' %}

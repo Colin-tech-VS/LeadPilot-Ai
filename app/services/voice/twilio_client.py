@@ -3,7 +3,7 @@ from twilio.twiml.voice_response import Gather, VoiceResponse
 
 
 class TwilioVoiceClient:
-    """Thin wrapper around Twilio VoiceResponse for LeadPilot AI."""
+    """Thin wrapper around Twilio VoiceResponse for PilotCore."""
 
     LANGUAGE = "fr-FR"
     # Amazon Polly neural voice (via Twilio) — far more natural and human than

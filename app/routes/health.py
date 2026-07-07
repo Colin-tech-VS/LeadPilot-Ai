@@ -50,6 +50,8 @@ def health_ready():
         db.session.execute(text("SELECT 1"))
         db.session.commit()
         return jsonify({"status": "ok", "database": "connected"}), 200
-    except Exception as exc:
+    except Exception:
+        # Log the full error server-side, but never leak DB internals (host,
+        # driver, credentials in DSN) to an unauthenticated probe response.
         current_app.logger.exception("Health ready check failed")
-        return jsonify({"status": "error", "database": str(exc)}), 503
+        return jsonify({"status": "error", "database": "unavailable"}), 503

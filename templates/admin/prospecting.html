@@ -44,7 +44,10 @@
     </div>
     <div class="form-actions" style="margin-top:16px">
       <button type="button" class="admin-btn" id="search-btn">🔍 Lancer la recherche IA</button>
-      <span class="ai-spinner" id="search-spinner" style="display:none">Recherche et extraction des e-mails…</span>
+      <span class="ai-live" id="search-live">
+        <span class="ai-live-dot"></span>
+        <span class="ai-live-text" id="search-live-text">Préparation de la recherche…</span>
+      </span>
     </div>
     <span class="mail-error" id="search-error" style="display:none"></span>
     <div id="search-summary" class="admin-hint" style="margin-top:10px;display:none"></div>
@@ -166,7 +169,10 @@
     <textarea id="modal-angle" rows="2" placeholder="Ex : mettre en avant la prise d'appels le soir et le week-end."></textarea>
   </label>
   <button type="button" class="admin-btn" id="modal-generate">Générer</button>
-  <span class="ai-spinner" id="modal-spinner" style="display:none">Génération…</span>
+  <span class="ai-live" id="modal-live">
+    <span class="ai-live-dot"></span>
+    <span class="ai-live-text" id="modal-live-text">Rédaction de l'e-mail…</span>
+  </span>
   <span class="mail-error" id="modal-error" style="display:none"></span>
   <div id="modal-result" style="display:none;margin-top:16px">
     <label class="field"><span>Objet</span><input type="text" id="modal-subject" readonly></label>
@@ -207,8 +213,48 @@
 </style>
 <script>
 (function () {
+  // Rotating "live" status loader. The backend runs synchronously, so we can't
+  // stream real progress — instead we walk through the actual pipeline phases at
+  // a natural pace so the admin sees what the assistant is doing.
+  function liveLoader(boxId, textId, steps) {
+    const box = document.getElementById(boxId);
+    const text = document.getElementById(textId);
+    let timer = null;
+    let i = 0;
+    return {
+      start() {
+        if (!box || !text) return;
+        i = 0;
+        text.textContent = steps[0];
+        box.classList.add('on');
+        timer = setInterval(function () {
+          // Advance but hold on the last step until the request resolves.
+          i = Math.min(i + 1, steps.length - 1);
+          text.textContent = steps[i];
+        }, 1600);
+      },
+      stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (box) box.classList.remove('on');
+      },
+    };
+  }
+
+  const searchLive = liveLoader('search-live', 'search-live-text', [
+    'Préparation des requêtes de recherche…',
+    'Recherche web des artisans…',
+    'Analyse des sites et extraction des e-mails…',
+    'Enrichissement IA des contacts (nom, entreprise)…',
+    'Déduplication et enregistrement des prospects…',
+  ]);
+  const modalLive = liveLoader('modal-live', 'modal-live-text', [
+    'Analyse du profil du prospect…',
+    'Rédaction de l’e-mail personnalisé par l’IA…',
+    'Mise en forme et objet…',
+    'Finalisation…',
+  ]);
+
   const searchBtn = document.getElementById('search-btn');
-  const searchSpinner = document.getElementById('search-spinner');
   const searchError = document.getElementById('search-error');
   const searchSummary = document.getElementById('search-summary');
 
@@ -219,7 +265,7 @@
       searchError.style.display = 'none';
       searchSummary.style.display = 'none';
       searchBtn.disabled = true;
-      searchSpinner.style.display = 'inline';
+      searchLive.start();
       try {
         const res = await fetch('{{ url_for("admin.api_prospecting_search") }}', {
           method: 'POST',
@@ -240,7 +286,7 @@
         searchError.style.display = 'block';
       } finally {
         searchBtn.disabled = false;
-        searchSpinner.style.display = 'none';
+        searchLive.stop();
       }
     });
   }
@@ -248,7 +294,6 @@
   const modal = document.getElementById('email-modal');
   const modalId = document.getElementById('modal-prospect-id');
   const modalGenerate = document.getElementById('modal-generate');
-  const modalSpinner = document.getElementById('modal-spinner');
   const modalError = document.getElementById('modal-error');
   const modalResult = document.getElementById('modal-result');
 
@@ -266,7 +311,7 @@
   if (modalGenerate) {
     modalGenerate.addEventListener('click', async function () {
       modalError.style.display = 'none';
-      modalSpinner.style.display = 'inline';
+      modalLive.start();
       modalGenerate.disabled = true;
       try {
         const res = await fetch('/admin/api/prospecting/' + modalId.value + '/generate-email', {
@@ -287,7 +332,7 @@
         modalError.textContent = err.message;
         modalError.style.display = 'block';
       } finally {
-        modalSpinner.style.display = 'none';
+        modalLive.stop();
         modalGenerate.disabled = false;
       }
     });

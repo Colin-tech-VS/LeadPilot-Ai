@@ -1,8 +1,8 @@
-{% extends "public_layout.html" %}
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta %}
 {% block title %}{{ page.title }} · {{ _('app.name') }}{% endblock %}
 {% block meta %}
-  <meta name="description" content="{{ page.meta_description or page.title }}">
-  {% if preview %}<meta name="robots" content="noindex, nofollow">{% endif %}
+{{ seo_meta(page.title ~ ' · ' ~ _('app.name'), page.meta_description or page.title, '/p/' ~ page.slug, None, 'article', None, 'noindex, nofollow' if preview else 'index, follow', None, lang) }}
 {% endblock %}
 
 {% block content %}

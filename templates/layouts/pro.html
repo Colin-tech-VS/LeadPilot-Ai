@@ -1,0 +1,120 @@
+{% from 'macros/brand.html' import brand_logo with context %}
+{% from 'macros/seo.html' import seo_meta %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ _('pro.meta_title') }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  {% block meta %}
+  {{ seo_meta(_('pro.meta_title'), _('pro.meta_description'), '/pro', _('pro.meta_keywords'), 'website', None, 'index, follow', None, lang) }}
+  {% endblock %}
+  <meta name="theme-color" content="#0F766E">
+  <link rel="manifest" href="{{ url_for('web.public_manifest') }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LeadPilot Pro">
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=15">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=17">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pro.css') }}?v=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="zone-pro public-page vitrine page-pro {% block body_class %}{% endblock %}">
+  <header class="v-header v-header--pro">
+    <div class="container v-header-inner">
+      <a href="{{ url_for('web.pro_landing') }}" class="v-brand brand">
+        {{ brand_logo('md', 'pro') }}
+        <span class="brand-text">{{ _('app.name') }}</span>
+        <span class="zone-badge">{{ _('zone.pro') }}</span>
+      </a>
+      <nav class="v-nav pro-nav" id="pro-nav">
+        {% block pro_nav %}
+        <a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+        <a href="{{ url_for('web.pro_landing') }}" class="active">{{ _('directory.nav_pro') }}</a>
+        <a href="#impact">{{ _('pro.nav_impact') }}</a>
+        <a href="#demo">{{ _('vitrine.nav_demo') }}</a>
+        <a href="#pricing">{{ _('landing.nav_pricing') }}</a>
+        <a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">{{ _('landing.nav_signup') }}</a>
+        {% endblock %}
+      </nav>
+      <div class="v-header-end">
+        <div class="lang-switcher">
+          <a href="{{ url_for('web.set_language', lang='fr') }}" class="lang-btn{% if lang == 'fr' %} active{% endif %}">{{ _('lang.fr') }}</a>
+          <span class="lang-sep">|</span>
+          <a href="{{ url_for('web.set_language', lang='en') }}" class="lang-btn{% if lang == 'en' %} active{% endif %}">{{ _('lang.en') }}</a>
+        </div>
+        <button type="button" class="nav-toggle pro-nav-toggle" id="pro-nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="pro-nav">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="v-footer v-footer--pro">
+    <div class="container">
+      <div class="v-footer-grid">
+        <div class="v-footer-brand">
+          <a href="{{ url_for('web.pro_landing') }}" class="v-brand brand">
+            {{ brand_logo('sm', 'pro-foot') }}
+            <span class="brand-text">{{ _('app.name') }}</span>
+          </a>
+          <p>{{ _('pro.footer_tagline') }}</p>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_pros') }}</h4>
+          <a href="{{ url_for('web.pro_landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
+          <a href="{{ url_for('web.register') }}">{{ _('landing.nav_signup') }}</a>
+          <a href="{{ url_for('web.login') }}">{{ _('landing.nav_login') }}</a>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_clients') }}</h4>
+          <a href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+          <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+        </div>
+        <div class="v-footer-col">
+          <h4>{{ _('vitrine.footer_legal') }}</h4>
+          <a href="{{ url_for('web.legal_notice') }}">{{ _('legal.mentions') }}</a>
+          <a href="{{ url_for('web.privacy') }}">{{ _('legal.privacy') }}</a>
+          <a href="{{ url_for('web.cgu') }}">{{ _('legal.cgu') }}</a>
+          <a href="{{ url_for('web.cookies_policy') }}">{{ _('legal.cookies') }}</a>
+        </div>
+      </div>
+      <div class="v-footer-bottom">
+        <span>&copy; {{ _('landing.footer') }} · LeadPilot AI Pro</span>
+      </div>
+    </div>
+  </footer>
+
+  {% include 'partials/cookie_consent.html' %}
+
+  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/public-reveal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/cookie-consent.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/vitrine-animate.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=1"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+      });
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

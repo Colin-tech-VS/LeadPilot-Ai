@@ -63,10 +63,11 @@ class CommercialChatbot:
         service_radius_km: int | None = None,
         assistant_name: str | None = None,
         trade_type: str | None = None,
+        customer_profile: dict | None = None,
     ) -> dict:
         api_key = current_app.config.get("MISTRAL_API_KEY") or os.environ.get("MISTRAL_API_KEY")
         if not api_key:
-            return self._fallback(user_text, conversation_history)
+            return self._fallback(user_text, conversation_history, customer_profile)
 
         try:
             return self._reply_mistral(
@@ -78,10 +79,11 @@ class CommercialChatbot:
                 assistant_name,
                 trade_type,
                 api_key,
+                customer_profile,
             )
         except Exception:
             logger.exception("Commercial chatbot failed — using fallback")
-            return self._fallback(user_text, conversation_history)
+            return self._fallback(user_text, conversation_history, customer_profile)
 
     def _reply_mistral(
         self,
@@ -93,6 +95,7 @@ class CommercialChatbot:
         assistant_name: str | None,
         trade_type: str | None,
         api_key: str,
+        customer_profile: dict | None = None,
     ) -> dict:
         from mistralai import Mistral
         from app.constants.trades import trade_label
@@ -115,6 +118,20 @@ class CommercialChatbot:
             context_lines.append(
                 f"Zone d'intervention: {tenant_city} et environs, rayon d'environ {radius} km"
             )
+        if customer_profile:
+            known = []
+            if customer_profile.get("name"):
+                known.append(f"nom: {customer_profile['name']}")
+            if customer_profile.get("phone"):
+                known.append(f"téléphone: {customer_profile['phone']}")
+            if customer_profile.get("email"):
+                known.append(f"e-mail: {customer_profile['email']}")
+            if known:
+                context_lines.append(
+                    "Visiteur CONNECTÉ (compte client) — coordonnées déjà connues: "
+                    + ", ".join(known)
+                    + ". Ne redemande pas le téléphone ni l'e-mail ; confirme seulement si besoin."
+                )
         context = "\n".join(context_lines)
 
         user_prompt = (
@@ -137,9 +154,9 @@ class CommercialChatbot:
 
         raw = response.choices[0].message.content
         data = json.loads(raw)
-        return self._normalize(data, user_text)
+        return self._normalize(data, user_text, customer_profile)
 
-    def _normalize(self, data: dict, user_text: str) -> dict:
+    def _normalize(self, data: dict, user_text: str, customer_profile: dict | None = None) -> dict:
         reply = (data.get("reply") or "").strip()
         if not reply:
             reply = "Bien sûr, pouvez-vous m'en dire un peu plus sur votre besoin ?"
@@ -153,7 +170,12 @@ class CommercialChatbot:
             intent = "answer"
 
         phone = (lead_data.get("phone") or "").strip() if lead_data.get("phone") else None
-        lead_ready = bool(data.get("lead_ready")) and bool(phone)
+        if not phone and customer_profile:
+            phone = (customer_profile.get("phone") or "").strip() or None
+        summary = (lead_data.get("summary") or "").strip()
+        lead_ready = bool(data.get("lead_ready")) and bool(phone or (customer_profile and summary))
+        if customer_profile and customer_profile.get("phone") and summary:
+            lead_ready = True
 
         return {
             "reply": reply,
@@ -162,7 +184,7 @@ class CommercialChatbot:
             "intent": intent,
         }
 
-    def _fallback(self, user_text: str, conversation_history: list[dict]) -> dict:
+    def _fallback(self, user_text: str, conversation_history: list[dict], customer_profile: dict | None = None) -> dict:
         """Deterministic reply when no LLM key is configured.
 
         Walks a simple script: greet → understand → ask phone → confirm. Enough
@@ -173,16 +195,39 @@ class CommercialChatbot:
         phone = _find_phone(text) or _find_phone(
             " ".join(t.get("text", "") for t in conversation_history)
         )
+        if not phone and customer_profile:
+            phone = (customer_profile.get("phone") or "").strip() or None
 
         if phone:
+            lead_data = {"phone": phone, "summary": _summary(conversation_history, user_text)}
+            if customer_profile:
+                if customer_profile.get("name"):
+                    lead_data["name"] = customer_profile["name"]
+                if customer_profile.get("email"):
+                    lead_data["email"] = customer_profile["email"]
             return {
                 "reply": (
-                    "Merci beaucoup ! J'ai bien noté vos coordonnées, "
+                    "Merci beaucoup ! J'ai bien noté votre demande, "
                     "un conseiller vous recontacte très rapidement."
                 ),
-                "lead_data": {"phone": phone, "summary": _summary(conversation_history, user_text)},
+                "lead_data": lead_data,
                 "lead_ready": True,
                 "intent": "capture",
+            }
+
+        if customer_profile and customer_profile.get("phone"):
+            return {
+                "reply": (
+                    f"Bonjour {customer_profile.get('first_name') or ''} ! "
+                    "Décrivez votre besoin et je m'occupe de transmettre votre demande."
+                ).strip(),
+                "lead_data": {
+                    "name": customer_profile.get("name"),
+                    "phone": customer_profile.get("phone"),
+                    "summary": text[:500],
+                },
+                "lead_ready": False,
+                "intent": "greet",
             }
 
         if len(turns) <= 1:
@@ -230,6 +275,7 @@ def process_chat_turn(
     history: list[dict],
     message: str,
     existing_lead_id: str | None = None,
+    customer_profile: dict | None = None,
 ) -> dict:
     """One chatbot exchange: produce a reply and capture a lead when ready.
 
@@ -258,6 +304,7 @@ def process_chat_turn(
         service_radius_km=tenant.service_radius_km,
         assistant_name=tenant.ai_assistant_name,
         trade_type=tenant.trade_type,
+        customer_profile=customer_profile,
     )
 
     lead_id = existing_lead_id
@@ -266,7 +313,13 @@ def process_chat_turn(
     if result["lead_ready"] and not existing_lead_id:
         lead_data = result.get("lead_data") or {}
         phone = (lead_data.get("phone") or "").strip()
+        if not phone and customer_profile:
+            phone = (customer_profile.get("phone") or "").strip()
         if phone:
+            if customer_profile and not lead_data.get("name"):
+                lead_data["name"] = customer_profile.get("name")
+            if customer_profile and not lead_data.get("email"):
+                lead_data["email"] = customer_profile.get("email")
             transcript = _build_transcript(history, message, lead_data)
             try:
                 pipeline = process_inbound_call(

@@ -111,10 +111,20 @@
       var typing = addTyping();
 
       try {
+        var payload = { message: text, history: history, lead_id: leadId };
+        var cp = {
+          name: root.getAttribute('data-customer-name'),
+          phone: root.getAttribute('data-customer-phone'),
+          email: root.getAttribute('data-customer-email'),
+        };
+        if (cp.name || cp.phone || cp.email) {
+          payload.customer_profile = cp;
+        }
+
         var res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, history: history, lead_id: leadId }),
+          body: JSON.stringify(payload),
         });
         var data = await res.json();
         typing.remove();

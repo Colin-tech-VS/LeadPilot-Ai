@@ -1,10 +1,11 @@
-{% extends "public_layout.html" %}
-{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+{% extends "layouts/pro.html" %}
+{% from 'macros/seo.html' import seo_meta %}
+{% block meta %}{{ seo_meta(_('login.title') ~ ' — ' ~ _('app.name'), _('login.tagline'), '/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 {% from 'macros/brand.html' import brand_logo with context %}
 
 {% block body_class %}page-login{% endblock %}
 {% block title %}{{ _('login_suffix') }} — {{ _('app.name') }}{% endblock %}
-{% block public_nav %}{% endblock %}
+{% block pro_nav %}{% endblock %}
 
 {% block content %}
 <div class="auth-split auth-split-reverse">

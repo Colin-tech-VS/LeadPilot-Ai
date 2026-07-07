@@ -1,4 +1,4 @@
-/* PilotCore — animated brand logo */
+/* LeadPilot AI — animated brand logo */
 .lp-logo {
   display: inline-flex;
   align-items: center;
@@ -13,25 +13,10 @@
   height: 100%;
 }
 
-.lp-logo--sm {
-  width: 32px;
-  height: 32px;
-}
-
-.lp-logo--md {
-  width: 36px;
-  height: 36px;
-}
-
-.lp-logo--lg {
-  width: 56px;
-  height: 56px;
-}
-
-.lp-logo--xl {
-  width: 72px;
-  height: 72px;
-}
+.lp-logo--sm { width: 32px; height: 32px; }
+.lp-logo--md { width: 36px; height: 36px; }
+.lp-logo--lg { width: 56px; height: 56px; }
+.lp-logo--xl { width: 72px; height: 72px; }
 
 .lp-logo--animated {
   animation: lp-logo-float 4s ease-in-out infinite;
@@ -42,14 +27,14 @@
   transform-origin: 32px 32px;
 }
 
-.lp-logo--animated .lp-logo__core {
-  animation: lp-logo-core 2.4s ease-in-out infinite;
-  transform-origin: 32px 30px;
+.lp-logo--animated .lp-logo__needle {
+  animation: lp-logo-needle 3s ease-in-out infinite;
+  transform-origin: 32px 32px;
 }
 
 .lp-logo--animated .lp-logo__dot {
   animation: lp-logo-dot 1.8s ease-in-out infinite;
-  transform-origin: 32px 30px;
+  transform-origin: 32px 32px;
 }
 
 .lp-logo--animated .lp-logo__wave--1 {
@@ -57,42 +42,21 @@
 }
 
 .lp-logo--animated .lp-logo__wave--2 {
-  animation: lp-logo-wave 1.4s ease-in-out 0.18s infinite;
+  animation: lp-logo-wave 1.4s ease-in-out 0.2s infinite;
 }
 
-.lp-logo--animated .lp-logo__wave--3 {
-  animation: lp-logo-wave 1.4s ease-in-out 0.36s infinite;
+.lp-logo--animated .lp-logo__trail {
+  animation: lp-logo-trail 2.2s ease-in-out infinite;
 }
 
-.lp-logo--animated .lp-logo__drop {
-  animation: lp-logo-drop 2.2s ease-in-out infinite;
-  transform-origin: 17px 48px;
-}
-
-.lp-logo--animated .lp-logo__spark--1 {
+.lp-logo--animated .lp-logo__spark--1,
+.lp-logo--animated .lp-logo__spark--2 {
   animation: lp-logo-spark 2.4s ease-in-out infinite;
-  transform-origin: 49px 18px;
-}
-
-.lp-logo--animated .lp-logo__ear--l {
-  animation: lp-logo-ear-l 3s ease-in-out infinite;
-  transform-origin: 22px 22px;
-}
-
-.lp-logo--animated .lp-logo__ear--r {
-  animation: lp-logo-ear-r 3s ease-in-out 0.4s infinite;
-  transform-origin: 46px 42px;
 }
 
 .brand:hover .lp-logo--animated,
 .auth-brand:hover .lp-logo--animated {
   animation-duration: 2.5s;
-}
-
-.brand:hover .lp-logo__wave--1,
-.brand:hover .lp-logo__wave--2,
-.brand:hover .lp-logo__wave--3 {
-  animation-duration: 0.9s;
 }
 
 @keyframes lp-logo-float {
@@ -101,61 +65,39 @@
 }
 
 @keyframes lp-logo-ring {
-  0% {
-    opacity: 0.5;
-    transform: scale(0.92);
-  }
-  70% {
-    opacity: 0;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.1);
-  }
+  0% { opacity: 0.35; transform: scale(0.94); }
+  70% { opacity: 0; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.08); }
 }
 
-@keyframes lp-logo-core {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+@keyframes lp-logo-needle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(6deg); }
 }
 
 @keyframes lp-logo-dot {
   0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+  50% { opacity: 1; transform: scale(1.25); }
 }
 
 @keyframes lp-logo-wave {
-  0%, 100% { opacity: 0.3; }
+  0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
 
-@keyframes lp-logo-drop {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(2px) scale(1.06); }
+@keyframes lp-logo-trail {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
 @keyframes lp-logo-spark {
-  0%, 100% { opacity: 0.5; transform: scale(0.9) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1.1) rotate(12deg); }
-}
-
-@keyframes lp-logo-ear-l {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-4deg); }
-}
-
-@keyframes lp-logo-ear-r {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(4deg); }
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lp-logo--animated,
-  .lp-logo--animated *,
-  .brand:hover .lp-logo__wave--1,
-  .brand:hover .lp-logo__wave--2,
-  .brand:hover .lp-logo__wave--3 {
+  .lp-logo--animated * {
     animation: none !important;
   }
 }

@@ -1,14 +1,14 @@
 {
-  "name": "PilotCore — Standardiste & Tableau de bord",
-  "short_name": "PilotCore",
-  "description": "Standardiste téléphonique IA et tableau de bord pour plombiers : leads, rendez-vous et notifications en temps réel.",
+  "name": "LeadPilot AI — Espace artisan",
+  "short_name": "LeadPilot Pro",
+  "description": "Standardiste vocal IA et tableau de bord pour artisans : leads, rendez-vous et devis.",
   "lang": "fr",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#F8FAFC",
-  "theme_color": "#2563EB",
+  "background_color": "#F7F8FA",
+  "theme_color": "#1B57E0",
   "categories": ["business", "productivity"],
   "icons": [
     {

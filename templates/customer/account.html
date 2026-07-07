@@ -1,55 +1,112 @@
-{% extends "public_layout.html" %}
-{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta %}
+{% block meta %}{{ seo_meta('Mon espace — ' ~ _('app.name'), _('client.meta_description'), '/client/account', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
 {% block title %}Mon espace — {{ _('app.name') }}{% endblock %}
-{% block body_class %}page-customer-account{% endblock %}
+{% block body_class %}page-customer-dashboard{% endblock %}
 
 {% block public_nav %}
 <a href="{{ url_for('web.artisan_directory') }}">Trouver un artisan</a>
+<a href="{{ url_for('customer.account') }}" class="active">{{ _('zone.customer_space') }}</a>
 <a href="{{ url_for('customer.logout') }}" class="public-nav-link">Se déconnecter</a>
 {% endblock %}
 
 {% block content %}
-<section class="customer-account container">
-  <header class="customer-account-head">
+<section class="customer-dashboard container">
+  <header class="customer-dashboard-head">
     <div>
+      <p class="customer-dashboard-kicker">{{ _('zone.customer_space') }}</p>
       <h1>Bonjour {{ user.first_name or user.email }} 👋</h1>
-      <p class="customer-account-sub">Vos rendez-vous et réservations.</p>
+      <p class="customer-dashboard-sub">Gérez vos rendez-vous et réservez en quelques clics.</p>
     </div>
-    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Réserver un artisan</a>
+    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">+ Nouvelle réservation</a>
   </header>
 
   {% if request.args.get('booking') == 'ok' %}
   <div class="alert alert-success">Votre rendez-vous est confirmé ! Un e-mail de confirmation vous a été envoyé.</div>
+  {% elif request.args.get('booking') == 'error' %}
+  <div class="alert alert-error">Impossible de finaliser la réservation. Réessayez depuis la fiche artisan.</div>
+  {% endif %}
+  {% if request.args.get('profile') == 'ok' %}
+  <div class="alert alert-success">Vos informations ont été mises à jour.</div>
   {% endif %}
 
-  {% if bookings %}
-  <div class="customer-bookings">
-    {% for b in bookings %}
-    <div class="customer-booking-card">
-      <div class="customer-booking-main">
-        <h2>{{ b.artisan }}</h2>
-        {% if b.when %}<p class="customer-booking-when">📅 {{ b.when }}</p>{% endif %}
-        {% if b.issue %}<p class="customer-booking-issue">{{ b.issue }}</p>{% endif %}
+  <div class="customer-dashboard-grid">
+    <aside class="customer-dashboard-side">
+      <div class="customer-dash-card customer-profile-card">
+        <h2>Mon profil</h2>
+        <form method="post" action="{{ url_for('customer.update_profile') }}" class="customer-profile-form">
+          <label for="pf-first">Prénom</label>
+          <input type="text" id="pf-first" name="first_name" value="{{ user.first_name or '' }}" required>
+          <label for="pf-last">Nom</label>
+          <input type="text" id="pf-last" name="last_name" value="{{ user.last_name or '' }}">
+          <label for="pf-phone">Téléphone</label>
+          <input type="tel" id="pf-phone" name="phone" value="{{ user.phone or '' }}" placeholder="+33 6 12 34 56 78">
+          <p class="customer-profile-email">E-mail : {{ user.email }}</p>
+          <button type="submit" class="btn btn-outline btn-block">Enregistrer</button>
+        </form>
+        <p class="customer-profile-hint">Ces informations sont transmises automatiquement à l'assistant IA et aux artisans lors de vos réservations.</p>
       </div>
-      <span class="customer-booking-status status-{{ b.status }}">
-        {% if b.status in ('scheduled', 'confirmed', 'booked') %}Confirmé
-        {% elif b.status == 'completed' %}Terminé
-        {% elif b.status == 'cancelled' %}Annulé
-        {% else %}{{ b.status }}{% endif %}
-      </span>
-      {% if b.artisan_slug %}
-      <a href="{{ url_for('web.artisan_profile', slug=b.artisan_slug) }}" class="customer-booking-link">Voir la fiche →</a>
+
+      <div class="customer-dash-kpis">
+        <div class="customer-kpi">
+          <span class="customer-kpi-value">{{ upcoming_count }}</span>
+          <span class="customer-kpi-label">À venir</span>
+        </div>
+        <div class="customer-kpi">
+          <span class="customer-kpi-value">{{ total_count }}</span>
+          <span class="customer-kpi-label">Total</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="customer-dashboard-main">
+      <section class="customer-dash-section">
+        <h2>Prochains rendez-vous</h2>
+        {% if upcoming %}
+        <div class="customer-bookings">
+          {% for b in upcoming %}
+          <article class="customer-booking-card customer-booking-card--upcoming">
+            <div class="customer-booking-main">
+              <h3>{{ b.artisan }}</h3>
+              {% if b.when %}<p class="customer-booking-when">📅 {{ b.when }}</p>{% endif %}
+              {% if b.issue %}<p class="customer-booking-issue">{{ b.issue }}</p>{% endif %}
+            </div>
+            <span class="customer-booking-status status-{{ b.status }}">Confirmé</span>
+            {% if b.artisan_slug %}
+            <a href="{{ url_for('web.artisan_profile', slug=b.artisan_slug) }}" class="customer-booking-link">Voir l'artisan →</a>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="customer-empty-inline">
+          <p>Aucun rendez-vous à venir.</p>
+          <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Réserver maintenant</a>
+        </div>
+        {% endif %}
+      </section>
+
+      {% if past %}
+      <section class="customer-dash-section">
+        <h2>Historique</h2>
+        <div class="customer-bookings customer-bookings--past">
+          {% for b in past %}
+          <article class="customer-booking-card">
+            <div class="customer-booking-main">
+              <h3>{{ b.artisan }}</h3>
+              {% if b.when %}<p class="customer-booking-when">📅 {{ b.when }}</p>{% endif %}
+              {% if b.issue %}<p class="customer-booking-issue">{{ b.issue }}</p>{% endif %}
+            </div>
+            <span class="customer-booking-status status-{{ b.status }}">
+              {% if b.status == 'completed' %}Terminé{% elif b.status == 'cancelled' %}Annulé{% else %}{{ b.status }}{% endif %}
+            </span>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
       {% endif %}
     </div>
-    {% endfor %}
   </div>
-  {% else %}
-  <div class="customer-empty">
-    <div class="customer-empty-icon" aria-hidden="true">📭</div>
-    <p>Vous n'avez pas encore de réservation.</p>
-    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Trouver un artisan</a>
-  </div>
-  {% endif %}
 </section>
 {% endblock %}

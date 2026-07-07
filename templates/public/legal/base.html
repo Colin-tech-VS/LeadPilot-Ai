@@ -1,9 +1,9 @@
-{% extends "public_layout.html" %}
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta %}
 {% block body_class %}page-legal{% endblock %}
 
 {% block meta %}
-<meta name="description" content="{{ self.legal_title() }} — {{ _('app.name') }}">
-<link rel="canonical" href="{{ canonical_url(request.path) }}">
+{{ seo_meta(self.legal_title() ~ ' — ' ~ _('app.name'), self.legal_title() ~ ' — LeadPilot AI', request.path, None, 'website', None, 'index, follow', None, lang) }}
 {% endblock %}
 
 {% block content %}

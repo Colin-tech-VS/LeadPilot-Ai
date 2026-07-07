@@ -1,30 +1,37 @@
+{% from 'macros/brand.html' import brand_logo with context %}
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>{% block title %}Admin · PilotCore{% endblock %}</title>
+  <title>{% block title %}Admin · LeadPilot AI{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('admin.admin_manifest') }}">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#1B57E0">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="PC Admin">
+  <meta name="apple-mobile-web-app-title" content="LeadPilot Admin">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=5">
 </head>
-<body class="admin{% block body_class %}{% endblock %}">
+<body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
   <div class="admin-backdrop" id="admin-backdrop"></div>
   <div class="admin-shell">
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="admin-brand">
-        <span class="admin-logo">◆</span>
+        {{ brand_logo('sm', 'admin', false) }}
         <div>
-          <strong>PilotCore</strong>
+          <strong>LeadPilot AI</strong>
           <span class="admin-brand-sub">Admin Console</span>
+          <span class="zone-badge">{{ _('zone.admin') }}</span>
         </div>
       </div>
       <nav class="admin-nav">

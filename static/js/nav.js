@@ -33,4 +33,5 @@
 
   setupNav("nav-toggle", "app-nav");
   setupNav("public-nav-toggle", "public-nav");
+  setupNav("pro-nav-toggle", "pro-nav");
 })();

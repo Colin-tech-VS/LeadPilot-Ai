@@ -40,6 +40,11 @@
   text-decoration: none;
   color: var(--v-text);
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.vitrine .v-brand .zone-badge {
+  margin-left: 2px;
 }
 
 .vitrine .v-brand .brand-text {

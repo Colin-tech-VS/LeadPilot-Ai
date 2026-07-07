@@ -1,11 +1,12 @@
-{% extends "public_layout.html" %}
-{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+{% extends "layouts/pro.html" %}
+{% from 'macros/seo.html' import seo_meta %}
+{% block meta %}{{ seo_meta(_('register.title') ~ ' — ' ~ _('app.name'), _('register.tagline'), '/register', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/trade_picker.html' import trade_select %}
 
 {% block body_class %}page-register{% endblock %}
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
-{% block public_nav %}{% endblock %}
+{% block pro_nav %}{% endblock %}
 
 {% block content %}
 <div class="auth-split">

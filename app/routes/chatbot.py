@@ -1,6 +1,6 @@
 import uuid
 
-from flask import Blueprint, abort, g, jsonify, render_template, request, url_for
+from flask import Blueprint, abort, g, jsonify, render_template, request, session, url_for
 
 from app.core.errors import AppError, NotFoundError
 from app.core.extensions import db
@@ -10,6 +10,11 @@ from app.models.tenant import Tenant
 from app.services.chatbot import process_chat_turn
 
 chatbot_bp = Blueprint("chatbot", __name__)
+
+
+def _customer_profile_from_session():
+    from app.routes.customer import customer_session_payload
+    return customer_session_payload()
 
 # Guard against runaway payloads from the public endpoint.
 MAX_MESSAGE_LEN = 2000
@@ -27,7 +32,7 @@ def chatbot_console():
         else url_for("chatbot.public_chat", tenant_id=str(tenant.id), _external=True)
     )
     return render_template(
-        "chatbot.html",
+        "artisan/chatbot.html",
         tenant=tenant,
         public_url=public_url,
     )
@@ -42,10 +47,11 @@ def public_chat_by_slug(slug):
     if not tenant:
         abort(404)
     return render_template(
-        "chat_public.html",
+        "public/chat_public.html",
         tenant=tenant,
         tenant_id=str(tenant.id),
         artisan_slug=slug,
+        customer_profile=_customer_profile_from_session(),
     )
 
 
@@ -54,10 +60,11 @@ def public_chat(tenant_id):
     """Public, no-auth chat page a visitor opens from the shared link."""
     tenant = _load_public_tenant(tenant_id)
     return render_template(
-        "chat_public.html",
+        "public/chat_public.html",
         tenant=tenant,
         tenant_id=str(tenant.id),
         artisan_slug=tenant.public_slug,
+        customer_profile=_customer_profile_from_session(),
     )
 
 
@@ -86,11 +93,16 @@ def public_chat_message(tenant_id):
         except (ValueError, TypeError):
             lead_id = None
 
+    customer_profile = data.get("customer_profile")
+    if not isinstance(customer_profile, dict):
+        customer_profile = _customer_profile_from_session()
+
     result = process_chat_turn(
         tenant_id=str(tenant.id),
         history=history,
         message=message,
         existing_lead_id=lead_id,
+        customer_profile=_customer_profile_from_session(),
     )
     return jsonify(result), 200
 

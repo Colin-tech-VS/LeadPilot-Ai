@@ -1,13 +1,14 @@
 {% extends "admin/base.html" %}
-{% block title %}Connexion Admin · PilotCore{% endblock %}
+{% from 'macros/brand.html' import brand_logo with context %}
+{% block title %}Connexion Admin · LeadPilot AI{% endblock %}
 {% block body_class %} admin-login-body{% endblock %}
 
 {% block auth_content %}
 <div class="admin-login-wrap">
   <div class="admin-login-bg"></div>
   <form class="admin-login-card" method="POST" action="{{ url_for('admin.login') }}">
-    <div class="admin-login-logo">◆</div>
-    <h1>PilotCore <span>Admin</span></h1>
+    <div class="admin-login-logo">{{ brand_logo('lg', 'admin-login', false) }}</div>
+    <h1>LeadPilot AI <span>Admin</span></h1>
     <p class="admin-login-sub">Console d'administration sécurisée</p>
 
     {% if error %}<div class="admin-login-error">{{ error }}</div>{% endif %}

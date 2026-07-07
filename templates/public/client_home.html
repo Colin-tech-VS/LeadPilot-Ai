@@ -1,24 +1,17 @@
-{% extends "public_layout.html" %}
+{% extends "layouts/public.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
 {% from 'macros/artisan_card.html' import artisan_card with context %}
+{% from 'macros/seo.html' import seo_meta %}
 
 {% block title %}{{ _('client.meta_title') }}{% endblock %}
 {% block body_class %}page-client-home{% endblock %}
 
 {% block meta %}
-<meta name="description" content="{{ _('client.meta_description') }}">
-<meta name="keywords" content="{{ _('client.meta_keywords') }}">
-<link rel="canonical" href="{{ canonical_url('/') }}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ _('client.meta_title') }}">
-<meta property="og:description" content="{{ _('client.meta_description') }}">
-<meta property="og:url" content="{{ canonical_url('/') }}">
-<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
-<script type="application/ld+json">
+{% set site_ld %}
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "PilotCore",
+  "name": "LeadPilot AI",
   "url": {{ site_base_url()|tojson }},
   "description": {{ _('client.meta_description')|tojson }},
   "potentialAction": {
@@ -27,7 +20,8 @@
     "query-input": "required name=search_term_string"
   }
 }
-</script>
+{% endset %}
+{{ seo_meta(_('client.meta_title'), _('client.meta_description'), '/', _('client.meta_keywords'), 'website', None, 'index, follow', site_ld, lang) }}
 {% endblock %}
 
 {% block public_nav %}

@@ -1798,9 +1798,57 @@ html {
 .customer-empty-icon { font-size: 40px; margin-bottom: 12px; }
 .booking-login-note { margin: 10px 0 0; font-size: 13px; color: var(--text-muted); text-align: center; }
 
-/* ===================================================================== */
-/*  Legal / RGPD pages                                                   */
-/* ===================================================================== */
+/* Customer dashboard */
+.customer-dashboard { padding: 40px 16px 64px; }
+.customer-dashboard-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
+.customer-dashboard-kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--lp-brand, var(--blue-primary)); }
+.customer-dashboard-head h1 { margin: 0; font-size: clamp(1.6rem, 3vw, 2rem); font-weight: 800; color: #0C1220; }
+.customer-dashboard-sub { margin: 8px 0 0; color: var(--text-muted); }
+.customer-dashboard-grid { display: grid; grid-template-columns: minmax(260px, 320px) 1fr; gap: 24px; align-items: start; }
+.customer-dash-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.customer-profile-card h2 { margin: 0 0 14px; font-size: 17px; }
+.customer-profile-form label { display: block; font-size: 13px; font-weight: 600; color: #5B7A8C; margin: 12px 0 6px; }
+.customer-profile-form input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px;
+}
+.customer-profile-email { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); }
+.customer-profile-hint { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.customer-dash-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.customer-kpi { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
+.customer-kpi-value { display: block; font-size: 28px; font-weight: 800; color: var(--blue-primary); }
+.customer-kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.customer-dash-section h2 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
+.customer-dash-section + .customer-dash-section { margin-top: 28px; }
+.customer-booking-card--upcoming { border-color: color-mix(in srgb, var(--blue-primary) 25%, var(--border)); box-shadow: var(--shadow-sm); }
+.customer-booking-main h3 { margin: 0 0 4px; font-size: 17px; color: #0C1220; }
+.customer-bookings--past .customer-booking-card { opacity: 0.92; }
+.customer-empty-inline { background: #fff; border: 1px dashed var(--border); border-radius: 16px; padding: 28px; text-align: center; color: var(--text-muted); }
+.customer-empty-inline .btn { margin-top: 12px; }
+
+/* Booking on artisan profile */
+.booking-customer-chip {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 16px;
+  background: var(--lp-brand-soft, #EFF6FF); border: 1px solid color-mix(in srgb, var(--blue-primary) 18%, transparent);
+  border-radius: 12px; font-size: 14px;
+}
+.booking-customer-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--blue-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.booking-customer-chip strong { display: block; color: #0C1220; }
+.booking-customer-chip span { color: var(--text-muted); font-size: 13px; }
+.booking-issue-label { display: block; margin: 14px 0 6px; font-size: 13px; font-weight: 600; color: #5B7A8C; }
+.booking-issue-input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  font-size: 14px; resize: vertical; min-height: 56px; margin-bottom: 12px;
+}
+.booking-pending-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.booking-confirm-link { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .customer-dashboard-grid { grid-template-columns: 1fr; }
+}
+
 .legal-page { max-width: 800px; padding: 40px 16px 64px; }
 .legal-back { display: inline-block; margin-bottom: 16px; color: var(--blue-primary); text-decoration: none; font-weight: 600; }
 .legal-page h1 { font-size: 30px; font-weight: 800; color: #0C1220; margin: 0 0 6px; letter-spacing: -0.02em; }

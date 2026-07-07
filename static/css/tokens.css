@@ -1,0 +1,82 @@
+/**
+ * LeadPilot AI — Design tokens partagés (public · pro · artisan · admin)
+ */
+:root {
+  /* Brand */
+  --lp-brand: #1B57E0;
+  --lp-brand-deep: #0F2D6E;
+  --lp-brand-mid: #2563EB;
+  --lp-brand-light: #60A5FA;
+  --lp-brand-soft: #EFF6FF;
+  --lp-accent: #06B6D4;
+  --lp-accent-2: #10B981;
+
+  /* Semantic */
+  --lp-success: #12B76A;
+  --lp-warning: #F59E0B;
+  --lp-danger: #F04438;
+
+  /* Surfaces */
+  --lp-bg: #F7F8FA;
+  --lp-bg-elevated: #FFFFFF;
+  --lp-surface: #FFFFFF;
+  --lp-border: #ECEEF2;
+  --lp-border-strong: #D5DCE8;
+
+  /* Text */
+  --lp-text: #0C1220;
+  --lp-text-muted: #667085;
+  --lp-text-inverse: #FFFFFF;
+
+  /* Effects */
+  --lp-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --lp-shadow-md: 0 8px 28px rgba(16, 24, 40, 0.06);
+  --lp-shadow-lg: 0 20px 48px rgba(15, 45, 110, 0.12);
+  --lp-radius: 12px;
+  --lp-radius-lg: 18px;
+  --lp-radius-pill: 999px;
+
+  /* Typography */
+  --lp-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+  /* Zone accents (nav badge) */
+  --lp-zone-public: #2563EB;
+  --lp-zone-pro: #0F766E;
+  --lp-zone-artisan: #1B57E0;
+  --lp-zone-admin: #1B57E0;
+
+  /* Legacy aliases (main.css compatibility) */
+  --blue-primary: var(--lp-brand);
+  --blue-deep: var(--lp-brand-deep);
+  --green: var(--lp-success);
+  --red: var(--lp-danger);
+  --bg: var(--lp-bg);
+  --card: var(--lp-surface);
+  --border: var(--lp-border);
+  --text: var(--lp-text);
+  --text-muted: var(--lp-text-muted);
+  --shadow-sm: var(--lp-shadow-sm);
+  --shadow-md: var(--lp-shadow-md);
+  --radius: var(--lp-radius);
+  --font-sans: var(--lp-font);
+}
+
+/* Zone body markers */
+body.zone-public { --lp-zone-active: var(--lp-zone-public); }
+body.zone-pro { --lp-zone-active: var(--lp-zone-pro); }
+body.zone-artisan { --lp-zone-active: var(--lp-zone-artisan); }
+body.admin { --lp-zone-active: var(--lp-zone-admin); }
+
+.zone-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--lp-radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--lp-zone-active) 12%, transparent);
+  color: var(--lp-zone-active);
+  border: 1px solid color-mix(in srgb, var(--lp-zone-active) 22%, transparent);
+}

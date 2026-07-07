@@ -1,0 +1,21 @@
+{% macro seo_meta(title, description, path='/', keywords=None, og_type='website', og_image=None, robots='index, follow', json_ld=None, lang='fr') %}
+<meta name="description" content="{{ description }}">
+{% if keywords %}<meta name="keywords" content="{{ keywords }}">{% endif %}
+<link rel="canonical" href="{{ canonical_url(path) }}">
+<meta name="robots" content="{{ robots }}">
+<meta property="og:site_name" content="LeadPilot AI">
+<meta property="og:type" content="{{ og_type }}">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:url" content="{{ canonical_url(path) }}">
+<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<meta property="og:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
+<meta property="og:image:alt" content="LeadPilot AI — logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title }}">
+<meta name="twitter:description" content="{{ description }}">
+<meta name="twitter:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
+{% if json_ld %}
+<script type="application/ld+json">{{ json_ld | safe }}</script>
+{% endif %}
+{% endmacro %}

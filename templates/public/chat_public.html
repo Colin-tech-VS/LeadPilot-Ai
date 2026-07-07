@@ -1,9 +1,9 @@
-{% extends "public_layout.html" %}
+{% extends "layouts/public.html" %}
 
 {% block title %}{{ tenant.name }} — {{ _('chatbot.title') }}{% endblock %}
 
 {% block public_nav %}
-<a href="{{ url_for('web.landing') }}" class="public-nav-link">{{ _('app.name') }}</a>
+<a href="{{ url_for('web.client_home') }}" class="public-nav-link">{{ _('app.name') }}</a>
 {% endblock %}
 
 {% block content %}

@@ -111,7 +111,7 @@ def quotes_page():
     )
     followups = quote_engine.quotes_needing_followup(g.tenant_id)
     return render_template(
-        "quotes.html",
+        "artisan/quotes.html",
         quotes=quotes,
         view=view,
         doc_type=doc_type,
@@ -188,7 +188,7 @@ def new_quote():
 
     draft = quote_engine.build_draft_from_lead(lead, tenant)
     return render_template(
-        "quote_form.html",
+        "artisan/quote_form.html",
         quote=draft,
         lead=lead,
         is_new=True,
@@ -205,7 +205,7 @@ def quote_detail(quote_id):
     quote = _get_quote(quote_id)
     tenant = db.session.get(Tenant, g.tenant_id)
     return render_template(
-        "quote_view.html",
+        "artisan/quote_view.html",
         quote=quote,
         tenant=tenant,
         owner_view=True,
@@ -222,7 +222,7 @@ def edit_quote(quote_id):
         db.session.commit()
         return redirect(url_for("quotes.quote_detail", quote_id=quote.id))
     return render_template(
-        "quote_form.html",
+        "artisan/quote_form.html",
         quote=quote,
         lead=quote.lead,
         is_new=False,
@@ -346,7 +346,7 @@ def public_quote(quote_id, token):
         abort(404)
     tenant = db.session.get(Tenant, quote.tenant_id)
     return render_template(
-        "quote_public.html", quote=quote, tenant=tenant, token=token
+        "public/quote_public.html", quote=quote, tenant=tenant, token=token
     )
 
 
@@ -379,5 +379,5 @@ def public_decision(quote_id, token):
 
     tenant = db.session.get(Tenant, quote.tenant_id)
     return render_template(
-        "quote_public.html", quote=quote, tenant=tenant, token=token, submitted=True
+        "public/quote_public.html", quote=quote, tenant=tenant, token=token, submitted=True
     )

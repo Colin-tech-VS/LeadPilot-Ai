@@ -1,22 +1,13 @@
-{% extends "public_layout.html" %}
+{% extends "layouts/public.html" %}
 {% from 'macros/brand.html' import brand_logo with context %}
+{% from 'macros/seo.html' import seo_meta %}
 
 {% block title %}{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %} · {{ _('directory.book_online') }}{% endblock %}
 {% block body_class %}page-artisan-profile{% endblock %}
 
 {% set _profile_desc = tenant.public_blurb or _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) %}
 {% set _profile_url = canonical_url('/artisans/' ~ tenant.public_slug) %}
-
-{% block meta %}
-<meta name="description" content="{{ _profile_desc|striptags }}">
-<link rel="canonical" href="{{ _profile_url }}">
-<meta property="og:type" content="business.business">
-<meta property="og:title" content="{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %}">
-<meta property="og:description" content="{{ _profile_desc|striptags }}">
-<meta property="og:url" content="{{ _profile_url }}">
-<meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
-<meta name="twitter:card" content="summary">
-<script type="application/ld+json">
+{% set profile_ld %}
 {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -43,7 +34,10 @@
   "areaServed": { "@type": "City", "name": {{ tenant.city|tojson }} }
   {%- endif %}
 }
-</script>
+{% endset %}
+
+{% block meta %}
+{{ seo_meta(tenant.name ~ ' — ' ~ trade_label ~ (' à ' ~ tenant.city if tenant.city else '') ~ ' · ' ~ _('directory.book_online'), _profile_desc|striptags, '/artisans/' ~ tenant.public_slug, None, 'business.business', None, 'index, follow', profile_ld, lang) }}
 {% endblock %}
 
 {% block head_extra %}
@@ -92,22 +86,39 @@
       <div class="alert alert-error">Ce créneau vient d'être réservé. Choisissez-en un autre.</div>
       {% elif request.args.get('booking') == 'noslot' %}
       <div class="alert alert-error">Merci de sélectionner un créneau.</div>
+      {% elif request.args.get('booking') == 'pending' and pending_booking and customer_profile %}
+      <div class="alert alert-success booking-pending-banner">
+        Créneau sélectionné — confirmez votre réservation ci-dessous.
+        <a href="{{ url_for('customer.complete_pending_booking') }}" class="btn btn-primary btn-sm booking-confirm-link">Confirmer maintenant</a>
+      </div>
+      {% endif %}
+
+      {% if customer_profile %}
+      <div class="booking-customer-chip">
+        <span class="booking-customer-avatar" aria-hidden="true">{{ (customer_profile.first_name or customer_profile.name or '?')[:1]|upper }}</span>
+        <div>
+          <strong>Réservation pour {{ customer_profile.name }}</strong>
+          {% if customer_profile.phone %}<span>{{ customer_profile.phone }}</span>{% endif %}
+        </div>
+      </div>
       {% endif %}
 
       {% if slot_items %}
       <form method="post" action="{{ url_for('customer.book', slug=tenant.public_slug) }}" id="booking-form">
-        <input type="hidden" name="slot_iso" id="booking-slot-iso" value="">
+        <input type="hidden" name="slot_iso" id="booking-slot-iso" value="{{ pending_booking.slot_iso if pending_booking and pending_booking.slug == tenant.public_slug else '' }}">
         <div class="slot-grid" id="slot-grid">
           {% for slot in slot_items %}
-          <button type="button" class="slot-btn" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
+          <button type="button" class="slot-btn{% if pending_booking and pending_booking.slot_iso == slot.iso %} active{% endif %}" data-slot-iso="{{ slot.iso }}">{{ slot.label }}</button>
           {% endfor %}
         </div>
-        <p class="slot-selected-hint" id="slot-selected-hint" hidden>{{ _('directory.slot_selected') }}</p>
-        <button type="submit" class="btn btn-primary btn-block btn-lg" id="booking-submit" disabled>
-          Réserver ce créneau
+        <label for="booking-issue" class="booking-issue-label">Décrivez brièvement votre besoin (optionnel)</label>
+        <textarea id="booking-issue" name="issue" class="booking-issue-input" rows="2" placeholder="Ex. fuite sous l'évier, remplacement chauffe-eau…">{{ pending_booking.issue if pending_booking and pending_booking.slug == tenant.public_slug else '' }}</textarea>
+        <p class="slot-selected-hint" id="slot-selected-hint" {% if not (pending_booking and pending_booking.slot_iso) %}hidden{% endif %}>{{ _('directory.slot_selected') }}</p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="booking-submit" {% if not (pending_booking and pending_booking.slot_iso) %}disabled{% endif %}>
+          {% if customer_profile %}Réserver en 1 clic{% else %}Réserver ce créneau{% endif %}
         </button>
-        {% if session.get('role') != 'customer' %}
-        <p class="booking-login-note">Vous serez invité à vous connecter ou créer un compte pour confirmer.</p>
+        {% if not customer_profile %}
+        <p class="booking-login-note">Connectez-vous ou créez un compte gratuit pour confirmer — vos coordonnées seront pré-remplies.</p>
         {% endif %}
       </form>
       {% else %}
@@ -126,13 +137,18 @@
 
       <div class="lp-chat lp-chat--full lp-chat--profile"
            data-endpoint="{{ url_for('chatbot.public_chat_message', tenant_id=tenant.id) }}"
-           data-greeting="{{ _('chatbot.greeting', company=tenant.name) }}"
+           data-greeting="{% if customer_profile %}Bonjour {{ customer_profile.first_name or customer_profile.name }} ! {% endif %}{{ _('chatbot.greeting', company=tenant.name) }}"
            data-label-you="{{ _('chatbot.you') }}"
            data-label-assistant="{{ tenant.ai_assistant_name or _('chatbot.assistant') }}"
            data-label-typing="{{ _('chatbot.typing') }}"
            data-label-error="{{ _('chatbot.error') }}"
            data-label-captured="{{ _('chatbot.captured') }}"
-           data-slot-prefix="{{ _('directory.slot_message_prefix') }}">
+           data-slot-prefix="{{ _('directory.slot_message_prefix') }}"
+           {% if customer_profile %}
+           data-customer-name="{{ customer_profile.name }}"
+           data-customer-phone="{{ customer_profile.phone or '' }}"
+           data-customer-email="{{ customer_profile.email }}"
+           {% endif %}>
         <div class="lp-chat-scroll" aria-live="polite"></div>
         <form class="lp-chat-form">
           <textarea class="lp-chat-input" rows="1" placeholder="{{ _('directory.chat_placeholder') }}"></textarea>
@@ -150,25 +166,28 @@
 <script>
 (function() {
   const PARIS = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const hidden = document.getElementById('booking-slot-iso');
+  const submit = document.getElementById('booking-submit');
+  const hint = document.getElementById('slot-selected-hint');
+
   document.querySelectorAll('.slot-btn').forEach(function(btn) {
     const iso = btn.dataset.slotIso;
     if (iso) btn.textContent = PARIS.format(new Date(iso));
     btn.addEventListener('click', function() {
       document.querySelectorAll('.slot-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      window.__selectedSlotIso = iso;
-      const hint = document.getElementById('slot-selected-hint');
+      if (hidden) hidden.value = iso;
       if (hint) hint.hidden = false;
+      if (submit) submit.disabled = false;
       const chat = document.querySelector('.lp-chat--profile');
       if (chat) chat.dataset.selectedSlot = iso;
-      // Enable real booking submission with the chosen slot.
-      const hidden = document.getElementById('booking-slot-iso');
-      const submit = document.getElementById('booking-submit');
-      if (hidden) hidden.value = iso;
-      if (submit) submit.disabled = false;
     });
   });
+
+  {% if request.args.get('booking') == 'pending' and pending_booking and customer_profile and pending_booking.slug == tenant.public_slug %}
+  if (submit && hidden && hidden.value) submit.disabled = false;
+  {% endif %}
 })();
 </script>
-<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}?v=3"></script>
 {% endblock %}

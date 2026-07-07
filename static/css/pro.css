@@ -1,0 +1,26 @@
+/* LeadPilot AI — zone Pro (artisans) */
+.zone-pro {
+  --lp-zone-active: var(--lp-zone-pro);
+}
+
+.v-header--pro {
+  border-bottom-color: color-mix(in srgb, var(--lp-zone-pro) 18%, var(--lp-border));
+}
+
+.v-header--pro .btn-primary {
+  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
+  border-color: transparent;
+}
+
+.v-footer--pro {
+  background: linear-gradient(180deg, #f0fdfa 0%, var(--lp-bg) 100%);
+}
+
+.page-pro .v-hero--split {
+  background: linear-gradient(135deg, #f0fdfa 0%, var(--lp-brand-soft) 55%, #ffffff 100%);
+}
+
+.pro-nav a.active {
+  color: var(--lp-zone-pro);
+  font-weight: 600;
+}

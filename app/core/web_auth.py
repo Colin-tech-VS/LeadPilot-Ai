@@ -54,12 +54,22 @@ def web_customer_required(f):
     def decorated(*args, **kwargs):
         user_id = session.get("user_id")
         if not user_id or session.get("role") != "customer":
-            return redirect(url_for("customer.login", next=request.full_path))
+            next_path = request.path
+            if request.path.startswith("/client/book/"):
+                slug = request.path.rstrip("/").rsplit("/", 1)[-1]
+                if slug and slug != "complete":
+                    next_path = url_for("web.artisan_profile", slug=slug, booking="pending")
+            return redirect(url_for("customer.login", next=next_path))
 
         user = db.session.get(User, uuid.UUID(user_id))
         if not user or user.role != "customer":
             logout_user_session()
-            return redirect(url_for("customer.login", next=request.full_path))
+            next_path = request.path
+            if request.path.startswith("/client/book/"):
+                slug = request.path.rstrip("/").rsplit("/", 1)[-1]
+                if slug and slug != "complete":
+                    next_path = url_for("web.artisan_profile", slug=slug, booking="pending")
+            return redirect(url_for("customer.login", next=next_path))
 
         g.current_user = user
         g.user_role = user.role

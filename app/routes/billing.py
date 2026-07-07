@@ -27,7 +27,7 @@ def billing_page():
     tenant = db.session.get(Tenant, g.tenant_id)
     lang = get_lang()
     return render_template(
-        "billing.html",
+        "artisan/billing.html",
         tenant=tenant,
         plans=billing.available_plans(),
         stripe_ready=billing.is_configured(),

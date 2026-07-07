@@ -199,6 +199,7 @@ def robots_txt():
         f"Allow: /\n"
         f"Allow: /artisans\n"
         f"Allow: /pro\n"
+        f"Allow: /p/\n"
         f"Disallow: /admin\n"
         f"Disallow: /dashboard\n"
         f"Disallow: /leads\n"
@@ -220,6 +221,7 @@ def robots_txt():
 
 @web_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap_xml():
+    from app.models.site_page import SitePage
     from app.utils.seo import site_base_url
 
     base = site_base_url()
@@ -237,6 +239,11 @@ def sitemap_xml():
     for tenant in list_public_artisans(limit=200):
         if tenant.public_slug:
             urls.append((f"/artisans/{tenant.public_slug}", "weekly", "0.8"))
+
+    for page in SitePage.query.filter_by(status="published").order_by(SitePage.updated_at.desc()).limit(100).all():
+        if page.slug:
+            urls.append((f"/p/{page.slug}", "weekly", "0.7"))
+
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for path, freq, priority in urls:
         loc = base + path
@@ -272,7 +279,7 @@ def pro_landing():
         return redirect(url_for("web.dashboard"))
     from app.services import content_studio
 
-    return render_template("pro_landing.html", offers=content_studio.get_offers(active_only=True))
+    return render_template("pro/landing.html", offers=content_studio.get_offers(active_only=True))
 
 
 # Legacy alias
@@ -390,12 +397,18 @@ def artisan_profile(slug):
         }
         for s in slots
     ]
+    from app.routes.customer import customer_session_payload
+
+    customer_profile = customer_session_payload()
+    pending_booking = session.get("pending_booking")
     return render_template(
         "public/artisan_profile.html",
         tenant=tenant,
         trade_label=trade_label(tenant.trade_type, lang),
         trade_icon=trade_icon(tenant.trade_type),
         slot_items=slot_items,
+        customer_profile=customer_profile,
+        pending_booking=pending_booking,
     )
 
 
@@ -505,7 +518,7 @@ def register():
     from app.constants.trades import trade_choices
 
     lang = getattr(g, "lang", "fr")
-    return render_template("register.html", error=error, form=form, trades=trade_choices(lang))
+    return render_template("pro/register.html", error=error, form=form, trades=trade_choices(lang))
 
 
 @web_bp.route("/login", methods=["GET", "POST"])
@@ -539,7 +552,7 @@ def login():
                     login_user_to_session(user)
                     return redirect(url_for("web.dashboard"))
 
-    return render_template("login.html", error=error)
+    return render_template("pro/login.html", error=error)
 
 
 @web_bp.route("/logout", methods=["GET"])
@@ -588,7 +601,7 @@ def forgot_password():
             except Exception:
                 current_app.logger.exception("Password reset request failed for %s", email)
 
-    return render_template("forgot_password.html", sent=sent, error=error, email=email)
+    return render_template("pro/forgot_password.html", sent=sent, error=error, email=email)
 
 
 @web_bp.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -597,7 +610,7 @@ def reset_password(token):
 
     user = verify_reset_token(token)
     if not user:
-        return render_template("reset_password.html", invalid=True)
+        return render_template("pro/reset_password.html", invalid=True)
 
     error = None
     if request.method == "POST":
@@ -625,7 +638,7 @@ def reset_password(token):
                     current_app.logger.exception("Password-changed email failed user=%s", user.id)
                 return redirect(_login_url_for(user) + "?reset=1")
 
-    return render_template("reset_password.html", invalid=False, error=error, token=token)
+    return render_template("pro/reset_password.html", invalid=False, error=error, token=token)
 
 
 @web_bp.route("/dashboard", methods=["GET"])
@@ -703,7 +716,7 @@ def dashboard():
     )
 
     return render_template(
-        "dashboard.html",
+        "artisan/dashboard.html",
         tenant=tenant,
         calls_today=calls_today,
         appointments_today=appointments_today,
@@ -731,7 +744,7 @@ def leads_page():
         query = query.filter(Lead.archived_at.is_(None))
     leads = query.order_by(Lead.created_at.desc()).all()
     return render_template(
-        "leads.html",
+        "artisan/leads.html",
         leads=leads,
         show_archived=show_archived,
     )
@@ -824,7 +837,7 @@ def marketing_page():
     segments = marketing.build_segments(g.tenant_id)
     result = session.pop("marketing_result", None)
     return render_template(
-        "marketing.html",
+        "artisan/marketing.html",
         segments=segments,
         total_clients=segments[0]["count"] if segments else 0,
         result=result,
@@ -1028,7 +1041,7 @@ def appointments_page():
             )
 
     return render_template(
-        "appointments.html",
+        "artisan/appointments.html",
         appointments=appointments,
         agenda_days=agenda_days,
         map_markers=map_markers,
@@ -1207,7 +1220,7 @@ def settings_page():
 
     lang = getattr(g, "lang", "fr")
     return render_template(
-        "settings.html",
+        "artisan/settings.html",
         tenant=tenant,
         user=user,
         success=success,

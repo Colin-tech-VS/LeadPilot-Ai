@@ -85,6 +85,14 @@ a:hover {
   min-width: 0;
 }
 
+.topbar-left .brand {
+  flex-wrap: wrap;
+}
+
+.topbar-left .brand .zone-badge {
+  margin-left: 4px;
+}
+
 .app-nav {
   width: 100%;
   border-top: 1px solid var(--border);

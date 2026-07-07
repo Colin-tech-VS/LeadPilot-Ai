@@ -6,6 +6,7 @@ Create Date: 2026-07-07
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 revision = "g2h3i4j5k6l7"
@@ -15,6 +16,10 @@ depends_on = None
 
 
 def upgrade():
+    bind = op.get_bind()
+    if "outreach_prospects" in inspect(bind).get_table_names():
+        return
+
     op.create_table(
         "outreach_prospects",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -48,6 +53,9 @@ def upgrade():
 
 
 def downgrade():
+    bind = op.get_bind()
+    if "outreach_prospects" not in inspect(bind).get_table_names():
+        return
     op.drop_index("ix_outreach_prospects_status", table_name="outreach_prospects")
     op.drop_index("ix_outreach_prospects_city", table_name="outreach_prospects")
     op.drop_index("ix_outreach_prospects_trade_type", table_name="outreach_prospects")

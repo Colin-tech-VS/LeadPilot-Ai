@@ -62,7 +62,10 @@ def create_app(config_object=None):
             db.create_all()
         # Idempotent column patches — must run in production too when Alembic
         # lags behind the ORM (otherwise /dashboard 500s after deploy).
-        _ensure_schema_updates()
+        try:
+            _ensure_schema_updates()
+        except Exception:
+            logging.getLogger(__name__).exception("schema patch failed — app continues")
         _backfill_lead_status()
         _backfill_completed_appointments()
         _backfill_directory_visibility()
@@ -353,40 +356,3 @@ def _ensure_schema_updates():
                     """
                 )
             )
-
-    if "outreach_prospects" not in table_names:
-        with db.engine.begin() as conn:
-            conn.execute(
-                text(
-                    f"""
-                    CREATE TABLE outreach_prospects (
-                        id VARCHAR(36) PRIMARY KEY,
-                        first_name VARCHAR(100),
-                        last_name VARCHAR(100),
-                        company_name VARCHAR(255),
-                        email VARCHAR(255),
-                        phone VARCHAR(50),
-                        trade_type VARCHAR(30) NOT NULL DEFAULT 'plombier',
-                        city VARCHAR(100),
-                        postal_code VARCHAR(10),
-                        website_url VARCHAR(500),
-                        source_url VARCHAR(500),
-                        source VARCHAR(50) NOT NULL DEFAULT 'web_search',
-                        status VARCHAR(30) NOT NULL DEFAULT 'new',
-                        email_confidence VARCHAR(20),
-                        search_query VARCHAR(500),
-                        notes TEXT,
-                        outreach_subject VARCHAR(255),
-                        outreach_body TEXT,
-                        last_contacted_at {ts_type},
-                        opted_out_at {ts_type},
-                        created_at {ts_type} NOT NULL,
-                        updated_at {ts_type} NOT NULL
-                    )
-                    """
-                )
-            )
-            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_outreach_prospects_email ON outreach_prospects (email)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_outreach_prospects_trade_type ON outreach_prospects (trade_type)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_outreach_prospects_city ON outreach_prospects (city)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_outreach_prospects_status ON outreach_prospects (status)"))

@@ -298,7 +298,8 @@ def pro_landing():
         return redirect(url_for("web.dashboard"))
     from app.services import content_studio
 
-    return render_template("pro/landing.html", offers=content_studio.get_offers(active_only=True))
+    offers = content_studio.get_offers(active_only=True)
+    return render_template("pro/landing.html", offers=offers or [])
 
 
 # Legacy alias

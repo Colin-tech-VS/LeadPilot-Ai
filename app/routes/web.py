@@ -80,6 +80,18 @@ def web_manifest():
     )
 
 
+@web_bp.route("/public.webmanifest", methods=["GET"])
+def public_manifest():
+    """PWA manifest for the public showcase site — installable on mobile."""
+    from flask import current_app, send_from_directory
+
+    return send_from_directory(
+        current_app.static_folder,
+        "public.webmanifest",
+        mimetype="application/manifest+json",
+    )
+
+
 @web_bp.route("/sw.js", methods=["GET"])
 def service_worker():
     """Serve the service worker from the root so its scope covers every page."""

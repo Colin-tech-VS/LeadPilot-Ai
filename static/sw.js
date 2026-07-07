@@ -1,15 +1,21 @@
 /* LeadPilot AI — service worker (PWA shell + notifications) */
 /* Bump CACHE on every asset change: the activate handler purges every older
    cache, so returning users can never be stuck on a stale bundle. */
-const CACHE = "leadpilot-v4";
+const CACHE = "leadpilot-v5";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",
+  "/static/css/public.css",
+  "/static/css/vitrine.css",
   "/static/js/nav.js",
   "/static/js/dashboard.js",
   "/static/js/notifications.js",
+  "/static/js/pwa-install.js",
+  "/static/admin/admin.css",
+  "/static/admin/admin.js",
   "/static/images/logo.svg",
   "/manifest.webmanifest",
+  "/public.webmanifest",
 ];
 
 /* Static assets whose freshness matters more than offline speed. Serving a

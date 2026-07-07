@@ -106,6 +106,41 @@ def test_generate_and_send_outreach_email(app, client):
         assert row.last_contacted_at is not None
 
 
+def test_ddg_ad_url_is_unwrapped_to_domain():
+    """Sponsored /y.js ad redirect URLs collapse to the advertiser domain."""
+    from app.services.prospect_search import _normalize_ddg_url
+
+    href = (
+        "//duckduckgo.com/y.js?ad_domain=mesdepanneurs.fr&ad_provider=bingv7aa"
+        "&ad_type=txad&click_metadata=" + "x" * 900 + "&iurl=%7B1%7DIG%3Dabc"
+    )
+    assert _normalize_ddg_url(href) == "https://mesdepanneurs.fr"
+
+
+def test_long_source_url_persists_without_truncation(app, client):
+    """A 700+ char redirect URL must not raise StringDataRightTruncation."""
+    _login_admin(client)
+    long_url = "https://example-artisan.fr/?ref=" + "a" * 800
+    hits = [{"title": "Artisan", "url": long_url, "snippet": "Plombier"}]
+    with patch("app.services.prospect_search.web_search", return_value=hits), patch(
+        "app.services.prospect_search.harvest_emails_from_site", return_value=[]
+    ), patch(
+        "app.services.prospect_search.fetch_page_text", return_value=""
+    ), patch(
+        "app.services.prospecting.content_ai.is_available", return_value=False
+    ):
+        response = client.post(
+            "/admin/api/prospecting/search",
+            json={"trade_type": "plombier", "city": "Paris", "max_results": 3},
+        )
+    assert response.status_code == 200
+    assert response.get_json()["found"] == 1
+    with app.app_context():
+        row = OutreachProspect.query.filter_by(source_url=long_url).first()
+        assert row is not None
+        assert row.website_url == long_url
+
+
 def test_search_requires_city(client):
     _login_admin(client)
     response = client.post("/admin/api/prospecting/search", json={"trade_type": "plombier", "city": ""})

@@ -35,8 +35,10 @@ class OutreachProspect(db.Model):
     trade_type = db.Column(db.String(30), nullable=False, default="plombier", index=True)
     city = db.Column(db.String(100), nullable=True, index=True)
     postal_code = db.Column(db.String(10), nullable=True)
-    website_url = db.Column(db.String(500), nullable=True)
-    source_url = db.Column(db.String(500), nullable=True)
+    # URLs can legitimately exceed 500 chars (search-engine redirect/tracking
+    # links), so store them unbounded rather than truncating.
+    website_url = db.Column(db.Text, nullable=True)
+    source_url = db.Column(db.Text, nullable=True)
     source = db.Column(db.String(50), nullable=False, default="web_search")
     status = db.Column(db.String(30), nullable=False, default="new", index=True)
     email_confidence = db.Column(db.String(20), nullable=True)

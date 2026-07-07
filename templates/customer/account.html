@@ -22,7 +22,12 @@
     <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">+ Nouvelle réservation</a>
   </header>
 
-  {% if request.args.get('booking') == 'ok' %}
+  {% if request.args.get('quote_pending') == 'ok' %}
+  <div class="alert alert-success">
+    Votre créneau est réservé temporairement. Un devis vous a été envoyé par e-mail —
+    <strong>signez-le pour confirmer le rendez-vous</strong>. L'artisan ne se déplace qu'après validation.
+  </div>
+  {% elif request.args.get('booking') == 'ok' %}
   <div class="alert alert-success">Votre rendez-vous est confirmé ! Un e-mail de confirmation vous a été envoyé.</div>
   {% elif request.args.get('booking') == 'error' %}
   <div class="alert alert-error">Impossible de finaliser la réservation. Réessayez depuis la fiche artisan.</div>
@@ -50,19 +55,40 @@
 
       <div class="customer-dash-kpis">
         <div class="customer-kpi">
-          <span class="customer-kpi-value">{{ upcoming_count }}</span>
-          <span class="customer-kpi-label">À venir</span>
+          <span class="customer-kpi-value">{{ pending_count }}</span>
+          <span class="customer-kpi-label">À signer</span>
         </div>
         <div class="customer-kpi">
-          <span class="customer-kpi-value">{{ total_count }}</span>
-          <span class="customer-kpi-label">Total</span>
+          <span class="customer-kpi-value">{{ upcoming_count }}</span>
+          <span class="customer-kpi-label">Confirmés</span>
         </div>
       </div>
     </aside>
 
     <div class="customer-dashboard-main">
+      {% if pending_quotes %}
+      <section class="customer-dash-section customer-dash-section--urgent">
+        <h2>Devis à signer</h2>
+        <p class="customer-dash-hint">Validez votre devis pour confirmer le rendez-vous. Sans signature, l'artisan ne se déplace pas.</p>
+        <div class="customer-bookings">
+          {% for item in pending_quotes %}
+          <article class="customer-booking-card customer-booking-card--pending">
+            <div class="customer-booking-main">
+              <h3>{{ item.tenant.name if item.tenant else 'Artisan' }}</h3>
+              {% if item.when %}<p class="customer-booking-when">📅 Créneau demandé : {{ item.when }}</p>{% endif %}
+              <p class="customer-booking-issue">Devis {{ item.quote.number }} · {{ '%.2f'|format(item.quote.total_ttc) }} € TTC</p>
+            </div>
+            {% if item.sign_url %}
+            <a href="{{ item.sign_url }}" class="btn btn-primary">Signer le devis</a>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
       <section class="customer-dash-section">
-        <h2>Prochains rendez-vous</h2>
+        <h2>Prochains rendez-vous confirmés</h2>
         {% if upcoming %}
         <div class="customer-bookings">
           {% for b in upcoming %}

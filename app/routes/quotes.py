@@ -335,6 +335,45 @@ def delete_quote(quote_id):
 # --------------------------------------------------------------------------
 # Public client-facing accept / refuse (token, no auth)
 # --------------------------------------------------------------------------
+def _send_booking_confirmed_emails(quote, appointment):
+    """After devis signature, notify client and artisan that the visit is confirmed."""
+    if not appointment:
+        return
+    from zoneinfo import ZoneInfo
+
+    tenant = db.session.get(Tenant, quote.tenant_id)
+    if not tenant:
+        return
+    paris = ZoneInfo("Europe/Paris")
+    when_label = appointment.date_time.astimezone(paris).strftime("%A %d/%m/%Y à %H:%M")
+    try:
+        from app.services.transactional_email import (
+            send_appointment_confirmation,
+            send_new_booking_to_artisan,
+        )
+
+        if quote.client_email:
+            send_appointment_confirmation(
+                quote.client_email,
+                when_label,
+                tenant.name,
+                customer_name=(quote.client_name or "").split()[0] if quote.client_name else None,
+                tenant_id=tenant.id,
+            )
+        artisan_user = next((u for u in tenant.users), None) if tenant.users else None
+        if artisan_user and artisan_user.email:
+            send_new_booking_to_artisan(
+                artisan_user.email,
+                when_label,
+                quote.client_name or "Client",
+                tenant_id=tenant.id,
+                customer_phone=quote.client_phone,
+                issue=quote.notes,
+            )
+    except Exception:
+        pass
+
+
 @quotes_bp.route("/public/<quote_id>/<token>", methods=["GET"])
 def public_quote(quote_id, token):
     try:
@@ -364,16 +403,23 @@ def public_decision(quote_id, token):
     if quote.doc_type == DOC_DEVIS and quote.status in (STATUS_SENT, STATUS_DRAFT):
         decision = request.form.get("decision")
         if decision == "accept":
-            # Client acceptance auto-generates the facture and schedules the RDV.
             result = quote_engine.accept_quote(quote)
             db.session.commit()
             if not result["already"]:
                 notifications.notify_quote_accepted(
                     quote, appointment=result["appointment"], invoice=result["invoice"]
                 )
+                _send_booking_confirmed_emails(quote, result.get("appointment"))
         elif decision == "refuse":
             quote.status = STATUS_REFUSED
             quote.refused_at = utcnow()
+            if quote.lead_id:
+                from app.services.availability import cancel_tentative_for_lead
+
+                cancel_tentative_for_lead(quote.lead_id)
+                lead = db.session.get(Lead, quote.lead_id)
+                if lead and lead.status == "new":
+                    lead.status = "lost"
             db.session.commit()
             notifications.notify_quote_refused(quote)
 

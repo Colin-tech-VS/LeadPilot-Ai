@@ -1820,6 +1820,11 @@ html {
 .customer-dash-section h2 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
 .customer-dash-section + .customer-dash-section { margin-top: 28px; }
 .customer-booking-card--upcoming { border-color: color-mix(in srgb, var(--blue-primary) 25%, var(--border)); box-shadow: var(--shadow-sm); }
+.customer-booking-card--pending { border-color: #F59E0B; background: #FFFBEB; }
+.customer-dash-section--urgent h2 { color: #B45309; }
+.customer-dash-hint { margin: 0 0 14px; color: var(--text-muted); font-size: 14px; }
+.customer-dash-section--urgent h2 { color: #B45309; }
+.customer-dash-hint { margin: 0 0 14px; color: var(--text-muted); font-size: 14px; }
 .customer-booking-main h3 { margin: 0 0 4px; font-size: 17px; color: #0C1220; }
 .customer-bookings--past .customer-booking-card { opacity: 0.92; }
 .customer-empty-inline { background: #fff; border: 1px dashed var(--border); border-radius: 16px; padding: 28px; text-align: center; color: var(--text-muted); }

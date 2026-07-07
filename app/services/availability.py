@@ -158,3 +158,43 @@ def book_appointment(tenant_id, lead_id, slot_dt: datetime) -> Appointment | Non
 
     db.session.commit()
     return appointment
+
+
+def hold_tentative_appointment(tenant_id, lead_id, slot_dt: datetime) -> Appointment | None:
+    """Reserve a slot pending client quote signature. Does not confirm the job."""
+    tid = tenant_id if isinstance(tenant_id, uuid.UUID) else uuid.UUID(str(tenant_id))
+    lid = lead_id if isinstance(lead_id, uuid.UUID) else uuid.UUID(str(lead_id))
+
+    preferred = normalize_slot(slot_dt)
+    if not is_slot_available(tid, preferred):
+        return None
+
+    appointment = Appointment(
+        tenant_id=tid,
+        lead_id=lid,
+        date_time=preferred,
+        status="tentative",
+    )
+    db.session.add(appointment)
+    db.session.flush()
+    return appointment
+
+
+def confirm_tentative_appointment(appointment: Appointment) -> Appointment:
+    """Promote a held slot to a real visit after the client signs the devis."""
+    from app.models.lead import Lead
+
+    appointment.status = "scheduled"
+    lead = db.session.get(Lead, appointment.lead_id)
+    if lead and lead.status == "new" and lead.cancelled_at is None:
+        lead.status = "booked"
+    return appointment
+
+
+def cancel_tentative_for_lead(lead_id) -> None:
+    """Release held slots when the client refuses or abandons the devis."""
+    lid = lead_id if isinstance(lead_id, uuid.UUID) else uuid.UUID(str(lead_id))
+    (
+        Appointment.query.filter_by(lead_id=lid, status="tentative")
+        .update({"status": "cancelled"}, synchronize_session=False)
+    )

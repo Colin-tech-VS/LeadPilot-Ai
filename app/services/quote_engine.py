@@ -128,6 +128,7 @@ def build_draft_from_lead(lead, tenant):
         status=STATUS_DRAFT,
         client_name=(lead.name if lead else None),
         client_phone=(lead.phone if lead else None),
+        client_email=(lead.email if lead else None),
         client_address=(lead.address if lead else None),
         title=suggest_title_for_issue(lead.issue_type if lead else None),
         deposit_percent=30,
@@ -157,6 +158,37 @@ def create_signed_devis_for_lead(lead, tenant):
     """
     quote = build_draft_from_lead(lead, tenant)
     quote.number = generate_number(tenant.id, DOC_DEVIS)
+    mark_sent(quote)
+    db.session.add(quote)
+    db.session.flush()
+    return quote
+
+
+def create_online_booking_quote(lead, tenant, slot_dt, issue: str | None = None):
+    """Create and send a pre-filled devis for an online booking request.
+
+    The appointment stays ``tentative`` until the client accepts the devis.
+    Caller must already have created the lead and tentative appointment.
+    """
+    from zoneinfo import ZoneInfo
+
+    paris = ZoneInfo("Europe/Paris")
+    when_label = slot_dt.astimezone(paris).strftime("%A %d/%m/%Y à %H:%M")
+
+    quote = build_draft_from_lead(lead, tenant)
+    quote.number = generate_number(tenant.id, DOC_DEVIS)
+    quote.title = f"{quote.title or 'Intervention'} — RDV {when_label}"
+    if issue:
+        quote.notes = (
+            f"Créneau demandé : {when_label}\n"
+            f"Besoin : {issue}\n\n"
+            "Le rendez-vous sera confirmé après signature de ce devis."
+        )
+    else:
+        quote.notes = (
+            f"Créneau demandé : {when_label}\n\n"
+            "Le rendez-vous sera confirmé après signature de ce devis."
+        )
     mark_sent(quote)
     db.session.add(quote)
     db.session.flush()
@@ -217,14 +249,14 @@ def accept_quote(quote):
 
 
 def _auto_schedule_from_quote(quote):
-    """Book the next free slot for an accepted devis.
-
-    An appointment needs a lead; if the devis has none (created by hand), a
-    lightweight lead is derived from the client snapshot so the RDV still shows
-    on the agenda and route map.
-    """
+    """Confirm a held slot or book the next free one when a devis is accepted."""
+    from app.models.appointment import TENTATIVE_STATUS
     from app.models.lead import Lead
-    from app.services.availability import book_appointment, find_next_available_slot
+    from app.services.availability import (
+        book_appointment,
+        confirm_tentative_appointment,
+        find_next_available_slot,
+    )
 
     lead_id = quote.lead_id
     if not lead_id:
@@ -232,6 +264,7 @@ def _auto_schedule_from_quote(quote):
             tenant_id=quote.tenant_id,
             name=(quote.client_name or "Client").strip() or "Client",
             phone=(quote.client_phone or "").strip(),
+            email=quote.client_email,
             address=quote.client_address,
             issue_type="general_inquiry",
             urgency_level="medium",
@@ -243,10 +276,14 @@ def _auto_schedule_from_quote(quote):
         quote.lead_id = lead.id
         lead_id = lead.id
     else:
-        # Accepting the devis confirms the job — mark the existing lead booked so
-        # its status/acceptance badge updates immediately (even if no slot is
-        # free below and no appointment gets created).
         lead = db.session.get(Lead, lead_id)
+        tentative = (
+            lead.appointments.filter_by(status=TENTATIVE_STATUS).first()
+            if lead
+            else None
+        )
+        if tentative:
+            return confirm_tentative_appointment(tentative)
         if lead and lead.status == "new" and lead.cancelled_at is None:
             lead.status = "booked"
 

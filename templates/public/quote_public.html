@@ -109,11 +109,13 @@
 
   {% if not quote.is_invoice and quote.status in ('sent', 'draft') %}
   <div class="quote-public-actions">
-    <p class="quote-public-cta-label">{{ _('quotes.public_decision') }}</p>
+    <p class="quote-public-cta-label">
+      Signez ce devis pour confirmer votre rendez-vous. L'artisan interviendra uniquement après validation.
+    </p>
     <div class="quote-public-buttons">
       <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
         <input type="hidden" name="decision" value="accept">
-        <button type="submit" class="btn btn-primary btn-lg">✓ {{ _('quotes.public_accept') }}</button>
+        <button type="submit" class="btn btn-primary btn-lg">✓ {{ _('quotes.public_accept') }} et confirmer le RDV</button>
       </form>
       <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
         <input type="hidden" name="decision" value="refuse">

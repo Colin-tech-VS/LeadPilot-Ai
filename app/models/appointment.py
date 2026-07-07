@@ -11,7 +11,9 @@ def utcnow():
 
 
 # Still on the plumber's agenda (map, route, dashboard).
-ACTIVE_STATUSES = ("scheduled", "confirmed")
+ACTIVE_STATUSES = ("tentative", "scheduled", "confirmed")
+# Held for client signature — blocks the slot but artisan must not travel yet.
+TENTATIVE_STATUS = "tentative"
 # Job done or void — hidden from RDV views; slot freed for rebooking.
 INACTIVE_STATUSES = ("completed", "cancelled")
 

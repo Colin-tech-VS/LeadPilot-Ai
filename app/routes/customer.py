@@ -22,8 +22,9 @@ from app.core.web_auth import (
     logout_user_session,
     web_customer_required,
 )
-from app.models.appointment import Appointment
+from app.models.appointment import Appointment, TENTATIVE_STATUS
 from app.models.lead import Lead
+from app.models.quote import DOC_DEVIS, STATUS_SENT, Quote
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.utils.validation import validate_email
@@ -70,8 +71,14 @@ def _current_customer() -> User | None:
 
 
 def _create_booking(user: User, tenant: Tenant, slot_dt: datetime, issue: str | None):
-    """Create lead + appointment and send confirmation emails. Returns appointment or None."""
-    from app.services.availability import book_appointment
+    """Create lead, hold slot tentatively, send pre-filled devis for signature."""
+    from app.services import quote_engine
+    from app.services.availability import hold_tentative_appointment
+    from app.services.quote_delivery import send_quote
+    from app.services.transactional_email import (
+        send_booking_quote_for_signature,
+        send_booking_quote_pending_to_artisan,
+    )
 
     lead = Lead(
         tenant_id=tenant.id,
@@ -86,39 +93,54 @@ def _create_booking(user: User, tenant: Tenant, slot_dt: datetime, issue: str | 
     db.session.add(lead)
     db.session.flush()
 
-    appt = book_appointment(tenant.id, lead.id, slot_dt)
+    appt = hold_tentative_appointment(tenant.id, lead.id, slot_dt)
     if not appt:
         db.session.rollback()
         return None
 
-    try:
-        from app.services.transactional_email import (
-            send_appointment_confirmation,
-            send_new_booking_to_artisan,
-        )
+    quote = quote_engine.create_online_booking_quote(lead, tenant, slot_dt, issue)
+    lead.set_booking(
+        {
+            "quote_id": str(quote.id),
+            "slot_iso": appt.date_time.isoformat(),
+            "awaiting_signature": True,
+        }
+    )
+    db.session.commit()
 
-        when_label = appt.date_time.astimezone(PARIS).strftime("%A %d/%m/%Y à %H:%M")
-        send_appointment_confirmation(
+    when_label = appt.date_time.astimezone(PARIS).strftime("%A %d/%m/%Y à %H:%M")
+    sign_url = url_for(
+        "quotes.public_quote",
+        quote_id=quote.id,
+        token=quote.public_token,
+        _external=True,
+    )
+
+    try:
+        send_booking_quote_for_signature(
             user.email,
-            when_label,
-            tenant.name,
             customer_name=user.first_name,
+            artisan_name=tenant.name,
+            when_label=when_label,
+            quote_total_ttc=quote.total_ttc,
+            sign_url=sign_url,
             tenant_id=tenant.id,
         )
+        if user.phone:
+            send_quote(quote, tenant, channels={"sms"})
         artisan_user = next((u for u in tenant.users), None) if tenant.users else None
         if artisan_user and artisan_user.email:
-            send_new_booking_to_artisan(
+            send_booking_quote_pending_to_artisan(
                 artisan_user.email,
-                when_label,
-                user.full_name or user.email,
+                customer_name=user.full_name or user.email,
+                when_label=when_label,
+                quote_number=quote.number,
                 tenant_id=tenant.id,
-                customer_phone=user.phone,
-                issue=issue,
             )
     except Exception:
-        logger.exception("Booking confirmation emails failed for tenant=%s", tenant.id)
+        logger.exception("Booking quote emails failed for tenant=%s", tenant.id)
 
-    return appt
+    return {"quote": quote, "appointment": appt}
 
 
 def _build_bookings(user: User) -> list[dict]:
@@ -134,18 +156,81 @@ def _build_bookings(user: User) -> list[dict]:
         appt = lead.appointments.order_by(Appointment.date_time.desc()).first()
         tenant = db.session.get(Tenant, lead.tenant_id)
         appt_dt = appt.date_time if appt else None
+        quote = (
+            Quote.query.filter_by(lead_id=lead.id, doc_type=DOC_DEVIS)
+            .order_by(Quote.created_at.desc())
+            .first()
+        )
+        sign_url = None
+        if quote and quote.status == STATUS_SENT and quote.public_token:
+            sign_url = url_for(
+                "quotes.public_quote",
+                quote_id=quote.id,
+                token=quote.public_token,
+                _external=False,
+            )
+        appt_status = appt.status if appt else lead.status
+        is_pending_signature = appt_status == TENTATIVE_STATUS or (
+            quote is not None and quote.status == STATUS_SENT
+        )
+        is_confirmed = appt_status in ("scheduled", "confirmed")
         bookings.append(
             {
                 "artisan": tenant.name if tenant else "—",
                 "artisan_slug": tenant.public_slug if tenant else None,
                 "when": appt_dt.astimezone(PARIS).strftime("%a %d/%m/%Y · %H:%M") if appt_dt else None,
                 "when_sort": appt_dt,
-                "status": appt.status if appt else lead.status,
+                "status": appt_status,
                 "issue": lead.summary,
-                "is_upcoming": bool(appt_dt and appt_dt >= now and (appt.status if appt else "") not in ("cancelled", "completed")),
+                "quote_number": quote.number if quote else None,
+                "sign_url": sign_url,
+                "is_pending_signature": is_pending_signature and not is_confirmed,
+                "is_confirmed": is_confirmed,
+                "is_upcoming": bool(
+                    appt_dt
+                    and appt_dt >= now
+                    and is_confirmed
+                    and appt_status not in ("cancelled", "completed")
+                ),
             }
         )
     return bookings
+
+
+def _pending_quotes(user: User) -> list[dict]:
+    quotes = (
+        Quote.query.filter_by(client_email=user.email, doc_type=DOC_DEVIS, status=STATUS_SENT)
+        .order_by(Quote.sent_at.desc())
+        .limit(20)
+        .all()
+    )
+    items = []
+    for quote in quotes:
+        tenant = db.session.get(Tenant, quote.tenant_id)
+        appt = None
+        if quote.lead_id:
+            appt = (
+                Appointment.query.filter_by(lead_id=quote.lead_id, status=TENTATIVE_STATUS)
+                .order_by(Appointment.date_time.asc())
+                .first()
+            )
+        items.append(
+            {
+                "quote": quote,
+                "tenant": tenant,
+                "when": appt.date_time.astimezone(PARIS).strftime("%a %d/%m/%Y · %H:%M")
+                if appt
+                else None,
+                "sign_url": url_for(
+                    "quotes.public_quote",
+                    quote_id=quote.id,
+                    token=quote.public_token,
+                )
+                if quote.public_token
+                else None,
+            }
+        )
+    return items
 
 
 @customer_bp.route("/register", methods=["GET", "POST"])
@@ -246,14 +331,18 @@ def account():
     user = g.current_user
     bookings = _build_bookings(user)
     upcoming = [b for b in bookings if b["is_upcoming"]]
-    past = [b for b in bookings if not b["is_upcoming"]]
+    pending = [b for b in bookings if b["is_pending_signature"]]
+    past = [b for b in bookings if not b["is_upcoming"] and not b["is_pending_signature"]]
     return render_template(
         "customer/account.html",
         user=user,
         bookings=bookings,
         upcoming=upcoming,
+        pending=pending,
         past=past,
+        pending_quotes=_pending_quotes(user),
         upcoming_count=len(upcoming),
+        pending_count=len(pending),
         total_count=len(bookings),
     )
 
@@ -297,11 +386,11 @@ def book(slug):
     except ValueError:
         return redirect(url_for("web.artisan_profile", slug=slug, booking="noslot"))
 
-    appt = _create_booking(user, tenant, slot_dt, issue)
-    if not appt:
+    result = _create_booking(user, tenant, slot_dt, issue)
+    if not result:
         return redirect(url_for("web.artisan_profile", slug=slug, booking="taken"))
 
-    return redirect(url_for("customer.account", booking="ok"))
+    return redirect(url_for("customer.account", quote_pending="ok"))
 
 
 @customer_bp.route("/book/complete", methods=["GET"])
@@ -327,12 +416,12 @@ def complete_pending_booking():
     except ValueError:
         return redirect(url_for("web.artisan_profile", slug=slug, booking="noslot"))
 
-    appt = _create_booking(g.current_user, tenant, slot_dt, issue)
-    if not appt:
+    result = _create_booking(g.current_user, tenant, slot_dt, issue)
+    if not result:
         session["pending_booking"] = pending
         return redirect(url_for("web.artisan_profile", slug=slug, booking="taken"))
 
-    return redirect(url_for("customer.account", booking="ok"))
+    return redirect(url_for("customer.account", quote_pending="ok"))
 
 
 def customer_session_payload() -> dict | None:

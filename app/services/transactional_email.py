@@ -250,3 +250,71 @@ def send_new_booking_to_artisan(to_addr, when_label, customer_name, *, tenant_id
     )
     text = f"Nouvelle réservation de {customer_name} le {when_label}."
     return _send(to_addr, "Nouvelle demande de rendez-vous", html, text, tenant_id=tenant_id)
+
+
+def send_booking_quote_for_signature(
+    to_addr,
+    *,
+    customer_name=None,
+    artisan_name,
+    when_label,
+    quote_total_ttc,
+    sign_url,
+    tenant_id=None,
+):
+    """Ask the customer to sign the devis before the visit is confirmed."""
+    if not to_addr or not sign_url:
+        return None
+    hello = f"Bonjour {customer_name}," if customer_name else "Bonjour,"
+    html = render_email(
+        "Signez votre devis pour confirmer le rendez-vous",
+        hello,
+        lines=[
+            f"Vous avez demandé un créneau avec <strong>{artisan_name}</strong> "
+            f"le <strong>{when_label}</strong>.",
+            f"Un devis pré-rempli ({quote_total_ttc:.2f} € TTC) vous attend.",
+            "L'artisan ne se déplace qu'après validation du devis en ligne.",
+        ],
+        cta_label="Signer le devis",
+        cta_url=sign_url,
+        outro="Le créneau reste réservé temporairement le temps de votre signature.",
+    )
+    text = (
+        f"{hello}\nSignez votre devis pour confirmer le RDV du {when_label} "
+        f"avec {artisan_name} : {sign_url}"
+    )
+    return _send(
+        to_addr,
+        f"Signez votre devis — RDV {when_label}",
+        html,
+        text,
+        tenant_id=tenant_id,
+    )
+
+
+def send_booking_quote_pending_to_artisan(
+    to_addr,
+    *,
+    customer_name,
+    when_label,
+    quote_number,
+    tenant_id=None,
+):
+    """Tell the artisan a devis was sent and the slot awaits client signature."""
+    if not to_addr:
+        return None
+    base = _base_url()
+    html = render_email(
+        "Devis envoyé — en attente de signature",
+        "Bonjour,",
+        lines=[
+            f"<strong>{customer_name or 'Un client'}</strong> a demandé le créneau "
+            f"du <strong>{when_label}</strong>.",
+            f"Le devis <strong>{quote_number or ''}</strong> a été envoyé automatiquement.",
+            "Le rendez-vous sera confirmé dans votre agenda dès signature du client.",
+        ],
+        cta_label="Voir mes devis",
+        cta_url=f"{base}/quotes",
+    )
+    text = f"Devis {quote_number} envoyé à {customer_name} pour le {when_label} — en attente de signature."
+    return _send(to_addr, "Devis en attente de signature client", html, text, tenant_id=tenant_id)

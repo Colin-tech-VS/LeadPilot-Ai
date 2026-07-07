@@ -115,10 +115,11 @@
         <textarea id="booking-issue" name="issue" class="booking-issue-input" rows="2" placeholder="Ex. fuite sous l'évier, remplacement chauffe-eau…">{{ pending_booking.issue if pending_booking and pending_booking.slug == tenant.public_slug else '' }}</textarea>
         <p class="slot-selected-hint" id="slot-selected-hint" {% if not (pending_booking and pending_booking.slot_iso) %}hidden{% endif %}>{{ _('directory.slot_selected') }}</p>
         <button type="submit" class="btn btn-primary btn-block btn-lg" id="booking-submit" {% if not (pending_booking and pending_booking.slot_iso) %}disabled{% endif %}>
-          {% if customer_profile %}Réserver en 1 clic{% else %}Réserver ce créneau{% endif %}
+          {% if customer_profile %}Demander ce créneau{% else %}Demander ce créneau{% endif %}
         </button>
+        <p class="booking-login-note">Un devis pré-rempli vous sera envoyé par e-mail. Le rendez-vous sera confirmé après signature.</p>
         {% if not customer_profile %}
-        <p class="booking-login-note">Connectez-vous ou créez un compte gratuit pour confirmer — vos coordonnées seront pré-remplies.</p>
+        <p class="booking-login-note">Connectez-vous ou créez un compte — vos coordonnées seront pré-remplies sur le devis.</p>
         {% endif %}
       </form>
       {% else %}

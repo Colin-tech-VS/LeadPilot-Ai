@@ -4,10 +4,12 @@
 {% set _assistant = tenant.ai_assistant_name or _('chatbot.assistant') %}
 
 {% set _city = tenant.city or _('directory.city_unknown') %}
+{% set _postal_suffix = (' (' ~ tenant.postal_code ~ ')') if tenant.postal_code else '' %}
 {% set _profile_desc = tenant.public_blurb or _('directory.profile_default_blurb', name=tenant.name, trade=trade_label) %}
 {% set _profile_url = canonical_url('/artisans/' ~ tenant.public_slug) %}
 {% set _meta_title = _('profile.meta_title', trade=trade_label, city=_city, name=tenant.name) %}
-{% set _meta_keywords = trade_label ~ ', ' ~ _city ~ (', ' ~ tenant.postal_code if tenant.postal_code else '') ~ ', artisan, dépannage, RDV en ligne' %}
+{% set _meta_desc = _('profile.meta_description', name=tenant.name, trade=trade_label, city=_city, postal=_postal_suffix, phone=primary_phone or tenant.name) %}
+{% set _meta_keywords = _('profile.meta_keywords', trade=trade_label, city=_city) %}
 {% set _faq_area = _('profile.faq_area_a', name=tenant.name, city=_city, km=tenant.service_radius_km) if tenant.service_radius_km else _('profile.faq_area_city', name=tenant.name, city=_city) %}
 
 {% set profile_ld %}
@@ -53,10 +55,29 @@
       "hasMap": {{ maps_url|tojson }}
       {%- endif %}
       {%- if tenant.city %},
-      "areaServed": { "@type": "City", "name": {{ tenant.city|tojson }} }
+      "areaServed": [
+        { "@type": "City", "name": {{ tenant.city|tojson }} }
+        {%- if tenant.service_radius_km and tenant.latitude and tenant.longitude %},
+        {
+          "@type": "GeoCircle",
+          "geoMidpoint": {
+            "@type": "GeoCoordinates",
+            "latitude": {{ tenant.latitude|tojson }},
+            "longitude": {{ tenant.longitude|tojson }}
+          },
+          "geoRadius": {{ (tenant.service_radius_km * 1000)|tojson }}
+        }
+        {%- endif %}
+      ]
       {%- endif %},
       "knowsAbout": {{ trade_label|tojson }},
-      "priceRange": "€€"
+      "priceRange": "€€",
+      "makesOffer": {
+        "@type": "Offer",
+        "name": {{ _('profile.faq_book_q', name=tenant.name)|tojson }},
+        "url": {{ _profile_url|tojson }},
+        "availability": "https://schema.org/InStock"
+      }
     },
     {
       "@type": "WebPage",
@@ -99,7 +120,7 @@
 {% block body_class %}page-artisan-profile{% endblock %}
 
 {% block meta %}
-{{ seo_meta(_meta_title, _('profile.meta_description', name=tenant.name, trade=trade_label, city=_city, phone=primary_phone or tenant.name), '/artisans/' ~ tenant.public_slug, _meta_keywords, 'business.business', None, 'index, follow', profile_ld, lang) }}
+{{ seo_meta(_meta_title, _meta_desc, '/artisans/' ~ tenant.public_slug, _meta_keywords, 'business.business', None, 'index, follow', profile_ld, lang) }}
 {% endblock %}
 
 {% block head_extra %}
@@ -114,7 +135,8 @@
   <ol class="ap-breadcrumb-list">
     <li><a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a></li>
     <li><a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a></li>
-    {% if tenant.city %}<li><span>{{ tenant.city }}</span></li>{% endif %}
+    {% if tenant.city %}<li><a href="{{ url_for('web.artisan_directory', ville=tenant.city) }}">{{ tenant.city }}</a></li>{% endif %}
+    {% if tenant.trade_type %}<li><a href="{{ url_for('web.artisan_directory', metier=tenant.trade_type, ville=tenant.city or '') }}">{{ trade_label }}</a></li>{% endif %}
     <li aria-current="page"><span>{{ tenant.name }}</span></li>
   </ol>
 </nav>
@@ -128,9 +150,15 @@
       <span class="ap-badge">{{ _('profile.trust_online') }}</span>
       {% if tenant.city %}<span class="ap-badge">{{ _('profile.trust_local') }}</span>{% endif %}
     </div>
-    <h1 class="ap-title">{{ tenant.name }}</h1>
+    <h1 class="ap-title">
+      {%- if tenant.city -%}
+      {{ _('profile.h1', name=tenant.name, trade=trade_label, city=tenant.city) }}
+      {%- else -%}
+      {{ tenant.name }}
+      {%- endif -%}
+    </h1>
     <p class="ap-subtitle">
-      {% if tenant.city %}{{ _('profile.hero_title', trade=trade_label, city=tenant.city) }}{% else %}{{ trade_label }}{% endif %}
+      {% if tenant.city %}{{ trade_label }}{% if tenant.postal_code %} · {{ tenant.postal_code }}{% endif %}{% else %}{{ trade_label }}{% endif %}
       {% if tenant.service_radius_km %} · {{ _('directory.radius_km', km=tenant.service_radius_km) }}{% endif %}
     </p>
     {% if tenant.public_blurb %}

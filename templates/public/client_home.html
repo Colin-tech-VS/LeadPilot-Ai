@@ -11,15 +11,47 @@
 {% set site_ld %}
 {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": {{ _('app.name')|tojson }},
-  "url": {{ site_base_url()|tojson }},
-  "description": {{ _('client.meta_description')|tojson }},
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": {{ (canonical_url('/artisans') ~ '?ai={search_term_string}')|tojson }},
-    "query-input": "required name=search_term_string"
-  }
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": {{ (site_base_url() ~ '#website')|tojson }},
+      "name": {{ _('app.name')|tojson }},
+      "url": {{ site_base_url()|tojson }},
+      "description": {{ _('client.meta_description')|tojson }},
+      "inLanguage": {{ lang|tojson }},
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {{ (canonical_url('/artisans') ~ '?q={search_term_string}')|tojson }},
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "Organization",
+      "@id": {{ (site_base_url() ~ '#organization')|tojson }},
+      "name": "PilotCore",
+      "url": {{ site_base_url()|tojson }},
+      "logo": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }},
+      "description": {{ _('client.meta_description')|tojson }},
+      "email": "contact@pilotcore.fr",
+      "areaServed": {"@type": "Country", "name": "France"}
+    }
+    {%- if featured_artisans %},
+    {
+      "@type": "ItemList",
+      "name": {{ _('client.featured_title')|tojson }},
+      "itemListElement": [
+        {%- for a in featured_artisans %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "url": {{ canonical_url('/artisans/' ~ a.public_slug)|tojson }},
+          "name": {{ a.name|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }
+    {%- endif %}
+  ]
 }
 {% endset %}
 {{ seo_meta(_('client.meta_title'), _('client.meta_description'), '/', _('client.meta_keywords'), 'website', None, 'index, follow', site_ld, lang) }}
@@ -28,6 +60,7 @@
 {% block content %}
 <section class="dl-hero">
   <div class="container dl-hero-inner">
+    <p class="v-kicker">{{ _('client.hero_kicker') }}</p>
     <h1 class="dl-hero-title">{{ _('client.hero_title') }}</h1>
     <p class="dl-hero-lead">{{ _('client.hero_subtitle') }}</p>
 
@@ -35,7 +68,7 @@
       <div class="dl-search-fields">
         <label class="dl-search-field">
           <span class="dl-search-label">{{ _('directory.search_what') }}</span>
-          <input type="search" name="ai" placeholder="{{ _('directory.ai_placeholder') }}" autocomplete="off" autofocus>
+          <input type="search" name="q" placeholder="{{ _('directory.ai_placeholder') }}" autocomplete="off" autofocus>
         </label>
         <label class="dl-search-field">
           <span class="dl-search-label">{{ _('directory.search_where') }}</span>
@@ -68,6 +101,105 @@
   </div>
 </section>
 {% endif %}
+
+<section class="v-section v-section--urgency">
+  <div class="container">
+    <div class="v-section-head v-section-head--left v-reveal">
+      <p class="v-kicker">{{ _('client.scenarios_kicker') }}</p>
+      <h2>{{ _('client.scenarios_title') }}</h2>
+      <p class="v-section-lead-light">{{ _('client.scenarios_subtitle') }}</p>
+    </div>
+    <div class="v-scenario-grid v-scenario-grid--accent">
+      <a href="{{ url_for('web.artisan_directory', metier='plombier') }}" class="v-scenario-card v-scenario-card--water">
+        <p class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</p>
+        <div class="v-scenario-icon" aria-hidden="true">💧</div>
+        <h3>{{ _('client.scenario_1_title') }}</h3>
+        <p>{{ _('client.scenario_1_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+      <a href="{{ url_for('web.artisan_directory', metier='electricien') }}" class="v-scenario-card v-scenario-card--electric">
+        <p class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</p>
+        <div class="v-scenario-icon" aria-hidden="true">⚡</div>
+        <h3>{{ _('client.scenario_2_title') }}</h3>
+        <p>{{ _('client.scenario_2_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+      <a href="{{ url_for('web.artisan_directory', metier='serrurier') }}" class="v-scenario-card v-scenario-card--lock">
+        <p class="v-scenario-tag">{{ _('client.scenario_tag_urgent') }}</p>
+        <div class="v-scenario-icon" aria-hidden="true">🔐</div>
+        <h3>{{ _('client.scenario_3_title') }}</h3>
+        <p>{{ _('client.scenario_3_desc') }}</p>
+        <span class="v-scenario-cta">{{ _('client.scenario_cta') }} →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="v-section v-section--steps">
+  <div class="container">
+    <h2 class="v-steps-heading">{{ _('client.steps_title') }}</h2>
+    <ol class="v-timeline">
+      <li class="v-timeline-step">
+        <span class="v-timeline-dot">1</span>
+        <strong>{{ _('client.step_1_title') }}</strong>
+        <p>{{ _('client.step_1_desc') }}</p>
+      </li>
+      <li class="v-timeline-step">
+        <span class="v-timeline-dot">2</span>
+        <strong>{{ _('client.step_2_title') }}</strong>
+        <p>{{ _('client.step_2_desc') }}</p>
+      </li>
+      <li class="v-timeline-step">
+        <span class="v-timeline-dot">3</span>
+        <strong>{{ _('client.step_3_title') }}</strong>
+        <p>{{ _('client.step_3_desc') }}</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="v-section">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('vitrine.tools_kicker') }}</p>
+      <h2>{{ _('vitrine.tools_title') }}</h2>
+    </div>
+    <div class="v-problem-grid">
+      <article class="v-problem-card v-reveal">
+        <h3>{{ _('client.tool_1_title') }}</h3>
+        <p>{{ _('client.tool_1_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-1">
+        <h3>{{ _('client.tool_2_title') }}</h3>
+        <p>{{ _('client.tool_2_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-2">
+        <h3>{{ _('client.tool_3_title') }}</h3>
+        <p>{{ _('client.tool_3_desc') }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="v-strip-cta">
+  <div class="container v-strip-cta-inner">
+    <div class="v-strip-cta-copy">
+      <h2>{{ _('client.book_cta_title') }}</h2>
+      <p>{{ _('client.book_cta_sub') }}</p>
+    </div>
+    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-lg v-strip-cta-btn">{{ _('client.book_cta_btn') }}</a>
+  </div>
+</section>
+
+<section class="v-pro-band v-pro-band--dark">
+  <div class="container v-pro-band-inner">
+    <div>
+      <h2>{{ _('client.pro_band_title') }}</h2>
+      <p>{{ _('client.pro_band_subtitle') }}</p>
+    </div>
+    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light btn-lg">{{ _('client.pro_band_cta') }}</a>
+  </div>
+</section>
 {% endblock %}
 
 {% block scripts %}

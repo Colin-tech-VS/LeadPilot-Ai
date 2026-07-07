@@ -50,6 +50,7 @@ def send_email(
     cc_addrs=None,
     in_reply_to_row=None,
     html_body=None,
+    reply_to=None,
 ):
     """Send (or simulate) an email and record it. Returns the EmailMessage."""
     from_addr = from_addr or default_from_addr()
@@ -93,6 +94,7 @@ def send_email(
             cc_addrs=cc_addrs,
             in_reply_to=msg_row.rfc_in_reply_to,
             references=msg_row.references_header,
+            reply_to=reply_to,
         )
         if not msg_row.provider_id:
             msg_row.provider_id = mime.get("Message-ID")
@@ -124,6 +126,7 @@ def _build_mime(
     cc_addrs=None,
     in_reply_to=None,
     references=None,
+    reply_to=None,
 ):
     if is_html or html_body:
         mime = MIMEMultipart("alternative")
@@ -143,6 +146,8 @@ def _build_mime(
         mime["In-Reply-To"] = in_reply_to
     if references:
         mime["References"] = references
+    if reply_to:
+        mime["Reply-To"] = reply_to
     return mime
 
 

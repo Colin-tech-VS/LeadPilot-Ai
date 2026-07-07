@@ -218,6 +218,7 @@ def robots_txt():
         f"Disallow: /register\n"
         f"Disallow: /reset-password\n"
         f"Disallow: /forgot-password\n"
+        f"Allow: /contact\n"
         f"Sitemap: {base}/sitemap.xml\n"
     )
     return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
@@ -225,34 +226,47 @@ def robots_txt():
 
 @web_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap_xml():
+    from datetime import date
+
     from app.models.site_page import SitePage
-    from app.utils.seo import site_base_url
+    from app.services.artisan_directory import list_public_artisans
+    from app.utils.seo import format_lastmod, site_base_url
 
     base = site_base_url()
-    urls = [
-        ("", "daily", "1.0"),
-        ("/artisans", "daily", "0.95"),
-        ("/pro", "weekly", "0.9"),
-        ("/mentions-legales", "yearly", "0.3"),
-        ("/confidentialite", "yearly", "0.3"),
-        ("/cgu", "yearly", "0.3"),
-        ("/cookies", "yearly", "0.3"),
+    today = date.today().isoformat()
+    urls: list[tuple[str, str, str, str | None]] = [
+        ("", "daily", "1.0", today),
+        ("/artisans", "daily", "0.95", today),
+        ("/pro", "weekly", "0.9", today),
+        ("/contact", "monthly", "0.5", today),
+        ("/mentions-legales", "yearly", "0.3", None),
+        ("/confidentialite", "yearly", "0.3", None),
+        ("/cgu", "yearly", "0.3", None),
+        ("/cookies", "yearly", "0.3", None),
     ]
-    from app.services.artisan_directory import list_public_artisans
 
-    for tenant in list_public_artisans(limit=200):
+    for tenant in list_public_artisans(limit=2000):
         if tenant.public_slug:
-            urls.append((f"/artisans/{tenant.public_slug}", "weekly", "0.8"))
+            urls.append(
+                (
+                    f"/artisans/{tenant.public_slug}",
+                    "weekly",
+                    "0.8",
+                    format_lastmod(tenant.created_at),
+                )
+            )
 
     for page in SitePage.query.filter_by(status="published").order_by(SitePage.updated_at.desc()).limit(100).all():
         if page.slug:
-            urls.append((f"/p/{page.slug}", "weekly", "0.7"))
+            urls.append((f"/p/{page.slug}", "weekly", "0.7", format_lastmod(page.updated_at)))
 
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for path, freq, priority in urls:
+    for path, freq, priority, lastmod in urls:
         loc = base + path
         lines.append("  <url>")
         lines.append(f"    <loc>{loc}</loc>")
+        if lastmod:
+            lines.append(f"    <lastmod>{lastmod}</lastmod>")
         lines.append(f"    <changefreq>{freq}</changefreq>")
         lines.append(f"    <priority>{priority}</priority>")
         lines.append("  </url>")
@@ -328,6 +342,52 @@ def cookies_policy():
     return render_template("public/legal/cookies.html", updated="6 juillet 2026")
 
 
+@web_bp.route("/contact", methods=["GET", "POST"])
+def contact():
+    from app.services.contact_form import submit_contact
+
+    success = request.args.get("sent") == "1"
+    error = None
+    form = {"name": "", "email": "", "subject": "", "message": ""}
+
+    if request.method == "POST":
+        if request.form.get("website"):
+            return redirect(url_for("web.contact", sent=1))
+
+        if not check_rate("contact_form", limit=5, window=3600):
+            error = translate("contact.error.rate_limited")
+        else:
+            form["name"] = (request.form.get("name") or "").strip()
+            form["email"] = (request.form.get("email") or "").strip()
+            form["subject"] = (request.form.get("subject") or "").strip()
+            form["message"] = (request.form.get("message") or "").strip()
+
+            if not form["name"]:
+                error = translate("contact.error.name_required")
+            elif not form["email"]:
+                error = translate("contact.error.email_required")
+            elif not form["message"]:
+                error = translate("contact.error.message_required")
+            elif len(form["message"]) > 5000:
+                error = translate("contact.error.message_too_long")
+            else:
+                try:
+                    validate_email(form["email"])
+                except AppError:
+                    error = translate("login.error.invalid_email")
+
+            if not error:
+                submit_contact(
+                    form["name"],
+                    form["email"],
+                    form["subject"],
+                    form["message"],
+                )
+                return redirect(url_for("web.contact", sent=1))
+
+    return render_template("public/contact.html", error=error, success=success, form=form)
+
+
 @web_bp.route("/artisans", methods=["GET"])
 def artisan_directory():
     """Public marketplace — find artisans and book online (Doctolib-style)."""
@@ -336,7 +396,7 @@ def artisan_directory():
 
     trade = (request.args.get("metier") or "").strip() or None
     city = (request.args.get("ville") or "").strip() or None
-    q = (request.args.get("q") or "").strip() or None
+    q = (request.args.get("q") or request.args.get("ai") or "").strip() or None
     artisans = list_public_artisans(trade=trade, city=city, q=q)
     lang = getattr(g, "lang", "fr")
     trades = trade_choices(lang)

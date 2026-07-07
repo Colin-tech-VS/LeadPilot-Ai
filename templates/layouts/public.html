@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   {% block meta %}
-  {{ seo_meta(_('app.name'), _('landing.meta_description'), '/', None, 'website', None, 'index, follow', None, lang) }}
+  {{ seo_meta(_('client.meta_title'), _('client.meta_description'), '/', _('client.meta_keywords'), 'website', None, 'index, follow', None, lang) }}
   {% endblock %}
   <meta name="theme-color" content="#0596DE">
   <link rel="manifest" href="{{ url_for('web.public_manifest') }}">
@@ -25,7 +25,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=15">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=18">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=19">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=7">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
@@ -88,6 +88,7 @@
           <a href="{{ url_for('web.privacy') }}">{{ _('legal.privacy') }}</a>
           <a href="{{ url_for('web.cgu') }}">{{ _('legal.cgu') }}</a>
           <a href="{{ url_for('web.cookies_policy') }}">{{ _('legal.cookies') }}</a>
+          <a href="{{ url_for('web.contact') }}">{{ _('legal.contact') }}</a>
         </div>
       </div>
       <div class="v-footer-bottom">

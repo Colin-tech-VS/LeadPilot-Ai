@@ -9,17 +9,60 @@
 {% set app_ld %}
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "PilotCore Pro",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "description": {{ _('pro.meta_description')|tojson }},
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR",
-    "description": {{ _('landing.schema_offer')|tojson }}
-  }
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "PilotCore Pro",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Field Service Management",
+      "operatingSystem": "Web",
+      "url": {{ canonical_url('/pro')|tojson }},
+      "description": {{ _('pro.meta_description')|tojson }},
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Artisans, plombiers, serruriers, électriciens, chauffagistes"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR",
+        "description": {{ _('landing.schema_offer')|tojson }}
+      }
+    },
+    {
+      "@type": "Organization",
+      "name": "PilotCore",
+      "url": {{ site_base_url()|tojson }},
+      "logo": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }},
+      "description": {{ _('pro.meta_description')|tojson }},
+      "email": "contact@pilotcore.fr"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": {{ _('landing.faq_1_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_1_a')|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('landing.faq_2_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_2_a')|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('landing.faq_3_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_3_a')|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('landing.faq_4_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_4_a')|tojson }} }
+        }
+      ]
+    }
+  ]
 }
 {% endset %}
 {{ seo_meta(_('pro.meta_title'), _('pro.meta_description'), '/pro', _('pro.meta_keywords'), 'website', None, 'index, follow', app_ld, lang) }}

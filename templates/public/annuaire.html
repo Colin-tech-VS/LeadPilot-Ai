@@ -8,7 +8,36 @@
 {% block body_class %}page-directory{% endblock %}
 
 {% block meta %}
-{{ seo_meta(_('directory.meta_title') ~ ' — ' ~ _('app.name'), _('directory.meta_description'), '/artisans', _('client.meta_keywords'), 'website', None, 'index, follow', None, lang) }}
+{% set directory_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollectionPage",
+      "name": {{ _('directory.meta_title')|tojson }},
+      "description": {{ _('directory.meta_description')|tojson }},
+      "url": {{ canonical_url('/artisans')|tojson }}
+    }
+    {%- if artisans %},
+    {
+      "@type": "ItemList",
+      "numberOfItems": {{ artisans|length }},
+      "itemListElement": [
+        {%- for a in artisans[:48] %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "url": {{ canonical_url('/artisans/' ~ a.public_slug)|tojson }},
+          "name": {{ a.name|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }
+    {%- endif %}
+  ]
+}
+{% endset %}
+{{ seo_meta(_('directory.meta_title') ~ ' — ' ~ _('app.name'), _('directory.meta_description'), '/artisans', _('client.meta_keywords'), 'website', None, 'index, follow', directory_ld, lang) }}
 {% endblock %}
 
 {% block content %}

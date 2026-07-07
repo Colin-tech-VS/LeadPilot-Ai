@@ -1,0 +1,44 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% block meta %}{{ seo_meta(_('contact.title') ~ ' — ' ~ _('app.name'), _('contact.subtitle'), '/contact', None, 'website', None, 'index, follow', None, lang) }}{% endblock %}
+
+{% block title %}{{ _('contact.title') }} — {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-contact{% endblock %}
+
+{% block content %}
+<section class="customer-auth">
+  <div class="customer-auth-card contact-card">
+    <h1>{{ _('contact.title') }}</h1>
+    <p class="customer-auth-sub">{{ _('contact.subtitle') }}</p>
+    <p class="contact-mailbox">{{ _('contact.mailbox') }} <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a></p>
+
+    {% if success %}
+    <div class="alert alert-success">{{ _('contact.success') }}</div>
+    <p class="customer-auth-switch"><a href="{{ url_for('web.client_home') }}">← {{ _('vitrine.nav_home') }}</a></p>
+    {% else %}
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+    <form method="post" class="auth-form contact-form">
+      <div class="form-row">
+        <div>
+          <label for="name">{{ _('contact.name') }}</label>
+          <input type="text" id="name" name="name" required autofocus value="{{ form.name }}" placeholder="{{ _('contact.name_placeholder') }}">
+        </div>
+        <div>
+          <label for="email">{{ _('contact.email') }}</label>
+          <input type="email" id="email" name="email" required value="{{ form.email }}" placeholder="vous@email.fr">
+        </div>
+      </div>
+      <label for="subject">{{ _('contact.subject') }}</label>
+      <input type="text" id="subject" name="subject" value="{{ form.subject }}" placeholder="{{ _('contact.subject_placeholder') }}">
+      <label for="message">{{ _('contact.message') }}</label>
+      <textarea id="message" name="message" rows="6" required placeholder="{{ _('contact.message_placeholder') }}">{{ form.message }}</textarea>
+      <div class="contact-honeypot" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('contact.submit') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

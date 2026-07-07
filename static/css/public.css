@@ -1774,6 +1774,15 @@ html {
   width: 100%; border: 1px solid #E6E8EC; border-radius: 12px; padding: 12px 14px; font-size: 15px;
 }
 .customer-auth-card .auth-form input:focus { outline: none; border-color: var(--blue-primary); box-shadow: 0 0 0 3px rgba(27, 87, 224,0.12); }
+.customer-auth-card .auth-form textarea {
+  width: 100%; border: 1px solid #E6E8EC; border-radius: 12px; padding: 12px 14px; font-size: 15px;
+  resize: vertical; min-height: 140px; font-family: inherit;
+}
+.customer-auth-card .auth-form textarea:focus { outline: none; border-color: var(--blue-primary); box-shadow: 0 0 0 3px rgba(27, 87, 224,0.12); }
+.contact-card { max-width: 640px; }
+.contact-mailbox { margin: -8px 0 20px; font-size: 14px; color: var(--text-muted); }
+.contact-mailbox a { color: var(--blue-primary); font-weight: 600; }
+.contact-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .customer-auth-card .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .customer-auth-card .btn-block { margin-top: 22px; }
 .auth-forgot { margin: 10px 0 0; text-align: right; font-size: 13px; }

@@ -2,6 +2,9 @@
 <meta name="description" content="{{ description }}">
 {% if keywords %}<meta name="keywords" content="{{ keywords }}">{% endif %}
 <link rel="canonical" href="{{ canonical_url(path) }}">
+{% for hl, href in hreflang_alternates(path) %}
+<link rel="alternate" hreflang="{{ hl }}" href="{{ href }}">
+{% endfor %}
 <meta name="robots" content="{{ robots }}">
 <meta property="og:site_name" content="PilotCore">
 <meta property="og:type" content="{{ og_type }}">
@@ -9,6 +12,7 @@
 <meta property="og:description" content="{{ description }}">
 <meta property="og:url" content="{{ canonical_url(path) }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
+<meta property="og:locale:alternate" content="{{ 'en_GB' if lang == 'fr' else 'fr_FR' }}">
 <meta property="og:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
 <meta property="og:image:alt" content="PilotCore — logo">
 <meta name="twitter:card" content="summary_large_image">

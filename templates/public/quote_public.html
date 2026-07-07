@@ -4,9 +4,15 @@
 
 {% block content %}
 <div class="container quote-public-wrap">
-  {% if submitted %}
+  {% if form_error %}
+  <div class="quote-public-flash quote-public-flash-error">{{ form_error }}</div>
+  {% elif submitted %}
   <div class="quote-public-flash quote-public-flash-{{ quote.status }}">
-    {% if quote.status == 'accepted' %}
+    {% if deposit_return and payment_ok and quote.status == 'accepted' %}
+      ✓ {{ _('quotes.public_accepted_paid') }}
+    {% elif deposit_return and not payment_ok %}
+      {{ _('quotes.public_payment_pending') }}
+    {% elif quote.status == 'accepted' %}
       ✓ {{ _('quotes.public_accepted') }}
     {% elif quote.status == 'refused' %}
       {{ _('quotes.public_refused') }}
@@ -104,24 +110,55 @@
         <p class="doc-artisan-sign-name">{{ tenant.name }}</p>
       </div>
     </div>
+    {% if quote.client_signed_name %}
+    <div class="doc-client-sign">
+      <div class="doc-artisan-sign-box">
+        <p class="doc-artisan-sign-label">{{ _('quotes.client_signature') }}</p>
+        <p class="doc-artisan-sign-typed">{{ quote.client_signed_name }}</p>
+        {% if quote.client_signed_at %}
+        <p class="doc-artisan-sign-name">{{ _('quotes.signed_on') }} {{ quote.client_signed_at.strftime('%d/%m/%Y à %H:%M') }}</p>
+        {% endif %}
+        {% if quote.deposit_paid_at %}
+        <p class="doc-deposit-paid">✓ {{ _('quotes.deposit_paid') }} — {{ '%.2f'|format(quote.deposit_amount) }} €</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
     {% endif %}
   </article>
 
   {% if not quote.is_invoice and quote.status in ('sent', 'draft') %}
   <div class="quote-public-actions">
     <p class="quote-public-cta-label">
-      Signez ce devis pour confirmer votre rendez-vous. L'artisan interviendra uniquement après validation.
+      {{ _('quotes.public_sign_cta') }}
     </p>
-    <div class="quote-public-buttons">
-      <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
-        <input type="hidden" name="decision" value="accept">
-        <button type="submit" class="btn btn-primary btn-lg">✓ {{ _('quotes.public_accept') }} et confirmer le RDV</button>
-      </form>
-      <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}">
-        <input type="hidden" name="decision" value="refuse">
-        <button type="submit" class="btn btn-outline">{{ _('quotes.public_refuse') }}</button>
-      </form>
-    </div>
+    <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}" class="quote-sign-form">
+      <input type="hidden" name="decision" value="accept">
+      <div class="quote-sign-field">
+        <label for="client_email">{{ _('quotes.client_email') }}</label>
+        <input type="email" id="client_email" name="client_email" required
+               value="{{ quote.client_email or '' }}" placeholder="vous@exemple.fr" autocomplete="email">
+      </div>
+      <div class="quote-sign-field">
+        <label for="client_signed_name">{{ _('quotes.client_signature') }}</label>
+        <input type="text" id="client_signed_name" name="client_signed_name" required
+               value="{{ quote.client_name or '' }}" placeholder="{{ _('quotes.client_signature_placeholder') }}" autocomplete="name">
+        <p class="quote-sign-hint">{{ _('quotes.client_signature_hint') }}</p>
+      </div>
+      <div class="quote-public-buttons">
+        <button type="submit" class="btn btn-primary btn-lg">
+          {% if stripe_deposit %}
+            ✓ {{ _('quotes.public_accept_pay') }} ({{ '%.2f'|format(quote.deposit_amount) }} €)
+          {% else %}
+            ✓ {{ _('quotes.public_accept') }} {{ _('quotes.public_confirm_rdv') }}
+          {% endif %}
+        </button>
+      </div>
+    </form>
+    <form method="post" action="{{ url_for('quotes.public_decision', quote_id=quote.id, token=token) }}" class="quote-refuse-form">
+      <input type="hidden" name="decision" value="refuse">
+      <button type="submit" class="btn btn-outline">{{ _('quotes.public_refuse') }}</button>
+    </form>
   </div>
   {% elif quote.status == 'accepted' %}
   <div class="quote-public-status quote-public-status-ok">✓ {{ _('quotes.public_already_accepted') }}</div>
@@ -135,6 +172,7 @@
   .quote-public-flash { border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-weight: 600; text-align: center; }
   .quote-public-flash-accepted { background: #D1FAE5; color: #047857; }
   .quote-public-flash-refused { background: #FEE2E2; color: #B91C1C; }
+  .quote-public-flash-error { background: #FEE2E2; color: #B91C1C; }
   .doc-sheet { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 2rem; box-shadow: 0 4px 16px rgba(16,24,40,.08); border-top: 4px solid #2563EB; }
   .doc-head { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 2px solid #111827; padding-bottom: 1.2rem; margin-bottom: 1.4rem; flex-wrap: wrap; }
   .doc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.2rem; }
@@ -170,8 +208,15 @@
   .doc-notes p { margin: 0; color: #4B5563; font-size: .9rem; white-space: pre-wrap; }
   .quote-public-actions { margin-top: 1.6rem; text-align: center; }
   .quote-public-cta-label { font-weight: 600; color: #374151; margin-bottom: .8rem; }
-  .quote-public-buttons { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
-  .quote-public-buttons form { margin: 0; }
+  .quote-sign-form { max-width: 420px; margin: 0 auto 1rem; text-align: left; }
+  .quote-sign-field { margin-bottom: 1rem; }
+  .quote-sign-field label { display: block; font-size: .8rem; font-weight: 600; color: #374151; margin-bottom: .35rem; }
+  .quote-sign-field input { width: 100%; padding: .65rem .75rem; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; }
+  .quote-sign-hint { margin: .35rem 0 0; font-size: .78rem; color: #6B7280; }
+  .quote-public-buttons { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; margin-top: .5rem; }
+  .quote-refuse-form { margin-top: .5rem; }
+  .doc-client-sign { margin-top: 1rem; }
+  .doc-deposit-paid { margin: .5rem 0 0; color: #047857; font-weight: 600; font-size: .85rem; }
   .btn-lg { padding: .8rem 1.6rem; font-size: 1rem; }
   .quote-public-status { margin-top: 1.4rem; text-align: center; padding: 1rem; border-radius: 12px; background: #F3F4F6; color: #6B7280; font-weight: 600; }
   .quote-public-status-ok { background: #D1FAE5; color: #047857; }

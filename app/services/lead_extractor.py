@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT_EN = (
     "You are an assistant that extracts structured lead data from phone call "
     "transcripts for a plumbing company. Return ONLY valid JSON with these keys: "
-    "name (string or null), phone (string), address (string or null), "
+    "name (string or null), phone (string), email (string or null), "
+    "address (string or null), "
     "issue_type (one of: general_inquiry, leak, clogged_drain, clogged_toilet, "
     "water_heater, toilet, pipe_issue, burst_pipe, flooding), "
     "urgency_level (low|medium|high), summary (string). "
@@ -21,12 +22,15 @@ SYSTEM_PROMPT_FR = (
     "Tu es un assistant qui extrait des données structurées de transcriptions "
     "d'appels (parfois imparfaites, issues de reconnaissance vocale) pour une "
     "entreprise de plomberie. Retourne UNIQUEMENT du JSON valide "
-    "avec ces clés : name (string ou null), phone (string), address (string ou null), "
+    "avec ces clés : name (string ou null), phone (string), email (string ou null), "
+    "address (string ou null), "
     "issue_type (un parmi : general_inquiry, leak, clogged_drain, clogged_toilet, "
     "water_heater, toilet, pipe_issue, burst_pipe, flooding), "
     "urgency_level (low|medium|high), summary (string en français). "
     "Pour l'adresse, garde l'adresse la plus complète possible (numéro, rue, code "
-    "postal, ville) telle que dite. Ne devine jamais un nom ou une adresse qui "
+    "postal, ville) telle que dite. Pour l'e-mail, garde l'adresse telle que "
+    "dictée (ex. jean point dupont arobase gmail point com). "
+    "Ne devine jamais un nom, une adresse ou un e-mail qui "
     "n'est pas clairement présent : mets null. Corrige les hésitations évidentes "
     "(euh, ben) mais n'invente rien. Pas d'explications. Pas de markdown."
 )
@@ -117,12 +121,14 @@ class LeadExtractor:
 
         name = self._guess_name(transcript)
         address = self._guess_address(transcript)
+        email = self._guess_email(transcript)
         summary = transcript[:500] if transcript else "Inbound call received"
 
         return self._normalize(
             {
                 "name": name,
                 "phone": phone,
+                "email": email,
                 "address": address,
                 "issue_type": issue_type,
                 "urgency_level": urgency,
@@ -163,6 +169,34 @@ class LeadExtractor:
                 return match.group(1).strip()
         return None
 
+    def _guess_email(self, transcript: str) -> str | None:
+        if not transcript:
+            return None
+        spoken = re.search(
+            r"(?:e-?mail|mail|courriel|adresse mail)\s*(?:est\s+)?"
+            r"([^\s,;]+(?:\s+(?:point|arobase|at)\s+[^\s,;]+)+)",
+            transcript,
+            re.IGNORECASE,
+        )
+        if spoken:
+            return self._normalize_spoken_email(spoken.group(1))
+        direct = re.search(
+            r"([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})",
+            transcript,
+        )
+        if direct:
+            return direct.group(1).strip().lower()
+        return None
+
+    def _normalize_spoken_email(self, raw: str) -> str | None:
+        text = (raw or "").strip().lower()
+        text = text.replace(" arobase ", "@").replace(" at ", "@")
+        text = text.replace("arobase", "@").replace(" point ", ".")
+        text = re.sub(r"\s+", "", text)
+        if "@" in text and "." in text.split("@")[-1]:
+            return text
+        return None
+
     def _normalize(self, data: dict, phone: str, transcript: str) -> dict:
         urgency = (data.get("urgency_level") or "low").lower()
         if urgency not in ("low", "medium", "high"):
@@ -175,6 +209,12 @@ class LeadExtractor:
         address = data.get("address")
         if address and isinstance(address, str):
             address = address.strip() or None
+
+        email = data.get("email")
+        if email and isinstance(email, str):
+            email = email.strip().lower() or None
+            if email and "@" not in email:
+                email = self._normalize_spoken_email(email)
 
         issue_type = data.get("issue_type") or "general_inquiry"
         if isinstance(issue_type, str):
@@ -190,6 +230,7 @@ class LeadExtractor:
         return {
             "name": name,
             "phone": (data.get("phone") or phone or "").strip(),
+            "email": email,
             "address": address,
             "issue_type": issue_type,
             "urgency_level": urgency,

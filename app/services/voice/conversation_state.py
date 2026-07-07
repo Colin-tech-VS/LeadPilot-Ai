@@ -24,6 +24,7 @@ class ConversationState:
     failure_count: int = 0
     failsafe_mode: bool = False
     asked_slots: list = field(default_factory=list)
+    account_flow: dict = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -69,6 +70,7 @@ class ConversationState:
             "failure_count": self.failure_count,
             "failsafe_mode": self.failsafe_mode,
             "asked_slots": self.asked_slots,
+            "account_flow": self.account_flow,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }

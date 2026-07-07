@@ -161,6 +161,40 @@ def send_customer_welcome(user):
     return _send(user.email, "Votre compte PilotCore est créé", html, text)
 
 
+def send_voice_customer_credentials(user, password: str):
+    """E-mail envoyé après création de compte par l'assistant vocal."""
+    if not user or not user.email or not password:
+        return None
+    base = _base_url()
+    login_url = f"{base}/client/login"
+    account_url = f"{base}/client/account"
+    hello = f"Bonjour {user.first_name}," if user.first_name else "Bonjour,"
+    pwd_spelled = " ".join(password)
+    html = render_email(
+        "Votre compte PilotCore est prêt",
+        hello,
+        lines=[
+            "Votre compte client a été créé lors de votre appel.",
+            f"<strong>Identifiant :</strong> {user.email}",
+            f"<strong>Mot de passe temporaire :</strong> {password}",
+            "Pour votre sécurité, modifiez ce mot de passe dès votre première connexion.",
+            "Vous pourrez suivre vos devis, signer en ligne et gérer vos rendez-vous.",
+        ],
+        cta_label="Me connecter",
+        cta_url=login_url,
+        outro=f"Espace client : {account_url}",
+    )
+    text = (
+        f"{hello}\n\n"
+        f"Votre compte PilotCore a été créé.\n"
+        f"Identifiant : {user.email}\n"
+        f"Mot de passe temporaire : {password}\n\n"
+        f"Connectez-vous sur {login_url} et changez votre mot de passe.\n"
+        f"Espace client : {account_url}"
+    )
+    return _send(user.email, "Votre compte PilotCore — identifiants", html, text)
+
+
 def send_password_reset(user, reset_url):
     if not user or not user.email:
         return None

@@ -124,3 +124,31 @@ def register_customer(
         logger.exception("Customer welcome email failed for %s", email)
 
     return user
+
+
+def register_customer_via_voice(
+    email: str,
+    password: str,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    phone: str | None = None,
+) -> User:
+    """Compte particulier créé par l'assistant vocal — pas d'e-mail de bienvenue générique."""
+    email = validate_email(email)
+    validate_password(password)
+
+    if User.query.filter_by(email=email).first():
+        raise ConflictError("Email already registered")
+
+    user = User(
+        email=email,
+        tenant_id=None,
+        role="customer",
+        first_name=(first_name or "").strip() or None,
+        last_name=(last_name or "").strip() or None,
+        phone=(phone or "").strip() or None,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return user

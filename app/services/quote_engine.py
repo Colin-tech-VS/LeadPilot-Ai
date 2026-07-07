@@ -148,16 +148,35 @@ def mark_sent(quote):
 def create_signed_devis_for_lead(lead, tenant):
     """Build, number, mark-sent and persist a devis for a lead.
 
-    Used by the voice AI: when it agrees to schedule an appointment it first
-    sends a devis already signed by the plumber (the artisan's signature is
-    rendered on every devis from ``tenant.signature``). The devis is pre-filled
-    from the detected issue and lands in the plumber's list as "sent", with a
-    client-facing accept/refuse link ready to share.
+    Used by the voice AI and chatbot: sends a devis already signed by the
+    plumber. The client must sign online (and pay the deposit when due) before
+    the appointment is confirmed.
 
     The caller is responsible for committing the session.
     """
     quote = build_draft_from_lead(lead, tenant)
     quote.number = generate_number(tenant.id, DOC_DEVIS)
+    mark_sent(quote)
+    db.session.add(quote)
+    db.session.flush()
+    return quote
+
+
+def create_voice_booking_quote(lead, tenant, slot_dt):
+    """Pre-filled devis for a voice/chat booking with a held tentative slot."""
+    from zoneinfo import ZoneInfo
+
+    paris = ZoneInfo("Europe/Paris")
+    when_label = slot_dt.astimezone(paris).strftime("%A %d/%m/%Y à %H:%M")
+
+    quote = build_draft_from_lead(lead, tenant)
+    quote.number = generate_number(tenant.id, DOC_DEVIS)
+    quote.title = f"{quote.title or 'Intervention'} — RDV {when_label}"
+    quote.notes = (
+        f"Créneau proposé : {when_label}\n\n"
+        "Le rendez-vous sera confirmé après signature de ce devis"
+        + (" et paiement de l'acompte." if quote.deposit_amount else ".")
+    )
     mark_sent(quote)
     db.session.add(quote)
     db.session.flush()
@@ -210,6 +229,7 @@ def convert_to_invoice(quote, tenant_id):
         number=generate_number(tenant_id, DOC_FACTURE),
         client_name=quote.client_name,
         client_phone=quote.client_phone,
+        client_email=quote.client_email,
         client_address=quote.client_address,
         title=quote.title,
         deposit_percent=quote.deposit_percent,

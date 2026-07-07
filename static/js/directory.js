@@ -44,24 +44,36 @@
     const icon = escapeHtml(a.trade_icon || "🛠️");
     const city = a.city || labels.cityUnknown || "";
     const postal = a.postal_code ? " · " + a.postal_code : "";
-    const radius = a.radius_km ? " · " + (labels.radiusTpl || "{km} km").replace("{km}", a.radius_km) : "";
+    const radius = a.radius_km
+      ? '<p class="dl-card-radius">' + escapeHtml((labels.radiusTpl || "{km} km").replace("{km}", a.radius_km)) + "</p>"
+      : "";
     const blurb = a.blurb
       ? '<p class="dl-card-blurb">' + escapeHtml(a.blurb) + "</p>"
+      : '<p class="dl-card-blurb dl-card-blurb--muted">' + escapeHtml(labels.featureOnline || "RDV en ligne") + " · " + escapeHtml(labels.bookCta || "Prendre RDV") + "</p>";
+    const aiBadge = a.ai_phone_number
+      ? '<span class="dl-card-badge dl-card-badge--ai">🤖 IA 24/7</span>'
       : "";
     return (
       '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="dl-card directory-card">' +
-        '<div class="dl-card-main">' +
+        '<div class="dl-card-accent" aria-hidden="true"></div>' +
+        '<div class="dl-card-header">' +
           '<div class="dl-card-avatar" aria-hidden="true">' + icon + "</div>" +
-          '<div class="dl-card-info">' +
+          '<div class="dl-card-head-text">' +
             '<h2 class="dl-card-name">' + escapeHtml(a.name) + "</h2>" +
-            '<p class="dl-card-specialty">' + icon + " " + escapeHtml(a.trade_label || "") + "</p>" +
-            '<p class="dl-card-location">📍 ' + escapeHtml(city + postal + radius) + "</p>" +
-            blurb +
+            '<p class="dl-card-specialty">' + escapeHtml(a.trade_label || "") + "</p>" +
           "</div>" +
         "</div>" +
-        '<div class="dl-card-aside">' +
-          '<span class="dl-card-badge">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
-          '<span class="dl-card-cta btn btn-primary">' + escapeHtml(labels.bookCta || "Prendre RDV") + "</span>" +
+        '<div class="dl-card-body">' +
+          '<p class="dl-card-location"><span class="dl-card-pin" aria-hidden="true">📍</span> ' + escapeHtml(city + postal) + "</p>" +
+          radius +
+          blurb +
+        "</div>" +
+        '<div class="dl-card-footer">' +
+          '<div class="dl-card-badges">' +
+            '<span class="dl-card-badge">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
+            aiBadge +
+          "</div>" +
+          '<span class="dl-card-cta btn btn-primary">' + escapeHtml(labels.bookCta || "Prendre RDV") + " →</span>" +
         "</div>" +
       "</a>"
     );

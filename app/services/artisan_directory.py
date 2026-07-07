@@ -65,6 +65,7 @@ def artisan_card_dict(tenant: Tenant, lang: str = "fr") -> dict:
         "postal_code": tenant.postal_code,
         "blurb": tenant.public_blurb,
         "radius_km": tenant.service_radius_km,
+        "ai_phone_number": tenant.ai_phone_number,
         "profile_url": f"/artisans/{tenant.public_slug}",
     }
 

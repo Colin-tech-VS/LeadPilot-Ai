@@ -1,22 +1,38 @@
-{# Carte artisan style Doctolib — garder en sync avec static/js/directory.js cardHtml() #}
+{# Carte artisan — garder en sync avec static/js/directory.js cardHtml() #}
 {% macro artisan_card(a, trades) %}
 {% set ns = namespace(label='', icon='🛠️') %}
 {% for t in trades if t.key == a.trade_type %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
 <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="dl-card directory-card">
-  <div class="dl-card-main">
+  <div class="dl-card-accent" aria-hidden="true"></div>
+  <div class="dl-card-header">
     <div class="dl-card-avatar" aria-hidden="true">{{ ns.icon }}</div>
-    <div class="dl-card-info">
+    <div class="dl-card-head-text">
       <h2 class="dl-card-name">{{ a.name }}</h2>
-      <p class="dl-card-specialty">{{ ns.icon }} {{ ns.label }}</p>
-      <p class="dl-card-location">📍 {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} · {{ a.postal_code }}{% endif %}{% if a.service_radius_km %} · {{ _('directory.radius_km', km=a.service_radius_km) }}{% endif %}</p>
-      {% if a.public_blurb %}
-      <p class="dl-card-blurb">{{ a.public_blurb }}</p>
-      {% endif %}
+      <p class="dl-card-specialty">{{ ns.label }}</p>
     </div>
   </div>
-  <div class="dl-card-aside">
-    <span class="dl-card-badge">✓ {{ _('directory.feature_online') }}</span>
-    <span class="dl-card-cta btn btn-primary">{{ _('directory.book_cta') }}</span>
+  <div class="dl-card-body">
+    <p class="dl-card-location">
+      <span class="dl-card-pin" aria-hidden="true">📍</span>
+      {{ a.city or _('directory.city_unknown') }}{% if a.postal_code %} · {{ a.postal_code }}{% endif %}
+    </p>
+    {% if a.service_radius_km %}
+    <p class="dl-card-radius">{{ _('directory.radius_km', km=a.service_radius_km) }}</p>
+    {% endif %}
+    {% if a.public_blurb %}
+    <p class="dl-card-blurb">{{ a.public_blurb }}</p>
+    {% else %}
+    <p class="dl-card-blurb dl-card-blurb--muted">{{ _('directory.feature_online') }} · {{ _('directory.book_cta') }}</p>
+    {% endif %}
+  </div>
+  <div class="dl-card-footer">
+    <div class="dl-card-badges">
+      <span class="dl-card-badge">✓ {{ _('directory.feature_online') }}</span>
+      {% if a.ai_phone_number %}
+      <span class="dl-card-badge dl-card-badge--ai">🤖 IA 24/7</span>
+      {% endif %}
+    </div>
+    <span class="dl-card-cta btn btn-primary">{{ _('directory.book_cta') }} →</span>
   </div>
 </a>
 {% endmacro %}

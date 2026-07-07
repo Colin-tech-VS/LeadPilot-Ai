@@ -212,6 +212,10 @@ def _ensure_schema_updates():
     quote_patches = {
         "client_email": "VARCHAR(255)",
         "sent_channel": "VARCHAR(20)",
+        "client_signed_name": "VARCHAR(255)",
+        "client_signed_at": ts_type,
+        "deposit_paid_at": ts_type,
+        "stripe_deposit_session_id": "VARCHAR(255)",
     }
     for col_name, col_type in quote_patches.items():
         if col_name not in quote_columns:

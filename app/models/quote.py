@@ -82,6 +82,10 @@ class Quote(db.Model):
     accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
     refused_at = db.Column(db.DateTime(timezone=True), nullable=True)
     paid_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    client_signed_name = db.Column(db.String(255), nullable=True)
+    client_signed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    deposit_paid_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    stripe_deposit_session_id = db.Column(db.String(255), nullable=True)
     last_reminded_at = db.Column(db.DateTime(timezone=True), nullable=True)
     reminder_count = db.Column(db.Integer, nullable=False, default=0)
 

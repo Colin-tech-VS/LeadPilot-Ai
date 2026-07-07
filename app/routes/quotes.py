@@ -28,6 +28,8 @@ from app.models.quote import (
 )
 from app.models.tenant import Tenant
 from app.services import notifications, quote_engine
+from app.services import quote_payment
+from app.utils.validation import EMAIL_REGEX
 
 quotes_bp = Blueprint("quotes", __name__, url_prefix="/quotes")
 
@@ -374,6 +376,53 @@ def _send_booking_confirmed_emails(quote, appointment):
         pass
 
 
+def _public_quote_context(quote, tenant, token, **extra):
+    return {
+        "quote": quote,
+        "tenant": tenant,
+        "token": token,
+        "stripe_deposit": quote_payment.deposit_required(quote),
+        "deposit_paid": bool(quote.deposit_paid_at),
+        **extra,
+    }
+
+
+def _normalize_public_email(raw: str) -> str | None:
+    email = (raw or "").strip().lower()
+    if email and EMAIL_REGEX.match(email):
+        return email
+    return None
+
+
+def _apply_client_signature(quote, form):
+    """Persist client email + typed signature before acceptance or Stripe."""
+    client_email = _normalize_public_email(form.get("client_email"))
+    client_signed_name = (form.get("client_signed_name") or "").strip()
+    if not client_email:
+        return "Veuillez indiquer une adresse e-mail valide."
+    if not client_signed_name or len(client_signed_name) < 2:
+        return "Veuillez signer le devis en indiquant votre nom complet."
+    quote.client_email = client_email
+    quote.client_signed_name = client_signed_name
+    quote.client_signed_at = utcnow()
+    if quote.lead_id:
+        lead = db.session.get(Lead, quote.lead_id)
+        if lead:
+            lead.email = client_email
+    return None
+
+
+def _finalize_acceptance(quote):
+    result = quote_engine.accept_quote(quote)
+    db.session.commit()
+    if not result["already"]:
+        notifications.notify_quote_accepted(
+            quote, appointment=result["appointment"], invoice=result["invoice"]
+        )
+        _send_booking_confirmed_emails(quote, result.get("appointment"))
+    return result
+
+
 @quotes_bp.route("/public/<quote_id>/<token>", methods=["GET"])
 def public_quote(quote_id, token):
     try:
@@ -385,7 +434,43 @@ def public_quote(quote_id, token):
         abort(404)
     tenant = db.session.get(Tenant, quote.tenant_id)
     return render_template(
-        "public/quote_public.html", quote=quote, tenant=tenant, token=token
+        "public/quote_public.html",
+        **_public_quote_context(quote, tenant, token),
+    )
+
+
+@quotes_bp.route("/public/<quote_id>/<token>/deposit-success", methods=["GET"])
+def deposit_success(quote_id, token):
+    try:
+        qid = uuid.UUID(str(quote_id))
+    except ValueError:
+        abort(404)
+    quote = Quote.query.filter_by(id=qid).first()
+    if not quote or not quote.public_token or quote.public_token != token:
+        abort(404)
+
+    session_id = request.args.get("session_id")
+    outcome = quote_payment.verify_session_and_finalize(session_id, quote)
+    tenant = db.session.get(Tenant, quote.tenant_id)
+
+    if outcome.get("accepted"):
+        result = outcome.get("result") or {}
+        if not result.get("already"):
+            notifications.notify_quote_accepted(
+                quote, appointment=result.get("appointment"), invoice=result.get("invoice")
+            )
+            _send_booking_confirmed_emails(quote, result.get("appointment"))
+
+    return render_template(
+        "public/quote_public.html",
+        **_public_quote_context(
+            quote,
+            tenant,
+            token,
+            submitted=True,
+            deposit_return=True,
+            payment_ok=outcome.get("paid"),
+        ),
     )
 
 
@@ -400,16 +485,28 @@ def public_decision(quote_id, token):
         abort(404)
 
     # Only an outstanding devis can be decided by the client.
+    form_error = None
     if quote.doc_type == DOC_DEVIS and quote.status in (STATUS_SENT, STATUS_DRAFT):
         decision = request.form.get("decision")
         if decision == "accept":
-            result = quote_engine.accept_quote(quote)
-            db.session.commit()
-            if not result["already"]:
-                notifications.notify_quote_accepted(
-                    quote, appointment=result["appointment"], invoice=result["invoice"]
-                )
-                _send_booking_confirmed_emails(quote, result.get("appointment"))
+            form_error = _apply_client_signature(quote, request.form)
+            if not form_error:
+                if quote_payment.deposit_required(quote):
+                    try:
+                        checkout_url = quote_payment.create_deposit_session(
+                            quote,
+                            quote_payment.deposit_success_url(quote, token),
+                            quote_payment.deposit_cancel_url(quote, token),
+                        )
+                        db.session.commit()
+                        return redirect(checkout_url)
+                    except Exception:
+                        form_error = (
+                            "Le paiement en ligne est temporairement indisponible. "
+                            "Merci de contacter l'artisan."
+                        )
+                else:
+                    _finalize_acceptance(quote)
         elif decision == "refuse":
             quote.status = STATUS_REFUSED
             quote.refused_at = utcnow()
@@ -425,5 +522,8 @@ def public_decision(quote_id, token):
 
     tenant = db.session.get(Tenant, quote.tenant_id)
     return render_template(
-        "public/quote_public.html", quote=quote, tenant=tenant, token=token, submitted=True
+        "public/quote_public.html",
+        **_public_quote_context(
+            quote, tenant, token, submitted=not form_error, form_error=form_error
+        ),
     )

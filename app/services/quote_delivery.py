@@ -72,6 +72,9 @@ def build_message(quote, tenant, link):
     deposit = _deposit_line(quote)
     if deposit:
         lines += ["", deposit]
+        lines.append(
+            "Vous pouvez signer le devis et régler l'acompte directement en ligne via le lien ci-dessus."
+        )
     rib = _rib_lines(tenant)
     if rib:
         lines += [""] + rib

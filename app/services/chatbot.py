@@ -28,7 +28,7 @@ Tes objectifs, dans l'ordre :
 1. Accueillir chaleureusement et donner envie de faire appel à l'entreprise (tu es commercial, mais jamais insistant).
 2. Comprendre le besoin ou le problème du visiteur.
 3. Répondre simplement à ses questions (services proposés, zone d'intervention, délais, déroulé d'une intervention). Ne donne JAMAIS de prix ferme : explique qu'un devis gratuit et sans engagement sera établi.
-4. Recueillir progressivement les coordonnées nécessaires pour être rappelé : prénom/nom, numéro de téléphone, adresse (ou au moins la ville) et la nature du problème.
+4. Recueillir progressivement les coordonnées nécessaires : prénom/nom, numéro de téléphone, adresse e-mail (obligatoire pour envoyer le devis), adresse (ou au moins la ville) et la nature du problème.
 5. Proposer un rappel, un devis gratuit ou une prise de rendez-vous.
 
 RÈGLES DE CONVERSATION :
@@ -45,8 +45,8 @@ ZONE D'INTERVENTION :
 
 Retourne UNIQUEMENT du JSON valide avec ces clés :
 - reply (string) : ta réponse écrite au visiteur (2 à 4 phrases maximum).
-- lead_data (objet avec name, phone, address, issue_type, urgency_level, summary — mets null pour tout champ pas encore connu). issue_type parmi : general_inquiry, leak, clogged_drain, clogged_toilet, water_heater, toilet, pipe_issue, burst_pipe, flooding. urgency_level parmi : low, medium, high.
-- lead_ready (boolean) : true UNIQUEMENT quand tu as au minimum un numéro de téléphone ET une description du besoin.
+- lead_data (objet avec name, phone, email, address, issue_type, urgency_level, summary — mets null pour tout champ pas encore connu). issue_type parmi : general_inquiry, leak, clogged_drain, clogged_toilet, water_heater, toilet, pipe_issue, burst_pipe, flooding. urgency_level parmi : low, medium, high.
+- lead_ready (boolean) : true UNIQUEMENT quand tu as au minimum un numéro de téléphone, une adresse e-mail valide ET une description du besoin.
 - intent (une valeur parmi : greet, qualify, answer, capture, handoff, end).
 """
 
@@ -172,9 +172,12 @@ class CommercialChatbot:
         phone = (lead_data.get("phone") or "").strip() if lead_data.get("phone") else None
         if not phone and customer_profile:
             phone = (customer_profile.get("phone") or "").strip() or None
+        email = (lead_data.get("email") or "").strip().lower() if lead_data.get("email") else None
+        if not email and customer_profile:
+            email = (customer_profile.get("email") or "").strip().lower() or None
         summary = (lead_data.get("summary") or "").strip()
-        lead_ready = bool(data.get("lead_ready")) and bool(phone or (customer_profile and summary))
-        if customer_profile and customer_profile.get("phone") and summary:
+        lead_ready = bool(data.get("lead_ready")) and bool(phone and email and summary)
+        if customer_profile and customer_profile.get("phone") and customer_profile.get("email") and summary:
             lead_ready = True
 
         return {
@@ -198,21 +201,39 @@ class CommercialChatbot:
         if not phone and customer_profile:
             phone = (customer_profile.get("phone") or "").strip() or None
 
-        if phone:
-            lead_data = {"phone": phone, "summary": _summary(conversation_history, user_text)}
-            if customer_profile:
-                if customer_profile.get("name"):
-                    lead_data["name"] = customer_profile["name"]
-                if customer_profile.get("email"):
-                    lead_data["email"] = customer_profile["email"]
+        email = _find_email(text) or _find_email(
+            " ".join(t.get("text", "") for t in conversation_history)
+        )
+        if not email and customer_profile:
+            email = (customer_profile.get("email") or "").strip().lower() or None
+
+        if phone and email:
+            lead_data = {
+                "phone": phone,
+                "email": email,
+                "summary": _summary(conversation_history, user_text),
+            }
+            if customer_profile and customer_profile.get("name"):
+                lead_data["name"] = customer_profile["name"]
             return {
                 "reply": (
-                    "Merci beaucoup ! J'ai bien noté votre demande, "
-                    "un conseiller vous recontacte très rapidement."
+                    "Merci beaucoup ! Je vous envoie le devis par e-mail : "
+                    "signez-le et réglez l'acompte en ligne pour confirmer votre rendez-vous."
                 ),
                 "lead_data": lead_data,
                 "lead_ready": True,
                 "intent": "capture",
+            }
+
+        if phone and not email:
+            return {
+                "reply": (
+                    "Merci pour votre numéro. Pour vous envoyer le devis, "
+                    "pouvez-vous me donner votre adresse e-mail ?"
+                ),
+                "lead_data": {"phone": phone, "summary": _summary(conversation_history, user_text)},
+                "lead_ready": False,
+                "intent": "qualify",
             }
 
         if customer_profile and customer_profile.get("phone"):
@@ -264,6 +285,17 @@ def _find_phone(text: str) -> str | None:
     return cleaned if len(cleaned) >= 8 else None
 
 
+def _find_email(text: str) -> str | None:
+    import re
+
+    if not text:
+        return None
+    match = re.search(r"([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})", text)
+    if match:
+        return match.group(1).strip().lower()
+    return None
+
+
 def _summary(conversation_history: list[dict], user_text: str) -> str:
     parts = [t.get("text", "") for t in conversation_history if t.get("role") == "user"]
     parts.append(user_text or "")
@@ -313,9 +345,12 @@ def process_chat_turn(
     if result["lead_ready"] and not existing_lead_id:
         lead_data = result.get("lead_data") or {}
         phone = (lead_data.get("phone") or "").strip()
+        email = (lead_data.get("email") or "").strip().lower()
         if not phone and customer_profile:
             phone = (customer_profile.get("phone") or "").strip()
-        if phone:
+        if not email and customer_profile:
+            email = (customer_profile.get("email") or "").strip().lower()
+        if phone and email:
             if customer_profile and not lead_data.get("name"):
                 lead_data["name"] = customer_profile.get("name")
             if customer_profile and not lead_data.get("email"):
@@ -347,8 +382,11 @@ def _build_transcript(history: list[dict], message: str, lead_data: dict) -> str
     lines = []
     name = (lead_data.get("name") or "").strip()
     address = (lead_data.get("address") or "").strip()
+    email = (lead_data.get("email") or "").strip()
     if name:
         lines.append(f"Je m'appelle {name}.")
+    if email:
+        lines.append(f"Mon e-mail : {email}.")
     if address:
         lines.append(f"Mon adresse : {address}.")
     for turn in history:

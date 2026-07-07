@@ -247,8 +247,14 @@ def apply_event(event_type: str, obj: dict) -> bool:
     """Apply a parsed Stripe event to the tenant's plan. Pure DB logic, kept
     separate from signature handling so it can be unit-tested."""
     if event_type == "checkout.session.completed":
-        tenant_id = str((obj.get("metadata") or {}).get("tenant_id") or obj.get("client_reference_id") or "")
-        plan = (obj.get("metadata") or {}).get("plan")
+        metadata = obj.get("metadata") or {}
+        if metadata.get("kind") == "quote_deposit":
+            from app.services import quote_payment
+
+            return quote_payment.complete_deposit_checkout(obj)
+
+        tenant_id = str(metadata.get("tenant_id") or obj.get("client_reference_id") or "")
+        plan = metadata.get("plan")
         tenant = _get_tenant(tenant_id)
         if not tenant or plan not in PLANS:
             return False

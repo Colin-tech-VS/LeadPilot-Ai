@@ -1221,13 +1221,28 @@ def social_publish():
     message = request.form.get("message", "").strip()
     link = request.form.get("link", "").strip()
     target_key = (request.form.get("target_key") or "").strip() or None
+    image_path = (request.form.get("image_path") or "").strip() or None
     ai_flag = request.form.get("generated_by_ai") == "1"
     content_tag = "ai_post" if ai_flag else "manual_post"
     if not message:
         flash("Le message ne peut pas être vide.", "error")
         return redirect(url_for("admin.social"))
+    if not image_path:
+        try:
+            from app.services import social_image
+
+            generated = social_image.generate_for_post(message[:500], tone="engageant")
+            image_path = generated["image_path"]
+        except content_ai.ContentAIError as exc:
+            flash(f"Impossible de créer le visuel : {exc}", "error")
+            return redirect(url_for("admin.social"))
     tracked_link = ensure_tracked(link, target_key=target_key, content=content_tag)
-    post = social.publish_post(message, link=tracked_link, generated_by_ai=ai_flag)
+    post = social.publish_post(
+        message,
+        link=tracked_link,
+        generated_by_ai=ai_flag,
+        image_path=image_path,
+    )
     if post.status == "published":
         shown = display_url(tracked_link) if tracked_link else ""
         flash(
@@ -1256,6 +1271,9 @@ def api_social_generate():
             target_key=target_key,
             content_tag="ai_post",
         )
+        from app.services import social_image
+
+        payload.update(social_image.generate_for_post(prompt, tone))
         log_event(CAT_ADMIN, "social_ai_generate", summary=f"Post généré par IA: {prompt[:80]}")
         return jsonify(payload)
     except content_ai.ContentAIError as exc:

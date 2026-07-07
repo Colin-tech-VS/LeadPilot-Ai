@@ -319,6 +319,12 @@ def _ensure_schema_updates():
                 with db.engine.begin() as conn:
                     conn.execute(text(f"ALTER TABLE page_views ADD COLUMN {col_name} {col_type}"))
 
+    if "social_posts" in inspector.get_table_names():
+        sp_columns = {col["name"] for col in inspector.get_columns("social_posts")}
+        if "image_path" not in sp_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE social_posts ADD COLUMN image_path VARCHAR(300)"))
+
     if "ip_geo_cache" not in inspector.get_table_names():
         with db.engine.begin() as conn:
             conn.execute(

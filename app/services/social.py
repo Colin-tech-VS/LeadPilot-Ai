@@ -73,16 +73,18 @@ def verify_connection():
         return False, str(exc)
 
 
-def publish_post(message, link=None, generated_by_ai=False) -> SocialPost:
-    """Publish a text (optionally with a link) to the connected Facebook Page and
-    record it as a SocialPost. Always returns a persisted SocialPost, whose
-    ``status`` reflects success/failure so the caller can surface it."""
+def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> SocialPost:
+    """Publish a photo post (with mandatory image) to the connected Facebook Page."""
+    from app.services.social_image import resolve_image_path
+
     message = (message or "").strip()
     link = (link or "").strip() or None
+    resolved = resolve_image_path(image_path)
     post = SocialPost(
         platform="facebook",
         message=message,
         link=link,
+        image_path=(image_path or "").strip() or None,
         generated_by_ai=generated_by_ai,
         status="draft",
     )
@@ -95,19 +97,34 @@ def publish_post(message, link=None, generated_by_ai=False) -> SocialPost:
         db.session.commit()
         return post
 
-    payload = {"message": message, "access_token": cfg["token"]}
-    if link:
-        payload["link"] = link
+    if not resolved:
+        post.status = "failed"
+        post.error = "Image requise — générez le post avec l'IA ou attendez la création du visuel."
+        db.session.add(post)
+        db.session.commit()
+        return post
+
+    full_message = message
+    if link and link not in message:
+        full_message = f"{message}\n\n{link}"
+
     try:
-        resp = requests.post(f"{GRAPH_BASE}/{cfg['page_id']}/feed", data=payload, timeout=15)
+        with open(resolved, "rb") as image_file:
+            resp = requests.post(
+                f"{GRAPH_BASE}/{cfg['page_id']}/photos",
+                data={"message": full_message, "access_token": cfg["token"]},
+                files={"source": (resolved.name, image_file, "image/png")},
+                timeout=60,
+            )
         data = resp.json()
         if resp.ok and data.get("id"):
             post.status = "published"
             post.external_id = data["id"]
             post.published_at = datetime.now(timezone.utc)
-            post.permalink = f"https://www.facebook.com/{data['id']}"
+            post_id = data.get("post_id") or data["id"]
+            post.permalink = f"https://www.facebook.com/{post_id}"
             log_event(CAT_ADMIN, "facebook_publish",
-                      summary=f"Post Facebook publié: {post.preview(60)}", level=LEVEL_SUCCESS)
+                      summary=f"Post Facebook publié (photo): {post.preview(60)}", level=LEVEL_SUCCESS)
         else:
             post.status = "failed"
             post.error = (data.get("error") or {}).get("message", "Réponse Facebook invalide.")[:500]

@@ -495,6 +495,10 @@ a { color: inherit; text-decoration: none; }
 .social-utm-details { margin: 8px 0 16px; }
 .social-utm-code { display: block; margin-top: 8px; padding: 10px 12px; background: #0f172a; color: #a5b4fc; border-radius: 8px; font-size: 11px; word-break: break-all; }
 .social-ai-box { border-left: 3px solid #1B57E0; }
+.social-image-status { margin: 12px 0 4px; }
+.social-image-thumb { display: block; width: 100%; max-width: 420px; margin-top: 10px; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.fb-preview-image-wrap { padding: 0 14px 10px; }
+.fb-preview-image { width: 100%; display: block; border-radius: 8px; border: 1px solid #dddfe2; background: #f0f2f5; aspect-ratio: 1200 / 630; object-fit: cover; }
 .fb-preview-name { font-weight: 700; font-size: 14px; }
 .fb-preview-sub { font-size: 12px; color: #65676b; }
 .fb-preview-body { padding: 4px 14px 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; min-height: 60px; }

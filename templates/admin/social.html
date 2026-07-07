@@ -41,6 +41,7 @@
   <input type="hidden" name="generated_by_ai" id="gen-ai-flag" value="0">
   <input type="hidden" name="target_key" id="f-target-key" value="home">
   <input type="hidden" name="link" id="f-link-tracked" value="">
+  <input type="hidden" name="image_path" id="f-image-path" value="">
   <div class="social-compose-grid">
     <div class="studio-editor">
       <label class="field"><span>Page PilotCore à promouvoir</span>
@@ -55,7 +56,7 @@
       {% if ai_available %}
       <div class="ai-box social-ai-box">
         <h3>🤖 Générer un post avec l'IA (Mistral)</h3>
-        <p class="admin-hint">Ton et vocabulaire alignés sur la charte PilotCore (bleu #1B57E0, ton humain & pro).</p>
+        <p class="admin-hint">Ton, vocabulaire et visuel alignés sur la charte PilotCore (bleu #1B57E0, cyan #06B6D4).</p>
         <label class="field"><span>De quoi parle le post ?</span>
           <textarea id="ai-prompt" rows="2" placeholder="Ex : annoncer l'annuaire artisans — RDV en ligne 24h/24 pour les particuliers."></textarea>
         </label>
@@ -70,10 +71,10 @@
             </select>
           </label>
           <div class="field" style="justify-content:flex-end">
-            <button type="button" class="admin-btn" id="ai-generate">Générer le post ✨</button>
+            <button type="button" class="admin-btn" id="ai-generate">Générer post + visuel ✨</button>
           </div>
         </div>
-        <span class="ai-spinner" id="ai-spinner">Génération en cours…</span>
+        <span class="ai-spinner" id="ai-spinner">Génération texte + visuel en cours…</span>
         <span class="mail-error" id="ai-error" style="display:none"></span>
       </div>
       {% endif %}
@@ -90,6 +91,11 @@
         <summary class="admin-hint">Voir le lien tracké (analytics)</summary>
         <code id="f-link-utm-preview" class="social-utm-code"></code>
       </details>
+
+      <div class="social-image-status" id="image-status">
+        <span class="admin-hint" id="image-hint">Un visuel charte PilotCore accompagne chaque publication (généré avec l'IA ou à la publication).</span>
+        <img id="social-image-preview" class="social-image-thumb" alt="" style="display:none">
+      </div>
 
       <div class="form-actions">
         <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>📣 Publier sur Facebook</button>
@@ -111,6 +117,9 @@
           </div>
         </div>
         <div class="fb-preview-body" id="fb-body">Votre message apparaîtra ici…</div>
+        <div class="fb-preview-image-wrap" id="fb-image-wrap" style="display:none">
+          <img id="fb-image" class="fb-preview-image" alt="Visuel du post">
+        </div>
         <div class="fb-preview-link-card" id="fb-link-card" style="display:none">
           <div class="fb-link-card-bar"></div>
           <div class="fb-link-card-body">
@@ -173,6 +182,34 @@
   var linkClean = document.getElementById("fb-link-clean");
   var count = document.getElementById("char-count");
   var aiFlag = document.getElementById("gen-ai-flag");
+  var imagePath = document.getElementById("f-image-path");
+  var imagePreview = document.getElementById("social-image-preview");
+  var imageHint = document.getElementById("image-hint");
+  var fbImageWrap = document.getElementById("fb-image-wrap");
+  var fbImage = document.getElementById("fb-image");
+
+  function setImage(url, path) {
+    imagePath.value = path || "";
+    if (url && path) {
+      imagePreview.src = url;
+      imagePreview.style.display = "block";
+      fbImage.src = url;
+      fbImageWrap.style.display = "block";
+      imageHint.textContent = "Visuel prêt — charte PilotCore.";
+      imageHint.style.color = "var(--green, #059669)";
+    } else {
+      imagePreview.removeAttribute("src");
+      imagePreview.style.display = "none";
+      fbImage.removeAttribute("src");
+      fbImageWrap.style.display = "none";
+      imageHint.textContent = "Un visuel charte PilotCore accompagne chaque publication (généré avec l'IA ou à la publication).";
+      imageHint.style.color = "";
+    }
+  }
+
+  function clearImage() {
+    setImage("", "");
+  }
 
   function titleFromTarget(label) {
     return label || "PilotCore";
@@ -206,7 +243,7 @@
   }
 
   targetSelect.addEventListener("change", applyTarget);
-  msg.addEventListener("input", function () { aiFlag.value = "0"; render(); });
+  msg.addEventListener("input", function () { aiFlag.value = "0"; clearImage(); render(); });
 
   var genBtn = document.getElementById("ai-generate");
   if (genBtn) {
@@ -239,6 +276,11 @@
             utmPreview.textContent = res.d.link;
           } else {
             applyTarget();
+          }
+          if (res.d.image_url && res.d.image_path) {
+            setImage(res.d.image_url, res.d.image_path);
+          } else {
+            clearImage();
           }
           aiFlag.value = "1";
           applyTarget();

@@ -21,6 +21,7 @@ class SocialPost(db.Model):
     platform = db.Column(db.String(20), nullable=False, default="facebook", index=True)
     message = db.Column(db.Text, nullable=True)
     link = db.Column(db.String(500), nullable=True)
+    image_path = db.Column(db.String(300), nullable=True)  # static/uploads/social/…
     status = db.Column(db.String(20), nullable=False, default="draft", index=True)  # draft|published|failed
     external_id = db.Column(db.String(120), nullable=True)   # Facebook post id
     permalink = db.Column(db.String(500), nullable=True)

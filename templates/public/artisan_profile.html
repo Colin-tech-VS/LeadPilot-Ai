@@ -1,6 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/brand.html' import brand_logo with context %}
-{% from 'macros/seo.html' import seo_meta %}
+{% from 'macros/seo.html' import seo_meta with context %}
 
 {% block title %}{{ tenant.name }} — {{ trade_label }}{% if tenant.city %} à {{ tenant.city }}{% endif %} · {{ _('directory.book_online') }}{% endblock %}
 {% block body_class %}page-artisan-profile{% endblock %}

@@ -1,7 +1,7 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
 {% from 'macros/artisan_card.html' import artisan_card with context %}
-{% from 'macros/seo.html' import seo_meta %}
+{% from 'macros/seo.html' import seo_meta with context %}
 
 {% block title %}{{ _('client.meta_title') }}{% endblock %}
 {% block body_class %}page-client-home{% endblock %}

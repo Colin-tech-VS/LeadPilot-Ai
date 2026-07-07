@@ -1,5 +1,5 @@
 {% extends "layouts/pro.html" %}
-{% from 'macros/seo.html' import seo_meta %}
+{% from 'macros/seo.html' import seo_meta with context %}
 {% block meta %}{{ seo_meta(_('register.title') ~ ' — ' ~ _('app.name'), _('register.tagline'), '/register', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/trade_picker.html' import trade_select %}

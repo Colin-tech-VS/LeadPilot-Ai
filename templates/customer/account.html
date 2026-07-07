@@ -1,5 +1,5 @@
 {% extends "layouts/public.html" %}
-{% from 'macros/seo.html' import seo_meta %}
+{% from 'macros/seo.html' import seo_meta with context %}
 {% block meta %}{{ seo_meta('Mon espace — ' ~ _('app.name'), _('client.meta_description'), '/client/account', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
 {% block title %}Mon espace — {{ _('app.name') }}{% endblock %}

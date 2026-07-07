@@ -3,7 +3,8 @@ import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, current_app, g, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, g, jsonify, make_response, redirect, render_template, request, send_from_directory, session, url_for
+from pathlib import Path
 from sqlalchemy.orm import contains_eager, joinedload
 
 logger = logging.getLogger(__name__)
@@ -204,6 +205,8 @@ def robots_txt():
         f"Allow: /artisans\n"
         f"Allow: /pro\n"
         f"Allow: /p/\n"
+        f"Allow: /blog\n"
+        f"Allow: /media/social/\n"
         f"Disallow: /admin\n"
         f"Disallow: /dashboard\n"
         f"Disallow: /leads\n"
@@ -228,6 +231,8 @@ def robots_txt():
 def sitemap_xml():
     from datetime import date
 
+    from app.models.blog_category import BlogCategory
+    from app.models.blog_post import BlogPost
     from app.models.site_page import SitePage
     from app.services.artisan_directory import list_public_artisans
     from app.utils.seo import format_lastmod, site_base_url
@@ -239,6 +244,7 @@ def sitemap_xml():
         ("/artisans", "daily", "0.95", today),
         ("/pro", "weekly", "0.9", today),
         ("/contact", "monthly", "0.5", today),
+        ("/blog", "daily", "0.85", today),
         ("/mentions-legales", "yearly", "0.3", None),
         ("/confidentialite", "yearly", "0.3", None),
         ("/cgu", "yearly", "0.3", None),
@@ -259,6 +265,13 @@ def sitemap_xml():
     for page in SitePage.query.filter_by(status="published").order_by(SitePage.updated_at.desc()).limit(100).all():
         if page.slug:
             urls.append((f"/p/{page.slug}", "weekly", "0.7", format_lastmod(page.updated_at)))
+
+    for post in BlogPost.query.filter_by(status="published").order_by(BlogPost.published_at.desc()).limit(200).all():
+        if post.slug:
+            urls.append((f"/blog/{post.slug}", "weekly", "0.8", format_lastmod(post.published_at or post.updated_at)))
+
+    for cat in BlogCategory.query.order_by(BlogCategory.sort_order).all():
+        urls.append((f"/blog/categorie/{cat.slug}", "weekly", "0.75", today))
 
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for path, freq, priority, lastmod in urls:
@@ -304,6 +317,91 @@ def pro_landing():
 @web_bp.route("/landing", methods=["GET"])
 def landing():
     return redirect(url_for("web.pro_landing"), code=301)
+
+
+@web_bp.route("/media/social/<path:filename>", methods=["GET"])
+def social_media(filename):
+    """Serve generated social images (e.g. from temp storage on ephemeral hosts)."""
+    from app.services.social_image import uploads_dir
+
+    safe = Path(filename).name
+    if safe != filename or not safe.endswith(".png"):
+        abort(404)
+    path = uploads_dir() / safe
+    if not path.is_file():
+        abort(404)
+    return send_from_directory(path.parent, path.name, mimetype="image/png")
+
+
+@web_bp.route("/blog", methods=["GET"])
+def blog_index():
+    from app.services import blog as blog_svc
+    from app.utils.seo import blog_index_json_ld, json_ld_script
+
+    categories = blog_svc.list_categories()
+    posts = blog_svc.list_published_posts(limit=48)
+    featured = blog_svc.featured_post()
+    meta_desc = (
+        "Conseils artisans, dépannage à la maison et téléphonie IA : articles pratiques "
+        "par l'équipe PilotCore pour particuliers et professionnels du bâtiment."
+    )
+    keywords = (
+        "blog artisan, dépannage maison, plombier conseils, standard téléphonique IA, "
+        "PilotCore, RDV artisan, gestion artisan"
+    )
+    return render_template(
+        "public/blog/index.html",
+        nav_active="blog",
+        categories=categories,
+        posts=posts,
+        featured=featured,
+        active_category=None,
+        meta_description=meta_desc,
+        meta_keywords=keywords,
+        json_ld=json_ld_script(blog_index_json_ld(posts, lang=request.args.get("lang") or "fr")),
+    )
+
+
+@web_bp.route("/blog/categorie/<slug>", methods=["GET"])
+def blog_category(slug):
+    from app.services import blog as blog_svc
+    from app.utils.seo import blog_index_json_ld, json_ld_script
+
+    category = blog_svc.get_category_by_slug(slug)
+    if not category:
+        abort(404)
+    posts = blog_svc.list_published_posts(limit=48, category_id=category.id)
+    featured = posts[0] if posts else None
+    meta_desc = (category.description or category.name)[:300]
+    return render_template(
+        "public/blog/index.html",
+        nav_active="blog",
+        categories=blog_svc.list_categories(),
+        posts=posts,
+        featured=featured if featured and featured != blog_svc.featured_post() else None,
+        active_category=category,
+        meta_description=meta_desc,
+        meta_keywords=f"{category.name}, blog PilotCore, artisan, dépannage",
+        json_ld=json_ld_script(blog_index_json_ld(posts)),
+    )
+
+
+@web_bp.route("/blog/<slug>", methods=["GET"])
+def blog_article(slug):
+    from app.services import blog as blog_svc
+    from app.utils.seo import blog_posting_json_ld, json_ld_script
+
+    post = blog_svc.get_published_post(slug)
+    if not post:
+        abort(404)
+    related = blog_svc.related_posts(post, limit=3)
+    return render_template(
+        "public/blog/article.html",
+        nav_active="blog",
+        post=post,
+        related=related,
+        json_ld=json_ld_script(blog_posting_json_ld(post)),
+    )
 
 
 @web_bp.route("/p/<slug>", methods=["GET"])

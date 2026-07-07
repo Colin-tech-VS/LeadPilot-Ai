@@ -1,0 +1,134 @@
+"""Blog listing, categories and default seed data."""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from sqlalchemy import or_
+
+from app.core.extensions import db
+from app.models.blog_category import BlogCategory
+from app.models.blog_post import BlogPost
+
+DEFAULT_CATEGORIES = (
+    {
+        "slug": "conseils-artisans",
+        "name": "Conseils artisans",
+        "description": "Gestion d'activité, relation client et productivité pour les pros du bâtiment.",
+        "sort_order": 10,
+    },
+    {
+        "slug": "depannage-maison",
+        "name": "Dépannage & maison",
+        "description": "Guides pratiques pour les particuliers : plomberie, électricité, urgences.",
+        "sort_order": 20,
+    },
+    {
+        "slug": "telephonie-ia",
+        "name": "Téléphonie & IA",
+        "description": "Standard téléphonique, assistant vocal et innovation pour artisans.",
+        "sort_order": 30,
+    },
+    {
+        "slug": "actualites-pilotcore",
+        "name": "Actualités PilotCore",
+        "description": "Nouveautés produit, annuaire et vie de la plateforme.",
+        "sort_order": 40,
+    },
+)
+
+
+def ensure_default_categories() -> None:
+    """Idempotent seed of predefined blog categories."""
+    for item in DEFAULT_CATEGORIES:
+        existing = BlogCategory.query.filter_by(slug=item["slug"]).first()
+        if existing:
+            continue
+        db.session.add(
+            BlogCategory(
+                name=item["name"],
+                slug=item["slug"],
+                description=item["description"],
+                sort_order=item["sort_order"],
+            )
+        )
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+
+def list_categories():
+    return BlogCategory.query.order_by(BlogCategory.sort_order, BlogCategory.name).all()
+
+
+def get_category_by_slug(slug: str) -> BlogCategory | None:
+    return BlogCategory.query.filter_by(slug=(slug or "").strip()).first()
+
+
+def published_posts_query(*, category_id=None, exclude_id=None):
+    q = BlogPost.query.filter_by(status="published")
+    if category_id:
+        q = q.filter(BlogPost.category_id == category_id)
+    if exclude_id:
+        q = q.filter(BlogPost.id != exclude_id)
+    return q.order_by(
+        BlogPost.featured.desc(),
+        BlogPost.published_at.desc().nullslast(),
+        BlogPost.updated_at.desc(),
+    )
+
+
+def list_published_posts(limit=50, *, category_id=None):
+    return published_posts_query(category_id=category_id).limit(limit).all()
+
+
+def get_published_post(slug: str) -> BlogPost | None:
+    return BlogPost.query.filter_by(slug=(slug or "").strip(), status="published").first()
+
+
+def featured_post():
+    return (
+        published_posts_query()
+        .filter(BlogPost.featured.is_(True))
+        .first()
+        or published_posts_query().first()
+    )
+
+
+def related_posts(post: BlogPost, limit=3):
+    if not post or not post.category_id:
+        return list_published_posts(limit=limit, exclude_id=post.id)[:limit]
+    return published_posts_query(category_id=post.category_id, exclude_id=post.id).limit(limit).all()
+
+
+def admin_list_posts():
+    return (
+        BlogPost.query.outerjoin(BlogCategory)
+        .order_by(BlogPost.updated_at.desc())
+        .all()
+    )
+
+
+def search_posts_public(q: str, limit=20):
+    term = f"%{(q or '').strip()}%"
+    if not term.strip("%"):
+        return []
+    return (
+        BlogPost.query.filter(
+            BlogPost.status == "published",
+            or_(
+                BlogPost.title.ilike(term),
+                BlogPost.excerpt.ilike(term),
+                BlogPost.body_html.ilike(term),
+            ),
+        )
+        .order_by(BlogPost.published_at.desc().nullslast())
+        .limit(limit)
+        .all()
+    )
+
+
+def touch_published_at(post: BlogPost, *, publishing: bool) -> None:
+    if publishing and not post.published_at:
+        post.published_at = datetime.now(timezone.utc)

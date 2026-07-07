@@ -4,6 +4,8 @@ from app.models.event import Event
 from app.models.lead import Lead
 from app.models.notification import Notification
 from app.models.offer import Offer
+from app.models.blog_category import BlogCategory
+from app.models.blog_post import BlogPost
 from app.models.ip_geo_cache import IpGeoCache
 from app.models.page_view import PageView
 from app.models.quote import Quote
@@ -23,6 +25,8 @@ __all__ = [
     "Offer",
     "SiteSetting",
     "SitePage",
+    "BlogCategory",
+    "BlogPost",
     "SocialPost",
     "EmailMessage",
     "Event",

@@ -47,8 +47,11 @@ def test_get_target_pro_audience():
 def test_generate_social_post_shape(app, monkeypatch):
     def fake_complete(system, user, **kwargs):
         assert "PilotCore" in system
-        assert "charte" in system.lower() or "Charte" in system
-        return "🔧 Test post\n\n#PilotCore #Artisan"
+        return (
+            '{"message": "🔧 Test post\\n\\n#PilotCore #Artisan", '
+            '"image_headline": "Réception 24/7", '
+            '"visual_brief": "artisan au téléphone"}'
+        )
 
     monkeypatch.setattr("app.services.content_ai._complete", fake_complete)
 
@@ -58,6 +61,8 @@ def test_generate_social_post_shape(app, monkeypatch):
         result = generate_social_post("Promouvoir l'essai gratuit", target_key="pro")
     assert "message" in result
     assert result["message"]
+    assert result["image_headline"]
+    assert result["visual_brief"]
     assert result["link"] and "utm_" in result["link"]
     assert result["display_link"] and "utm_" not in result["display_link"]
     assert result["target_key"] == "pro"

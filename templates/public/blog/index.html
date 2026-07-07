@@ -1,0 +1,105 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% block title %}{% if active_category %}{{ active_category.name }} · Blog{% else %}Blog{% endif %} · {{ _('app.name') }}{% endblock %}
+{% block body_class %}blog-page{% endblock %}
+{% block meta %}
+{{ seo_meta(
+  (active_category.name ~ ' · Blog' if active_category else 'Blog') ~ ' · ' ~ _('app.name'),
+  meta_description,
+  '/blog/categorie/' ~ active_category.slug if active_category else '/blog',
+  meta_keywords,
+  'website',
+  None,
+  'index, follow',
+  json_ld,
+  lang
+) }}
+{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}?v=1">
+{% endblock %}
+
+{% block content %}
+<section class="blog-hero">
+  <div class="container blog-hero-inner">
+    <p class="blog-eyebrow">PilotCore · Ressources</p>
+    <h1 class="blog-hero-title">
+      {% if active_category %}{{ active_category.name }}{% else %}Le blog PilotCore{% endif %}
+    </h1>
+    <p class="blog-hero-lead">
+      {% if active_category and active_category.description %}
+        {{ active_category.description }}
+      {% else %}
+        Conseils pour artisans, guides dépannage et téléphonie IA — des articles pensés pour vous faire gagner du temps.
+      {% endif %}
+    </p>
+  </div>
+</section>
+
+<nav class="blog-categories container" aria-label="Catégories du blog">
+  <a href="{{ url_for('web.blog_index') }}" class="blog-cat-pill{% if not active_category %} is-active{% endif %}">Tous</a>
+  {% for cat in categories %}
+  <a href="{{ url_for('web.blog_category', slug=cat.slug) }}" class="blog-cat-pill{% if active_category and active_category.id == cat.id %} is-active{% endif %}">{{ cat.name }}</a>
+  {% endfor %}
+</nav>
+
+{% if featured and not active_category %}
+<section class="container blog-featured">
+  <article class="blog-featured-card">
+    <div class="blog-featured-content">
+      {% if featured.category %}
+      <a href="{{ url_for('web.blog_category', slug=featured.category.slug) }}" class="blog-badge">{{ featured.category.name }}</a>
+      {% endif %}
+      <h2><a href="{{ url_for('web.blog_article', slug=featured.slug) }}">{{ featured.title }}</a></h2>
+      <p>{{ featured.excerpt or featured.meta_description }}</p>
+      <div class="blog-meta">
+        {% if featured.published_at %}<time datetime="{{ featured.published_at.isoformat() }}">{{ featured.published_at.strftime('%d/%m/%Y') }}</time>{% endif %}
+        {% if featured.reading_time_min %}<span>{{ featured.reading_time_min }} min de lecture</span>{% endif %}
+      </div>
+      <a href="{{ url_for('web.blog_article', slug=featured.slug) }}" class="blog-read-more">Lire l'article →</a>
+    </div>
+    <div class="blog-featured-visual" aria-hidden="true">
+      <div class="blog-featured-glow"></div>
+      <span class="blog-featured-icon">✦</span>
+    </div>
+  </article>
+</section>
+{% endif %}
+
+<section class="container blog-grid-section">
+  {% if posts %}
+  <div class="blog-grid">
+    {% for post in posts %}
+    {% if not (featured and not active_category and post.id == featured.id) %}
+    <article class="blog-card">
+      <div class="blog-card-top">
+        {% if post.category %}
+        <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}" class="blog-badge">{{ post.category.name }}</a>
+        {% endif %}
+        {% if post.reading_time_min %}<span class="blog-card-time">{{ post.reading_time_min }} min</span>{% endif %}
+      </div>
+      <h2 class="blog-card-title"><a href="{{ url_for('web.blog_article', slug=post.slug) }}">{{ post.title }}</a></h2>
+      <p class="blog-card-excerpt">{{ post.excerpt or post.meta_description or '' }}</p>
+      <div class="blog-meta">
+        {% if post.published_at %}<time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at.strftime('%d/%m/%Y') }}</time>{% endif %}
+      </div>
+      <a href="{{ url_for('web.blog_article', slug=post.slug) }}" class="blog-card-link">Lire →</a>
+    </article>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="blog-empty">Aucun article publié{% if active_category %} dans cette catégorie{% endif %} pour le moment.</p>
+  {% endif %}
+</section>
+
+<section class="blog-cta-band">
+  <div class="container blog-cta-inner">
+    <div>
+      <h2>Vous êtes artisan ?</h2>
+      <p>Ne ratez plus aucun appel grâce au standard téléphonique IA PilotCore.</p>
+    </div>
+    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-primary">Découvrir PilotCore Pro</a>
+  </div>
+</section>
+{% endblock %}

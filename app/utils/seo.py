@@ -82,3 +82,111 @@ def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
         "areaServed": {"@type": "Country", "name": "France"},
         "sameAs": [],
     }
+
+
+def breadcrumb_json_ld(items: list[tuple[str, str]]) -> dict[str, Any]:
+    """``items`` = list of (label, path) ending with the current page."""
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": idx + 1,
+                "name": label,
+                "item": canonical_url(path),
+            }
+            for idx, (label, path) in enumerate(items)
+        ],
+    }
+
+
+def blog_index_json_ld(posts: list, lang: str = "fr") -> dict[str, Any]:
+    desc = (
+        "Conseils artisans, dépannage maison et téléphonie IA — le blog PilotCore."
+        if lang == "fr"
+        else "Trades tips, home repairs and AI phone systems — the PilotCore blog."
+    )
+    graph: list[Any] = [
+        {
+            "@type": "Blog",
+            "@id": f"{canonical_url('/blog')}#blog",
+            "name": "Blog PilotCore",
+            "description": desc,
+            "url": canonical_url("/blog"),
+            "publisher": {"@id": f"{site_base_url()}/#organization"},
+        },
+        {**organization_json_ld(lang, desc), "@id": f"{site_base_url()}/#organization"},
+    ]
+    for post in posts[:12]:
+        graph.append(
+            {
+                "@type": "BlogPosting",
+                "headline": post.title,
+                "url": canonical_url(f"/blog/{post.slug}"),
+                "datePublished": _iso_dt(post.published_at or post.created_at),
+                "description": (post.excerpt or post.meta_description or "")[:300],
+            }
+        )
+    return {"@context": "https://schema.org", "@graph": graph}
+
+
+def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
+    category_name = post.category.name if post.category else "Blog"
+    description = (post.meta_description or post.excerpt or post.title or "")[:300]
+    crumbs: list[tuple[str, str]] = [
+        ("Accueil" if lang == "fr" else "Home", "/"),
+        ("Blog", "/blog"),
+    ]
+    if post.category:
+        crumbs.append((category_name, f"/blog/categorie/{post.category.slug}"))
+    crumbs.append((post.title, f"/blog/{post.slug}"))
+    graph: list[Any] = [
+        breadcrumb_json_ld(crumbs),
+        {
+            "@type": "BlogPosting",
+            "@id": f"{canonical_url(f'/blog/{post.slug}')}#article",
+            "headline": post.title,
+            "description": description,
+            "image": logo_url(),
+            "datePublished": _iso_dt(post.published_at or post.created_at),
+            "dateModified": _iso_dt(post.updated_at),
+            "author": {"@type": "Organization", "name": "PilotCore", "url": site_base_url()},
+            "publisher": organization_json_ld(lang, description),
+            "mainEntityOfPage": canonical_url(f"/blog/{post.slug}"),
+            "articleSection": category_name,
+            "inLanguage": "fr-FR" if lang == "fr" else "en-GB",
+            "wordCount": _estimate_words(post.body_html or ""),
+        },
+    ]
+    faq = post.get_faq() if hasattr(post, "get_faq") else []
+    if faq:
+        graph.append(
+            {
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": item["question"],
+                        "acceptedAnswer": {"@type": "Answer", "text": item["answer"]},
+                    }
+                    for item in faq
+                ],
+            }
+        )
+    return {"@context": "https://schema.org", "@graph": graph}
+
+
+def _iso_dt(value: datetime | date | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.replace(microsecond=0).isoformat()
+    return value.isoformat()
+
+
+def _estimate_words(html: str) -> int:
+    import re
+
+    text = re.sub(r"<[^>]+>", " ", html or "")
+    return len([w for w in text.split() if w.strip()])

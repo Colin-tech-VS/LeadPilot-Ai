@@ -66,6 +66,12 @@ def create_app(config_object=None):
         _backfill_lead_status()
         _backfill_completed_appointments()
         _backfill_directory_visibility()
+        try:
+            from app.services.blog import ensure_default_categories
+
+            ensure_default_categories()
+        except Exception:
+            logging.getLogger(__name__).exception("blog category seed failed")
 
     return app
 
@@ -324,6 +330,49 @@ def _ensure_schema_updates():
         if "image_path" not in sp_columns:
             with db.engine.begin() as conn:
                 conn.execute(text("ALTER TABLE social_posts ADD COLUMN image_path VARCHAR(300)"))
+
+    if "blog_categories" not in inspector.get_table_names():
+        id_type = "VARCHAR(36)"
+        bool_type = "BOOLEAN" if db.engine.dialect.name == "postgresql" else "INTEGER"
+        with db.engine.begin() as conn:
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE blog_categories (
+                        id {id_type} PRIMARY KEY,
+                        name VARCHAR(120) NOT NULL,
+                        slug VARCHAR(120) NOT NULL UNIQUE,
+                        description VARCHAR(400),
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        created_at {ts_type}
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE blog_posts (
+                        id {id_type} PRIMARY KEY,
+                        slug VARCHAR(160) NOT NULL UNIQUE,
+                        title VARCHAR(220) NOT NULL DEFAULT '',
+                        excerpt VARCHAR(400),
+                        meta_description VARCHAR(300),
+                        meta_keywords VARCHAR(400),
+                        body_html TEXT,
+                        category_id {id_type},
+                        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+                        featured {bool_type} NOT NULL DEFAULT FALSE,
+                        reading_time_min INTEGER,
+                        faq_json TEXT,
+                        published_at {ts_type},
+                        created_at {ts_type},
+                        updated_at {ts_type},
+                        FOREIGN KEY(category_id) REFERENCES blog_categories(id)
+                    )
+                    """
+                )
+            )
 
     if "ip_geo_cache" not in inspector.get_table_names():
         with db.engine.begin() as conn:

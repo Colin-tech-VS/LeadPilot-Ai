@@ -85,6 +85,66 @@ def generate_page(prompt: str, tone: str = "professionnel") -> dict:
     }
 
 
+_BLOG_SYSTEM = (
+    "Tu es rédacteur SEO senior et journaliste spécialisé bâtiment / artisans pour PilotCore "
+    "(plateforme française : annuaire artisans + standard téléphonique IA).\n"
+    "Tu rédiges des articles de blog en français, ultra optimisés SEO (intention de recherche, "
+    "mots-clés naturels, structure H2/H3, listes, FAQ).\n"
+    "Réponds UNIQUEMENT en JSON avec les clés :\n"
+    '- "title" : titre H1 accrocheur (60 caractères max),\n'
+    '- "meta_description" : 140-155 caractères, incitatif, avec mot-clé principal,\n'
+    '- "meta_keywords" : 8 à 12 mots-clés séparés par des virgules,\n'
+    '- "excerpt" : chapô 2 phrases (max 280 caractères),\n'
+    '- "reading_time_min" : entier (minutes de lecture estimées),\n'
+    '- "body_html" : article complet (1500-2200 mots) — balises h2, h3, p, ul, li, strong, em, '
+    "blockquote, section uniquement. PAS de h1 (ajouté par le template). "
+    "Inclure une intro, 4-6 sections, conclusion avec CTA doux vers PilotCore (sans URL brute).\n"
+    '- "faq" : tableau de 3 à 5 objets {"question": "...", "answer": "..."} pour rich snippets.'
+)
+
+
+def generate_blog_post(prompt: str, tone: str = "expert", *, category_hint: str = "") -> dict:
+    """Generate a full SEO blog article. Returns fields for the admin editor."""
+    user = (
+        f"Sujet de l'article : {prompt.strip()}\n"
+        f"Ton : {tone}.\n"
+        f"Catégorie suggérée : {category_hint or 'au choix'}.\n"
+        "Rédige l'article de blog complet."
+    )
+    raw = _complete(_BLOG_SYSTEM, user, json_mode=True, max_tokens=4500, temperature=0.58)
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise ContentAIError("La réponse de l'IA n'était pas exploitable.") from exc
+
+    faq_raw = data.get("faq") or []
+    faq = []
+    if isinstance(faq_raw, list):
+        for item in faq_raw:
+            if isinstance(item, dict) and item.get("question"):
+                faq.append(
+                    {
+                        "question": str(item.get("question", "")).strip(),
+                        "answer": str(item.get("answer", "")).strip(),
+                    }
+                )
+
+    try:
+        reading = int(data.get("reading_time_min") or 5)
+    except (TypeError, ValueError):
+        reading = 5
+
+    return {
+        "title": (data.get("title") or "").strip(),
+        "meta_description": (data.get("meta_description") or "").strip()[:300],
+        "meta_keywords": (data.get("meta_keywords") or "").strip()[:400],
+        "excerpt": (data.get("excerpt") or "").strip()[:400],
+        "reading_time_min": max(2, min(reading, 30)),
+        "body_html": _sanitize_html(data.get("body_html") or ""),
+        "faq": faq,
+    }
+
+
 _SOCIAL_BRAND = (
     "Charte PilotCore (direction artistique du site) :\n"
     "- Couleurs : bleu #1B57E0, cyan #06B6D4, vert #10B981, fond clair moderne.\n"
@@ -103,8 +163,19 @@ _SOCIAL_SYSTEM = (
     "relation particuliers et artisans (RDV en ligne) et propose un standard téléphonique "
     "IA aux professionnels du bâtiment.\n"
     f"{_SOCIAL_BRAND}\n"
-    "Réponds uniquement avec le texte du post Facebook, sans guillemets ni préambule."
+    "Réponds UNIQUEMENT en JSON avec :\n"
+    '- "message" : texte du post Facebook (sans guillemets),\n'
+    '- "image_headline" : accroche visuelle courte en français (6 mots max),\n'
+    '- "visual_brief" : description du visuel SANS texte (icônes, artisan, téléphone…).'
 )
+
+
+def _parse_json_response(raw: str) -> dict:
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    return json.loads(text)
 
 
 def generate_social_post(
@@ -114,7 +185,7 @@ def generate_social_post(
     target_key: str = "home",
     content_tag: str = "ai_post",
 ) -> dict:
-    """Generate a Facebook post aligned with PilotCore brand. Returns message + link hints."""
+    """Generate a Facebook post + image brief in one IA call (fast, single round-trip)."""
     from app.services.social_links import build_tracked_url_for_target, display_url, get_target
 
     target = get_target(target_key) or get_target("home")
@@ -124,15 +195,25 @@ def generate_social_post(
         f"Ton : {tone}.\n"
         f"Page cible : {target['label']} — {target['audience']}.\n"
         f"CTA suggéré (sans URL) : {target['cta']}.\n"
-        "Rédige le post Facebook."
+        "Rédige le post et le brief visuel."
     )
-    text = _complete(_SOCIAL_SYSTEM, user, json_mode=False, max_tokens=550, temperature=0.72)
-    message = (text or "").strip().strip('"')
+    raw = _complete(_SOCIAL_SYSTEM, user, json_mode=True, max_tokens=700, temperature=0.72)
+    try:
+        data = _parse_json_response(raw)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise ContentAIError("La réponse de l'IA n'était pas exploitable.") from exc
+    message = (data.get("message") or "").strip().strip('"')
+    if not message:
+        raise ContentAIError("L'IA n'a pas généré de texte de post.")
+    headline = (data.get("image_headline") or prompt.strip()[:40] or "PilotCore").strip()
+    visual = (data.get("visual_brief") or prompt.strip()).strip()
     return {
         "message": message,
         "link": tracked,
         "display_link": display_url(tracked) if tracked else "",
         "target_key": target["key"],
+        "image_headline": headline[:80],
+        "visual_brief": visual[:500],
     }
 
 

@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 WIDTH = 1200
 HEIGHT = 630
 UPLOAD_PREFIX = "uploads/social"
+MEDIA_PREFIX = "media/social"
 
 _BRAND = (
     "PilotCore — plateforme française artisans & particuliers. "
@@ -45,27 +46,48 @@ def _static_root() -> Path:
 
 
 def uploads_dir() -> Path:
-    directory = _static_root() / "uploads" / "social"
-    directory.mkdir(parents=True, exist_ok=True)
+    configured = (current_app.config.get("SOCIAL_UPLOAD_DIR") or "").strip()
+    if configured:
+        directory = Path(configured)
+    else:
+        directory = _static_root() / "uploads" / "social"
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        import tempfile
+
+        directory = Path(tempfile.gettempdir()) / "pilotcore-social"
+        directory.mkdir(parents=True, exist_ok=True)
+        logger.warning("Using temp social upload dir: %s", directory)
     return directory
 
 
 def image_public_url(relative_path: str) -> str:
-    rel = (relative_path or "").strip().lstrip("/")
+    rel = (relative_path or "").strip().lstrip("/").replace("\\", "/")
+    if rel.startswith("media/social/"):
+        return f"{site_base_url()}/{rel}"
     return f"{site_base_url()}/static/{rel}"
 
 
 def resolve_image_path(relative: str | None) -> Path | None:
-    """Return an absolute path only for files under ``static/uploads/social/``."""
+    """Return an absolute path only for files under the social upload directory."""
     rel = (relative or "").strip().lstrip("/").replace("\\", "/")
-    if not rel or ".." in rel or not rel.startswith(f"{UPLOAD_PREFIX}/"):
+    if not rel or ".." in rel:
+        return None
+    if rel.startswith(f"{MEDIA_PREFIX}/"):
+        name = rel.split("/", 2)[-1]
+        path = uploads_dir() / name
+        return path if path.is_file() else None
+    if not rel.startswith(f"{UPLOAD_PREFIX}/"):
         return None
     path = (_static_root() / rel).resolve()
     root = uploads_dir().resolve()
     try:
         path.relative_to(root)
     except ValueError:
-        return None
+        # File may live in temp upload dir while path key stays uploads/social/…
+        alt = root / Path(rel).name
+        return alt if alt.is_file() else None
     return path if path.is_file() else None
 
 
@@ -146,6 +168,14 @@ def _load_font(size: int, *, bold: bool = False):
     return ImageFont.load_default()
 
 
+def _text_width(draw, text: str, font) -> float:
+    try:
+        return float(draw.textlength(text, font=font))
+    except Exception:  # noqa: BLE001 — bitmap default font on some hosts
+        bbox = draw.textbbox((0, 0), text, font=font)
+        return float(bbox[2] - bbox[0])
+
+
 def _wrap_text(draw, text: str, font, max_width: int) -> list[str]:
     words = text.split()
     if not words:
@@ -154,7 +184,7 @@ def _wrap_text(draw, text: str, font, max_width: int) -> list[str]:
     current = words[0]
     for word in words[1:]:
         trial = f"{current} {word}"
-        if draw.textlength(trial, font=font) <= max_width:
+        if _text_width(draw, trial, font) <= max_width:
             current = trial
         else:
             lines.append(current)
@@ -273,28 +303,52 @@ def _save_png(data: bytes) -> str:
     name = f"{uuid.uuid4().hex}.png"
     path = uploads_dir() / name
     path.write_bytes(data)
+    static_target = _static_root() / "uploads" / "social" / name
+    try:
+        if path.resolve() != static_target.resolve():
+            return f"{MEDIA_PREFIX}/{name}"
+    except OSError:
+        return f"{MEDIA_PREFIX}/{name}"
     return f"{UPLOAD_PREFIX}/{name}"
 
 
-def generate_for_post(subject: str, tone: str = "engageant") -> dict:
+def generate_for_post(
+    subject: str,
+    tone: str = "engageant",
+    *,
+    headline: str | None = None,
+    visual_brief: str | None = None,
+    use_dalle: bool = False,
+) -> dict:
     """Generate a branded PNG and return ``image_path`` + ``image_url``."""
-    brief = _image_brief(subject, tone)
-    headline = brief["headline"]
+    if headline and visual_brief:
+        brief = {"headline": headline[:80], "visual_brief": visual_brief[:500]}
+    else:
+        try:
+            brief = _image_brief(subject, tone)
+        except ContentAIError:
+            logger.warning("Image brief IA unavailable — fallback local brief")
+            brief = {
+                "headline": (subject or "PilotCore")[:80],
+                "visual_brief": (subject or "PilotCore")[:500],
+            }
+
+    headline_text = brief["headline"]
     visual = brief["visual_brief"]
 
-    raw = _try_dalle(visual)
-    if raw:
-        try:
-            png = _apply_brand_overlay(raw, headline)
-        except Exception:  # noqa: BLE001
-            logger.exception("Brand overlay failed — using fallback card")
-            png = _branded_fallback(headline, subject)
-    else:
-        png = _branded_fallback(headline, subject)
+    raw = _try_dalle(visual) if use_dalle else None
+    try:
+        if raw:
+            png = _apply_brand_overlay(raw, headline_text)
+        else:
+            png = _branded_fallback(headline_text, subject)
+    except Exception:  # noqa: BLE001
+        logger.exception("Social image render failed — minimal fallback")
+        png = _branded_fallback("PilotCore", subject)
 
     relative = _save_png(png)
     return {
         "image_path": relative,
         "image_url": image_public_url(relative),
-        "image_headline": headline,
+        "image_headline": headline_text,
     }

@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% block title %}Catégories blog · Admin{% endblock %}
+{% block page_title %}Catégories du blog{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.blog') }}" class="admin-btn ghost">← Articles</a>
+{% endblock %}
+
+{% block content %}
+<div class="studio-split" style="grid-template-columns:1fr 1fr">
+  <div class="studio-editor">
+    <h3 style="margin:0 0 14px">Ajouter une catégorie</h3>
+    <form method="POST" action="{{ url_for('admin.blog_category_save') }}" class="db-form">
+      <input type="hidden" name="action" value="create">
+      <label class="field"><span>Nom</span><input type="text" name="name" required placeholder="Ex : Renovation"></label>
+      <label class="field"><span>Slug (optionnel)</span><input type="text" name="slug" placeholder="auto depuis le nom"></label>
+      <label class="field"><span>Description courte</span><textarea name="description" rows="2" maxlength="400"></textarea></label>
+      <label class="field"><span>Ordre d'affichage</span><input type="number" name="sort_order" value="50"></label>
+      <button type="submit" class="admin-btn">Ajouter</button>
+    </form>
+  </div>
+  <div>
+    <h3 style="margin:0 0 14px">Catégories existantes</h3>
+    <div class="studio-list">
+      {% for cat in categories %}
+      <form method="POST" action="{{ url_for('admin.blog_category_save') }}" class="studio-item" style="flex-wrap:wrap;align-items:flex-start">
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="id" value="{{ cat.id }}">
+        <div class="studio-item-main" style="width:100%">
+          <label class="field"><span>Nom</span><input type="text" name="name" value="{{ cat.name }}" required></label>
+          <div class="field-row">
+            <label class="field"><span>Slug</span><input type="text" name="slug" value="{{ cat.slug }}" required></label>
+            <label class="field"><span>Ordre</span><input type="number" name="sort_order" value="{{ cat.sort_order }}"></label>
+          </div>
+          <label class="field"><span>Description</span><textarea name="description" rows="2">{{ cat.description or '' }}</textarea></label>
+          <p class="admin-hint">/blog/categorie/{{ cat.slug }} · {{ cat.posts.count() }} article(s)</p>
+        </div>
+        <div class="studio-item-actions" style="width:100%;margin-top:8px">
+          <button type="submit" class="admin-btn tiny">Enregistrer</button>
+          {% if cat.posts.count() == 0 %}
+          <button type="submit" formaction="{{ url_for('admin.blog_category_delete', category_id=cat.id) }}" formmethod="POST" class="admin-btn tiny danger" onclick="return confirm('Supprimer cette catégorie ?');">Supprimer</button>
+          {% endif %}
+        </div>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% block title %}{{ post.title }} · Blog · {{ _('app.name') }}{% endblock %}
+{% block body_class %}blog-article-page{% endblock %}
+{% block meta %}
+{{ seo_meta(
+  post.title ~ ' · Blog · ' ~ _('app.name'),
+  post.meta_description or post.excerpt or post.title,
+  '/blog/' ~ post.slug,
+  post.meta_keywords,
+  'article',
+  None,
+  'noindex, nofollow' if preview else 'index, follow',
+  json_ld,
+  lang
+) }}
+{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}?v=1">
+{% endblock %}
+
+{% block content %}
+{% if preview %}
+<div class="blog-preview-banner">👁️ Aperçu — cet article est un brouillon.</div>
+{% endif %}
+
+<article class="blog-article" itemscope itemtype="https://schema.org/BlogPosting">
+  <header class="blog-article-hero">
+    <div class="container blog-article-hero-inner">
+      <nav class="blog-breadcrumb" aria-label="Fil d'Ariane">
+        <a href="{{ url_for('web.client_home') }}">Accueil</a>
+        <span aria-hidden="true">›</span>
+        <a href="{{ url_for('web.blog_index') }}">Blog</a>
+        {% if post.category %}
+        <span aria-hidden="true">›</span>
+        <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}">{{ post.category.name }}</a>
+        {% endif %}
+      </nav>
+      {% if post.category %}
+      <a href="{{ url_for('web.blog_category', slug=post.category.slug) }}" class="blog-badge">{{ post.category.name }}</a>
+      {% endif %}
+      <h1 class="blog-article-title" itemprop="headline">{{ post.title }}</h1>
+      {% if post.excerpt %}<p class="blog-article-lead" itemprop="description">{{ post.excerpt }}</p>{% endif %}
+      <div class="blog-meta blog-article-meta">
+        <span itemprop="author" itemscope itemtype="https://schema.org/Organization"><span itemprop="name">PilotCore</span></span>
+        {% if post.published_at %}
+        <time datetime="{{ post.published_at.isoformat() }}" itemprop="datePublished">{{ post.published_at.strftime('%d %B %Y') }}</time>
+        {% endif %}
+        {% if post.reading_time_min %}<span>{{ post.reading_time_min }} min de lecture</span>{% endif %}
+      </div>
+    </div>
+  </header>
+
+  <div class="container blog-article-layout">
+    <div class="blog-article-body" itemprop="articleBody">
+      {{ post.body_html | safe }}
+    </div>
+  </div>
+
+  {% set faq = post.get_faq() %}
+  {% if faq %}
+  <section class="container blog-faq" aria-labelledby="blog-faq-title">
+    <h2 id="blog-faq-title">Questions fréquentes</h2>
+    <div class="blog-faq-list">
+      {% for item in faq %}
+      <details class="blog-faq-item">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <aside class="container blog-article-cta">
+    <div class="blog-inline-cta">
+      <h3>Besoin d'un artisan près de chez vous ?</h3>
+      <p>Consultez l'annuaire PilotCore et prenez RDV en ligne 24h/24.</p>
+      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">Trouver un artisan</a>
+    </div>
+  </aside>
+</article>
+
+{% if related %}
+<section class="container blog-related">
+  <h2>À lire aussi</h2>
+  <div class="blog-grid blog-grid--compact">
+    {% for rel in related %}
+    <article class="blog-card">
+      {% if rel.category %}<span class="blog-badge">{{ rel.category.name }}</span>{% endif %}
+      <h3 class="blog-card-title"><a href="{{ url_for('web.blog_article', slug=rel.slug) }}">{{ rel.title }}</a></h3>
+      <p class="blog-card-excerpt">{{ rel.excerpt or rel.meta_description or '' }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

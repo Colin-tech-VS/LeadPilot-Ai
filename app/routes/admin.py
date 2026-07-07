@@ -39,6 +39,8 @@ from app.models.notification import Notification
 from app.models.offer import Offer
 from app.models.page_view import PageView
 from app.models.quote import Quote
+from app.models.blog_category import BlogCategory
+from app.models.blog_post import BlogPost
 from app.models.site_page import SitePage
 from app.models.social_post import SocialPost
 from app.models.tenant import Tenant
@@ -1006,6 +1008,30 @@ def _unique_slug(base, exclude_id=None):
             i += 1
 
 
+def _unique_blog_slug(base, exclude_id=None):
+    slug = base
+    i = 2
+    with db.session.no_autoflush:
+        while True:
+            existing = BlogPost.query.filter(BlogPost.slug == slug).first()
+            if existing is None or existing.id == exclude_id:
+                return slug
+            slug = f"{base}-{i}"
+            i += 1
+
+
+def _unique_category_slug(base, exclude_id=None):
+    slug = base
+    i = 2
+    with db.session.no_autoflush:
+        while True:
+            existing = BlogCategory.query.filter(BlogCategory.slug == slug).first()
+            if existing is None or existing.id == exclude_id:
+                return slug
+            slug = f"{base}-{i}"
+            i += 1
+
+
 # ------------------------------------------------------------------ studio hub
 @admin_bp.route("/studio")
 @admin_required
@@ -1014,6 +1040,8 @@ def studio():
         "admin/studio.html",
         page_count=SitePage.query.count(),
         published_count=SitePage.query.filter(SitePage.status == "published").count(),
+        blog_count=BlogPost.query.count(),
+        blog_published_count=BlogPost.query.filter(BlogPost.status == "published").count(),
         offer_count=Offer.query.count(),
         social_count=SocialPost.query.count(),
         facebook_connected=social.is_configured(),
@@ -1070,7 +1098,7 @@ def pages():
 @admin_bp.route("/pages/new")
 @admin_required
 def page_new():
-    return render_template("admin/page_editor.html", page=None, ai_available=content_ai.is_available())
+    return redirect(url_for("admin.blog_new"))
 
 
 @admin_bp.route("/pages/<page_id>")
@@ -1165,6 +1193,232 @@ def api_pages_generate():
     try:
         result = content_ai.generate_page(prompt, tone)
         log_event(CAT_ADMIN, "page_ai_generate", summary=f"Page générée par IA: {prompt[:80]}")
+        return jsonify(result)
+    except content_ai.ContentAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+# ------------------------------------------------------------------ blog
+@admin_bp.route("/blog")
+@admin_required
+def blog():
+    from app.services import blog as blog_svc
+
+    return render_template("admin/blog_posts.html", posts=blog_svc.admin_list_posts())
+
+
+@admin_bp.route("/blog/new")
+@admin_required
+def blog_new():
+    from app.services import blog as blog_svc
+
+    return render_template(
+        "admin/blog_editor.html",
+        post=None,
+        categories=blog_svc.list_categories(),
+        ai_available=content_ai.is_available(),
+    )
+
+
+@admin_bp.route("/blog/<post_id>")
+@admin_required
+def blog_edit(post_id):
+    from app.services import blog as blog_svc
+
+    post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
+    if not post:
+        abort(404)
+    return render_template(
+        "admin/blog_editor.html",
+        post=post,
+        categories=blog_svc.list_categories(),
+        ai_available=content_ai.is_available(),
+    )
+
+
+@admin_bp.route("/blog/save", methods=["POST"])
+@admin_required
+def blog_save():
+    import json as _json
+
+    from app.services import blog as blog_svc
+
+    post_id = request.form.get("id") or None
+    post = None
+    if post_id:
+        post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
+        if not post:
+            abort(404)
+    title = request.form.get("title", "").strip() or "Sans titre"
+    slug_input = request.form.get("slug", "").strip()
+    base_slug = _slugify(slug_input or title)
+    is_new = post is None
+    if is_new:
+        post = BlogPost()
+        db.session.add(post)
+    post.title = title
+    post.slug = _unique_blog_slug(base_slug, exclude_id=None if is_new else post.id)
+    post.excerpt = request.form.get("excerpt", "").strip()[:400] or None
+    post.meta_description = request.form.get("meta_description", "").strip()[:300] or None
+    post.meta_keywords = request.form.get("meta_keywords", "").strip()[:400] or None
+    post.body_html = request.form.get("body_html", "")
+    post.featured = request.form.get("featured") == "on"
+    try:
+        rt = request.form.get("reading_time_min", "").strip()
+        post.reading_time_min = int(rt) if rt else None
+    except ValueError:
+        post.reading_time_min = None
+    cat_raw = request.form.get("category_id", "").strip()
+    post.category_id = _pk_value(BlogCategory, cat_raw) if cat_raw else None
+    faq_raw = request.form.get("faq_json", "").strip()
+    if faq_raw:
+        try:
+            post.set_faq(_json.loads(faq_raw))
+        except _json.JSONDecodeError:
+            pass
+    publishing = request.form.get("publish") == "on"
+    if publishing:
+        post.status = "published"
+        blog_svc.touch_published_at(post, publishing=True)
+    elif request.form.get("save_draft") == "1" or request.form.get("status") in ("draft", "published"):
+        post.status = request.form.get("status") if request.form.get("status") in ("draft", "published") else "draft"
+    try:
+        db.session.commit()
+        log_event(CAT_ADMIN, "blog_save", summary=f"Article « {post.title} » ({post.status})", level=LEVEL_SUCCESS)
+        flash("Article enregistré.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur: {exc}", "error")
+        return redirect(url_for("admin.blog"))
+    return redirect(url_for("admin.blog_edit", post_id=post.id))
+
+
+@admin_bp.route("/blog/<post_id>/status", methods=["POST"])
+@admin_required
+def blog_status(post_id):
+    from app.services import blog as blog_svc
+
+    post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
+    if not post:
+        abort(404)
+    publishing = post.status != "published"
+    post.status = "published" if publishing else "draft"
+    if publishing:
+        blog_svc.touch_published_at(post, publishing=True)
+    db.session.commit()
+    flash(f"Article {'publié' if post.status == 'published' else 'en brouillon'}.", "success")
+    return redirect(request.referrer or url_for("admin.blog"))
+
+
+@admin_bp.route("/blog/<post_id>/delete", methods=["POST"])
+@admin_required
+def blog_delete(post_id):
+    post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
+    if not post:
+        abort(404)
+    title = post.title
+    db.session.delete(post)
+    db.session.commit()
+    log_event(CAT_ADMIN, "blog_delete", summary=f"Article « {title} » supprimé", level=LEVEL_WARNING)
+    flash("Article supprimé.", "success")
+    return redirect(url_for("admin.blog"))
+
+
+@admin_bp.route("/blog/<post_id>/preview")
+@admin_required
+def blog_preview(post_id):
+    from app.utils.seo import blog_posting_json_ld, json_ld_script
+
+    post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
+    if not post:
+        abort(404)
+    return render_template(
+        "public/blog/article.html",
+        post=post,
+        related=[],
+        preview=True,
+        nav_active="blog",
+        json_ld=json_ld_script(blog_posting_json_ld(post)),
+    )
+
+
+@admin_bp.route("/blog/categories")
+@admin_required
+def blog_categories():
+    from app.services import blog as blog_svc
+
+    return render_template("admin/blog_categories.html", categories=blog_svc.list_categories())
+
+
+@admin_bp.route("/blog/categories/save", methods=["POST"])
+@admin_required
+def blog_category_save():
+    action = request.form.get("action", "create")
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Le nom est requis.", "error")
+        return redirect(url_for("admin.blog_categories"))
+    slug_input = request.form.get("slug", "").strip()
+    base_slug = _slugify(slug_input or name)
+    description = request.form.get("description", "").strip()[:400] or None
+    try:
+        sort_order = int(request.form.get("sort_order") or 0)
+    except ValueError:
+        sort_order = 0
+
+    if action == "update":
+        cat_id = request.form.get("id")
+        cat = db.session.get(BlogCategory, _pk_value(BlogCategory, cat_id))
+        if not cat:
+            abort(404)
+        cat.name = name
+        cat.slug = _unique_category_slug(base_slug, exclude_id=cat.id)
+        cat.description = description
+        cat.sort_order = sort_order
+    else:
+        cat = BlogCategory(
+            name=name,
+            slug=_unique_category_slug(base_slug),
+            description=description,
+            sort_order=sort_order,
+        )
+        db.session.add(cat)
+    try:
+        db.session.commit()
+        flash("Catégorie enregistrée.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur: {exc}", "error")
+    return redirect(url_for("admin.blog_categories"))
+
+
+@admin_bp.route("/blog/categories/<category_id>/delete", methods=["POST"])
+@admin_required
+def blog_category_delete(category_id):
+    cat = db.session.get(BlogCategory, _pk_value(BlogCategory, category_id))
+    if not cat:
+        abort(404)
+    if cat.posts.count() > 0:
+        flash("Impossible de supprimer une catégorie qui contient des articles.", "error")
+        return redirect(url_for("admin.blog_categories"))
+    db.session.delete(cat)
+    db.session.commit()
+    flash("Catégorie supprimée.", "success")
+    return redirect(url_for("admin.blog_categories"))
+
+
+@admin_bp.route("/api/blog/generate", methods=["POST"])
+@admin_required
+def api_blog_generate():
+    data = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    tone = (data.get("tone") or "expert").strip()
+    category_hint = (data.get("category_hint") or "").strip()
+    if not prompt:
+        return jsonify({"error": "Décrivez le sujet de l'article."}), 400
+    try:
+        result = content_ai.generate_blog_post(prompt, tone, category_hint=category_hint)
+        log_event(CAT_ADMIN, "blog_ai_generate", summary=f"Article généré par IA: {prompt[:80]}")
         return jsonify(result)
     except content_ai.ContentAIError as exc:
         return jsonify({"error": str(exc)}), 502
@@ -1273,8 +1527,18 @@ def api_social_generate():
         )
         from app.services import social_image
 
-        payload.update(social_image.generate_for_post(prompt, tone))
+        payload.update(
+            social_image.generate_for_post(
+                prompt,
+                tone,
+                headline=payload.get("image_headline"),
+                visual_brief=payload.get("visual_brief"),
+            )
+        )
         log_event(CAT_ADMIN, "social_ai_generate", summary=f"Post généré par IA: {prompt[:80]}")
         return jsonify(payload)
     except content_ai.ContentAIError as exc:
         return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001 — never 500 on IA generate
+        current_app.logger.exception("social_ai_generate failed")
+        return jsonify({"error": f"Génération impossible : {exc}"}), 502

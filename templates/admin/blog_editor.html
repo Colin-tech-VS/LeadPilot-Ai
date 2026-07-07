@@ -1,0 +1,189 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Éditer' if post else 'Nouvel' }} article · Admin{% endblock %}
+{% block page_title %}{{ post.title if post else 'Nouvel article de blog' }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.blog') }}" class="admin-btn ghost">← Blog</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('admin.blog_save') }}" id="blog-form">
+  {% if post %}<input type="hidden" name="id" value="{{ post.id }}">{% endif %}
+  <input type="hidden" name="status" value="{{ post.status if post else 'draft' }}">
+  <input type="hidden" name="faq_json" id="f-faq-json" value="{{ post.faq_json if post and post.faq_json else '' }}">
+
+  <div class="studio-split">
+    <div class="studio-editor">
+      {% if ai_available %}
+      <div class="ai-box social-ai-box">
+        <h3>🤖 Générer un article SEO (Mistral)</h3>
+        <p class="admin-hint">Structure H2/H3, meta, mots-clés, chapô et FAQ pour rich snippets Google.</p>
+        <label class="field"><span>Sujet de l'article</span>
+          <textarea id="ai-prompt" rows="3" placeholder="Ex : comment ne plus rater les appels quand on est en intervention — pour les plombiers indépendants."></textarea>
+        </label>
+        <div class="field-row">
+          <label class="field"><span>Ton</span>
+            <select id="ai-tone">
+              <option value="expert">Expert / pédagogique</option>
+              <option value="professionnel">Professionnel</option>
+              <option value="chaleureux">Chaleureux</option>
+              <option value="pratique">Pratique / how-to</option>
+            </select>
+          </label>
+          <label class="field"><span>Catégorie (indication IA)</span>
+            <select id="ai-category-hint">
+              <option value="">—</option>
+              {% for cat in categories %}
+              <option value="{{ cat.name }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button type="button" class="admin-btn" id="ai-generate">Générer l'article ✨</button>
+        </div>
+        <span class="ai-spinner" id="ai-spinner">Génération SEO en cours…</span>
+        <span class="mail-error" id="ai-error" style="display:none"></span>
+      </div>
+      {% endif %}
+
+      <label class="field"><span>Titre (H1)</span>
+        <input type="text" name="title" id="f-title" value="{{ post.title if post else '' }}" required>
+      </label>
+      <div class="field-row">
+        <label class="field"><span>Slug URL</span>
+          <input type="text" name="slug" id="f-slug" value="{{ post.slug if post else '' }}" placeholder="auto depuis le titre">
+        </label>
+        <div class="field"><span>Adresse publique</span>
+          <input type="text" value="/blog/{{ post.slug if post else '…' }}" id="f-slug-preview" readonly>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Catégorie</span>
+          <select name="category_id" id="f-category">
+            <option value="">— Sans catégorie —</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if post and post.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field"><span>Temps de lecture (min)</span>
+          <input type="number" name="reading_time_min" id="f-reading" min="1" max="60" value="{{ post.reading_time_min if post and post.reading_time_min else '' }}">
+        </label>
+      </div>
+      <label class="field"><span>Chapô / extrait</span>
+        <textarea name="excerpt" id="f-excerpt" rows="2" maxlength="400">{{ post.excerpt if post else '' }}</textarea>
+      </label>
+      <label class="field"><span>Meta description SEO (~155 car.)</span>
+        <input type="text" name="meta_description" id="f-meta" value="{{ post.meta_description if post else '' }}" maxlength="300">
+      </label>
+      <label class="field"><span>Mots-clés SEO</span>
+        <input type="text" name="meta_keywords" id="f-keywords" value="{{ post.meta_keywords if post else '' }}" maxlength="400" placeholder="artisan, plombier, standard téléphonique…">
+      </label>
+      <label class="field"><span>Contenu HTML</span>
+        <textarea name="body_html" id="f-body" rows="18">{{ post.body_html if post else '' }}</textarea>
+      </label>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" name="featured" value="on" {% if post and post.featured %}checked{% endif %}>
+        <span>Mettre à la une sur la page d'accueil du blog</span>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="admin-btn ghost" name="save_draft" value="1">💾 Brouillon</button>
+        <button type="submit" class="admin-btn" name="publish" value="on">🚀 Publier</button>
+        {% if post and post.is_published %}
+        <a href="{{ url_for('web.blog_article', slug=post.slug) }}" target="_blank" rel="noopener" class="admin-btn ghost">Voir en ligne ↗</a>
+        {% elif post %}
+        <a href="{{ url_for('admin.blog_preview', post_id=post.id) }}" target="_blank" rel="noopener" class="admin-btn ghost">Aperçu</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="studio-preview">
+      <div class="studio-preview-head">
+        <h2>Aperçu article</h2>
+        <span class="studio-preview-dot">charte blog</span>
+      </div>
+      <iframe id="blog-preview" class="studio-preview-frame" title="Aperçu de l'article"></iframe>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var titleEl = document.getElementById("f-title");
+  var bodyEl = document.getElementById("f-body");
+  var metaEl = document.getElementById("f-meta");
+  var excerptEl = document.getElementById("f-excerpt");
+  var keywordsEl = document.getElementById("f-keywords");
+  var readingEl = document.getElementById("f-reading");
+  var faqJsonEl = document.getElementById("f-faq-json");
+  var slugEl = document.getElementById("f-slug");
+  var slugPrev = document.getElementById("f-slug-preview");
+  var frame = document.getElementById("blog-preview");
+
+  function slugify(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "").replace(/[\s-]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  var PREVIEW_CSS =
+    "body{font-family:Inter,system-ui,sans-serif;color:#0C1220;line-height:1.75;max-width:760px;margin:0 auto;padding:32px 24px;background:#F7F8FA;}" +
+    ".lead{font-size:19px;color:#667085;margin-bottom:24px;}" +
+    "h1{font-size:32px;line-height:1.15;margin:0 0 12px;}" +
+    "h2{font-size:24px;color:#0F2D6E;margin:40px 0 14px;}" +
+    "h3{font-size:19px;margin:28px 0 10px;}p{margin:0 0 18px;}ul{margin:0 0 18px;padding-left:22px;}" +
+    "blockquote{border-left:4px solid #06B6D4;padding:12px 18px;background:rgba(6,182,212,.08);border-radius:0 10px 10px 0;}";
+
+  function render() {
+    var title = titleEl.value || "Titre de l'article";
+    var excerpt = excerptEl.value ? "<p class='lead'>" + excerptEl.value.replace(/</g, "&lt;") + "</p>" : "";
+    var body = bodyEl.value || "<p style='color:#98a2b3'>Le contenu apparaîtra ici…</p>";
+    frame.srcdoc = "<!doctype html><html lang='fr'><head><meta charset='utf-8'><style>" + PREVIEW_CSS +
+      "</style></head><body><h1>" + title.replace(/</g, "&lt;") + "</h1>" + excerpt + body + "</body></html>";
+  }
+
+  function syncSlug() {
+    var s = slugEl.value.trim() ? slugify(slugEl.value) : slugify(titleEl.value);
+    if (slugPrev) slugPrev.value = "/blog/" + (s || "…");
+  }
+
+  [titleEl, bodyEl, excerptEl].forEach(function (el) { el.addEventListener("input", render); });
+  [titleEl, slugEl].forEach(function (el) { el.addEventListener("input", syncSlug); });
+  render(); syncSlug();
+
+  var genBtn = document.getElementById("ai-generate");
+  if (genBtn) {
+    genBtn.addEventListener("click", function () {
+      var prompt = document.getElementById("ai-prompt").value.trim();
+      var tone = document.getElementById("ai-tone").value;
+      var catHint = document.getElementById("ai-category-hint").value;
+      var spinner = document.getElementById("ai-spinner");
+      var errEl = document.getElementById("ai-error");
+      errEl.style.display = "none";
+      if (!prompt) { errEl.textContent = "Décrivez le sujet de l'article."; errEl.style.display = "block"; return; }
+      spinner.classList.add("on"); genBtn.disabled = true;
+      fetch("{{ url_for('admin.api_blog_generate') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, tone: tone, category_hint: catHint })
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.d.error || "Erreur de génération.");
+          if (res.d.title) titleEl.value = res.d.title;
+          if (res.d.meta_description) metaEl.value = res.d.meta_description;
+          if (res.d.meta_keywords) keywordsEl.value = res.d.meta_keywords;
+          if (res.d.excerpt) excerptEl.value = res.d.excerpt;
+          if (res.d.reading_time_min) readingEl.value = res.d.reading_time_min;
+          if (res.d.body_html) bodyEl.value = res.d.body_html;
+          if (res.d.faq && res.d.faq.length) faqJsonEl.value = JSON.stringify(res.d.faq);
+          render(); syncSlug();
+        })
+        .catch(function (e) { errEl.textContent = e.message; errEl.style.display = "block"; })
+        .finally(function () { spinner.classList.remove("on"); genBtn.disabled = false; });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -4,6 +4,7 @@
 {% macro public_zone_nav(active='') %}
 <a href="{{ url_for('web.client_home') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('vitrine.nav_home') }}</a>
 <a href="{{ url_for('web.artisan_directory') }}" class="{% if active == 'directory' %}active{% endif %}">{{ _('client.nav_directory') }}</a>
+<a href="{{ url_for('web.blog_index') }}" class="{% if active == 'blog' %}active{% endif %}">Blog</a>
 <span class="nav-zone-sep" aria-hidden="true"></span>
 {% if session.get('role') == 'customer' %}
 <a href="{{ url_for('customer.account') }}" class="nav-auth {% if active == 'account' %}active{% endif %}">{{ _('zone.customer_space') }}</a>

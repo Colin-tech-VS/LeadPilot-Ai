@@ -50,6 +50,9 @@
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">
           <span class="nav-ico">💶</span> Offres &amp; prix
         </a>
+        <a href="{{ url_for('admin.blog') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.blog') %}active{% endif %}">
+          <span class="nav-ico">📝</span> Blog
+        </a>
         <a href="{{ url_for('admin.pages') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.page') %}active{% endif %}">
           <span class="nav-ico">📄</span> Pages
         </a>

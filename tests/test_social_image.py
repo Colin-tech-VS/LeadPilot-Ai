@@ -12,7 +12,12 @@ def test_branded_fallback_creates_png(app, monkeypatch):
     with app.app_context():
         from app.services import social_image
 
-        result = social_image.generate_for_post("Promouvoir l'annuaire artisans", "engageant")
+        result = social_image.generate_for_post(
+            "Promouvoir l'annuaire artisans",
+            "engageant",
+            headline="RDV en ligne",
+            visual_brief="Promouvoir l'annuaire artisans",
+        )
         assert result["image_path"].startswith("uploads/social/")
         assert result["image_url"].endswith(result["image_path"].split("/", 1)[-1])
         path = social_image.resolve_image_path(result["image_path"])
@@ -119,10 +124,9 @@ def test_publish_post_requires_link_for_clickable_image(app, monkeypatch, tmp_pa
 
 
 def test_generate_payload_includes_image_fields(app, monkeypatch):
-    monkeypatch.setattr("app.services.content_ai._complete", lambda *a, **k: "Post test #PilotCore")
     monkeypatch.setattr(
-        "app.services.social_image._image_brief",
-        lambda subject, tone: {"headline": "Essai gratuit", "visual_brief": subject},
+        "app.services.content_ai._complete",
+        lambda *a, **k: '{"message": "Post test #PilotCore", "image_headline": "Essai gratuit", "visual_brief": "artisan"}',
     )
     monkeypatch.setattr("app.services.social_image._try_dalle", lambda brief: None)
 
@@ -131,7 +135,14 @@ def test_generate_payload_includes_image_fields(app, monkeypatch):
         from app.services import social_image
 
         payload = generate_social_post("Essai gratuit 14 jours", target_key="pro")
-        payload.update(social_image.generate_for_post("Essai gratuit 14 jours", "engageant"))
+        payload.update(
+            social_image.generate_for_post(
+                "Essai gratuit 14 jours",
+                "engageant",
+                headline=payload["image_headline"],
+                visual_brief=payload["visual_brief"],
+            )
+        )
 
     assert payload["message"]
     assert payload["image_path"].startswith("uploads/social/")

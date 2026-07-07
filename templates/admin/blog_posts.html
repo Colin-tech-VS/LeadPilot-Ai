@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}Blog · Admin{% endblock %}
+{% block page_title %}Blog{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.blog_categories') }}" class="admin-btn ghost">Catégories</a>
+  <a href="{{ url_for('admin.blog_new') }}" class="admin-btn">+ Nouvel article</a>
+{% endblock %}
+
+{% block content %}
+<p class="admin-hint" style="margin-bottom:16px">Articles publiés sur <a href="{{ url_for('web.blog_index') }}" target="_blank" rel="noopener">/blog</a> — chaque article est optimisé SEO (meta, FAQ, JSON-LD).</p>
+<div class="studio-list">
+  {% for post in posts %}
+  <div class="studio-item">
+    <div class="mail-dir">📝</div>
+    <div class="studio-item-main">
+      <div class="studio-item-title">
+        {{ post.title or '(sans titre)' }}
+        {% if post.status == 'published' %}<span class="pill pill-published">publié</span>
+        {% else %}<span class="pill pill-draft">brouillon</span>{% endif %}
+        {% if post.featured %}<span class="pill" style="background:rgba(6,182,212,.15);color:#0891b2">à la une</span>{% endif %}
+      </div>
+      <div class="studio-item-meta">
+        {% if post.category %}{{ post.category.name }} · {% endif %}
+        /blog/{{ post.slug }}
+        {% if post.updated_at %} · {{ post.updated_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+      </div>
+    </div>
+    <div class="studio-item-actions">
+      <a href="{{ url_for('admin.blog_edit', post_id=post.id) }}" class="admin-btn tiny">Éditer</a>
+      {% if post.is_published %}
+      <a href="{{ url_for('web.blog_article', slug=post.slug) }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Voir ↗</a>
+      {% else %}
+      <a href="{{ url_for('admin.blog_preview', post_id=post.id) }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Aperçu</a>
+      {% endif %}
+      <form method="POST" action="{{ url_for('admin.blog_status', post_id=post.id) }}" style="display:inline">
+        <button type="submit" class="admin-btn tiny ghost">{{ 'Dépublier' if post.is_published else 'Publier' }}</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin.blog_delete', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Supprimer cet article ?');">
+        <button type="submit" class="admin-btn tiny danger">Suppr.</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p class="admin-empty">Aucun article. <a href="{{ url_for('admin.blog_new') }}">Créer le premier article</a>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

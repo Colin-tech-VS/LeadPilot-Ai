@@ -12,10 +12,16 @@
     <p>Modifiez les tarifs, noms et avantages de vos offres. Visible instantanément sur la page d'accueil.</p>
     <span class="studio-tile-badge">{{ offer_count }} offre(s)</span>
   </a>
+  <a class="studio-tile" href="{{ url_for('admin.blog') }}">
+    <span class="studio-tile-ico">📝</span>
+    <h3>Blog</h3>
+    <p>Articles SEO pour artisans et particuliers — génération IA, catégories et publication sur /blog.</p>
+    <span class="studio-tile-badge">{{ blog_published_count }} publié(s) / {{ blog_count }}</span>
+  </a>
   <a class="studio-tile" href="{{ url_for('admin.pages') }}">
     <span class="studio-tile-ico">📄</span>
-    <h3>Pages</h3>
-    <p>Créez des pages manuellement ou par IA, avec un aperçu en direct, puis publiez-les.</p>
+    <h3>Pages CMS</h3>
+    <p>Pages marketing statiques sur /p/… (hors blog).</p>
     <span class="studio-tile-badge">{{ published_count }} publiée(s) / {{ page_count }}</span>
   </a>
   <a class="studio-tile" href="{{ url_for('admin.social') }}">

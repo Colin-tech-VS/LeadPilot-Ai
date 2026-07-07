@@ -4,9 +4,10 @@
 
 {% block content %}
 {% if owner_view %}
-{% if sent_result == 'none' or sent_result == 'email_failed' or sent_result == 'sms_failed' or sent_result == 'no_contact' or sent_result == 'link' %}
+{% if sent_result == 'none' or sent_result == 'email_failed' or sent_result == 'sms_failed' or sent_result == 'no_contact' or sent_result == 'link' or sent_result == 'no_payment_method' %}
 <div class="alert alert-error no-print quote-send-alert">
   {% if sent_result == 'no_contact' %}{{ _('quotes.send_no_contact') }}
+  {% elif sent_result == 'no_payment_method' %}{{ _('quotes.send_no_payment_method') }}
   {% elif sent_result == 'email_failed' %}{{ _('quotes.send_email_failed') }}
   {% elif sent_result == 'sms_failed' %}{{ _('quotes.send_sms_failed') }}
   {% elif sent_result == 'link' %}{{ _('quotes.send_link_failed') }}

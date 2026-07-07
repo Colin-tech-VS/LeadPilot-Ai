@@ -72,9 +72,28 @@ def build_message(quote, tenant, link):
     deposit = _deposit_line(quote)
     if deposit:
         lines += ["", deposit]
-        lines.append(
-            "Vous pouvez signer le devis et régler l'acompte directement en ligne via le lien ci-dessus."
-        )
+        from app.services import quote_payment
+
+        pay = quote_payment.payment_context(quote, tenant)
+        if pay["card_available"] and pay["wire_available"]:
+            lines.append(
+                "Réglez l'acompte par carte bancaire (recommandé, confirmation immédiate) "
+                "ou par virement — les deux options sont disponibles sur le lien ci-dessus."
+            )
+        elif pay["card_available"]:
+            lines.append(
+                "Réglez l'acompte par carte bancaire en ligne via le lien ci-dessus "
+                "(confirmation immédiate)."
+            )
+        elif pay["wire_available"]:
+            lines.append(
+                "Signez le devis en ligne puis effectuez le virement bancaire "
+                "(coordonnées ci-dessous)."
+            )
+        else:
+            lines.append(
+                "Vous pouvez signer le devis en ligne via le lien ci-dessus."
+            )
     rib = _rib_lines(tenant)
     if rib:
         lines += [""] + rib

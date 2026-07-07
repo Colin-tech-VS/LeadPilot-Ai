@@ -10,6 +10,8 @@
   <div class="quote-public-flash quote-public-flash-{{ quote.status }}">
     {% if deposit_return and payment_ok and quote.status == 'accepted' %}
       ✓ {{ _('quotes.public_accepted_paid') }}
+    {% elif accepted_via_wire and quote.status == 'accepted' %}
+      ✓ {{ _('quotes.public_accepted_wire', amount='%.2f'|format(quote.deposit_amount)) }}
     {% elif deposit_return and not payment_ok %}
       {{ _('quotes.public_payment_pending') }}
     {% elif quote.status == 'accepted' %}
@@ -145,10 +147,37 @@
                value="{{ quote.client_name or '' }}" placeholder="{{ _('quotes.client_signature_placeholder') }}" autocomplete="name">
         <p class="quote-sign-hint">{{ _('quotes.client_signature_hint') }}</p>
       </div>
+
+      {% if payment.has_deposit and (payment.card_available or payment.wire_available) %}
+      <fieldset class="quote-pay-methods">
+        <legend>{{ _('quotes.public_pay_choose') }}</legend>
+        {% if payment.card_available %}
+        <label class="quote-pay-option{% if payment.default_method == 'card' %} quote-pay-option-selected{% endif %}">
+          <input type="radio" name="payment_method" value="card"{% if payment.default_method == 'card' %} checked{% endif %}>
+          <span class="quote-pay-option-body">
+            <strong>{{ _('quotes.public_pay_card') }}</strong>
+            <span class="quote-pay-option-hint">{{ _('quotes.public_pay_card_hint') }}</span>
+          </span>
+        </label>
+        {% endif %}
+        {% if payment.wire_available %}
+        <label class="quote-pay-option{% if payment.default_method == 'wire' %} quote-pay-option-selected{% endif %}">
+          <input type="radio" name="payment_method" value="wire"{% if payment.default_method == 'wire' %} checked{% endif %}>
+          <span class="quote-pay-option-body">
+            <strong>{{ _('quotes.public_pay_wire') }}</strong>
+            <span class="quote-pay-option-hint">{{ _('quotes.public_pay_wire_hint') }}</span>
+          </span>
+        </label>
+        {% endif %}
+      </fieldset>
+      {% endif %}
+
       <div class="quote-public-buttons">
-        <button type="submit" class="btn btn-primary btn-lg">
-          {% if stripe_deposit %}
+        <button type="submit" class="btn btn-primary btn-lg" id="quote-accept-btn">
+          {% if payment.has_deposit and payment.card_available %}
             ✓ {{ _('quotes.public_accept_pay') }} ({{ '%.2f'|format(quote.deposit_amount) }} €)
+          {% elif payment.has_deposit and payment.wire_available %}
+            ✓ {{ _('quotes.public_accept_wire') }} ({{ '%.2f'|format(quote.deposit_amount) }} €)
           {% else %}
             ✓ {{ _('quotes.public_accept') }} {{ _('quotes.public_confirm_rdv') }}
           {% endif %}
@@ -213,6 +242,15 @@
   .quote-sign-field label { display: block; font-size: .8rem; font-weight: 600; color: #374151; margin-bottom: .35rem; }
   .quote-sign-field input { width: 100%; padding: .65rem .75rem; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; }
   .quote-sign-hint { margin: .35rem 0 0; font-size: .78rem; color: #6B7280; }
+  .quote-pay-methods { border: none; margin: 0 0 1rem; padding: 0; }
+  .quote-pay-methods legend { font-size: .8rem; font-weight: 600; color: #374151; margin-bottom: .5rem; }
+  .quote-pay-option { display: flex; gap: .65rem; align-items: flex-start; padding: .75rem .85rem; border: 2px solid #E5E7EB; border-radius: 10px; margin-bottom: .5rem; cursor: pointer; transition: border-color .15s, background .15s; }
+  .quote-pay-option:hover { border-color: #93C5FD; }
+  .quote-pay-option-selected, .quote-pay-option:has(input:checked) { border-color: #2563EB; background: #EFF6FF; }
+  .quote-pay-option input { margin-top: .2rem; accent-color: #2563EB; }
+  .quote-pay-option-body { display: flex; flex-direction: column; gap: .15rem; }
+  .quote-pay-option-body strong { color: #111827; font-size: .95rem; }
+  .quote-pay-option-hint { font-size: .78rem; color: #6B7280; line-height: 1.35; }
   .quote-public-buttons { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; margin-top: .5rem; }
   .quote-refuse-form { margin-top: .5rem; }
   .doc-client-sign { margin-top: 1rem; }
@@ -240,4 +278,26 @@
     .quote-public-buttons .btn { width: 100%; }
   }
 </style>
+<script>
+(function () {
+  var form = document.querySelector('.quote-sign-form');
+  if (!form) return;
+  var btn = document.getElementById('quote-accept-btn');
+  var cardLabel = {{ _('quotes.public_accept_pay')|tojson }} + ' ({{ '%.2f'|format(quote.deposit_amount or 0) }} €)';
+  var wireLabel = {{ _('quotes.public_accept_wire')|tojson }} + ' ({{ '%.2f'|format(quote.deposit_amount or 0) }} €)';
+  var acceptLabel = '✓ ' + {{ _('quotes.public_accept')|tojson }} + ' ' + {{ _('quotes.public_confirm_rdv')|tojson }};
+  function sync() {
+    var method = (form.querySelector('input[name="payment_method"]:checked') || {}).value;
+    form.querySelectorAll('.quote-pay-option').forEach(function (el) {
+      el.classList.toggle('quote-pay-option-selected', !!el.querySelector('input:checked'));
+    });
+    if (!btn) return;
+    if (method === 'wire') btn.textContent = '✓ ' + wireLabel;
+    else if (method === 'card') btn.textContent = '✓ ' + cardLabel;
+    else btn.textContent = acceptLabel;
+  }
+  form.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

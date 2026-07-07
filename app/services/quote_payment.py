@@ -27,6 +27,11 @@ def deposit_checkout_available() -> bool:
 
 
 def deposit_required(quote: Quote) -> bool:
+    """True when the client should pay the deposit by card (Stripe Checkout)."""
+    return card_deposit_available(quote)
+
+
+def card_deposit_available(quote: Quote) -> bool:
     amount = quote.deposit_amount
     if not amount or amount <= 0:
         return False
@@ -35,6 +40,36 @@ def deposit_required(quote: Quote) -> bool:
     if not deposit_checkout_available():
         return False
     return int(round(amount * 100)) >= MIN_DEPOSIT_CENTS
+
+
+def wire_deposit_available(quote: Quote, tenant) -> bool:
+    """Bank transfer is available when an IBAN is configured on the artisan profile."""
+    amount = quote.deposit_amount
+    if not amount or amount <= 0:
+        return False
+    if quote.deposit_paid_at:
+        return False
+    return bool(getattr(tenant, "has_bank_details", False) and tenant.has_bank_details)
+
+
+def payment_context(quote: Quote, tenant) -> dict:
+    """Describe which deposit channels the client can use on the public devis page."""
+    has_deposit = bool(quote.deposit_amount and quote.deposit_amount > 0)
+    card = card_deposit_available(quote) if has_deposit else False
+    wire = wire_deposit_available(quote, tenant) if has_deposit else False
+    if card:
+        default_method = "card"
+    elif wire:
+        default_method = "wire"
+    else:
+        default_method = None
+    return {
+        "has_deposit": has_deposit,
+        "card_available": card,
+        "wire_available": wire,
+        "default_method": default_method,
+        "can_collect_deposit": card or wire or not has_deposit,
+    }
 
 
 def _stripe():

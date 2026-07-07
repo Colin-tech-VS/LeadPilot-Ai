@@ -13,7 +13,7 @@ from app.core.i18n import set_language_preference
 from app.core.extensions import db
 from app.core.security import check_rate, rate_limit
 from app.core.web_auth import login_user_to_session, logout_user_session, web_tenant_required
-from app.models.appointment import INACTIVE_STATUSES, Appointment
+from app.models.appointment import ACTIVE_STATUSES, INACTIVE_STATUSES, Appointment
 from app.models.lead import Lead
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -805,7 +805,7 @@ def archive_lead(lead_id):
     if lead:
         lead.archived_at = datetime.now(timezone.utc)
         for appt in lead.appointments.filter(
-            Appointment.status.in_(Appointment.ACTIVE_STATUSES)
+            Appointment.status.in_(ACTIVE_STATUSES)
         ).all():
             appt.status = "completed"
         db.session.commit()

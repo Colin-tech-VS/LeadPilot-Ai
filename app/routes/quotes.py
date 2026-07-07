@@ -288,6 +288,12 @@ def send_quote(quote_id):
 
     tenant = db.session.get(Tenant, g.tenant_id)
 
+    payment = quote_payment.payment_context(quote, tenant)
+    if payment["has_deposit"] and not payment["can_collect_deposit"]:
+        return redirect(
+            url_for("quotes.quote_detail", quote_id=quote.id, sent="no_payment_method")
+        )
+
     channels = quote_delivery.resolve_channels(quote, request.form.getlist("channel"))
     result = quote_delivery.send_quote(quote, tenant, channels=channels)
 
@@ -390,11 +396,13 @@ def _send_booking_confirmed_emails(quote, appointment):
 
 
 def _public_quote_context(quote, tenant, token, **extra):
+    payment = quote_payment.payment_context(quote, tenant)
     return {
         "quote": quote,
         "tenant": tenant,
         "token": token,
-        "stripe_deposit": quote_payment.deposit_required(quote),
+        "stripe_deposit": payment["card_available"],
+        "payment": payment,
         "deposit_paid": bool(quote.deposit_paid_at),
         **extra,
     }
@@ -504,7 +512,11 @@ def public_decision(quote_id, token):
         if decision == "accept":
             form_error = _apply_client_signature(quote, request.form)
             if not form_error:
-                if quote_payment.deposit_required(quote):
+                tenant = db.session.get(Tenant, quote.tenant_id)
+                payment = quote_payment.payment_context(quote, tenant)
+                method = (request.form.get("payment_method") or payment.get("default_method") or "card").strip()
+
+                if payment["has_deposit"] and method == "card" and payment["card_available"]:
                     try:
                         checkout_url = quote_payment.create_deposit_session(
                             quote,
@@ -514,10 +526,33 @@ def public_decision(quote_id, token):
                         db.session.commit()
                         return redirect(checkout_url)
                     except Exception:
-                        form_error = (
-                            "Le paiement en ligne est temporairement indisponible. "
-                            "Merci de contacter l'artisan."
-                        )
+                        if payment["wire_available"]:
+                            form_error = (
+                                "Le paiement par carte est temporairement indisponible. "
+                                "Choisissez « Virement bancaire » ci-dessous."
+                            )
+                        else:
+                            form_error = (
+                                "Le paiement en ligne est temporairement indisponible. "
+                                "Merci de contacter l'artisan."
+                            )
+                elif payment["has_deposit"] and method == "wire" and payment["wire_available"]:
+                    _finalize_acceptance(quote)
+                    return render_template(
+                        "public/quote_public.html",
+                        **_public_quote_context(
+                            quote,
+                            tenant,
+                            token,
+                            submitted=True,
+                            accepted_via_wire=True,
+                        ),
+                    )
+                elif payment["has_deposit"] and not payment["can_collect_deposit"]:
+                    form_error = (
+                        "Aucun moyen de paiement n'est configuré pour cet acompte. "
+                        "Contactez l'artisan."
+                    )
                 else:
                     _finalize_acceptance(quote)
         elif decision == "refuse":

@@ -20,7 +20,7 @@ def register_i18n(app):
             urgency_label,
         )
 
-        from app.utils.seo import canonical_url, hreflang_alternates, site_base_url
+        from app.utils.seo import canonical_url, hreflang_alternates, site_base_url, global_site_json_ld_script
 
         lang = get_lang()
         return {
@@ -28,6 +28,7 @@ def register_i18n(app):
             "site_base_url": site_base_url,
             "canonical_url": canonical_url,
             "hreflang_alternates": hreflang_alternates,
+            "global_site_json_ld_script": lambda: global_site_json_ld_script(lang),
             "google_places_api_key": current_app.config.get("GOOGLE_PLACES_API_KEY", ""),
             "_": lambda key, **kwargs: translate(key, lang, **kwargs),
             "status_label": lambda s: status_label(s, lang),

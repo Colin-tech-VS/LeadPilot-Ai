@@ -53,9 +53,44 @@ def test_robots_allows_public_pages(client):
     assert "Sitemap:" in body
     assert "Allow: /contact" in body
     assert "Disallow: /admin" in body
+    assert "GPTBot" in body
+    assert "ClaudeBot" in body
+    assert "PerplexityBot" in body
+    assert "llms.txt" in body
+
+
+def test_llms_txt_index(client):
+    response = client.get("/llms.txt")
+    assert response.status_code == 200
+    assert response.content_type.startswith("text/plain")
+    body = response.data.decode()
+    assert body.startswith("# PilotCore")
+    assert "> PilotCore est" in body
+    assert "/blog" in body
+    assert "/pro" in body
+    assert "/artisans" in body
+
+
+def test_llms_full_txt(client):
+    response = client.get("/llms-full.txt")
+    assert response.status_code == 200
+    body = response.data.decode()
+    assert "Base de connaissances" in body
+    assert "contact@pilotcore.fr" in body
+    assert "PilotCore Pro" in body
+
+
+def test_global_json_ld_on_home(client):
+    response = client.get("/")
+    html = response.data.decode()
+    assert '"@id"' in html
+    assert "knowsAbout" in html
 
 
 def test_artisan_profile_seo(client, app):
+    import uuid
+
+    slug = f"plomberie-test-seo-{uuid.uuid4().hex[:8]}"
     with app.app_context():
         from app.core.extensions import db
 
@@ -64,7 +99,7 @@ def test_artisan_profile_seo(client, app):
             trade_type="plombier",
             city="Paris",
             postal_code="75015",
-            public_slug="plomberie-test-seo",
+            public_slug=slug,
             is_public=True,
             public_blurb="Dépannage plomberie 7j/7 à Paris.",
             service_radius_km=20,
@@ -72,7 +107,7 @@ def test_artisan_profile_seo(client, app):
         db.session.add(tenant)
         db.session.commit()
 
-    response = client.get("/artisans/plomberie-test-seo")
+    response = client.get(f"/artisans/{slug}")
     assert response.status_code == 200
     html = response.data.decode()
     assert "Plomberie Test SEO" in html

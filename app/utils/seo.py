@@ -63,15 +63,41 @@ def json_ld_script(data: dict[str, Any] | list[Any]) -> str:
 
 
 def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
+    knows = (
+        [
+            "standard téléphonique IA",
+            "annuaire artisans France",
+            "prise de rendez-vous en ligne",
+            "plombier électricien serrurier chauffagiste",
+            "réceptionniste vocal artisan",
+            "dépannage urgence domicile",
+        ]
+        if lang == "fr"
+        else [
+            "AI phone system",
+            "tradesperson directory France",
+            "online booking",
+            "plumber electrician locksmith",
+            "voice receptionist for trades",
+            "home emergency repair",
+        ]
+    )
     return {
         "@context": "https://schema.org",
         "@type": "Organization",
+        "@id": f"{site_base_url()}/#organization",
         "name": "PilotCore",
-        "alternateName": "PilotCore",
+        "alternateName": ["PilotCore Pro", "PilotCore Annuaire"],
         "url": site_base_url(),
         "logo": logo_url(),
         "description": description,
         "email": "contact@pilotcore.fr",
+        "slogan": (
+            "Ne ratez plus aucun appel — trouvez le bon artisan."
+            if lang == "fr"
+            else "Never miss a call — find the right tradesperson."
+        ),
+        "knowsAbout": knows,
         "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "customer support",
@@ -82,6 +108,37 @@ def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
         "areaServed": {"@type": "Country", "name": "France"},
         "sameAs": [],
     }
+
+
+def global_site_json_ld(lang: str = "fr") -> dict[str, Any]:
+    """WebSite + Organization graph for all public pages (AI/search rich results)."""
+    from app.utils.i18n import translate
+
+    desc = translate("client.meta_description", lang)
+    org = organization_json_ld(lang, desc)
+    website = {
+        "@type": "WebSite",
+        "@id": f"{site_base_url()}/#website",
+        "name": "PilotCore",
+        "alternateName": "PilotCore — annuaire artisans & standard IA",
+        "url": site_base_url(),
+        "description": desc,
+        "publisher": {"@id": org["@id"]},
+        "inLanguage": "fr-FR" if lang == "fr" else "en-GB",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": f"{canonical_url('/artisans')}?q={{search_term_string}}",
+            },
+            "query-input": "required name=search_term_string",
+        },
+    }
+    return {"@context": "https://schema.org", "@graph": [org, website]}
+
+
+def global_site_json_ld_script(lang: str = "fr") -> str:
+    return json_ld_script(global_site_json_ld(lang))
 
 
 def breadcrumb_json_ld(items: list[tuple[str, str]]) -> dict[str, Any]:

@@ -196,35 +196,23 @@ def notifications_mark_read():
 
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
-    from app.utils.seo import site_base_url
+    from app.utils.llm_discovery import render_robots_txt
 
-    base = site_base_url()
-    body = (
-        f"User-agent: *\n"
-        f"Allow: /\n"
-        f"Allow: /artisans\n"
-        f"Allow: /pro\n"
-        f"Allow: /p/\n"
-        f"Allow: /blog\n"
-        f"Allow: /media/social/\n"
-        f"Disallow: /admin\n"
-        f"Disallow: /dashboard\n"
-        f"Disallow: /leads\n"
-        f"Disallow: /appointments\n"
-        f"Disallow: /settings\n"
-        f"Disallow: /test-call\n"
-        f"Disallow: /chatbot\n"
-        f"Disallow: /chat/\n"
-        f"Disallow: /client/\n"
-        f"Disallow: /billing\n"
-        f"Disallow: /login\n"
-        f"Disallow: /register\n"
-        f"Disallow: /reset-password\n"
-        f"Disallow: /forgot-password\n"
-        f"Allow: /contact\n"
-        f"Sitemap: {base}/sitemap.xml\n"
-    )
-    return make_response(body, 200, {"Content-Type": "text/plain; charset=utf-8"})
+    return make_response(render_robots_txt(), 200, {"Content-Type": "text/plain; charset=utf-8"})
+
+
+@web_bp.route("/llms.txt", methods=["GET"])
+def llms_txt():
+    from app.utils.llm_discovery import render_llms_txt
+
+    return make_response(render_llms_txt(), 200, {"Content-Type": "text/plain; charset=utf-8"})
+
+
+@web_bp.route("/llms-full.txt", methods=["GET"])
+def llms_full_txt():
+    from app.utils.llm_discovery import render_llms_full_txt
+
+    return make_response(render_llms_full_txt(), 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
 @web_bp.route("/sitemap.xml", methods=["GET"])

@@ -29,6 +29,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=7">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pro.css') }}?v=2">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
+  <link rel="alternate" type="text/plain" href="{{ canonical_url('/llms.txt') }}" title="LLM site index">
+  <script type="application/ld+json">{{ global_site_json_ld_script() | safe }}</script>
   {% block head_extra %}{% endblock %}
 </head>
 <body class="zone-pro public-page vitrine page-pro {% block body_class %}{% endblock %}">

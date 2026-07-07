@@ -60,18 +60,15 @@ def normalize_phone_digits(phone: str | None) -> str:
 
 
 def extract_email_from_transcript(transcript: str) -> str | None:
-    """Extrait et normalise un e-mail depuis une réponse vocale."""
-    from app.services.lead_extractor import LeadExtractor
+    """Extrait et normalise un e-mail depuis une réponse vocale dictée.
 
-    extractor = LeadExtractor()
-    email = extractor._guess_email(transcript or "")
-    if email:
-        return email.strip().lower()
-    match = re.search(
-        r"([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})",
-        transcript or "",
-    )
-    return match.group(1).strip().lower() if match else None
+    C'est la réponse à « quelle est votre e-mail ? » : on n'exige donc AUCUN
+    mot d'introduction et on reconstruit l'adresse épelée (« jean point dupont
+    arobase gmail point com »), même sans « arobase ».
+    """
+    from app.services.lead_extractor import reconstruct_spoken_email
+
+    return reconstruct_spoken_email(transcript or "")
 
 
 def lookup_customer(

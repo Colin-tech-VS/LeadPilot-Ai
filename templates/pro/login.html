@@ -1,32 +1,26 @@
 {% extends "layouts/pro.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/auth_showcase.html' import auth_showcase with context %}
 {% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('login.title') ~ ' — ' ~ _('app.name'), _('login.tagline'), '/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
-{% from 'macros/brand.html' import brand_logo with context %}
 
 {% block body_class %}page-login{% endblock %}
 {% block title %}{{ _('login_suffix') }} — {{ _('app.name') }}{% endblock %}
 
-{% block content %}
-<div class="auth-split auth-split-reverse">
-  <aside class="auth-brand auth-animate">
-    <div class="auth-brand-inner">
-      {{ brand_logo('xl', 'login') }}
-      <h1>{{ _('login.title') }}</h1>
-      <p class="auth-brand-tagline">{{ _('login.tagline') }}</p>
-      <ul class="auth-benefits">
-        <li class="auth-benefit-item">{{ _('login.benefit_1') }}</li>
-        <li class="auth-benefit-item">{{ _('login.benefit_2') }}</li>
-        <li class="auth-benefit-item">{{ _('login.benefit_3') }}</li>
-      </ul>
-    </div>
-    <div class="auth-brand-glow"></div>
-  </aside>
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=1">
+{% endblock %}
 
-  <section class="auth-form-panel auth-animate auth-delay-1">
-    <div class="auth-form-box">
-      <h2>{{ _('login.subtitle') }}</h2>
-      <p class="auth-form-sub">{{ _('login.welcome_back') }}</p>
+{% block content %}
+<div class="auth-pro auth-pro--reverse">
+  {{ auth_showcase('login') }}
+
+  <section class="auth-pro__panel">
+    <div class="auth-pro__card">
+      <header class="auth-pro__card-head">
+        <h2>{{ _('login.subtitle') }}</h2>
+        <p class="auth-pro__card-sub">{{ _('login.welcome_back') }}</p>
+      </header>
 
       {% if request.args.get('reset') %}
       <div class="alert alert-success">{{ _('login.reset_success') }}</div>
@@ -35,16 +29,29 @@
       <div class="alert alert-error">{{ error }}</div>
       {% endif %}
 
-      <form method="post" class="auth-form">
-        <label for="email">{{ _('login.email') }}</label>
-        <input type="email" id="email" name="email" required autofocus placeholder="vous@entreprise.fr">
+      <form method="post" class="auth-form" id="login-form">
+        <label class="auth-field">
+          <span class="auth-field__label">{{ _('login.email') }}</span>
+          <span class="auth-field__wrap">
+            <span class="auth-field__icon" aria-hidden="true">✉️</span>
+            <input type="email" class="auth-field__input" id="email" name="email" required autofocus placeholder="vous@entreprise.fr">
+          </span>
+        </label>
 
-        <label for="password">{{ _('login.password') }}</label>
-        <input type="password" id="password" name="password" required>
+        <label class="auth-field">
+          <span class="auth-field__label">{{ _('login.password') }}</span>
+          <span class="auth-field__wrap">
+            <span class="auth-field__icon" aria-hidden="true">🔒</span>
+            <input type="password" class="auth-field__input" id="password" name="password" required>
+            <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="Afficher">👁️</button>
+          </span>
+        </label>
 
         <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
 
-        <button type="submit" class="btn btn-primary btn-auth-submit">{{ _('login.submit') }}</button>
+        <div class="auth-pro__actions">
+          <button type="submit" class="btn btn-primary">{{ _('login.submit') }}</button>
+        </div>
       </form>
 
       <p class="auth-switch">
@@ -58,5 +65,5 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
 {% endblock %}

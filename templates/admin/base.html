@@ -19,7 +19,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=7">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -34,6 +34,7 @@
           <span class="zone-badge">{{ _('zone.admin') }}</span>
         </div>
       </div>
+      <div class="admin-nav-scroll">
       <nav class="admin-nav">
         <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
           <span class="nav-ico">📊</span> Analytics
@@ -75,6 +76,7 @@
           <span class="nav-ico">🩺</span> Diagnostics
         </a>
       </nav>
+      </div>
       <div class="admin-sidebar-foot">
         <span class="admin-dot"></span> {{ admin_username }}
         <a class="admin-logout" href="{{ url_for('admin.logout') }}">Déconnexion</a>

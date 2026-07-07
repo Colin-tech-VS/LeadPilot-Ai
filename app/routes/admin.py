@@ -233,8 +233,17 @@ def gsc_connect():
 @admin_bp.route("/gsc/callback")
 @admin_required
 def gsc_callback():
-    if request.args.get("error"):
-        flash(f"Connexion Google refusée : {request.args.get('error')}", "error")
+    oauth_error = request.args.get("error")
+    if oauth_error:
+        if oauth_error == "access_denied":
+            flash(
+                "Google a refusé l'accès (403 access_denied). Votre appli OAuth est probablement "
+                "en mode « Test » : ajoutez votre adresse Gmail dans Google Cloud Console → "
+                "APIs & Services → OAuth consent screen → Test users, puis réessayez.",
+                "error",
+            )
+        else:
+            flash(f"Connexion Google refusée : {oauth_error}", "error")
         return redirect(url_for("admin.gsc_page"))
 
     state = request.args.get("state")

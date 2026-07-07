@@ -1,0 +1,109 @@
+{% macro auth_showcase(mode='login', zone='pro') %}
+{% from 'macros/brand.html' import brand_logo with context %}
+<aside class="auth-pro__showcase auth-animate" aria-hidden="true">
+  <div class="auth-pro__mesh" aria-hidden="true"></div>
+  <div class="auth-pro__orb auth-pro__orb--1"></div>
+  <div class="auth-pro__orb auth-pro__orb--2"></div>
+  <div class="auth-pro__orb auth-pro__orb--3"></div>
+
+  <div class="auth-pro__slider" data-auth-slider>
+    <div class="auth-pro__track" data-auth-track>
+      <article class="auth-pro__slide is-active" data-auth-slide>
+        <div class="auth-pro__slide-inner">
+          {{ brand_logo('xl', 'public' if zone == 'customer' else mode) }}
+          <h1 class="auth-pro__slide-title">
+            {% if zone == 'customer' %}
+              {% if mode == 'register' %}{{ _('customer.register.title') }}{% else %}{{ _('customer.login.title') }}{% endif %}
+            {% else %}
+              {% if mode == 'register' %}{{ _('register.title') }}{% else %}{{ _('login.title') }}{% endif %}
+            {% endif %}
+          </h1>
+          <p class="auth-pro__slide-lead">
+            {% if zone == 'customer' %}
+              {% if mode == 'register' %}{{ _('customer.register.subtitle') }}{% else %}{{ _('customer.login.tagline') }}{% endif %}
+            {% else %}
+              {% if mode == 'register' %}{{ _('register.tagline') }}{% else %}{{ _('login.tagline') }}{% endif %}
+            {% endif %}
+          </p>
+        </div>
+      </article>
+
+      {% if mode == 'register' %}
+        {% if zone == 'customer' %}
+          {% for i in range(1, 4) %}
+          <article class="auth-pro__slide" data-auth-slide>
+            <div class="auth-pro__slide-inner auth-pro__slide-inner--card">
+              <span class="auth-pro__slide-emoji">{% if i == 1 %}🔍{% elif i == 2 %}📅{% else %}📋{% endif %}</span>
+              <p class="auth-pro__slide-quote">{{ _('customer.register.benefit_' ~ i) }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          {% for i in range(1, 5) %}
+          <article class="auth-pro__slide" data-auth-slide>
+            <div class="auth-pro__slide-inner auth-pro__slide-inner--card">
+              <span class="auth-pro__slide-emoji">{% if i == 1 %}📞{% elif i == 2 %}⚡{% elif i == 3 %}🗺️{% else %}📍{% endif %}</span>
+              <p class="auth-pro__slide-quote">{{ _('register.benefit_' ~ i) }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        {% if zone == 'customer' %}
+          {% for i in range(1, 4) %}
+          <article class="auth-pro__slide" data-auth-slide>
+            <div class="auth-pro__slide-inner auth-pro__slide-inner--card">
+              <span class="auth-pro__slide-emoji">{% if i == 1 %}🕐{% elif i == 2 %}📍{% else %}✅{% endif %}</span>
+              <p class="auth-pro__slide-quote">{{ _('customer.login.benefit_' ~ i) }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          {% for i in range(1, 4) %}
+          <article class="auth-pro__slide" data-auth-slide>
+            <div class="auth-pro__slide-inner auth-pro__slide-inner--card">
+              <span class="auth-pro__slide-emoji">{% if i == 1 %}🌙{% elif i == 2 %}📅{% else %}📊{% endif %}</span>
+              <p class="auth-pro__slide-quote">{{ _('login.benefit_' ~ i) }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+
+      <article class="auth-pro__slide" data-auth-slide>
+        <div class="auth-pro__slide-inner auth-pro__slide-inner--stats">
+          {% if zone == 'customer' %}
+          <div class="auth-pro__stat">
+            <strong>100+</strong>
+            <span>{{ _('auth.slide_stat_artisans') }}</span>
+          </div>
+          <div class="auth-pro__stat">
+            <strong>2 min</strong>
+            <span>{{ _('auth.slide_stat_booking_client') }}</span>
+          </div>
+          <div class="auth-pro__stat">
+            <strong>24/7</strong>
+            <span>{{ _('auth.slide_stat_tracking') }}</span>
+          </div>
+          {% else %}
+          <div class="auth-pro__stat">
+            <strong>24/7</strong>
+            <span>{{ _('auth.slide_stat_247') }}</span>
+          </div>
+          <div class="auth-pro__stat">
+            <strong>2 min</strong>
+            <span>{{ _('auth.slide_stat_booking') }}</span>
+          </div>
+          <div class="auth-pro__stat">
+            <strong>+40%</strong>
+            <span>{{ _('auth.slide_stat_leads') }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+    </div>
+
+    <div class="auth-pro__dots" data-auth-dots role="tablist" aria-label="Slides"></div>
+  </div>
+</aside>
+{% endmacro %}

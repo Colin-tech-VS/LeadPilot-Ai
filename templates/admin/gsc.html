@@ -31,6 +31,25 @@
   </p>
 </section>
 
+<section class="admin-panel" style="margin-bottom:16px">
+  <h2>Erreur « access_denied » / appli en test</h2>
+  <p class="admin-hint">
+    Si Google affiche <em>« pilotcore.fr n'a pas terminé la procédure de validation »</em> avec
+    <strong>403 : access_denied</strong>, ce n'est pas un problème d'URI de redirection — l'appli OAuth est en
+    <strong>mode Test</strong> et seuls les comptes listés peuvent se connecter.
+  </p>
+  <ol class="admin-hint" style="margin:10px 0 0 18px;line-height:1.6">
+    <li>Ouvrez <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer">OAuth consent screen</a> (même projet que le Client ID).</li>
+    <li>Vérifiez que le statut est <strong>Testing</strong> (normal pour un usage admin interne).</li>
+    <li>Dans <strong>Test users</strong> → <em>Add users</em>, ajoutez l'adresse Gmail exacte avec laquelle vous cliquez sur « Se connecter avec Google ».</li>
+    <li>Connectez-vous avec <strong>ce même compte</strong> (il doit aussi avoir accès à la propriété dans Search Console).</li>
+  </ol>
+  <p class="admin-hint" style="margin-top:10px">
+    Pas besoin de publier l'appli pour un usage solo admin. La publication + vérification Google n'est utile que si
+    d'autres utilisateurs externes doivent autoriser l'appli.
+  </p>
+</section>
+
 {% if gsc.configured %}
   {% if gsc.connected %}
   <div class="connect-banner ok" style="margin-bottom:16px">

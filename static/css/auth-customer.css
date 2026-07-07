@@ -1,0 +1,86 @@
+/* PilotCore Client — login & register (public zone theme) */
+
+.page-customer-login,
+.page-customer-register {
+  --auth-header-h: 64px;
+}
+
+.page-customer-login .public-nav,
+.page-customer-register .public-nav,
+.page-customer-login .public-nav-toggle,
+.page-customer-register .public-nav-toggle {
+  display: none !important;
+}
+
+.page-customer-login .v-footer,
+.page-customer-register .v-footer {
+  display: none;
+}
+
+.page-customer-login main,
+.page-customer-register main {
+  padding: 0;
+}
+
+/* Client blue gradient (distinct from pro teal) */
+.auth-customer .auth-pro__showcase {
+  background: linear-gradient(145deg, #0369a1 0%, #0596de 38%, #1b57e0 100%);
+}
+
+.auth-customer .auth-pro__orb--2 {
+  background: rgba(5, 150, 222, 0.35);
+}
+
+.auth-customer .auth-pro__orb--3 {
+  background: rgba(27, 87, 224, 0.42);
+}
+
+.auth-customer .auth-pro__step span {
+  background: linear-gradient(90deg, #0596de, #1b57e0);
+}
+
+.auth-customer .auth-pro__step-labels .is-active {
+  color: #0596de;
+}
+
+.auth-customer .auth-field__input:focus {
+  border-color: #0596de;
+  box-shadow: 0 0 0 4px rgba(5, 150, 222, 0.14);
+}
+
+.auth-customer .auth-forgot a {
+  color: #0596de;
+}
+
+.auth-customer .auth-switch a {
+  color: #1b57e0;
+}
+
+.auth-customer .zone-badge--auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(5, 150, 222, 0.12);
+  color: #0369a1;
+  border: 1px solid rgba(5, 150, 222, 0.22);
+}
+
+.auth-customer .auth-pro-legal {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--lp-text-muted, #64748b);
+}
+
+.auth-customer .auth-pro-legal a {
+  color: var(--lp-text-muted, #64748b);
+  text-decoration: underline;
+}

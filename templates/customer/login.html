@@ -1,42 +1,73 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/auth_showcase.html' import auth_showcase with context %}
 {% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('customer.login.title') ~ ' — ' ~ _('app.name'), _('customer.login.subtitle'), '/client/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
 {% block title %}{{ _('customer.login.title') }} — {{ _('app.name') }}{% endblock %}
-{% block body_class %}page-customer-auth{% endblock %}
+{% block body_class %}page-customer-login{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-customer.css') }}?v=1">
+{% endblock %}
 
 {% block content %}
-<section class="customer-auth">
-  <div class="customer-auth-card">
-    <span class="zone-badge zone-badge--card">{{ _('zone.public') }}</span>
-    <h1>{{ _('customer.login.title') }}</h1>
-    <p class="customer-auth-sub">{{ _('customer.login.subtitle') }}</p>
+<div class="auth-pro auth-customer auth-pro--reverse">
+  {{ auth_showcase('login', 'customer') }}
 
-    {% if request.args.get('reset') %}<div class="alert alert-success">{{ _('login.reset_success') }}</div>{% endif %}
-    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <section class="auth-pro__panel">
+    <div class="auth-pro__card">
+      <span class="zone-badge--auth">{{ _('zone.public') }}</span>
+      <header class="auth-pro__card-head">
+        <h2>{{ _('customer.login.title') }}</h2>
+        <p class="auth-pro__card-sub">{{ _('customer.login.welcome_back') }}</p>
+      </header>
 
-    <form method="post" class="auth-form">
-      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-      <label for="email">E-mail</label>
-      <input type="email" id="email" name="email" required autofocus placeholder="vous@email.fr">
+      {% if request.args.get('reset') %}
+      <div class="alert alert-success">{{ _('login.reset_success') }}</div>
+      {% endif %}
+      {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
 
-      <label for="password">{{ _('login.password') }}</label>
-      <input type="password" id="password" name="password" required>
+      <form method="post" class="auth-form" id="login-form">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-      <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
+        <label class="auth-field">
+          <span class="auth-field__label">E-mail</span>
+          <span class="auth-field__wrap">
+            <span class="auth-field__icon" aria-hidden="true">✉️</span>
+            <input type="email" class="auth-field__input" id="email" name="email" required autofocus placeholder="vous@email.fr">
+          </span>
+        </label>
 
-      <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('customer.login.submit') }}</button>
-    </form>
+        <label class="auth-field">
+          <span class="auth-field__label">{{ _('login.password') }}</span>
+          <span class="auth-field__wrap">
+            <span class="auth-field__icon" aria-hidden="true">🔒</span>
+            <input type="password" class="auth-field__input" id="password" name="password" required>
+            <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="Afficher">👁️</button>
+          </span>
+        </label>
 
-    <p class="customer-auth-switch">
-      {{ _('customer.login.no_account') }}
-      <a href="{{ url_for('customer.register', next=next) }}">{{ _('customer.login.register_link') }}</a>
-    </p>
-    <p class="customer-auth-switch customer-auth-switch--zone">
-      {{ _('auth.switch_to_pro') }}
-      <a href="{{ url_for('web.login') }}">{{ _('auth.switch_to_pro_link') }}</a>
-    </p>
-  </div>
-</section>
+        <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
+
+        <div class="auth-pro__actions">
+          <button type="submit" class="btn btn-primary">{{ _('customer.login.submit') }}</button>
+        </div>
+      </form>
+
+      <p class="auth-switch">
+        {{ _('customer.login.no_account') }}
+        <a href="{{ url_for('customer.register', next=next) }}">{{ _('customer.login.register_link') }}</a>
+      </p>
+      <p class="auth-switch auth-switch--zone">
+        {{ _('auth.switch_to_pro') }}
+        <a href="{{ url_for('web.login') }}">{{ _('auth.switch_to_pro_link') }}</a>
+      </p>
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
 {% endblock %}

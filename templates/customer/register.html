@@ -1,61 +1,126 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/auth_showcase.html' import auth_showcase with context %}
 {% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('customer.register.title') ~ ' — ' ~ _('app.name'), _('customer.register.subtitle'), '/client/register', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
 {% block title %}{{ _('customer.register.title') }} — {{ _('app.name') }}{% endblock %}
-{% block body_class %}page-customer-auth{% endblock %}
+{% block body_class %}page-customer-register{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-customer.css') }}?v=1">
+{% endblock %}
 
 {% block content %}
-<section class="customer-auth">
-  <div class="customer-auth-card">
-    <span class="zone-badge zone-badge--card">{{ _('zone.public') }}</span>
-    <h1>{{ _('customer.register.title') }}</h1>
-    <p class="customer-auth-sub">{{ _('customer.register.subtitle') }}</p>
+<div class="auth-pro auth-customer">
+  {{ auth_showcase('register', 'customer') }}
 
-    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <section class="auth-pro__panel">
+    <div class="auth-pro__card">
+      <span class="zone-badge--auth">{{ _('zone.public') }}</span>
+      <header class="auth-pro__card-head">
+        <h2>{{ _('customer.register.form_title') }}</h2>
+        <p class="auth-pro__card-sub">{{ _('customer.register.form_sub') }}</p>
+      </header>
 
-    <form method="post" class="auth-form">
-      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-      <div class="form-row">
-        <div>
-          <label for="first_name">Prénom</label>
-          <input type="text" id="first_name" name="first_name" required value="{{ form.first_name or '' }}">
-        </div>
-        <div>
-          <label for="last_name">Nom</label>
-          <input type="text" id="last_name" name="last_name" value="{{ form.last_name or '' }}">
-        </div>
+      <div class="auth-pro__steps" aria-hidden="true">
+        <div class="auth-pro__step is-active" data-step-indicator><span></span></div>
+        <div class="auth-pro__step" data-step-indicator><span></span></div>
+      </div>
+      <div class="auth-pro__step-labels">
+        <span class="is-active" data-step-label>{{ _('auth.step_profile') }}</span>
+        <span data-step-label>{{ _('auth.step_account') }}</span>
       </div>
 
-      <label for="email">E-mail</label>
-      <input type="email" id="email" name="email" required value="{{ form.email or '' }}" placeholder="vous@email.fr">
+      {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
 
-      <label for="phone">Téléphone</label>
-      <input type="tel" id="phone" name="phone" value="{{ form.phone or '' }}" placeholder="+33 6 12 34 56 78">
+      <form method="post" class="auth-form" id="register-form">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-      <label for="password">{{ _('login.password') }}</label>
-      <input type="password" id="password" name="password" required minlength="8">
+        <div class="auth-pro__form-step is-active" data-register-step>
+          <div class="auth-form-row">
+            <label class="auth-field">
+              <span class="auth-field__label">Prénom</span>
+              <span class="auth-field__wrap">
+                <span class="auth-field__icon" aria-hidden="true">👤</span>
+                <input type="text" class="auth-field__input" id="first_name" name="first_name" required
+                       value="{{ form.first_name or '' }}" autocomplete="given-name" placeholder="Marie">
+              </span>
+            </label>
+            <label class="auth-field">
+              <span class="auth-field__label">Nom</span>
+              <span class="auth-field__wrap">
+                <span class="auth-field__icon" aria-hidden="true">👤</span>
+                <input type="text" class="auth-field__input" id="last_name" name="last_name"
+                       value="{{ form.last_name or '' }}" autocomplete="family-name" placeholder="Dupont">
+              </span>
+            </label>
+          </div>
 
-      <label for="confirm_password">Confirmer le mot de passe</label>
-      <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+          <label class="auth-field">
+            <span class="auth-field__label">Téléphone</span>
+            <span class="auth-field__wrap">
+              <span class="auth-field__icon" aria-hidden="true">📞</span>
+              <input type="tel" class="auth-field__input" id="phone" name="phone"
+                     value="{{ form.phone or '' }}" placeholder="+33 6 12 34 56 78" autocomplete="tel">
+            </span>
+          </label>
+        </div>
 
-      <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('customer.register.submit') }}</button>
-    </form>
+        <div class="auth-pro__form-step" data-register-step>
+          <label class="auth-field">
+            <span class="auth-field__label">E-mail</span>
+            <span class="auth-field__wrap">
+              <span class="auth-field__icon" aria-hidden="true">✉️</span>
+              <input type="email" class="auth-field__input" id="email" name="email" required
+                     value="{{ form.email or '' }}" placeholder="vous@email.fr" autocomplete="email">
+            </span>
+          </label>
 
-    <p class="customer-auth-switch">
-      {{ _('customer.register.has_account') }}
-      <a href="{{ url_for('customer.login', next=next) }}">{{ _('customer.register.login_link') }}</a>
-    </p>
-    <p class="customer-auth-switch customer-auth-switch--zone">
-      {{ _('auth.switch_to_pro') }}
-      <a href="{{ url_for('web.register') }}">{{ _('pro.nav_register') }}</a>
-    </p>
-    <p class="customer-auth-legal">
-      En créant un compte, vous acceptez nos
-      <a href="{{ url_for('web.cgu') }}">{{ _('legal.cgu') }}</a> et notre
-      <a href="{{ url_for('web.privacy') }}">{{ _('legal.privacy') }}</a>.
-    </p>
-  </div>
-</section>
+          <label class="auth-field">
+            <span class="auth-field__label">{{ _('login.password') }}</span>
+            <span class="auth-field__wrap">
+              <span class="auth-field__icon" aria-hidden="true">🔒</span>
+              <input type="password" class="auth-field__input" id="password" name="password" required minlength="8" autocomplete="new-password">
+              <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="Afficher">👁️</button>
+            </span>
+          </label>
+
+          <label class="auth-field">
+            <span class="auth-field__label">Confirmer le mot de passe</span>
+            <span class="auth-field__wrap">
+              <span class="auth-field__icon" aria-hidden="true">🔒</span>
+              <input type="password" class="auth-field__input" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
+            </span>
+          </label>
+        </div>
+
+        <div class="auth-pro__actions">
+          <button type="button" class="btn btn-auth-ghost" id="register-back" hidden>{{ _('auth.step_back') }}</button>
+          <button type="button" class="btn btn-primary" id="register-next"
+                  data-next-label="{{ _('auth.step_next') }}"
+                  data-submit-label="{{ _('customer.register.submit') }}">{{ _('auth.step_next') }}</button>
+        </div>
+      </form>
+
+      <p class="auth-switch">
+        {{ _('customer.register.has_account') }}
+        <a href="{{ url_for('customer.login', next=next) }}">{{ _('customer.register.login_link') }}</a>
+      </p>
+      <p class="auth-switch auth-switch--zone">
+        {{ _('auth.switch_to_pro') }}
+        <a href="{{ url_for('web.register') }}">{{ _('pro.nav_register') }}</a>
+      </p>
+      <p class="auth-pro-legal">
+        En créant un compte, vous acceptez nos
+        <a href="{{ url_for('web.cgu') }}">{{ _('legal.cgu') }}</a> et notre
+        <a href="{{ url_for('web.privacy') }}">{{ _('legal.privacy') }}</a>.
+      </p>
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
 {% endblock %}

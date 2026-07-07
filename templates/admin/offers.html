@@ -1,12 +1,12 @@
 {% extends "admin/base.html" %}
-{% block title %}Offres &amp; prix · Admin{% endblock %}
-{% block page_title %}Offres &amp; prix{% endblock %}
+{% block title %}Tarifs · Admin{% endblock %}
+{% block page_title %}Tarifs{% endblock %}
 {% block topbar_actions %}
   <a href="{{ url_for('web.pro_landing') }}#pricing" target="_blank" rel="noopener" class="admin-btn ghost">Voir sur le site ↗</a>
 {% endblock %}
 
 {% block content %}
-<p class="admin-hint">Modifiez vos tarifs et le contenu de chaque offre. L'aperçu à droite se met à jour en direct ; cliquez sur <strong>Enregistrer</strong> pour appliquer sur la page d'accueil.</p>
+<p class="dash-intro">Modifiez vos tarifs et le contenu de chaque offre. L'aperçu se met à jour en direct — cliquez sur <strong>Enregistrer</strong> pour publier.</p>
 
 <form method="POST" action="{{ url_for('admin.offers_save') }}" id="offers-form">
   <div class="studio-split">

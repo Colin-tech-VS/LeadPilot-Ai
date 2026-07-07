@@ -1,6 +1,6 @@
 {% extends "admin/base.html" %}
-{% block title %}Search Console · Admin{% endblock %}
-{% block page_title %}Google Search Console{% endblock %}
+{% block title %}SEO · Admin{% endblock %}
+{% block page_title %}SEO · Google Search Console{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ gsc.console_url }}" class="admin-btn ghost" target="_blank" rel="noopener noreferrer">Ouvrir GSC ↗</a>
@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+<p class="dash-intro">Connexion OAuth, indexation et performances de recherche Google pour pilotcore.fr.</p>
 {% if not gsc.configured %}
 <div class="admin-notice">
   OAuth Google non configuré. Ajoutez <code>GOOGLE_GSC_CLIENT_ID</code> et
@@ -15,7 +16,7 @@
 </div>
 {% endif %}
 
-<section class="admin-panel" style="margin-bottom:16px">
+<section class="admin-panel dash-panel" style="margin-bottom:16px">
   <h2>URI de redirection OAuth</h2>
   <p class="admin-hint">
     Dans Google Cloud Console → votre client OAuth « Web application », ajoutez exactement cette URI
@@ -31,7 +32,7 @@
   </p>
 </section>
 
-<section class="admin-panel" style="margin-bottom:16px">
+<section class="admin-panel dash-panel" style="margin-bottom:16px">
   <h2>Erreur « access_denied » / appli en test</h2>
   <p class="admin-hint">
     Si Google affiche <em>« pilotcore.fr n'a pas terminé la procédure de validation »</em> avec
@@ -50,7 +51,7 @@
   </p>
 </section>
 
-<section class="admin-panel" style="margin-bottom:16px">
+<section class="admin-panel dash-panel" style="margin-bottom:16px">
   <h2>Erreur 500 sur la page Google</h2>
   <p class="admin-hint">
     Si la page <code>accounts.google.com/.../oauth/consent</code> affiche une <strong>erreur 500</strong>, vérifiez

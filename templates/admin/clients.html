@@ -11,7 +11,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="accounts-kpi-grid">
+<p class="dash-intro">Particuliers et artisans inscrits — réservations, plans et visibilité annuaire.</p>
+
+<div class="dash-kpi-hero accounts-kpi-grid">
   <div class="kpi-card kpi-card--customer">
     <span class="kpi-label">Particuliers</span>
     <span class="kpi-value">{{ total_customers }}</span>
@@ -45,7 +47,7 @@
 </nav>
 
 {% if tab == 'particuliers' %}
-<section class="admin-panel accounts-panel accounts-panel--customer">
+<section class="admin-panel dash-panel accounts-panel accounts-panel--customer">
   <div class="accounts-panel-head">
     <div>
       <h2>Particuliers</h2>
@@ -85,7 +87,7 @@
 </section>
 
 {% else %}
-<section class="admin-panel accounts-panel accounts-panel--artisan">
+<section class="admin-panel dash-panel accounts-panel accounts-panel--artisan">
   <div class="accounts-panel-head">
     <div>
       <h2>Artisans</h2>

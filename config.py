@@ -171,6 +171,16 @@ class DevelopmentConfig(Config):
     )
 
 
+class TestingConfig(DevelopmentConfig):
+    """Pytest — never touch production DATABASE_URL."""
+
+    TESTING = True
+    ENV = "testing"
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "TEST_DATABASE_URL", "sqlite:///PilotCore_test.db"
+    )
+
+
 class ProductionConfig(Config):
     """Production configuration."""
 
@@ -186,6 +196,7 @@ class ProductionConfig(Config):
 config_by_name = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
+    "testing": TestingConfig,
     "default": DevelopmentConfig,
 }
 

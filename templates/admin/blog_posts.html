@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<p class="admin-hint" style="margin-bottom:16px">Articles publiés sur <a href="{{ url_for('web.blog_index') }}" target="_blank" rel="noopener">/blog</a> — chaque article est optimisé SEO (meta, FAQ, JSON-LD).</p>
+<p class="dash-intro">Articles publiés sur <a href="{{ url_for('web.blog_index') }}" target="_blank" rel="noopener">/blog</a> — SEO, FAQ et JSON-LD intégrés.</p>
 <div class="studio-list">
   {% for post in posts %}
   <div class="studio-item">

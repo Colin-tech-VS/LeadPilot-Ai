@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+<p class="dash-intro">Solde, consommation mensuelle et numéros IA provisionnés sur le compte Twilio.</p>
 {% if not twilio.configured %}
 <div class="admin-notice">
   Twilio n'est pas configuré. Renseignez <code>TWILIO_ACCOUNT_SID</code> et <code>TWILIO_AUTH_TOKEN</code> sur Scalingo.
@@ -16,7 +17,7 @@
 <div class="admin-flash admin-flash-error" style="margin-bottom:16px;">{{ twilio.error }}</div>
 {% endif %}
 
-<div class="accounts-kpi-grid">
+<div class="dash-kpi-hero accounts-kpi-grid">
   <div class="kpi-card kpi-card--customer">
     <span class="kpi-label">Solde Twilio</span>
     <span class="kpi-value">{% if twilio.balance is not none %}{{ twilio.balance }} {{ twilio.balance_currency }}{% else %}—{% endif %}</span>
@@ -35,7 +36,7 @@
 </div>
 
 <div class="admin-grid-2">
-  <section class="admin-panel">
+  <section class="admin-panel dash-panel">
     <h2>Usage ce mois-ci</h2>
     {% if twilio.usage_rows %}
     <div class="admin-table-wrap">
@@ -63,7 +64,7 @@
     {% endif %}
   </section>
 
-  <section class="admin-panel">
+  <section class="admin-panel dash-panel">
     <h2>Recharge &amp; Stripe</h2>
     <div class="admin-notice" style="margin-bottom:14px;">
       <strong>Recharge Twilio</strong> — quand le solde est à zéro, les appels et SMS s'arrêtent.

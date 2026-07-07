@@ -6,6 +6,8 @@
 {% endblock %}
 
 {% block content %}
+<p class="dash-intro">Fil d'événements en temps réel — authentification, leads, RDV, facturation et système.</p>
+
 <div class="admin-tabs">
   <a href="{{ url_for('admin.logs') }}" class="admin-tab {% if not category %}active{% endif %}">Tous</a>
   {% for c in ['auth', 'lead', 'appointment', 'quote', 'billing', 'email', 'admin', 'system'] %}

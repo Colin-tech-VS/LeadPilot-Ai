@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=9">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=10">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -37,19 +37,20 @@
       </div>
       <div class="admin-nav-scroll">
       <nav class="admin-nav">
+        <div class="admin-nav-sep">Pilotage</div>
         <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
-          <span class="nav-ico">📊</span> Analytics
+          <span class="nav-ico">📈</span> Performance
         </a>
         <a href="{{ url_for('admin.traffic_page') }}" class="{% if request.endpoint == 'admin.traffic_page' %}active{% endif %}">
           <span class="nav-ico">🌐</span> Trafic
           <span class="nav-live-dot" id="nav-live-dot"></span>
         </a>
         <a href="{{ url_for('admin.gsc_page') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.gsc') %}active{% endif %}">
-          <span class="nav-ico">🔍</span> Search Console
+          <span class="nav-ico">🔍</span> SEO
         </a>
-        <div class="admin-nav-sep">Studio</div>
+        <div class="admin-nav-sep">Contenu</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">
-          <span class="nav-ico">💶</span> Offres &amp; prix
+          <span class="nav-ico">💶</span> Tarifs
         </a>
         <a href="{{ url_for('admin.blog') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.blog') %}active{% endif %}">
           <span class="nav-ico">📝</span> Blog
@@ -58,14 +59,14 @@
           <span class="nav-ico">📄</span> Pages
         </a>
         <a href="{{ url_for('admin.social') }}" class="{% if request.endpoint and 'social' in request.endpoint %}active{% endif %}">
-          <span class="nav-ico">📣</span> Réseaux sociaux
+          <span class="nav-ico">📣</span> Social
         </a>
         <div class="admin-nav-sep">Système</div>
         <a href="{{ url_for('admin.clients') }}" class="{% if request.endpoint == 'admin.clients' %}active{% endif %}">
           <span class="nav-ico">👥</span> Comptes
         </a>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
-          <span class="nav-ico">🗄️</span> Base de données
+          <span class="nav-ico">🗄️</span> Données
         </a>
         <a href="{{ url_for('admin.emails') }}" class="{% if request.endpoint == 'admin.emails' %}active{% endif %}">
           <span class="nav-ico">✉️</span> Emails
@@ -108,7 +109,9 @@
       {% endwith %}
 
       <div class="admin-content">
-        {% block content %}{% endblock %}
+        <div class="admin-dash">
+          {% block content %}{% endblock %}
+        </div>
       </div>
     </main>
   </div>

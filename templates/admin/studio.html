@@ -3,12 +3,12 @@
 {% block page_title %}Studio de contenu{% endblock %}
 
 {% block content %}
-<p class="admin-hint">Pilotez votre site : ajustez les prix, créez des pages (avec ou sans IA) et publiez sur vos réseaux — tout depuis un seul endroit.</p>
+<p class="dash-intro">Pilotez votre site : tarifs, pages CMS, blog et publications social — depuis un seul hub.</p>
 
 <div class="studio-hub">
   <a class="studio-tile" href="{{ url_for('admin.offers') }}">
     <span class="studio-tile-ico">💶</span>
-    <h3>Offres &amp; prix</h3>
+    <h3>Tarifs</h3>
     <p>Modifiez les tarifs, noms et avantages de vos offres. Visible instantanément sur la page d'accueil.</p>
     <span class="studio-tile-badge">{{ offer_count }} offre(s)</span>
   </a>
@@ -26,7 +26,7 @@
   </a>
   <a class="studio-tile" href="{{ url_for('admin.social') }}">
     <span class="studio-tile-ico">📣</span>
-    <h3>Réseaux sociaux</h3>
+    <h3>Social</h3>
     <p>Rédigez et publiez sur Facebook, manuellement ou avec l'IA Mistral.</p>
     <span class="studio-tile-badge">{% if facebook_connected %}✅ Facebook connecté{% else %}⚠️ Non connecté{% endif %}</span>
   </a>

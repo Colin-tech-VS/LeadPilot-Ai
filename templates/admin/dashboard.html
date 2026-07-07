@@ -1,6 +1,6 @@
 {% extends "admin/base.html" %}
-{% block title %}Analytics · Admin{% endblock %}
-{% block page_title %}Analytics{% endblock %}
+{% block title %}Performance métier · Admin{% endblock %}
+{% block page_title %}Performance métier{% endblock %}
 {% block topbar_actions %}
   <select id="range-select" class="admin-select">
     <option value="7">7 jours</option>
@@ -12,35 +12,71 @@
 {% endblock %}
 
 {% block content %}
-<div id="kpi-grid" class="kpi-grid">
-  <div class="kpi-card" data-kpi="leads_total"><span class="kpi-label">Prospects</span><span class="kpi-value" data-count="0">0</span><span class="kpi-trend" data-trend="leads_trend"></span></div>
-  <div class="kpi-card" data-kpi="conversion_rate"><span class="kpi-label">Taux de conversion</span><span class="kpi-value" data-count="0" data-suffix="%">0</span><span class="kpi-sub">prospects → RDV</span></div>
-  <div class="kpi-card" data-kpi="booked_total"><span class="kpi-label">RDV pris</span><span class="kpi-value" data-count="0">0</span><span class="kpi-sub">rendez-vous confirmés</span></div>
-  <div class="kpi-card" data-kpi="quote_acceptance_rate"><span class="kpi-label">Devis acceptés</span><span class="kpi-value" data-count="0" data-suffix="%">0</span><span class="kpi-sub">taux d'acceptation</span></div>
-  <div class="kpi-card" data-kpi="revenue_estimate_cents"><span class="kpi-label">MRR estimé</span><span class="kpi-value" data-count="0" data-money="1">0</span><span class="kpi-sub">abonnements actifs</span></div>
-  <div class="kpi-card" data-kpi="tenants_total"><span class="kpi-label">Artisans</span><span class="kpi-value" data-count="0">0</span><span class="kpi-sub"><span data-kpi-inline="paid_tenants">0</span> payants</span></div>
-  <div class="kpi-card" data-kpi="emails_sent"><span class="kpi-label">Emails envoyés</span><span class="kpi-value" data-count="0">0</span><span class="kpi-sub"><span data-kpi-inline="emails_received">0</span> reçus</span></div>
-  <div class="kpi-card" data-kpi="appointments_total"><span class="kpi-label">Rendez-vous</span><span class="kpi-value" data-count="0">0</span><span class="kpi-sub">au total</span></div>
+<p class="dash-intro">Entonnoir commercial — prospects, rendez-vous, devis et revenus récurrents des artisans.</p>
+
+<div class="dash-kpi-hero" id="kpi-grid">
+  <div class="kpi-card kpi-card--hero" data-kpi="revenue_estimate_cents">
+    <span class="kpi-label">MRR estimé</span>
+    <span class="kpi-value" data-count="0" data-money="1">0</span>
+    <span class="kpi-sub"><span data-kpi-inline="paid_tenants">0</span> artisan(s) payant(s)</span>
+  </div>
+  <div class="kpi-card" data-kpi="leads_total">
+    <span class="kpi-label">Prospects</span>
+    <span class="kpi-value" data-count="0">0</span>
+    <span class="kpi-trend" data-trend="leads_trend"></span>
+  </div>
+  <div class="kpi-card" data-kpi="conversion_rate">
+    <span class="kpi-label">Taux conversion</span>
+    <span class="kpi-value" data-count="0" data-suffix="%">0</span>
+    <span class="kpi-sub">prospects → RDV</span>
+  </div>
+  <div class="kpi-card" data-kpi="booked_total">
+    <span class="kpi-label">RDV confirmés</span>
+    <span class="kpi-value" data-count="0">0</span>
+  </div>
+</div>
+
+<div class="dash-kpi-row">
+  <div class="kpi-card kpi-card--sm" data-kpi="quote_acceptance_rate">
+    <span class="kpi-label">Devis acceptés</span>
+    <span class="kpi-value" data-count="0" data-suffix="%">0</span>
+  </div>
+  <div class="kpi-card kpi-card--sm" data-kpi="tenants_total">
+    <span class="kpi-label">Artisans</span>
+    <span class="kpi-value" data-count="0">0</span>
+  </div>
+  <div class="kpi-card kpi-card--sm" data-kpi="appointments_total">
+    <span class="kpi-label">Rendez-vous</span>
+    <span class="kpi-value" data-count="0">0</span>
+  </div>
+  <div class="kpi-card kpi-card--sm" data-kpi="emails_sent">
+    <span class="kpi-label">Emails envoyés</span>
+    <span class="kpi-value" data-count="0">0</span>
+    <span class="kpi-sub"><span data-kpi-inline="emails_received">0</span> reçus</span>
+  </div>
 </div>
 
 <div class="admin-grid-2">
-  <section class="admin-panel">
-    <h2>Prospects par jour</h2>
+  <section class="admin-panel dash-panel">
+    <div class="dash-panel-head">
+      <h2>Prospects par jour</h2>
+    </div>
     <div class="chart-host"><svg id="leads-chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg></div>
   </section>
 
-  <section class="admin-panel">
+  <section class="admin-panel dash-panel">
     <h2>Entonnoir de conversion</h2>
-    <div id="funnel" class="funnel"></div>
+    <p class="admin-panel-lead">Prospect → RDV → devis → paiement</p>
+    <div id="funnel" class="funnel funnel--traffic"></div>
   </section>
 </div>
 
 <div class="admin-grid-2">
-  <section class="admin-panel">
+  <section class="admin-panel dash-panel">
     <h2>Répartition par urgence</h2>
     <div id="urgency-chart" class="bars"></div>
   </section>
-  <section class="admin-panel">
+  <section class="admin-panel dash-panel">
     <h2>Répartition des offres</h2>
     <div id="plans-chart" class="bars"></div>
   </section>

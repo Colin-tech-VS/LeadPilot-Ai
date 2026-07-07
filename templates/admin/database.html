@@ -1,9 +1,10 @@
 {% extends "admin/base.html" %}
-{% block title %}Base de données · Admin{% endblock %}
-{% block page_title %}Base de données{% endblock %}
+{% block title %}Données · Admin{% endblock %}
+{% block page_title %}Données{% endblock %}
 
 {% block content %}
-<p class="admin-hint">Accès direct aux tables. Ajout, édition et suppression en direct — à manier avec précaution.</p>
+<p class="dash-intro">Accès direct aux tables PostgreSQL — ajout, édition et suppression. À manipuler avec précaution.</p>
+
 <div class="db-grid">
   {% for name, label in admin_tables.items() %}
   <a class="db-card" href="{{ url_for('admin.database_table', table=name) }}">
@@ -14,7 +15,7 @@
   {% endfor %}
 </div>
 
-<section class="danger-zone">
+<section class="admin-panel dash-panel danger-zone">
   <h2>⚠️ Zone de maintenance</h2>
   <p>Supprime <strong>tous les prospects</strong> et ce qui en dépend (RDV, devis, notifications).
      Les <strong>comptes</strong> (artisans, identifiants, abonnement) sont conservés. Action irréversible.</p>
@@ -25,7 +26,7 @@
   </form>
 </section>
 
-<section class="danger-zone danger-zone--critical">
+<section class="admin-panel dash-panel danger-zone danger-zone--critical">
   <h2>🚨 Purge totale des comptes</h2>
   <p>Supprime <strong>tous les comptes artisans</strong> (tenants + users) et toutes leurs données
      (prospects, RDV, devis, emails…). L'accès <strong>/admin</strong> (mot de passe env) est conservé.

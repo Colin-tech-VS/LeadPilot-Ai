@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block content %}
+<p class="dash-intro">Boîte de réception, envois SMTP et composition de messages.</p>
 {% if not smtp_configured %}
 <div class="admin-notice">SMTP non configuré — les envois sont <strong>simulés</strong>. Renseignez <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code>.</div>
 {% endif %}

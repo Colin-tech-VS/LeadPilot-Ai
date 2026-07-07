@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block content %}
+<p class="dash-intro">État des intégrations, variables d'environnement et tests SMTP / base de données.</p>
 {% if summary.missing_required %}
 <div class="admin-notice">
   <strong>{{ summary.missing_required }}</strong> variable(s) obligatoire(s) manquante(s).
@@ -25,7 +26,7 @@
 </div>
 {% endif %}
 
-<div class="admin-panel diag-testmail">
+<div class="admin-panel dash-panel diag-testmail">
   <h2>Envoyer un e-mail de test</h2>
   <p class="admin-hint">Envoi réel via la configuration SMTP actuelle. Vérifiez ensuite le statut dans <a href="{{ url_for('admin.emails', box='outbox') }}">Emails → Envoyés</a>.</p>
   <form method="POST" action="{{ url_for('admin.diagnostics_test_email') }}" class="diag-testmail-form">
@@ -37,7 +38,7 @@
 
 <div class="diag-groups">
   {% for g in groups %}
-  <section class="admin-panel diag-group diag-{{ g.status }}">
+  <section class="admin-panel dash-panel diag-group diag-{{ g.status }}">
     <div class="diag-group-head">
       <span class="diag-icon">{{ g.icon }}</span>
       <h2>{{ g.title }}</h2>

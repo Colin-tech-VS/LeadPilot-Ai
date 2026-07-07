@@ -53,17 +53,255 @@
   }
 }
 
-/* Grille tarifs — essai + lancement + toutes les offres admin */
-.page-pro .pricing-grid--all {
-  align-items: stretch;
-}
-
-.page-pro .pricing-card-launch {
-  border: 2px solid var(--lp-zone-pro);
-  box-shadow: 0 12px 40px color-mix(in srgb, var(--lp-zone-pro) 18%, transparent);
-}
-
 .page-pro .landing-pricing-trial-hint {
   text-align: center;
   margin-bottom: 8px;
+}
+
+/* ── Carrousel tarifs ── */
+.page-pro .landing-pricing {
+  overflow: hidden;
+}
+
+.page-pro .pro-pricing-carousel {
+  position: relative;
+  margin-top: 8px;
+  padding: 28px 0 12px;
+}
+
+.page-pro .pro-pricing-carousel::before {
+  content: "";
+  position: absolute;
+  inset: 0 8%;
+  border-radius: 32px;
+  background:
+    radial-gradient(ellipse 55% 70% at 15% 40%, color-mix(in srgb, var(--lp-zone-pro) 22%, transparent), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 60%, color-mix(in srgb, #14B8A6 18%, transparent), transparent 72%);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: proPricingGlow 9s ease-in-out infinite alternate;
+}
+
+@keyframes proPricingGlow {
+  0% { transform: scale(1) translateY(0); opacity: 0.75; }
+  100% { transform: scale(1.03) translateY(-6px); opacity: 1; }
+}
+
+.page-pro .pro-pricing-tabs {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 0 12px;
+}
+
+.page-pro .pro-pricing-tab {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  backdrop-filter: blur(8px);
+}
+
+.page-pro .pro-pricing-tab:hover {
+  border-color: color-mix(in srgb, var(--lp-zone-pro) 40%, var(--border));
+  color: var(--text);
+}
+
+.page-pro .pro-pricing-tab.is-active {
+  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--lp-zone-pro) 35%, transparent);
+  transform: translateY(-1px);
+}
+
+.page-pro .pro-pricing-shell {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-pro .pro-pricing-arrow {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.page-pro .pro-pricing-arrow:hover {
+  border-color: color-mix(in srgb, var(--lp-zone-pro) 45%, var(--border));
+  transform: scale(1.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.page-pro .pro-pricing-viewport {
+  overflow: hidden;
+  padding: 18px 0 28px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-pro .pro-pricing-track {
+  display: flex;
+  gap: 20px;
+  padding: 0 max(12px, calc(50% - 170px));
+  will-change: transform;
+}
+
+.page-pro .pro-pricing-slide {
+  flex: 0 0 min(340px, calc(100vw - 96px));
+  scroll-snap-align: center;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: scale(0.9);
+  opacity: 0.52;
+  filter: saturate(0.85);
+}
+
+.page-pro .pro-pricing-slide.is-adjacent {
+  transform: scale(0.96);
+  opacity: 0.78;
+  filter: saturate(0.95);
+}
+
+.page-pro .pro-pricing-slide.is-active {
+  transform: scale(1);
+  opacity: 1;
+  filter: none;
+  z-index: 2;
+}
+
+.page-pro .pro-pricing-slide.pricing-card:hover {
+  transform: scale(1);
+}
+
+.page-pro .pro-pricing-slide.is-adjacent.pricing-card:hover {
+  transform: scale(0.98);
+}
+
+.page-pro .pro-pricing-slide.pricing-card-launch.is-active {
+  border: 2px solid var(--lp-zone-pro);
+  box-shadow:
+    0 20px 50px color-mix(in srgb, var(--lp-zone-pro) 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--lp-zone-pro) 12%, transparent);
+}
+
+.page-pro .pro-pricing-slide.pricing-card-launch.is-active .pricing-price strong {
+  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-pro .pro-pricing-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.page-pro .pro-pricing-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.page-pro .pro-pricing-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--lp-zone-pro) 25%, #cbd5e1);
+  cursor: pointer;
+  transition: transform 0.25s, background 0.25s, width 0.25s;
+}
+
+.page-pro .pro-pricing-dot.is-active {
+  width: 24px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--lp-zone-pro), #14B8A6);
+}
+
+.page-pro .pro-pricing-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Sans JS : scroll horizontal natif */
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-slide {
+  transform: none;
+  opacity: 1;
+  filter: none;
+}
+
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-viewport {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-shell {
+  grid-template-columns: 1fr;
+}
+
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-arrow,
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-tabs,
+.page-pro .pro-pricing-carousel:not(.is-ready) .pro-pricing-dots {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .page-pro .pro-pricing-shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .page-pro .pro-pricing-arrow {
+    display: none;
+  }
+
+  .page-pro .pro-pricing-slide {
+    flex-basis: min(300px, calc(100vw - 48px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-pro .pro-pricing-carousel::before {
+    animation: none;
+  }
+
+  .page-pro .pro-pricing-slide,
+  .page-pro .pro-pricing-track {
+    transition-duration: 0.01ms !important;
+  }
 }

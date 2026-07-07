@@ -337,6 +337,32 @@ def _ensure_schema_updates():
 
     table_names = set(inspector.get_table_names())
 
+    # ``outreach_prospects.id`` must be a native ``uuid`` column so that
+    # ``db.session.get(OutreachProspect, uuid)`` (which binds the parameter as
+    # ``::UUID`` on Postgres) matches. When the table pre-dates the Alembic
+    # migration — the migration early-returns if the table already exists — the
+    # column can linger as ``character varying``, which raises
+    # "operator does not exist: character varying = uuid" on outreach email
+    # generation. Normalise it in place (Postgres only; SQLite has no uuid type).
+    if "outreach_prospects" in table_names and db.engine.dialect.name == "postgresql":
+        id_col = next(
+            (c for c in inspector.get_columns("outreach_prospects") if c["name"] == "id"),
+            None,
+        )
+        if id_col is not None and "uuid" not in str(id_col["type"]).lower():
+            try:
+                with db.engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE outreach_prospects "
+                            "ALTER COLUMN id TYPE uuid USING id::uuid"
+                        )
+                    )
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "outreach_prospects.id uuid normalisation failed"
+                )
+
     if "ip_geo_cache" not in table_names:
         with db.engine.begin() as conn:
             conn.execute(

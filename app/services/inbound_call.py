@@ -14,7 +14,15 @@ from app.services.notifications import notify_inbound_call
 logger = logging.getLogger(__name__)
 
 
-def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> dict:
+def process_inbound_call(
+    tenant_id: uuid.UUID,
+    phone: str,
+    transcript: str,
+    *,
+    lead_override: dict | None = None,
+    request_booking: bool = False,
+    send_devis_if_email: bool = False,
+) -> dict:
     """Core pipeline: extract → create lead → score → tentative slot + devis email."""
     tenant = db.session.get(Tenant, tenant_id)
     if not tenant:
@@ -30,12 +38,14 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
 
     extractor = LeadExtractor()
     extracted = extractor.extract(transcript=transcript, phone=phone)
+    extracted = _merge_lead_override(extracted, lead_override)
 
     booking_engine = BookingEngine()
     booking = booking_engine.process_lead(extracted, tenant)
     from app.services.plan_features import apply_booking_plan_limits, has_feature
 
     booking = apply_booking_plan_limits(tenant, booking)
+    booking = _maybe_boost_booking(tenant, extracted, booking, request_booking)
 
     client_email = (extracted.get("email") or "").strip().lower() or None
 
@@ -91,6 +101,11 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
                 lead.set_booking(booking)
                 logger.warning("BOOK_NOW failed — no slot lead=%s", lead.id)
 
+    if not quote_id and send_devis_if_email and client_email:
+        quote_id = _send_devis_for_signature(
+            lead, tenant, appointment=None, require_auto_booking=False
+        )
+
     db.session.commit()
 
     notify_inbound_call(lead, tenant, booked=False)
@@ -129,13 +144,13 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
     }
 
 
-def _send_devis_for_signature(lead, tenant, appointment=None) -> str | None:
+def _send_devis_for_signature(lead, tenant, appointment=None, *, require_auto_booking: bool = True) -> str | None:
     """Generate and email a pre-signed devis. Email is mandatory."""
     from app.services import quote_engine
     from app.services.plan_features import has_feature
     from app.services.quote_delivery import send_quote
 
-    if not has_feature(tenant, "auto_booking"):
+    if require_auto_booking and not has_feature(tenant, "auto_booking"):
         return None
     if not has_feature(tenant, "sms_email_notifications"):
         return None
@@ -194,3 +209,125 @@ def _text_devis_link(quote, tenant, lead) -> bool:
         f"Signez-le et réglez l'acompte en ligne : {link}"
     )
     return send_sms(phone, body)
+
+
+def _merge_lead_override(extracted: dict, override: dict | None) -> dict:
+    """Prefer explicit fields collected in chat/voice state over re-extraction."""
+    merged = dict(extracted or {})
+    if not isinstance(override, dict):
+        return merged
+    for key in ("name", "phone", "email", "address", "issue_type", "urgency_level", "summary"):
+        value = override.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+            if key == "email":
+                value = value.lower()
+        if value:
+            merged[key] = value
+    if not merged.get("phone") and override.get("phone"):
+        merged["phone"] = override["phone"]
+    return merged
+
+
+def _maybe_boost_booking(tenant, extracted: dict, booking: dict, request_booking: bool) -> dict:
+    """When the visitor explicitly asks for a RDV, try to book if we have enough data."""
+    from app.services.availability import find_next_available_slot
+    from app.services.plan_features import has_feature
+
+    if not request_booking or booking.get("action") == ACTION_BOOK_NOW:
+        return booking
+    if not has_feature(tenant, "auto_booking"):
+        return booking
+    if not (extracted.get("email") and extracted.get("address") and extracted.get("phone")):
+        return booking
+
+    slot = find_next_available_slot(tenant.id)
+    if not slot:
+        return booking
+
+    boosted = dict(booking)
+    boosted["action"] = ACTION_BOOK_NOW
+    boosted["suggested_slot"] = slot.isoformat()
+    boosted["reason"] = "Visitor requested an appointment — next available slot proposed."
+    return boosted
+
+
+def follow_up_chat_lead(
+    tenant_id: uuid.UUID,
+    lead_id: uuid.UUID,
+    lead_override: dict | None = None,
+    *,
+    request_booking: bool = False,
+    request_devis: bool = False,
+) -> dict:
+    """Update an existing chat lead when the visitor asks for RDV or devis."""
+    from app.models.quote import DOC_DEVIS, Quote
+
+    tenant = db.session.get(Tenant, tenant_id)
+    lead = db.session.get(Lead, lead_id)
+    if not tenant or not lead or lead.tenant_id != tenant_id:
+        return {"quote_id": None, "appointment_id": None, "booking": None}
+
+    extracted = {
+        "name": lead.name,
+        "phone": lead.phone,
+        "email": (lead.email or "").strip().lower() or None,
+        "address": lead.address,
+        "issue_type": lead.issue_type,
+        "urgency_level": lead.urgency_level,
+        "summary": lead.summary,
+    }
+    extracted = _merge_lead_override(extracted, lead_override)
+
+    if extracted.get("name"):
+        lead.name = extracted["name"]
+    if extracted.get("email"):
+        lead.email = extracted["email"]
+    if extracted.get("address"):
+        lead.address = extracted["address"]
+    if extracted.get("issue_type"):
+        lead.issue_type = extracted["issue_type"]
+    if extracted.get("urgency_level"):
+        lead.urgency_level = extracted["urgency_level"]
+    if extracted.get("summary"):
+        lead.summary = extracted["summary"]
+
+    booking_engine = BookingEngine()
+    booking = booking_engine.process_lead(extracted, tenant)
+    from app.services.plan_features import apply_booking_plan_limits, has_feature
+
+    booking = apply_booking_plan_limits(tenant, booking)
+    booking = _maybe_boost_booking(tenant, extracted, booking, request_booking)
+    lead.set_booking(booking)
+
+    appointment_id = None
+    quote_id = None
+    existing_quote = (
+        Quote.query.filter_by(lead_id=lead.id, doc_type=DOC_DEVIS)
+        .order_by(Quote.created_at.desc())
+        .first()
+    )
+
+    if booking.get("action") == ACTION_BOOK_NOW and booking.get("suggested_slot"):
+        client_email = (lead.email or "").strip().lower() or None
+        if client_email and has_feature(tenant, "auto_booking"):
+            slot = datetime.fromisoformat(booking["suggested_slot"].replace("Z", "+00:00"))
+            appointment = hold_tentative_appointment(tenant_id, lead.id, slot)
+            if appointment:
+                appointment_id = str(appointment.id)
+                if not existing_quote:
+                    quote_id = _send_devis_for_signature(lead, tenant, appointment)
+
+    if not quote_id and request_devis and (lead.email or "").strip() and not existing_quote:
+        quote_id = _send_devis_for_signature(
+            lead, tenant, appointment=None, require_auto_booking=False
+        )
+
+    db.session.commit()
+    return {
+        "quote_id": quote_id,
+        "appointment_id": appointment_id,
+        "booking": booking,
+    }

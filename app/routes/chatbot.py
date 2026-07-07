@@ -95,6 +95,7 @@ def public_chat_message(tenant_id):
 
     account_flow = data.get("account_flow")
     asked_slots = data.get("asked_slots")
+    lead_data = data.get("lead_data")
 
     customer_profile = data.get("customer_profile")
     if not isinstance(customer_profile, dict):
@@ -108,6 +109,7 @@ def public_chat_message(tenant_id):
         customer_profile=customer_profile,
         account_flow=account_flow if isinstance(account_flow, dict) else None,
         asked_slots=asked_slots if isinstance(asked_slots, list) else None,
+        existing_lead_data=lead_data if isinstance(lead_data, dict) else None,
     )
     return jsonify(result), 200
 

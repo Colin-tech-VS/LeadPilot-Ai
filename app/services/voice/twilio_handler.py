@@ -758,7 +758,13 @@ class TwilioVoiceHandler:
     ):
         if state.lead_id:
             return
-        result = process_inbound_call(uuid.UUID(tenant_id), caller_phone, transcript)
+        result = process_inbound_call(
+            uuid.UUID(tenant_id),
+            caller_phone,
+            transcript,
+            lead_override=state.extracted_lead_data,
+            send_devis_if_email=True,
+        )
         state.lead_id = result.get("lead_id")
         state.booking_result = result.get("booking", booking)
         state.booking_status = "out_of_zone"
@@ -771,7 +777,13 @@ class TwilioVoiceHandler:
 
         # process_inbound_call already creates the lead AND books the appointment
         # when the call qualifies for BOOK_NOW — don't book a second one here.
-        result = process_inbound_call(uuid.UUID(tenant_id), caller_phone, transcript)
+        result = process_inbound_call(
+            uuid.UUID(tenant_id),
+            caller_phone,
+            transcript,
+            lead_override=state.extracted_lead_data,
+            send_devis_if_email=True,
+        )
         state.lead_id = result.get("lead_id")
         state.booking_result = result.get("booking", booking)
         state.appointment_id = result.get("appointment_id")

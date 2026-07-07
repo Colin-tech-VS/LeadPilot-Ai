@@ -119,9 +119,11 @@ class ChatAccountFlow:
             return None
 
         if last == "account:guest_email":
-            email = vca.extract_email_from_transcript(text)
+            email = vca.extract_email_from_transcript(text) or lead_data.get("email")
             if email:
                 lead_data["email"] = email
+                af["collected_email"] = email
+                af["guest_email"] = email
                 af["account_done"] = True
             return None
 
@@ -195,7 +197,18 @@ class ChatAccountFlow:
                             "account:lookup_retry",
                             "Répondez oui pour créer un compte, ou non pour continuer sans compte.",
                         )
-                elif "account:lookup" not in self.asked_slots or not lead_data.get("email"):
+                elif lead_data.get("email"):
+                    user = vca.lookup_customer(
+                        email=lead_data.get("email"),
+                        phone=self.phone_hint,
+                    )
+                    if user:
+                        lead_data.update(vca.apply_customer_to_lead(user, lead_data))
+                        af["customer_user_id"] = str(user.id)
+                        af["account_done"] = True
+                        return None
+                    af["lookup_failed"] = True
+                elif "account:lookup" not in self.asked_slots:
                     return (
                         "account:lookup",
                         "Très bien. Quelle est l'adresse e-mail de votre compte ?",
@@ -216,7 +229,9 @@ class ChatAccountFlow:
                         "Parfait ! Quel est votre prénom et votre nom, s'il vous plaît ?",
                     )
             if not af.get("pending_email"):
-                if "account:create_email" not in self.asked_slots or not lead_data.get("email"):
+                if lead_data.get("email"):
+                    af["pending_email"] = lead_data["email"]
+                elif "account:create_email" not in self.asked_slots:
                     return (
                         "account:create_email",
                         "Merci. Quelle est votre adresse e-mail ?",
@@ -234,13 +249,19 @@ class ChatAccountFlow:
             return None
 
         if af.get("guest_mode"):
-            if not lead_data.get("email"):
-                return (
-                    "account:guest_email",
-                    "Pas de souci. Indiquez-moi simplement votre adresse e-mail pour recevoir le devis.",
-                )
-            af["account_done"] = True
-            return None
+            email = (
+                lead_data.get("email")
+                or af.get("guest_email")
+                or af.get("collected_email")
+            )
+            if email:
+                lead_data["email"] = email
+                af["account_done"] = True
+                return None
+            return (
+                "account:guest_email",
+                "Pas de souci. Indiquez-moi simplement votre adresse e-mail pour recevoir le devis.",
+            )
 
         if not af.get("has_account"):
             if "account:create_pitch" not in self.asked_slots:

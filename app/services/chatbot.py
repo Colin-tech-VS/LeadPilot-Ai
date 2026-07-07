@@ -37,8 +37,9 @@ Tes objectifs, dans l'ordre :
 RÈGLES DE CONVERSATION :
 - Écris comme un humain : phrases courtes, ton naturel et amical, tutoiement évité (vouvoiement).
 - Pose UNE seule question à la fois. N'accable pas le visiteur.
-- Quand le visiteur donne une information clé (téléphone, adresse), reformule-la brièvement pour confirmer.
+- Quand le visiteur donne une information clé (téléphone, adresse, e-mail), reformule-la brièvement pour confirmer.
 - Ne demande le téléphone qu'après avoir compris le besoin, pas dès le premier message.
+- Si des coordonnées sont déjà connues (e-mail, téléphone, adresse, nom), ne les redemande JAMAIS : réutilise-les dans lead_data.
 - Ne révèle jamais que tu es une IA si on ne te le demande pas ; reste discret et professionnel.
 - Réponds dans la langue du visiteur (français par défaut, anglais s'il écrit en anglais).
 - Reste TOUJOURS dans le périmètre de l'entreprise. Refuse poliment les sujets hors artisanat / dépannage.
@@ -67,10 +68,11 @@ class CommercialChatbot:
         assistant_name: str | None = None,
         trade_type: str | None = None,
         customer_profile: dict | None = None,
+        known_lead: dict | None = None,
     ) -> dict:
         api_key = current_app.config.get("MISTRAL_API_KEY") or os.environ.get("MISTRAL_API_KEY")
         if not api_key:
-            return self._fallback(user_text, conversation_history, customer_profile)
+            return self._fallback(user_text, conversation_history, customer_profile, known_lead)
 
         try:
             return self._reply_mistral(
@@ -83,10 +85,11 @@ class CommercialChatbot:
                 trade_type,
                 api_key,
                 customer_profile,
+                known_lead,
             )
         except Exception:
             logger.exception("Commercial chatbot failed — using fallback")
-            return self._fallback(user_text, conversation_history, customer_profile)
+            return self._fallback(user_text, conversation_history, customer_profile, known_lead)
 
     def _reply_mistral(
         self,
@@ -99,6 +102,7 @@ class CommercialChatbot:
         trade_type: str | None,
         api_key: str,
         customer_profile: dict | None = None,
+        known_lead: dict | None = None,
     ) -> dict:
         from mistralai import Mistral
         from app.constants.trades import trade_label
@@ -135,6 +139,24 @@ class CommercialChatbot:
                     + ", ".join(known)
                     + ". Ne redemande pas le téléphone ni l'e-mail ; confirme seulement si besoin."
                 )
+        if known_lead:
+            known = []
+            if known_lead.get("name"):
+                known.append(f"nom: {known_lead['name']}")
+            if known_lead.get("phone"):
+                known.append(f"téléphone: {known_lead['phone']}")
+            if known_lead.get("email"):
+                known.append(f"e-mail: {known_lead['email']}")
+            if known_lead.get("address"):
+                known.append(f"adresse: {known_lead['address']}")
+            if known_lead.get("summary"):
+                known.append(f"besoin: {known_lead['summary'][:200]}")
+            if known:
+                context_lines.append(
+                    "Coordonnées DÉJÀ COLLECTÉES pendant cette conversation: "
+                    + "; ".join(known)
+                    + ". Ne redemande surtout pas l'e-mail, le téléphone ou l'adresse."
+                )
         context = "\n".join(context_lines)
 
         user_prompt = (
@@ -157,9 +179,15 @@ class CommercialChatbot:
 
         raw = response.choices[0].message.content
         data = json.loads(raw)
-        return self._normalize(data, user_text, customer_profile)
+        return self._normalize(data, user_text, customer_profile, known_lead)
 
-    def _normalize(self, data: dict, user_text: str, customer_profile: dict | None = None) -> dict:
+    def _normalize(
+        self,
+        data: dict,
+        user_text: str,
+        customer_profile: dict | None = None,
+        known_lead: dict | None = None,
+    ) -> dict:
         reply = (data.get("reply") or "").strip()
         if not reply:
             reply = "Bien sûr, pouvez-vous m'en dire un peu plus sur votre besoin ?"
@@ -178,8 +206,19 @@ class CommercialChatbot:
         email = (lead_data.get("email") or "").strip().lower() if lead_data.get("email") else None
         if not email and customer_profile:
             email = (customer_profile.get("email") or "").strip().lower() or None
-        summary = (lead_data.get("summary") or "").strip()
-        lead_ready = bool(data.get("lead_ready")) and bool(phone and email and summary)
+        if not email and known_lead:
+            email = (known_lead.get("email") or "").strip().lower() or None
+        if not phone and known_lead:
+            phone = (known_lead.get("phone") or "").strip() or None
+        if known_lead:
+            for key in ("name", "address", "issue_type", "urgency_level", "summary"):
+                if not lead_data.get(key) and known_lead.get(key):
+                    lead_data[key] = known_lead[key]
+        summary = (lead_data.get("summary") or known_lead.get("summary") if known_lead else "") or ""
+        summary = (summary or "").strip()
+        if not lead_data.get("summary") and summary:
+            lead_data["summary"] = summary
+        lead_ready = bool(phone and email and summary)
         if customer_profile and customer_profile.get("phone") and customer_profile.get("email") and summary:
             lead_ready = True
 
@@ -190,7 +229,13 @@ class CommercialChatbot:
             "intent": intent,
         }
 
-    def _fallback(self, user_text: str, conversation_history: list[dict], customer_profile: dict | None = None) -> dict:
+    def _fallback(
+        self,
+        user_text: str,
+        conversation_history: list[dict],
+        customer_profile: dict | None = None,
+        known_lead: dict | None = None,
+    ) -> dict:
         """Deterministic reply when no LLM key is configured.
 
         Walks a simple script: greet → understand → ask phone → confirm. Enough
@@ -209,6 +254,10 @@ class CommercialChatbot:
         )
         if not email and customer_profile:
             email = (customer_profile.get("email") or "").strip().lower() or None
+        if not email and known_lead:
+            email = (known_lead.get("email") or "").strip().lower() or None
+        if not phone and known_lead:
+            phone = (known_lead.get("phone") or "").strip() or None
 
         if phone and email:
             lead_data = {
@@ -305,6 +354,74 @@ def _summary(conversation_history: list[dict], user_text: str) -> str:
     return " ".join(p for p in parts if p).strip()[:500]
 
 
+def _accumulate_lead_data(
+    lead_data: dict | None,
+    history: list[dict],
+    message: str,
+    account_flow: dict,
+    customer_profile: dict | None,
+) -> dict:
+    """Merge lead fields from prior turns, account flow and the current message."""
+    merged = dict(lead_data) if isinstance(lead_data, dict) else {}
+    user_text = " ".join(
+        t.get("text", "") for t in history if t.get("role") == "user"
+    )
+    user_text = f"{user_text} {message or ''}".strip()
+
+    if not merged.get("summary"):
+        merged["summary"] = _summary(history, message)
+
+    if not merged.get("email"):
+        merged["email"] = (
+            account_flow.get("guest_email")
+            or account_flow.get("collected_email")
+            or account_flow.get("pending_email")
+            or _find_email(user_text)
+            or (customer_profile or {}).get("email")
+        )
+    if merged.get("email"):
+        merged["email"] = str(merged["email"]).strip().lower()
+
+    if not merged.get("phone"):
+        merged["phone"] = (
+            _find_phone(user_text) or (customer_profile or {}).get("phone")
+        )
+
+    if not merged.get("address"):
+        for line in reversed((user_text or "").split(".")):
+            lower = line.lower()
+            if any(
+                token in lower
+                for token in ("rue ", "avenue ", "av ", "bd ", "boulevard ", "habite", "adresse")
+            ):
+                merged["address"] = line.strip()[:500]
+                break
+
+    return merged
+
+
+def _wants_appointment(message: str) -> bool:
+    lower = (message or "").lower()
+    return any(
+        token in lower
+        for token in (
+            "prise de rdv",
+            "prendre rdv",
+            "rendez-vous",
+            "rendez vous",
+            "rdv",
+            "créneau",
+            "creneau",
+            "disponibilit",
+        )
+    )
+
+
+def _wants_devis(message: str) -> bool:
+    lower = (message or "").lower()
+    return any(token in lower for token in ("devis", "par e-mail", "par email", "par mail"))
+
+
 def process_chat_turn(
     tenant_id: str,
     history: list[dict],
@@ -313,6 +430,7 @@ def process_chat_turn(
     customer_profile: dict | None = None,
     account_flow: dict | None = None,
     asked_slots: list[str] | None = None,
+    existing_lead_data: dict | None = None,
 ) -> dict:
     """One chatbot exchange: produce a reply and capture a lead when ready.
 
@@ -345,6 +463,7 @@ def process_chat_turn(
             "lead_captured": False,
             "account_flow": safe_flow,
             "asked_slots": safe_slots,
+            "lead_data": existing_lead_data or {},
         }
     if not allowed and block_reason == "quota":
         return {
@@ -357,6 +476,7 @@ def process_chat_turn(
             "lead_captured": False,
             "account_flow": safe_flow,
             "asked_slots": safe_slots,
+            "lead_data": existing_lead_data or {},
         }
 
     message = (message or "").strip()
@@ -364,6 +484,11 @@ def process_chat_turn(
     account_flow = safe_flow
     asked_slots = safe_slots
     logged_in = bool(customer_profile and customer_profile.get("email"))
+    known_lead = _accumulate_lead_data(
+        existing_lead_data, history, message, account_flow, customer_profile
+    )
+    wants_rdv = _wants_appointment(message)
+    wants_devis = _wants_devis(message)
 
     if logged_in:
         account_flow["account_done"] = True
@@ -384,9 +509,11 @@ def process_chat_turn(
         assistant_name=tenant.ai_assistant_name,
         trade_type=tenant.trade_type,
         customer_profile=customer_profile,
+        known_lead=known_lead,
     )
 
     lead_data = result.get("lead_data") if isinstance(result.get("lead_data"), dict) else {}
+    lead_data = _accumulate_lead_data(lead_data, history, message, account_flow, customer_profile)
     summary = (lead_data.get("summary") or _summary(history, message)).strip()
     phone_hint = (
         (lead_data.get("phone") or "").strip()
@@ -436,8 +563,37 @@ def process_chat_turn(
     if not account_flow.get("account_done") and not logged_in and summary:
         result["lead_ready"] = False
 
+    result["lead_ready"] = bool(
+        lead_data.get("phone") and lead_data.get("email") and (lead_data.get("summary") or summary)
+    )
+
     lead_id = existing_lead_id
     lead_captured = False
+    quote_sent = False
+    from app.services.inbound_call import follow_up_chat_lead, process_inbound_call
+
+    if existing_lead_id and (wants_rdv or wants_devis):
+        try:
+            follow = follow_up_chat_lead(
+                tid,
+                uuid.UUID(str(existing_lead_id)),
+                lead_data,
+                request_booking=wants_rdv,
+                request_devis=wants_devis or wants_rdv,
+            )
+            quote_sent = bool(follow.get("quote_id"))
+            if quote_sent and wants_rdv:
+                result["reply"] = (
+                    "Parfait ! Je viens de vous envoyer le devis par e-mail pour confirmer "
+                    "votre rendez-vous. Signez-le en ligne pour valider l'intervention."
+                )
+            elif quote_sent:
+                result["reply"] = (
+                    "C'est noté : le devis vient de vous être envoyé par e-mail. "
+                    "Consultez-le et signez-le en ligne quand vous le souhaitez."
+                )
+        except Exception:
+            logger.exception("Chat follow-up booking failed lead=%s", existing_lead_id)
 
     if result["lead_ready"] and not existing_lead_id:
         allowed_now, _ = inbound_allowed(tenant)
@@ -460,9 +616,13 @@ def process_chat_turn(
                         tenant_id=tid,
                         phone=phone,
                         transcript=transcript,
+                        lead_override=lead_data,
+                        request_booking=wants_rdv,
+                        send_devis_if_email=True,
                     )
                     lead_id = pipeline.get("lead_id")
                     lead_captured = True
+                    quote_sent = bool(pipeline.get("quote_id"))
                     logger.info("Chatbot captured lead=%s tenant=%s", lead_id, tid)
                 except Exception:
                     logger.exception("Chatbot lead capture failed tenant=%s", tid)
@@ -474,8 +634,10 @@ def process_chat_turn(
         "intent": result["intent"],
         "lead_id": lead_id,
         "lead_captured": lead_captured,
+        "quote_sent": quote_sent,
         "account_flow": account_flow,
         "asked_slots": asked_slots,
+        "lead_data": lead_data,
     }
 
 

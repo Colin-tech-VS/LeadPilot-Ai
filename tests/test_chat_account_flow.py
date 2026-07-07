@@ -26,6 +26,23 @@ def test_chat_account_flow_guest_after_double_no():
     flow.update_from_message("marie.martin@orange.fr", lead)
     assert flow.account_flow["account_done"] is True
     assert lead["email"] == "marie.martin@orange.fr"
+    assert flow.account_flow["guest_email"] == "marie.martin@orange.fr"
+
+
+def test_accumulate_lead_data_keeps_guest_email():
+    from app.services.chatbot import _accumulate_lead_data
+
+    flow = vca.default_account_flow()
+    flow["guest_email"] = "famillejoossencayre@gmail.com"
+    merged = _accumulate_lead_data(
+        {},
+        [{"role": "user", "text": "fuite baignoire"}],
+        "0659555664",
+        flow,
+        None,
+    )
+    assert merged["email"] == "famillejoossencayre@gmail.com"
+    assert merged["phone"] == "0659555664"
 
 
 def test_chat_account_flow_create_pitch_yes():

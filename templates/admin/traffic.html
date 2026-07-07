@@ -7,70 +7,182 @@
     <option value="7">7 jours</option>
     <option value="30" selected>30 jours</option>
     <option value="90">90 jours</option>
+    <option value="365">1 an</option>
   </select>
   <form method="POST" action="{{ url_for('admin.purge_bot_views') }}"
         onsubmit="return confirm('Supprimer toutes les vues de robots des statistiques ?');">
-    <button type="submit" class="admin-btn ghost" title="Retire les hits de robots/outils déjà enregistrés">🧹 Nettoyer robots</button>
+    <button type="submit" class="admin-btn ghost" title="Retire les hits de robots/outils déjà enregistrés">🧹 Robots</button>
   </form>
   <span class="admin-live" id="traffic-updated">—</span>
 {% endblock %}
 
 {% block content %}
-<section class="admin-panel realtime-panel">
-  <div class="realtime-head">
-    <div>
-      <span class="realtime-label"><span class="rt-pulse"></span> Temps réel · 5 dernières minutes</span>
-      <div class="realtime-count"><span id="rt-count" data-count="0">0</span> <span class="realtime-unit">visiteur(s) actif(s)</span></div>
+<div class="traffic-dash">
+
+  {# ── Temps réel compact ── #}
+  <section class="traffic-rt">
+    <div class="traffic-rt-main">
+      <span class="traffic-rt-label"><span class="rt-pulse"></span> Temps réel</span>
+      <span class="traffic-rt-count"><strong id="rt-count" data-count="0">0</strong> actif(s)</span>
     </div>
-    <div class="realtime-spark"><svg id="rt-spark" viewBox="0 0 360 70" preserveAspectRatio="none"></svg>
-      <span class="realtime-spark-label">pages vues / min (30 min)</span>
+    <div class="traffic-rt-spark"><svg id="rt-spark" viewBox="0 0 360 48" preserveAspectRatio="none"></svg></div>
+    <div class="traffic-rt-pages" id="rt-pages"><span class="admin-empty-inline">—</span></div>
+  </section>
+
+  {# ── KPIs acquisition + conversion (hero) ── #}
+  <div class="traffic-kpi-hero">
+    <div class="kpi-card kpi-card--hero">
+      <span class="kpi-label">Taux de conversion</span>
+      <span class="kpi-value" id="cv-rate" data-count="0" data-suffix="%">0</span>
+      <span class="kpi-sub">inscriptions / visiteurs uniques</span>
+      <span class="kpi-trend" id="cv-rate-trend"></span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Visiteurs uniques</span>
+      <span class="kpi-value" id="tk-visitors" data-count="0">0</span>
+      <span class="kpi-trend" id="tk-visitors-trend"></span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Inscriptions</span>
+      <span class="kpi-value" id="cv-signups" data-count="0">0</span>
+      <span class="kpi-trend" id="cv-signups-trend"></span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Pages vues</span>
+      <span class="kpi-value" id="tk-pageviews" data-count="0">0</span>
+      <span class="kpi-trend" id="tk-pageviews-trend"></span>
     </div>
   </div>
-  <div class="realtime-pages">
-    <h3>Pages actives maintenant</h3>
-    <div id="rt-pages" class="rt-pages-list"><span class="admin-empty-inline">Aucune activité pour l'instant.</span></div>
+
+  {# ── Détail conversions ── #}
+  <div class="traffic-conv-strip">
+    <div class="conv-pill">
+      <span class="conv-pill-label">Artisans inscrits</span>
+      <strong id="cv-artisan">0</strong>
+      <span class="conv-pill-rate" id="cv-artisan-rate">0 %</span>
+    </div>
+    <div class="conv-pill">
+      <span class="conv-pill-label">Clients inscrits</span>
+      <strong id="cv-customer">0</strong>
+      <span class="conv-pill-rate" id="cv-customer-rate">0 %</span>
+    </div>
+    <div class="conv-pill">
+      <span class="conv-pill-label">Visiteurs page inscription</span>
+      <strong id="cv-register-visitors">0</strong>
+      <span class="conv-pill-rate" id="cv-register-rate">0 %</span>
+    </div>
+    <div class="conv-pill conv-pill--muted">
+      <span class="conv-pill-label">Visiteurs / inscription</span>
+      <strong id="cv-vps">—</strong>
+    </div>
   </div>
-</section>
 
-<div class="kpi-grid kpi-grid-4">
-  <div class="kpi-card"><span class="kpi-label">Visiteurs uniques</span><span class="kpi-value" id="tk-visitors" data-count="0">0</span><span class="kpi-trend" id="tk-visitors-trend"></span></div>
-  <div class="kpi-card"><span class="kpi-label">Pages vues</span><span class="kpi-value" id="tk-pageviews" data-count="0">0</span><span class="kpi-trend" id="tk-pageviews-trend"></span></div>
-  <div class="kpi-card"><span class="kpi-label">Sessions</span><span class="kpi-value" id="tk-sessions" data-count="0">0</span><span class="kpi-sub"><span id="tk-pps">0</span> pages / session</span></div>
-  <div class="kpi-card"><span class="kpi-label">Taux de rebond</span><span class="kpi-value" id="tk-bounce" data-count="0" data-suffix="%">0</span><span class="kpi-sub">sessions d'une seule page</span></div>
-</div>
+  {# ── KPIs engagement ── #}
+  <div class="traffic-kpi-row">
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Sessions</span>
+      <span class="kpi-value" id="tk-sessions" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Nouvelles sessions</span>
+      <span class="kpi-value" id="tk-new-sessions" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Pages / session</span>
+      <span class="kpi-value" id="tk-pps" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Taux de rebond</span>
+      <span class="kpi-value" id="tk-bounce" data-count="0" data-suffix="%">0</span>
+    </div>
+  </div>
 
-<section class="admin-panel">
-  <h2>Audience — pages vues & visiteurs uniques</h2>
-  <div class="chart-legend"><span class="lg lg-views">Pages vues</span><span class="lg lg-visitors">Visiteurs uniques</span></div>
-  <div class="chart-host"><svg id="traffic-chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg></div>
-</section>
+  {# ── Graphique principal ── #}
+  <section class="admin-panel traffic-panel">
+    <div class="traffic-panel-head">
+      <h2>Évolution de l'audience</h2>
+      <div class="chart-legend">
+        <span class="lg lg-views">Pages vues</span>
+        <span class="lg lg-visitors">Visiteurs uniques</span>
+        <span class="lg lg-signups">Inscriptions</span>
+      </div>
+    </div>
+    <div class="chart-host"><svg id="traffic-chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg></div>
+  </section>
 
-<div class="admin-grid-2">
-  <section class="admin-panel">
+  {# ── Entonnoir + Canaux ── #}
+  <div class="admin-grid-2">
+    <section class="admin-panel traffic-panel">
+      <h2>Entonnoir d'acquisition</h2>
+      <p class="admin-panel-lead">Visiteur → page inscription → compte créé</p>
+      <div id="traffic-funnel" class="funnel funnel--traffic"></div>
+    </section>
+    <section class="admin-panel traffic-panel">
+      <h2>Canaux d'acquisition</h2>
+      <p class="admin-panel-lead">Regroupement type GA4 (direct, organique, social…)</p>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table" id="channels-table">
+          <thead><tr><th>Canal</th><th>Visiteurs</th><th>Vues</th><th>→ Inscription</th><th>Taux</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {# ── Pages + Sources ── #}
+  <div class="admin-grid-2">
+    <section class="admin-panel traffic-panel">
+      <h2>Pages les plus consultées</h2>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table" id="pages-table">
+          <thead><tr><th>Page</th><th>Vues</th><th>Visiteurs</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel traffic-panel">
+      <h2>Sources de trafic</h2>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table" id="referrers-table">
+          <thead><tr><th>Source</th><th>Vues</th><th>Visiteurs</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {# ── UTM + Appareils ── #}
+  <div class="admin-grid-2">
+    <section class="admin-panel traffic-panel">
+      <h2>Campagnes UTM</h2>
+      <p class="admin-panel-lead">Liens trackés (Facebook, newsletters…)</p>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table" id="utm-table">
+          <thead><tr><th>Campagne</th><th>Visiteurs</th><th>Vues</th><th>→ Inscription</th><th>Taux</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel traffic-panel">
+      <h2>Appareils</h2>
+      <div id="devices" class="bars"></div>
+      <h3 class="traffic-subhead">Pays</h3>
+      <div id="top-countries" class="bars"></div>
+    </section>
+  </div>
+
+  {# ── Géographie ── #}
+  <section class="admin-panel traffic-panel">
     <h2>Localisation des visiteurs</h2>
-    <p class="admin-hint" style="margin:-6px 0 12px">Ville et code postal (géolocalisation IP — précision maximale sans GPS).</p>
-    <div id="top-locations" class="rank-list"></div>
-    <h3 style="margin:18px 0 8px;font-size:14px">Pays</h3>
-    <div id="top-countries" class="bars"></div>
+    <p class="admin-panel-lead">Ville et code postal (géolocalisation IP)</p>
+    <div class="traffic-table-wrap">
+      <table class="traffic-table" id="locations-table">
+        <thead><tr><th>Localisation</th><th>Visiteurs</th><th>Vues</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </section>
-  <section class="admin-panel">
-    <h2>Campagnes UTM</h2>
-    <p class="admin-hint" style="margin:-6px 0 12px">Trafic issu des liens trackés (ex. posts Facebook).</p>
-    <div id="utm-campaigns" class="rank-list"></div>
-  </section>
-</div>
 
-<div class="admin-grid-2">
-  <section class="admin-panel">
-    <h2>Pages les plus vues</h2>
-    <div id="top-pages" class="rank-list"></div>
-  </section>
-  <section class="admin-panel">
-    <h2>Sources de trafic</h2>
-    <div id="top-referrers" class="bars"></div>
-    <h2 style="margin-top:20px">Appareils</h2>
-    <div id="devices" class="bars"></div>
-  </section>
 </div>
 {% endblock %}
 

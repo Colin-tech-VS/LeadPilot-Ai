@@ -199,15 +199,19 @@
   }
 
   // ---- traffic dashboard (GA4-style) ----
-  function drawDualLine(svg, series) {
-    if (!svg) return;
+  function drawTripleLine(svg, series) {
+    if (!svg || !series.length) return;
     var W = 720, H = 260, pad = { l: 34, r: 12, t: 16, b: 22 };
     var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, n = series.length;
-    var max = Math.max(1, series.reduce(function (m, d) { return Math.max(m, d.views, d.visitors); }, 0));
+    var max = Math.max(1, series.reduce(function (m, d) {
+      return Math.max(m, d.views || 0, d.visitors || 0, d.signups || 0);
+    }, 0));
     function x(i) { return pad.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw); }
     function y(v) { return pad.t + ih - (v / max) * ih; }
     function path(key) {
-      return series.map(function (d, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d[key]).toFixed(1); }).join(" ");
+      return series.map(function (d, i) {
+        return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d[key] || 0).toFixed(1);
+      }).join(" ");
     }
     var grid = "";
     for (var g = 0; g <= 4; g++) {
@@ -215,15 +219,16 @@
       grid += '<line x1="' + pad.l + '" y1="' + gy + '" x2="' + (W - pad.r) + '" y2="' + gy + '" stroke="#e4e9f2" opacity="0.5"/>';
       grid += '<text x="4" y="' + (gy + 4) + '" fill="#64748b" font-size="10">' + Math.round(max - (max / 4) * g) + '</text>';
     }
-    var viewsLine = path("views"), visLine = path("visitors");
+    var viewsLine = path("views"), visLine = path("visitors"), signLine = path("signups");
     var area = viewsLine + " L" + x(n - 1).toFixed(1) + " " + (pad.t + ih) + " L" + x(0).toFixed(1) + " " + (pad.t + ih) + " Z";
     svg.innerHTML =
       '<defs><linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#059ce0" stop-opacity="0.3"/><stop offset="100%" stop-color="#059ce0" stop-opacity="0"/></linearGradient></defs>' +
+      '<stop offset="0%" stop-color="#059ce0" stop-opacity="0.22"/><stop offset="100%" stop-color="#059ce0" stop-opacity="0"/></linearGradient></defs>' +
       grid +
       '<path d="' + area + '" fill="url(#tGrad)"/>' +
       '<path d="' + viewsLine + '" fill="none" stroke="#059ce0" stroke-width="2.5" class="chart-line"/>' +
-      '<path d="' + visLine + '" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-dasharray="4 4"/>';
+      '<path d="' + visLine + '" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="5 4"/>' +
+      '<path d="' + signLine + '" fill="none" stroke="#059669" stroke-width="2.5"/>';
     var p = svg.querySelector(".chart-line");
     if (p && p.getTotalLength) {
       var len = p.getTotalLength();
@@ -232,6 +237,8 @@
       requestAnimationFrame(function () { p.style.strokeDashoffset = 0; });
     }
   }
+
+  function drawDualLine(svg, series) { drawTripleLine(svg, series); }
 
   function drawSparkline(svg, data) {
     if (!svg) return;
@@ -247,20 +254,41 @@
     svg.innerHTML = bars;
   }
 
-  function rankList(host, items, key) {
+  function drawTrafficFunnel(host, steps) {
     if (!host) return;
-    if (!items.length) { host.innerHTML = '<span class="admin-empty-inline">Pas encore de données.</span>'; return; }
-    var max = Math.max(1, items.reduce(function (m, d) { return Math.max(m, d[key]); }, 0));
-    host.innerHTML = items.map(function (d) {
-      var pct = (d[key] / max) * 100;
-      var label = d.path || d.host || d.label || "";
-      return '<div class="rank-row"><span class="rank-bar" style="width:0" data-w="' + pct + '"></span>' +
-        '<span class="rank-label" title="' + label + '">' + label + '</span>' +
-        '<span class="rank-val">' + fmtInt.format(d[key]) + '</span></div>';
+    if (!steps.length) { host.innerHTML = '<span class="admin-empty-inline">Pas encore de données.</span>'; return; }
+    host.innerHTML = steps.map(function (s, i) {
+      var stepMeta = s.step_rate != null ? "Étape : " + s.step_rate + " %" : "100 % du trafic";
+      return '<div class="funnel-step">' +
+        '<div class="funnel-bar funnel-bar--' + i + '" data-pct="' + s.pct + '">' +
+        fmtInt.format(s.count) + ' · ' + s.label + '</div>' +
+        '<div class="funnel-meta"><span>' + stepMeta + '</span><span>' + s.pct + ' %</span></div></div>';
     }).join("");
     requestAnimationFrame(function () {
-      host.querySelectorAll(".rank-bar").forEach(function (b) { b.style.width = b.getAttribute("data-w") + "%"; });
+      host.querySelectorAll(".funnel-bar").forEach(function (bar) {
+        bar.style.width = Math.max(8, parseFloat(bar.getAttribute("data-pct"))) + "%";
+      });
     });
+  }
+
+  function fillTrafficTable(tableId, rows, emptyMsg) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var tbody = table.querySelector("tbody");
+    if (!tbody) return;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="99" class="traffic-empty">' + (emptyMsg || "Pas encore de données.") + '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.join("");
+  }
+
+  function escHtml(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+
+  function fmtPct(v) {
+    return (Math.round((v || 0) * 10) / 10) + " %";
   }
 
   function applyRealtime(rt) {
@@ -269,46 +297,105 @@
     drawSparkline(document.getElementById("rt-spark"), rt.sparkline || []);
     var pages = document.getElementById("rt-pages");
     if (pages) {
-      if (!rt.active_pages || !rt.active_pages.length) pages.innerHTML = '<span class="admin-empty-inline">Aucune activité pour l\'instant.</span>';
-      else pages.innerHTML = rt.active_pages.map(function (p) {
-        return '<div class="rt-page"><span class="rt-page-path">' + p.path + '</span><span class="rt-page-count">' + p.views + '</span></div>';
-      }).join("");
+      if (!rt.active_pages || !rt.active_pages.length) {
+        pages.innerHTML = '<span class="admin-empty-inline">Aucune activité</span>';
+      } else {
+        pages.innerHTML = rt.active_pages.slice(0, 4).map(function (p) {
+          return '<span class="rt-chip" title="' + escHtml(p.path) + '">' +
+            escHtml(p.path) + ' <em>' + p.views + '</em></span>';
+        }).join("");
+      }
     }
     var dot = document.getElementById("nav-live-dot");
     if (dot) dot.classList.toggle("on", (rt.active_visitors || 0) > 0);
   }
 
-  function setTrend(id, v) {
+  function setTrend(id, v, invert) {
     var el = document.getElementById(id);
     if (!el) return;
+    if (v === null || v === undefined) { el.textContent = ""; return; }
+    var good = invert ? v <= 0 : v >= 0;
     el.textContent = (v >= 0 ? "▲ +" : "▼ ") + v + "%";
-    el.className = "kpi-trend " + (v >= 0 ? "up" : "down");
+    el.className = "kpi-trend " + (good ? "up" : "down");
+  }
+
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
   }
 
   function loadTraffic(days) {
     if (!window.ADMIN_TRAFFIC_URL) return;
     fetch(window.ADMIN_TRAFFIC_URL + "?days=" + days).then(function (r) { return r.json(); }).then(function (d) {
       var k = d.kpis || {};
+      var c = d.conversions || {};
+
       animateValue(document.getElementById("tk-visitors"), k.unique_visitors || 0);
       animateValue(document.getElementById("tk-pageviews"), k.pageviews || 0);
       animateValue(document.getElementById("tk-sessions"), k.sessions || 0);
+      animateValue(document.getElementById("tk-new-sessions"), k.new_sessions || 0);
       animateValue(document.getElementById("tk-bounce"), k.bounce_rate || 0);
+      animateValue(document.getElementById("cv-rate"), c.visitor_to_signup_rate || 0);
+      animateValue(document.getElementById("cv-signups"), c.signups_total || 0);
+
       setTrend("tk-visitors-trend", k.visitors_trend || 0);
       setTrend("tk-pageviews-trend", k.pageviews_trend || 0);
-      var pps = document.getElementById("tk-pps"); if (pps) pps.textContent = k.pages_per_session || 0;
-      drawDualLine(document.getElementById("traffic-chart"), d.timeseries || []);
-      rankList(document.getElementById("top-pages"), d.top_pages || [], "views");
-      rankList(document.getElementById("top-locations"), (d.top_locations || []).map(function (loc) {
-        return { label: loc.label, views: loc.visitors };
-      }), "views");
-      drawBars(document.getElementById("top-countries"), (d.top_countries || []).map(function (c) {
-        return { label: c.label, count: c.visitors };
+      setTrend("cv-signups-trend", c.signups_trend || 0);
+      setTrend("cv-rate-trend", c.signups_trend || 0);
+
+      setText("cv-artisan", fmtInt.format(c.signups_artisan || 0));
+      setText("cv-customer", fmtInt.format(c.signups_customer || 0));
+      setText("cv-register-visitors", fmtInt.format(c.register_visitors || 0));
+      setText("cv-artisan-rate", fmtPct(c.visitor_to_artisan_rate));
+      setText("cv-customer-rate", fmtPct(c.visitor_to_customer_rate));
+      setText("cv-register-rate", fmtPct(c.register_to_signup_rate));
+      setText("cv-vps", c.visitors_per_signup != null ? fmtInt.format(c.visitors_per_signup) : "—");
+
+      var pps = document.getElementById("tk-pps");
+      if (pps) pps.textContent = k.pages_per_session || 0;
+
+      drawTripleLine(document.getElementById("traffic-chart"), d.timeseries || []);
+      drawTrafficFunnel(document.getElementById("traffic-funnel"), d.funnel || []);
+
+      fillTrafficTable("channels-table", (d.channels || []).map(function (ch) {
+        return "<tr><td><strong>" + escHtml(ch.label) + "</strong></td>" +
+          "<td>" + fmtInt.format(ch.visitors) + "</td>" +
+          "<td>" + fmtInt.format(ch.views) + "</td>" +
+          "<td>" + fmtInt.format(ch.register_visitors) + "</td>" +
+          "<td><span class=\"traffic-rate\">" + fmtPct(ch.register_rate) + "</span></td></tr>";
       }));
-      rankList(document.getElementById("utm-campaigns"), (d.utm_campaigns || []).map(function (u) {
-        return { label: u.label, views: u.views };
-      }), "views");
-      drawBars(document.getElementById("top-referrers"), (d.top_referrers || []).map(function (r) { return { label: r.host, count: r.views }; }));
+
+      fillTrafficTable("pages-table", (d.top_pages || []).map(function (p) {
+        return "<tr><td class=\"traffic-path\" title=\"" + escHtml(p.path) + "\">" + escHtml(p.path) + "</td>" +
+          "<td>" + fmtInt.format(p.views) + "</td>" +
+          "<td>" + fmtInt.format(p.visitors || 0) + "</td></tr>";
+      }));
+
+      fillTrafficTable("referrers-table", (d.top_referrers || []).map(function (r) {
+        return "<tr><td>" + escHtml(r.host) + "</td>" +
+          "<td>" + fmtInt.format(r.views) + "</td>" +
+          "<td>" + fmtInt.format(r.visitors || 0) + "</td></tr>";
+      }));
+
+      fillTrafficTable("utm-table", (d.utm_campaigns || []).map(function (u) {
+        return "<tr><td class=\"traffic-path\" title=\"" + escHtml(u.label) + "\">" + escHtml(u.label) + "</td>" +
+          "<td>" + fmtInt.format(u.visitors) + "</td>" +
+          "<td>" + fmtInt.format(u.views) + "</td>" +
+          "<td>" + fmtInt.format(u.register_visitors || 0) + "</td>" +
+          "<td><span class=\"traffic-rate\">" + fmtPct(u.register_rate) + "</span></td></tr>";
+      }));
+
+      fillTrafficTable("locations-table", (d.top_locations || []).map(function (loc) {
+        return "<tr><td>" + escHtml(loc.label) + "</td>" +
+          "<td>" + fmtInt.format(loc.visitors) + "</td>" +
+          "<td>" + fmtInt.format(loc.views) + "</td></tr>";
+      }));
+
+      drawBars(document.getElementById("top-countries"), (d.top_countries || []).map(function (co) {
+        return { label: co.label, count: co.visitors };
+      }));
       drawBars(document.getElementById("devices"), d.devices || []);
+
       applyRealtime(d.realtime || {});
       var upd = document.getElementById("traffic-updated");
       if (upd) upd.textContent = "màj " + new Date().toLocaleTimeString("fr-FR");
@@ -321,7 +408,7 @@
   }
 
   var trafficRange = document.getElementById("traffic-range");
-  if (document.getElementById("rt-count")) {
+  if (document.getElementById("cv-rate")) {
     var td = trafficRange ? trafficRange.value : 30;
     loadTraffic(td);
     if (trafficRange) trafficRange.addEventListener("change", function () { loadTraffic(trafficRange.value); });

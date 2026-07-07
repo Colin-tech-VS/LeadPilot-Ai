@@ -2,6 +2,7 @@
 log. Fully separate from the artisan-facing app: its own auth, templates and
 static assets.
 """
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -15,6 +16,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from sqlalchemy import inspect as sa_inspect, or_
@@ -46,6 +48,7 @@ from app.services import (
     content_ai,
     content_studio,
     diagnostics,
+    google_gsc,
     imap_mailbox,
     social,
     traffic,
@@ -193,6 +196,91 @@ def api_traffic():
 @admin_required
 def api_traffic_realtime():
     return jsonify(traffic.realtime())
+
+
+# ------------------------------------------------------------------ GSC (Google Search Console)
+@admin_bp.route("/gsc")
+@admin_required
+def gsc_page():
+    gsc_status = google_gsc.status()
+    dashboard = {
+        "sites": [],
+        "site_url": None,
+        "summary": None,
+        "queries": [],
+        "pages": [],
+        "error": None,
+    }
+    if google_gsc.is_connected():
+        try:
+            dashboard = google_gsc.dashboard_payload()
+        except google_gsc.GscError as exc:
+            dashboard["error"] = str(exc)
+    return render_template("admin/gsc.html", gsc=gsc_status, dashboard=dashboard)
+
+
+@admin_bp.route("/gsc/connect")
+@admin_required
+def gsc_connect():
+    if not google_gsc.is_configured():
+        flash("Configurez GOOGLE_GSC_CLIENT_ID et GOOGLE_GSC_CLIENT_SECRET.", "error")
+        return redirect(url_for("admin.gsc_page"))
+    state = secrets.token_urlsafe(32)
+    session["gsc_oauth_state"] = state
+    return redirect(google_gsc.build_auth_url(state))
+
+
+@admin_bp.route("/gsc/callback")
+@admin_required
+def gsc_callback():
+    if request.args.get("error"):
+        flash(f"Connexion Google refusée : {request.args.get('error')}", "error")
+        return redirect(url_for("admin.gsc_page"))
+
+    state = request.args.get("state")
+    if not state or state != session.pop("gsc_oauth_state", None):
+        flash("État OAuth invalide — réessayez la connexion.", "error")
+        return redirect(url_for("admin.gsc_page"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("Code d'autorisation Google manquant.", "error")
+        return redirect(url_for("admin.gsc_page"))
+
+    try:
+        google_gsc.exchange_code(code)
+    except google_gsc.GscError as exc:
+        flash(f"Échec de la connexion Search Console : {exc}", "error")
+        return redirect(url_for("admin.gsc_page"))
+
+    flash("Google Search Console connecté.", "success")
+    log_event(
+        CAT_ADMIN,
+        "gsc_connect",
+        summary="Google Search Console connecté",
+        level=LEVEL_SUCCESS,
+    )
+    return redirect(url_for("admin.gsc_page"))
+
+
+@admin_bp.route("/gsc/disconnect", methods=["POST"])
+@admin_required
+def gsc_disconnect():
+    google_gsc.disconnect()
+    flash("Search Console déconnecté.", "success")
+    return redirect(url_for("admin.gsc_page"))
+
+
+@admin_bp.route("/gsc/site", methods=["POST"])
+@admin_required
+def gsc_select_site():
+    site_url = (request.form.get("site_url") or "").strip()
+    if not site_url:
+        flash("Sélectionnez une propriété Search Console.", "error")
+        return redirect(url_for("admin.gsc_page"))
+    google_gsc.set_site_url(site_url)
+    flash(f"Propriété active : {site_url}", "success")
+    return redirect(url_for("admin.gsc_page"))
 
 
 # ------------------------------------------------------------------ database

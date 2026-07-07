@@ -1,15 +1,19 @@
+import logging
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, current_app, g, jsonify, make_response, redirect, render_template, request, session, url_for
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
+
+logger = logging.getLogger(__name__)
 
 from app.core.errors import AppError
 from app.core.i18n import set_language_preference
 from app.core.extensions import db
 from app.core.security import check_rate, rate_limit
 from app.core.web_auth import login_user_to_session, logout_user_session, web_tenant_required
-from app.models.appointment import Appointment
+from app.models.appointment import INACTIVE_STATUSES, Appointment
 from app.models.lead import Lead
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -947,6 +951,27 @@ def unarchive_lead(lead_id):
     return redirect(url_for("web.leads_page", view="archived"))
 
 
+def _appointment_sort_key(appt) -> float:
+    """Timezone-safe sort key for PostgreSQL (aware) and legacy (naive) rows."""
+    dt = appt.date_time
+    if dt is None:
+        return 0.0
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
+def _map_coord(value):
+    """JSON-safe latitude/longitude for Leaflet markers."""
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
 @web_bp.route("/appointments", methods=["GET"])
 @web_tenant_required
 def appointments_page():
@@ -955,27 +980,41 @@ def appointments_page():
     from app.utils.geocoding import geocode_address
 
     DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+    # Nominatim is rate-limited (~1 req/s). Cap per page load so Gunicorn does not time out.
+    max_geocode_per_request = 3
 
     appointments = (
         Appointment.active_query(g.tenant_id)
-        .options(joinedload(Appointment.lead))
+        .options(contains_eager(Appointment.lead))
         .order_by(Appointment.date_time.asc())
         .all()
     )
 
     geocoded = False
+    geocode_attempts = 0
     for appt in appointments:
+        if geocode_attempts >= max_geocode_per_request:
+            break
         lead = appt.lead
         if not lead or not lead.address:
             continue
         if lead.latitude is None or lead.longitude is None:
-            coords = geocode_address(lead.address)
+            geocode_attempts += 1
+            try:
+                coords = geocode_address(lead.address)
+            except Exception:
+                logger.exception("Geocoding failed for lead %s", lead.id)
+                coords = None
             if coords:
                 lead.latitude, lead.longitude = coords
                 geocoded = True
 
     if geocoded:
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            logger.exception("Could not persist geocoded lead coordinates")
+            db.session.rollback()
 
     agenda_by_day = defaultdict(list)
     for appt in appointments:
@@ -998,10 +1037,12 @@ def appointments_page():
 
     tenant = db.session.get(Tenant, g.tenant_id)
     depot = None
-    if tenant and tenant.latitude is not None and tenant.longitude is not None:
+    depot_lat = _map_coord(getattr(tenant, "latitude", None)) if tenant else None
+    depot_lng = _map_coord(getattr(tenant, "longitude", None)) if tenant else None
+    if depot_lat is not None and depot_lng is not None:
         depot = {
-            "lat": tenant.latitude,
-            "lng": tenant.longitude,
+            "lat": depot_lat,
+            "lng": depot_lng,
             "name": tenant.name,
             "label": tenant.city or tenant.name,
         }
@@ -1026,27 +1067,31 @@ def appointments_page():
 
     for appt in appointments:
         lead = appt.lead
-        if not lead or lead.latitude is None or lead.longitude is None:
+        if not lead:
+            continue
+        lat = _map_coord(lead.latitude)
+        lng = _map_coord(lead.longitude)
+        if lat is None or lng is None:
             continue
         map_markers.append(
             {
                 "id": str(appt.id),
-                "lat": lead.latitude,
-                "lng": lead.longitude,
-                "name": lead.name,
-                "phone": lead.phone,
+                "lat": lat,
+                "lng": lng,
+                "name": lead.name or "",
+                "phone": lead.phone or "",
                 "address": lead.address or "",
                 "issue": lead.issue_type or "",
                 "time": appt.date_time.strftime("%H:%M") if appt.date_time else "",
                 "date": appt.date_time.strftime("%d/%m/%Y") if appt.date_time else "",
-                "status": appt.status,
+                "status": appt.status or "scheduled",
                 "is_depot": False,
             }
         )
 
     route_days = []
     for day_key in sorted(agenda_by_day.keys()):
-        day_appts = sorted(agenda_by_day[day_key], key=lambda a: a.date_time or datetime.min)
+        day_appts = sorted(agenda_by_day[day_key], key=_appointment_sort_key)
         stops = []
         if depot:
             stops.append(
@@ -1062,22 +1107,26 @@ def appointments_page():
             )
         for appt in day_appts:
             lead = appt.lead
-            if not lead or lead.latitude is None or lead.longitude is None:
+            if not lead:
                 continue
-            if appt.status in Appointment.INACTIVE_STATUSES:
+            lat = _map_coord(lead.latitude)
+            lng = _map_coord(lead.longitude)
+            if lat is None or lng is None:
+                continue
+            if appt.status in INACTIVE_STATUSES:
                 continue
             stops.append(
                 {
                     "id": str(appt.id),
-                    "lat": lead.latitude,
-                    "lng": lead.longitude,
-                    "name": lead.name,
-                    "phone": lead.phone,
+                    "lat": lat,
+                    "lng": lng,
+                    "name": lead.name or "",
+                    "phone": lead.phone or "",
                     "address": lead.address or "",
                     "issue": lead.issue_type or "",
                     "time": appt.date_time.strftime("%H:%M") if appt.date_time else "",
                     "date": appt.date_time.strftime("%d/%m/%Y") if appt.date_time else "",
-                    "status": appt.status,
+                    "status": appt.status or "scheduled",
                     "is_depot": False,
                 }
             )

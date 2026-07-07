@@ -80,7 +80,7 @@
         </div>
         <div>
           <label for="city">{{ _('settings.city') }}</label>
-          <input type="text" id="city" name="city" value="{{ tenant.city or '' }}" placeholder="Paris">
+          <input type="text" id="city" name="city" class="places-city" value="{{ tenant.city or '' }}" placeholder="Paris" autocomplete="off">
         </div>
       </div>
 

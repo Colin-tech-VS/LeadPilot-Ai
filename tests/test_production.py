@@ -19,6 +19,15 @@ def _production_app():
     return app
 
 
+def test_google_places_key_in_template_context(app):
+    app.config["GOOGLE_PLACES_API_KEY"] = "test-places-key"
+    with app.test_client() as client:
+        response = client.get("/")
+        assert response.status_code == 200
+        assert b"test-places-key" in response.data
+        assert b"google-places.js" in response.data
+
+
 def test_production_config_ok_when_complete():
     validate_production_config(_production_app())
 

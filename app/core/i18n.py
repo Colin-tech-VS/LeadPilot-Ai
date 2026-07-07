@@ -1,4 +1,4 @@
-from flask import g, redirect, request, session, url_for
+from flask import current_app, g, redirect, request, session, url_for
 
 from app.utils.i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, get_lang
 
@@ -27,6 +27,7 @@ def register_i18n(app):
             "lang": lang,
             "site_base_url": site_base_url,
             "canonical_url": canonical_url,
+            "google_places_api_key": current_app.config.get("GOOGLE_PLACES_API_KEY", ""),
             "_": lambda key, **kwargs: translate(key, lang, **kwargs),
             "status_label": lambda s: status_label(s, lang),
             "urgency_label": lambda u: urgency_label(u, lang),

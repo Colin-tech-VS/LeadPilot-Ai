@@ -58,7 +58,7 @@
         <div class="auth-form-row">
           <div>
             <label for="city">{{ _('register.city') }}</label>
-            <input type="text" id="city" name="city" value="{{ form.get('city', '') }}" placeholder="Paris">
+            <input type="text" id="city" name="city" class="places-city" value="{{ form.get('city', '') }}" placeholder="Paris" autocomplete="off">
           </div>
           <div>
             <label for="phone">{{ _('register.phone') }}</label>

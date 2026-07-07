@@ -42,6 +42,9 @@
           <span class="nav-ico">🌐</span> Trafic
           <span class="nav-live-dot" id="nav-live-dot"></span>
         </a>
+        <a href="{{ url_for('admin.gsc_page') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.gsc') %}active{% endif %}">
+          <span class="nav-ico">🔍</span> Search Console
+        </a>
         <div class="admin-nav-sep">Studio</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">
           <span class="nav-ico">💶</span> Offres &amp; prix

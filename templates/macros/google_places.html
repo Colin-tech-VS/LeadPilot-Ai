@@ -1,0 +1,12 @@
+{% macro google_places_scripts() %}
+{% if google_places_api_key %}
+<link rel="preconnect" href="https://maps.googleapis.com">
+<script>
+  window.PilotCore_PLACES = {
+    apiKey: {{ google_places_api_key|tojson }},
+    lang: {{ lang|default('fr')|tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/google-places.js') }}?v=1" defer></script>
+{% endif %}
+{% endmacro %}

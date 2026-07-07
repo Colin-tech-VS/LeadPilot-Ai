@@ -1,4 +1,5 @@
 {% from 'macros/brand.html' import brand_logo with context %}
+{% from 'macros/google_places.html' import google_places_scripts with context %}
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
@@ -134,6 +135,7 @@
   </script>
   <script src="{{ url_for('static', filename='js/notifications.js') }}?v=3"></script>
   {% endif %}
+  {{ google_places_scripts() }}
   {% block scripts %}{% endblock %}
 </body>
 </html>

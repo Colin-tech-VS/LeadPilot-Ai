@@ -33,6 +33,12 @@
   {% if request.args.get('profile') == 'ok' %}
   <div class="alert alert-success">Vos informations ont été mises à jour.</div>
   {% endif %}
+  {% if request.args.get('password') == 'ok' %}
+  <div class="alert alert-success">{{ _('customer.account.password_updated') }}</div>
+  {% endif %}
+  {% if profile_error %}
+  <div class="alert alert-error">{{ profile_error }}</div>
+  {% endif %}
 
   <div class="customer-dashboard-grid">
     <aside class="customer-dashboard-side">
@@ -46,6 +52,16 @@
           <label for="pf-phone">Téléphone</label>
           <input type="tel" id="pf-phone" name="phone" value="{{ user.phone or '' }}" placeholder="+33 6 12 34 56 78">
           <p class="customer-profile-email">E-mail : {{ user.email }}</p>
+
+          <div class="customer-profile-security">
+            <h3 class="customer-profile-subtitle">{{ _('customer.account.security') }}</h3>
+            <p class="customer-profile-hint">{{ _('settings.section.account_hint') }}</p>
+            <label for="new_password">{{ _('settings.new_password') }}</label>
+            <input type="password" id="new_password" name="new_password" autocomplete="new-password" placeholder="{{ _('settings.password_placeholder') }}">
+            <label for="confirm_password">{{ _('settings.confirm_password') }}</label>
+            <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password">
+          </div>
+
           <button type="submit" class="btn btn-outline btn-block">Enregistrer</button>
         </form>
         <p class="customer-profile-hint">Ces informations sont transmises automatiquement à l'assistant IA et aux artisans lors de vos réservations.</p>

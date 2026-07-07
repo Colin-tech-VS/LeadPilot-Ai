@@ -1,0 +1,177 @@
+{% extends "admin/base.html" %}
+{% block title %}Search Console · Admin{% endblock %}
+{% block page_title %}Google Search Console{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ gsc.console_url }}" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer">Ouvrir GSC ↗</a>
+<a href="{{ gsc.cloud_console_url }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer">Credentials Google ↗</a>
+{% endblock %}
+
+{% block content %}
+{% if not gsc.configured %}
+<div class="admin-notice">
+  OAuth Google non configuré. Ajoutez <code>GOOGLE_GSC_CLIENT_ID</code> et
+  <code>GOOGLE_GSC_CLIENT_SECRET</code> sur Scalingo (projet Google Cloud → APIs &amp; Services → Credentials → OAuth 2.0).
+</div>
+{% endif %}
+
+<section class="admin-panel" style="margin-bottom:16px">
+  <h2>URI de redirection OAuth</h2>
+  <p class="admin-hint">
+    Dans Google Cloud Console → votre client OAuth « Web application », ajoutez exactement cette URI
+    dans <strong>Authorized redirect URIs</strong> :
+  </p>
+  <div class="admin-code-block">
+    <code id="gsc-redirect-uri">{{ gsc.redirect_uri }}</code>
+    <button type="button" class="admin-btn ghost tiny" id="copy-redirect-uri">Copier</button>
+  </div>
+  <p class="admin-hint" style="margin-top:10px">
+    En local : ajoutez aussi <code>http://localhost:5000/admin/gsc/callback</code> si vous testez en développement.
+    Activez l'API <strong>Google Search Console API</strong> sur le même projet Google Cloud.
+  </p>
+</section>
+
+{% if gsc.configured %}
+  {% if gsc.connected %}
+  <div class="connect-banner ok" style="margin-bottom:16px">
+    <span style="font-size:22px">✅</span>
+    <div style="flex:1;min-width:0">
+      <strong>Search Console connecté</strong>
+      <div class="studio-item-meta">
+        {% if gsc.user_email %}{{ gsc.user_email }}{% else %}Compte Google{% endif %}
+        {% if dashboard.site_url %} · {{ dashboard.site_url }}{% endif %}
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('admin.gsc_disconnect') }}">
+      <button type="submit" class="admin-btn danger tiny">Déconnecter</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="connect-banner" style="margin-bottom:16px">
+    <span style="font-size:22px">🔍</span>
+    <div style="flex:1;min-width:260px">
+      <strong>Connecter Google Search Console</strong>
+      <div class="studio-item-meta">Autorisez PilotCore à lire les performances SEO (clics, impressions, requêtes).</div>
+    </div>
+    <a href="{{ url_for('admin.gsc_connect') }}" class="admin-btn">Se connecter avec Google</a>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% if gsc.connected %}
+  {% if dashboard.error %}
+  <div class="admin-flash admin-flash-error" style="margin-bottom:16px">{{ dashboard.error }}</div>
+  {% endif %}
+
+  {% if dashboard.sites %}
+  <form method="POST" action="{{ url_for('admin.gsc_select_site') }}" class="admin-panel" style="margin-bottom:16px">
+    <h2>Propriété suivie</h2>
+    <div class="field-row">
+      <label class="field" style="flex:1">
+        <span>Site dans Search Console</span>
+        <select name="site_url" required>
+          {% for site in dashboard.sites %}
+          <option value="{{ site.site_url }}" {% if site.site_url == dashboard.site_url %}selected{% endif %}>
+            {{ site.site_url }} ({{ site.permission_level }})
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="field" style="justify-content:flex-end">
+        <button type="submit" class="admin-btn">Enregistrer</button>
+      </div>
+    </div>
+    {% if dashboard.start_date and dashboard.end_date %}
+    <p class="admin-hint">Période : {{ dashboard.start_date }} → {{ dashboard.end_date }} (données GSC avec ~3 jours de délai).</p>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  {% if dashboard.summary %}
+  <div class="accounts-kpi-grid" style="margin-bottom:16px">
+    <div class="kpi-card">
+      <span class="kpi-label">Clics</span>
+      <span class="kpi-value">{{ dashboard.summary.clicks }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Impressions</span>
+      <span class="kpi-value">{{ dashboard.summary.impressions }}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">CTR</span>
+      <span class="kpi-value">{{ dashboard.summary.ctr }} %</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Position moy.</span>
+      <span class="kpi-value">{{ dashboard.summary.position }}</span>
+    </div>
+  </div>
+
+  <div class="admin-grid-2">
+    <section class="admin-panel">
+      <h2>Top requêtes</h2>
+      {% if dashboard.queries %}
+      <table class="data-table accounts-table">
+        <thead>
+          <tr><th>Requête</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
+        </thead>
+        <tbody>
+          {% for row in dashboard.queries %}
+          <tr>
+            <td>{{ row.keys[0] if row.keys else '—' }}</td>
+            <td>{{ row.clicks or 0 }}</td>
+            <td>{{ row.impressions or 0 }}</td>
+            <td>{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
+            <td>{{ '%.1f'|format(row.position or 0) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="admin-hint">Pas encore de données pour cette période.</p>
+      {% endif %}
+    </section>
+
+    <section class="admin-panel">
+      <h2>Top pages</h2>
+      {% if dashboard.pages %}
+      <table class="data-table accounts-table">
+        <thead>
+          <tr><th>Page</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th></tr>
+        </thead>
+        <tbody>
+          {% for row in dashboard.pages %}
+          <tr>
+            <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.keys[0] if row.keys else '' }}">{{ row.keys[0] if row.keys else '—' }}</td>
+            <td>{{ row.clicks or 0 }}</td>
+            <td>{{ row.impressions or 0 }}</td>
+            <td>{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
+            <td>{{ '%.1f'|format(row.position or 0) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="admin-hint">Pas encore de données pour cette période.</p>
+      {% endif %}
+    </section>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var btn = document.getElementById('copy-redirect-uri');
+  var el = document.getElementById('gsc-redirect-uri');
+  if (!btn || !el) return;
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(el.textContent.trim()).then(function () {
+      btn.textContent = 'Copié ✓';
+      setTimeout(function () { btn.textContent = 'Copier'; }, 2000);
+    });
+  });
+})();
+</script>
+{% endblock %}

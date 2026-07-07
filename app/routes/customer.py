@@ -27,6 +27,7 @@ from app.models.lead import Lead
 from app.models.quote import DOC_DEVIS, STATUS_SENT, Quote
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.utils.i18n import translate
 from app.utils.validation import validate_email
 
 logger = logging.getLogger(__name__)
@@ -239,6 +240,25 @@ def _pending_quotes(user: User) -> list[dict]:
     return items
 
 
+def _account_context(user: User, **extra):
+    bookings = _build_bookings(user)
+    upcoming = [b for b in bookings if b["is_upcoming"]]
+    pending = [b for b in bookings if b["is_pending_signature"]]
+    past = [b for b in bookings if not b["is_upcoming"] and not b["is_pending_signature"]]
+    return {
+        "user": user,
+        "bookings": bookings,
+        "upcoming": upcoming,
+        "pending": pending,
+        "past": past,
+        "pending_quotes": _pending_quotes(user),
+        "upcoming_count": len(upcoming),
+        "pending_count": len(pending),
+        "total_count": len(bookings),
+        **extra,
+    }
+
+
 @customer_bp.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id") and session.get("role") == "customer":
@@ -334,33 +354,63 @@ def logout():
 @customer_bp.route("/account", methods=["GET"])
 @web_customer_required
 def account():
-    user = g.current_user
-    bookings = _build_bookings(user)
-    upcoming = [b for b in bookings if b["is_upcoming"]]
-    pending = [b for b in bookings if b["is_pending_signature"]]
-    past = [b for b in bookings if not b["is_upcoming"] and not b["is_pending_signature"]]
-    return render_template(
-        "customer/account.html",
-        user=user,
-        bookings=bookings,
-        upcoming=upcoming,
-        pending=pending,
-        past=past,
-        pending_quotes=_pending_quotes(user),
-        upcoming_count=len(upcoming),
-        pending_count=len(pending),
-        total_count=len(bookings),
-    )
+    return render_template("customer/account.html", **_account_context(g.current_user))
 
 
 @customer_bp.route("/profile", methods=["POST"])
 @web_customer_required
 def update_profile():
     user = g.current_user
-    user.first_name = (request.form.get("first_name") or "").strip() or user.first_name
-    user.last_name = (request.form.get("last_name") or "").strip() or None
-    user.phone = (request.form.get("phone") or "").strip() or None
+    error = None
+
+    first_name = (request.form.get("first_name") or "").strip()
+    last_name = (request.form.get("last_name") or "").strip() or None
+    phone = (request.form.get("phone") or "").strip() or None
+    new_password = request.form.get("new_password") or ""
+    confirm_password = request.form.get("confirm_password") or ""
+
+    if not first_name:
+        error = translate("customer.account.error.first_name_required")
+    elif new_password:
+        if len(new_password) < 8:
+            error = translate("settings.error.password_short")
+        elif new_password != confirm_password:
+            error = translate("settings.error.password_mismatch")
+        else:
+            from app.utils.validation import validate_password
+
+            try:
+                validate_password(new_password)
+            except AppError:
+                error = translate("settings.error.password_short")
+
+    if error:
+        user.first_name = first_name or user.first_name
+        user.last_name = last_name
+        user.phone = phone
+        return render_template(
+            "customer/account.html",
+            **_account_context(user, profile_error=error),
+        )
+
+    user.first_name = first_name
+    user.last_name = last_name
+    user.phone = phone
+    password_changed = bool(new_password)
+    if password_changed:
+        user.set_password(new_password)
+
     db.session.commit()
+
+    if password_changed:
+        try:
+            from app.services.transactional_email import send_password_changed
+
+            send_password_changed(user)
+        except Exception:
+            logger.exception("Password-changed email failed user=%s", user.id)
+        return redirect(url_for("customer.account", password="ok"))
+
     return redirect(url_for("customer.account", profile="ok"))
 
 

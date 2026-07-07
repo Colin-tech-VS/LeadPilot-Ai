@@ -24,6 +24,8 @@
       <label for="password">{{ _('login.password') }}</label>
       <input type="password" id="password" name="password" required>
 
+      <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
+
       <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('customer.login.submit') }}</button>
     </form>
 

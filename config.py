@@ -140,6 +140,14 @@ class Config:
     )
     SERVER_NAME = None
 
+    # Google Places Autocomplete (city fields). Restrict the key by HTTP referrer
+    # in Google Cloud Console (Maps JavaScript API + Places API).
+    GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
+
+    # Google Search Console (OAuth admin dashboard at /admin/gsc)
+    GOOGLE_GSC_CLIENT_ID = os.environ.get("GOOGLE_GSC_CLIENT_ID", "")
+    GOOGLE_GSC_CLIENT_SECRET = os.environ.get("GOOGLE_GSC_CLIENT_SECRET", "")
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""

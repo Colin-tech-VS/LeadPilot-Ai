@@ -1820,6 +1820,8 @@ html {
   width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px;
 }
 .customer-profile-email { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); }
+.customer-profile-security { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.customer-profile-subtitle { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--text); }
 .customer-profile-hint { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 .customer-dash-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
 .customer-kpi { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }

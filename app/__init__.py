@@ -46,6 +46,7 @@ def create_app(config_object=None):
     register_error_handlers(app)
     register_i18n(app)
     register_blueprints(app)
+    _register_plan_context(app)
 
     from app.core.production import register_security_headers, validate_production_config
 
@@ -67,6 +68,28 @@ def create_app(config_object=None):
         _backfill_directory_visibility()
 
     return app
+
+
+def _register_plan_context(app):
+    """Inject plan capabilities for logged-in artisans."""
+
+    @app.context_processor
+    def inject_plan_caps():
+        from flask import g
+
+        tenant_id = getattr(g, "tenant_id", None)
+        if not tenant_id:
+            return {}
+        try:
+            from app.models.tenant import Tenant
+            from app.services.plan_features import plan_summary
+
+            tenant = db.session.get(Tenant, tenant_id)
+            if tenant:
+                return {"plan_caps": plan_summary(tenant)}
+        except Exception:
+            pass
+        return {}
 
 
 def _backfill_directory_visibility():

@@ -329,10 +329,40 @@ def process_chat_turn(
     if not tenant:
         raise NotFoundError("Unknown chatbot")
 
+    from app.services.plan_features import inbound_allowed
+
+    allowed, block_reason = inbound_allowed(tenant)
+    safe_flow = _sanitize_account_flow(account_flow)
+    safe_slots = _sanitize_asked_slots(asked_slots)
+    if not allowed and block_reason == "expired":
+        return {
+            "reply": (
+                "Ce service n'est pas disponible pour le moment. "
+                "Merci de contacter l'artisan par téléphone."
+            ),
+            "intent": "end",
+            "lead_id": existing_lead_id,
+            "lead_captured": False,
+            "account_flow": safe_flow,
+            "asked_slots": safe_slots,
+        }
+    if not allowed and block_reason == "quota":
+        return {
+            "reply": (
+                "L'assistant a atteint la limite d'appels ce mois-ci. "
+                "Merci de contacter l'artisan directement par téléphone."
+            ),
+            "intent": "end",
+            "lead_id": existing_lead_id,
+            "lead_captured": False,
+            "account_flow": safe_flow,
+            "asked_slots": safe_slots,
+        }
+
     message = (message or "").strip()
     history = history if isinstance(history, list) else []
-    account_flow = _sanitize_account_flow(account_flow)
-    asked_slots = _sanitize_asked_slots(asked_slots)
+    account_flow = safe_flow
+    asked_slots = safe_slots
     logged_in = bool(customer_profile and customer_profile.get("email"))
 
     if logged_in:
@@ -410,30 +440,34 @@ def process_chat_turn(
     lead_captured = False
 
     if result["lead_ready"] and not existing_lead_id:
-        lead_data = result.get("lead_data") or {}
-        phone = (lead_data.get("phone") or "").strip()
-        email = (lead_data.get("email") or "").strip().lower()
-        if not phone and customer_profile:
-            phone = (customer_profile.get("phone") or "").strip()
-        if not email and customer_profile:
-            email = (customer_profile.get("email") or "").strip().lower()
-        if phone and email:
-            if customer_profile and not lead_data.get("name"):
-                lead_data["name"] = customer_profile.get("name")
-            if customer_profile and not lead_data.get("email"):
-                lead_data["email"] = customer_profile.get("email")
-            transcript = _build_transcript(history, message, lead_data)
-            try:
-                pipeline = process_inbound_call(
-                    tenant_id=tid,
-                    phone=phone,
-                    transcript=transcript,
-                )
-                lead_id = pipeline.get("lead_id")
-                lead_captured = True
-                logger.info("Chatbot captured lead=%s tenant=%s", lead_id, tid)
-            except Exception:
-                logger.exception("Chatbot lead capture failed tenant=%s", tid)
+        allowed_now, _ = inbound_allowed(tenant)
+        if allowed_now:
+            lead_data = result.get("lead_data") or {}
+            phone = (lead_data.get("phone") or "").strip()
+            email = (lead_data.get("email") or "").strip().lower()
+            if not phone and customer_profile:
+                phone = (customer_profile.get("phone") or "").strip()
+            if not email and customer_profile:
+                email = (customer_profile.get("email") or "").strip().lower()
+            if phone and email:
+                if customer_profile and not lead_data.get("name"):
+                    lead_data["name"] = customer_profile.get("name")
+                if customer_profile and not lead_data.get("email"):
+                    lead_data["email"] = customer_profile.get("email")
+                transcript = _build_transcript(history, message, lead_data)
+                try:
+                    pipeline = process_inbound_call(
+                        tenant_id=tid,
+                        phone=phone,
+                        transcript=transcript,
+                    )
+                    lead_id = pipeline.get("lead_id")
+                    lead_captured = True
+                    logger.info("Chatbot captured lead=%s tenant=%s", lead_id, tid)
+                except Exception:
+                    logger.exception("Chatbot lead capture failed tenant=%s", tid)
+        else:
+            result["lead_ready"] = False
 
     return {
         "reply": result["reply"],

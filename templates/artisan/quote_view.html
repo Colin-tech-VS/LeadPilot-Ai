@@ -75,12 +75,16 @@
       <span>📧 {{ _('quotes.channel_email') }}
         <em>{{ quote.client_email or _('quotes.channel_no_email') }}</em></span>
     </label>
-    <label class="quote-send-channel{% if not quote.client_phone %} is-disabled{% endif %}">
-      <input type="checkbox" name="channel" value="sms" {% if quote.client_phone %}checked{% else %}disabled{% endif %}>
+    <label class="quote-send-channel{% if not quote.client_phone or (plan_caps and not plan_caps.features.sms_email_notifications) %} is-disabled{% endif %}">
+      <input type="checkbox" name="channel" value="sms"
+             {% if quote.client_phone and (not plan_caps or plan_caps.features.sms_email_notifications) %}checked{% else %}disabled{% endif %}>
       <span>💬 {{ _('quotes.channel_sms') }}
         <em>{{ quote.client_phone or _('quotes.channel_no_phone') }}</em></span>
     </label>
   </div>
+  {% if plan_caps and not plan_caps.features.sms_email_notifications %}
+  <p class="quote-send-rib quote-send-rib-warn">🔒 {{ _('plan.sms_locked') }} <a href="{{ url_for('billing.billing_page') }}">{{ _('plan.upgrade_cta') }}</a></p>
+  {% endif %}
   {% if quote.deposit_amount %}
     {% if tenant.has_bank_details %}
     <p class="quote-send-rib">💶 {{ _('quotes.send_rib_included', amount='%.2f'|format(quote.deposit_amount)) }}</p>

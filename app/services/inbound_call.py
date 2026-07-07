@@ -20,11 +20,22 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
     if not tenant:
         raise NotFoundError("Tenant not found")
 
+    from app.services.plan_features import inbound_allowed
+
+    allowed, block_reason = inbound_allowed(tenant)
+    if not allowed:
+        raise NotFoundError(
+            "Subscription inactive" if block_reason == "expired" else "Monthly call quota reached"
+        )
+
     extractor = LeadExtractor()
     extracted = extractor.extract(transcript=transcript, phone=phone)
 
     booking_engine = BookingEngine()
     booking = booking_engine.process_lead(extracted, tenant)
+    from app.services.plan_features import apply_booking_plan_limits, has_feature
+
+    booking = apply_booking_plan_limits(tenant, booking)
 
     client_email = (extracted.get("email") or "").strip().lower() or None
 
@@ -53,6 +64,10 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
             booking["email_missing"] = True
             lead.set_booking(booking)
             logger.warning("BOOK_NOW deferred — no email lead=%s", lead.id)
+        elif not has_feature(tenant, "auto_booking"):
+            booking["action"] = "CALL_BACK"
+            booking["plan_limited"] = True
+            lead.set_booking(booking)
         else:
             slot = datetime.fromisoformat(booking["suggested_slot"].replace("Z", "+00:00"))
             appointment = hold_tentative_appointment(tenant_id, lead.id, slot)
@@ -117,7 +132,13 @@ def process_inbound_call(tenant_id: uuid.UUID, phone: str, transcript: str) -> d
 def _send_devis_for_signature(lead, tenant, appointment=None) -> str | None:
     """Generate and email a pre-signed devis. Email is mandatory."""
     from app.services import quote_engine
+    from app.services.plan_features import has_feature
     from app.services.quote_delivery import send_quote
+
+    if not has_feature(tenant, "auto_booking"):
+        return None
+    if not has_feature(tenant, "sms_email_notifications"):
+        return None
 
     if not (lead.email or "").strip():
         logger.warning("Cannot send devis without email lead=%s", lead.id)
@@ -144,6 +165,10 @@ def _send_devis_for_signature(lead, tenant, appointment=None) -> str | None:
 
 def _text_devis_link(quote, tenant, lead) -> bool:
     """SMS the client the link to their pre-signed devis (best-effort)."""
+    from app.services.plan_features import has_feature
+
+    if not has_feature(tenant, "sms_email_notifications"):
+        return False
     from flask import url_for
 
     from app.services.sms import send_sms

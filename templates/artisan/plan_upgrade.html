@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('plan.upgrade_title') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ _('plan.upgrade_title') }}</h1>
+  <p class="subtitle">{{ _('plan.upgrade_subtitle', plan=required_plan) }}</p>
+</div>
+
+<section class="card plan-upgrade-card">
+  <p>{{ _('plan.upgrade_body') }}</p>
+  <div class="plan-upgrade-actions">
+    <a href="{{ url_for('billing.billing_page') }}" class="btn btn-primary">{{ _('plan.upgrade_cta') }}</a>
+    <a href="{{ url_for('web.dashboard') }}" class="btn btn-outline">{{ _('plan.upgrade_back') }}</a>
+  </div>
+</section>
+
+<style>
+  .plan-upgrade-card { max-width: 560px; padding: 1.4rem 1.5rem; }
+  .plan-upgrade-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+</style>
+{% endblock %}

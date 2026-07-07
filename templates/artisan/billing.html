@@ -70,7 +70,9 @@
       <span class="plan-usage-count">{{ call_usage }} / {{ quota }}</span>
     </div>
     <div class="plan-usage-bar"><span style="width: {{ pct }}%"></span></div>
-    {% if call_overage > 0 %}
+    {% if call_usage >= quota %}
+    <p class="plan-usage-over-note">{{ _('plan.quota_reached') }}</p>
+    {% elif call_overage > 0 %}
     <p class="plan-usage-over-note">{{ _('billing.usage_over', count=call_overage, amount=overage_amount) }}</p>
     {% endif %}
   </div>

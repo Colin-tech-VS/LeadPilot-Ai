@@ -383,6 +383,7 @@ def artisan_profile(slug):
     from app.constants.trades import trade_icon, trade_label, trade_schema_type
     from app.services.artisan_directory import get_public_artisan_by_slug
     from app.services.availability import list_available_slots
+    from app.services.plan_features import has_feature
 
     def _tel_href(phone):
         if not phone:
@@ -429,6 +430,7 @@ def artisan_profile(slug):
     return render_template(
         "public/artisan_profile.html",
         tenant=tenant,
+        online_booking_enabled=has_feature(tenant, "auto_booking"),
         trade_label=trade_label(tenant.trade_type, lang),
         trade_icon=trade_icon(tenant.trade_type),
         trade_schema_type=trade_schema_type(tenant.trade_type),
@@ -868,6 +870,15 @@ def marketing_page():
     """Segmentation marketing / SAV — completed clients grouped into segments
     the plumber can run an SMS / e-mail campaign against."""
     from app.services import marketing
+    from app.services.plan_features import has_feature
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    if not has_feature(tenant, "crm_marketing"):
+        return render_template(
+            "artisan/plan_upgrade.html",
+            feature="crm_marketing",
+            required_plan="Premium",
+        )
 
     segments = marketing.build_segments(g.tenant_id)
     result = session.pop("marketing_result", None)
@@ -884,6 +895,12 @@ def marketing_page():
 def marketing_send():
     """Send a one-off campaign to a segment of completed clients."""
     from app.services import marketing, notifications
+    from app.services.plan_features import has_feature
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    if not has_feature(tenant, "crm_marketing"):
+        session["marketing_result"] = {"error": "plan"}
+        return redirect(url_for("web.marketing_page"))
 
     segment_key = (request.form.get("segment") or "").strip()
     channel = (request.form.get("channel") or "sms").strip()
@@ -1187,12 +1204,14 @@ def settings_page():
 
         if not error:
             from app.constants.trades import TRADES
+            from app.services.plan_features import has_feature
             from app.utils.slug import slugify, unique_public_slug
 
             tenant.name = name
             tenant.first_name = first_name
             tenant.last_name = last_name
-            tenant.ai_assistant_name = ai_assistant_name
+            if has_feature(tenant, "ai_customization"):
+                tenant.ai_assistant_name = ai_assistant_name
             tenant.trade_type = trade_type if trade_type in TRADES else tenant.trade_type
             tenant.is_public = is_public
             tenant.public_blurb = public_blurb

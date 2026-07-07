@@ -251,6 +251,8 @@
           <div class="alert alert-error">Ce créneau vient d'être réservé. Choisissez-en un autre.</div>
           {% elif request.args.get('booking') == 'noslot' %}
           <div class="alert alert-error">Merci de sélectionner un créneau.</div>
+          {% elif request.args.get('booking') == 'unavailable' %}
+          <div class="alert alert-error">La réservation en ligne n'est pas disponible pour cet artisan. Contactez-le par téléphone ou via le chat.</div>
           {% elif request.args.get('booking') == 'pending' and pending_booking and customer_profile %}
           <div class="alert alert-success booking-pending-banner">
             Créneau sélectionné — confirmez votre réservation ci-dessous.
@@ -268,7 +270,7 @@
           </div>
           {% endif %}
 
-          {% if slot_items %}
+          {% if online_booking_enabled and slot_items %}
           <form method="post" action="{{ url_for('customer.book', slug=tenant.public_slug) }}" id="booking-form">
             <input type="hidden" name="slot_iso" id="booking-slot-iso" value="{{ pending_booking.slot_iso if pending_booking and pending_booking.slug == tenant.public_slug else '' }}">
             <div class="slot-grid profile-slot-grid" id="slot-grid">
@@ -287,6 +289,11 @@
             <p class="booking-login-note">Connectez-vous ou <a href="{{ url_for('customer.login') }}">créez un compte</a> — vos coordonnées seront pré-remplies.</p>
             {% endif %}
           </form>
+          {% elif not online_booking_enabled %}
+          <p class="directory-empty-inline">La prise de rendez-vous en ligne n'est pas activée. Utilisez le chat ou appelez l'artisan.</p>
+          {% if primary_phone and tel_primary %}
+          <a href="{{ tel_primary }}" class="btn btn-primary btn-block">{{ _('profile.call_ai') }}</a>
+          {% endif %}
           {% else %}
           <p class="directory-empty-inline">{{ _('directory.no_slots') }}</p>
           {% if primary_phone and tel_primary %}

@@ -37,8 +37,13 @@
       </div>
 
       <label for="ai_assistant_name">{{ _('settings.ai_assistant_name') }}</label>
+      {% if plan_caps and plan_caps.features.ai_customization %}
       <input type="text" id="ai_assistant_name" name="ai_assistant_name" value="{{ tenant.ai_assistant_name or '' }}" placeholder="{{ _('settings.ai_assistant_name_placeholder') }}" maxlength="100">
       <p class="field-hint">{{ _('settings.ai_assistant_name_hint') }}</p>
+      {% else %}
+      <input type="text" id="ai_assistant_name" value="{{ tenant.ai_assistant_name or '' }}" placeholder="{{ _('settings.ai_assistant_name_placeholder') }}" maxlength="100" disabled>
+      <p class="field-hint plan-locked-hint">🔒 {{ _('plan.ai_customization_locked') }} <a href="{{ url_for('billing.billing_page') }}">{{ _('plan.upgrade_cta') }}</a></p>
+      {% endif %}
 
       <label for="siret">{{ _('settings.siret') }}</label>
       <input type="text" id="siret" name="siret" value="{{ tenant.siret or '' }}" placeholder="12345678901234" maxlength="17">

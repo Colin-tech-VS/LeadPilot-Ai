@@ -74,11 +74,10 @@ class TwilioVoiceHandler:
     def handle_inbound(self, tenant_id: str, call_sid: str, caller_phone: str) -> str:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
 
-        # Free-trial gate: once the trial has expired (and no paid plan) the AI
-        # line no longer answers — it politely points the caller to the plumber's
-        # own number instead of taking the request.
-        if tenant and not tenant.subscription_active:
-            return self._subscription_expired_twiml(tenant)
+        if tenant:
+            blocked, reason = self._inbound_blocked(tenant)
+            if blocked:
+                return self._blocked_twiml(tenant, reason)
 
         get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)
@@ -112,10 +111,25 @@ class TwilioVoiceHandler:
         return "Bonjour, je suis votre assistante de dépannage, comment puis-je vous aider ?"
 
     def _subscription_expired_twiml(self, tenant) -> str:
+        return self._blocked_twiml(tenant, "expired")
+
+    def _inbound_blocked(self, tenant) -> tuple[bool, str | None]:
+        from app.services.plan_features import inbound_allowed
+
+        allowed, reason = inbound_allowed(tenant)
+        return (not allowed, reason)
+
+    def _blocked_twiml(self, tenant, reason: str) -> str:
         client = TwilioVoiceClient()
         direct = (tenant.phone_number or "").strip()
         company = (tenant.name or "").strip()
-        message = "Bonjour, notre assistant vocal n'est pas disponible pour le moment. "
+        if reason == "quota":
+            message = (
+                "Bonjour, nous avons atteint le nombre d'appels inclus ce mois-ci "
+                "pour notre assistant vocal. "
+            )
+        else:
+            message = "Bonjour, notre assistant vocal n'est pas disponible pour le moment. "
         if direct:
             digits = " ".join(direct)
             who = f"directement {company}" if company else "directement votre plombier"
@@ -156,6 +170,10 @@ class TwilioVoiceHandler:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
         if not tenant:
             return self._error_twiml("Service temporairement indisponible.")
+
+        blocked, reason = self._inbound_blocked(tenant)
+        if blocked:
+            return self._blocked_twiml(tenant, reason)
 
         state = get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)

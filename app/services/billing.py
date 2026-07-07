@@ -272,6 +272,11 @@ def apply_event(event_type: str, obj: dict) -> bool:
         if not tenant:
             return False
         tenant.plan = "trial"
+        from datetime import timedelta
+
+        from app.models.tenant import utcnow
+
+        tenant.trial_ends_at = utcnow() - timedelta(seconds=1)
         db.session.commit()
         logger.info("Tenant %s subscription ended — reverted to trial", tenant.id)
         return True
@@ -283,6 +288,11 @@ def apply_event(event_type: str, obj: dict) -> bool:
             return False
         if status in ("canceled", "unpaid", "incomplete_expired"):
             tenant.plan = "trial"
+            from datetime import timedelta
+
+            from app.models.tenant import utcnow
+
+            tenant.trial_ends_at = utcnow() - timedelta(seconds=1)
             db.session.commit()
             logger.info("Tenant %s subscription %s — reverted to trial", tenant.id, status)
             return True

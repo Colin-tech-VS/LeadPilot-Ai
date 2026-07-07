@@ -72,6 +72,11 @@ def _current_customer() -> User | None:
 
 def _create_booking(user: User, tenant: Tenant, slot_dt: datetime, issue: str | None):
     """Create lead, hold slot tentatively, send pre-filled devis for signature."""
+    from app.services.plan_features import has_feature
+
+    if not has_feature(tenant, "auto_booking"):
+        return None
+
     from app.services import quote_engine
     from app.services.availability import hold_tentative_appointment
     from app.services.quote_delivery import send_quote
@@ -127,9 +132,10 @@ def _create_booking(user: User, tenant: Tenant, slot_dt: datetime, issue: str | 
             tenant_id=tenant.id,
         )
         if user.phone:
-            send_quote(quote, tenant, channels={"sms"})
+            if has_feature(tenant, "sms_email_notifications"):
+                send_quote(quote, tenant, channels={"sms"})
         artisan_user = next((u for u in tenant.users), None) if tenant.users else None
-        if artisan_user and artisan_user.email:
+        if artisan_user and artisan_user.email and has_feature(tenant, "sms_email_notifications"):
             send_booking_quote_pending_to_artisan(
                 artisan_user.email,
                 customer_name=user.full_name or user.email,
@@ -365,6 +371,11 @@ def book(slug):
     tenant = get_public_artisan_by_slug(slug)
     if not tenant:
         return redirect(url_for("web.artisan_directory"))
+
+    from app.services.plan_features import has_feature
+
+    if not has_feature(tenant, "auto_booking"):
+        return redirect(url_for("web.artisan_profile", slug=slug, booking="unavailable"))
 
     slot_iso = (request.form.get("slot_iso") or "").strip()
     issue = (request.form.get("issue") or "").strip() or None

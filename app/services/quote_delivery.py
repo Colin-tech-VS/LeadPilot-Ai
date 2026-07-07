@@ -145,7 +145,12 @@ def send_quote(quote, tenant, channels=None):
     to_phone = (quote.client_phone or "").strip()
     sms_body = build_message(quote, tenant, link)
     if "sms" in wants and normalize_msisdn(to_phone):
-        sms_res = send_sms(to_phone, sms_body)
+        from app.services.plan_features import has_feature
+
+        if has_feature(tenant, "sms_email_notifications"):
+            sms_res = send_sms(to_phone, sms_body)
+        else:
+            sms_res = False
 
     sent_channels = []
     if email_res:

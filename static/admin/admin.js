@@ -281,6 +281,13 @@
       return;
     }
     tbody.innerHTML = rows.join("");
+    var labels = [];
+    table.querySelectorAll("thead th").forEach(function (th) { labels.push(th.textContent.trim()); });
+    tbody.querySelectorAll("tr").forEach(function (tr) {
+      tr.querySelectorAll("td").forEach(function (td, i) {
+        if (labels[i]) td.setAttribute("data-label", labels[i]);
+      });
+    });
   }
 
   function escHtml(s) {

@@ -263,3 +263,66 @@ def test_generate_payload_includes_image_fields(app, monkeypatch):
     assert payload["message"]
     assert payload["image_path"].startswith("uploads/social/")
     assert "pilotcore.fr/static/" in payload["image_url"]
+
+
+def test_resolve_page_access_token_from_user_token(app, monkeypatch):
+    def fake_get(url, params=None, timeout=None):
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.json.return_value = {
+            "data": [
+                {"id": "page1", "name": "PilotCore", "access_token": "page-token-xyz"},
+            ]
+        }
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.get", fake_get)
+
+    with app.app_context():
+        from app.services import social
+
+        token, name = social.resolve_page_access_token("user-token", "page1")
+        assert token == "page-token-xyz"
+        assert name == "PilotCore"
+
+
+def test_publish_post_permission_error_hint(app, monkeypatch, tmp_path):
+    img = tmp_path / "post.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 64)
+    rel = "uploads/social/test-post.png"
+    static_root = tmp_path / "static"
+    (static_root / "uploads" / "social").mkdir(parents=True)
+    (static_root / "uploads" / "social" / "test-post.png").write_bytes(img.read_bytes())
+
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        mock_resp = MagicMock()
+        mock_resp.ok = False
+        mock_resp.json.return_value = {
+            "error": {
+                "code": 10,
+                "message": "(#10) Application does not have permission for this action",
+            }
+        }
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
+
+    with app.app_context():
+        app.static_folder = str(static_root)
+        from app.services import social
+        from app.services import social_image
+
+        monkeypatch.setattr(
+            social_image,
+            "resolve_image_path",
+            lambda p: static_root / p if p else None,
+        )
+
+        post = social.publish_post("Bonjour", link="https://www.pilotcore.fr/pro", image_path=rel)
+        assert post.status == "failed"
+        assert "pages_manage_posts" in (post.error or "")

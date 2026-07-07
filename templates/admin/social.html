@@ -31,7 +31,13 @@
       <label>Token d'accès de page<input type="text" name="token" required></label>
     </div>
     <button type="submit" class="admin-btn">Connecter Facebook</button>
-    <p class="admin-hint" style="margin-top:10px">Obtenez ces valeurs dans <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> (permissions <code>pages_manage_posts</code>, <code>pages_read_engagement</code>).</p>
+    <p class="admin-hint" style="margin-top:10px">Dans <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> :</p>
+    <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
+      <li>Sélectionnez votre application Meta PilotCore.</li>
+      <li>Ajoutez les permissions <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
+      <li>Générez un token utilisateur, puis exécutez <code>GET /me/accounts?fields=id,name,access_token</code>.</li>
+      <li>Copiez le <strong>token de la page</strong> PilotCore (pas le token utilisateur du haut).</li>
+    </ol>
   </form>
 </div>
 {% endif %}

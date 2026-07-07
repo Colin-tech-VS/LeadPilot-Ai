@@ -25,6 +25,20 @@ SETTING_PAGE_ID = "facebook_page_id"
 SETTING_TOKEN = "facebook_page_token"
 SETTING_PAGE_NAME = "facebook_page_name"
 
+REQUIRED_PAGE_PERMISSIONS = (
+    "pages_manage_posts",
+    "pages_read_engagement",
+    "pages_show_list",
+)
+
+PERMISSION_ERROR_HINT = (
+    "Le token doit être un token d'accès de page (pas un token utilisateur) avec les "
+    "permissions pages_manage_posts, pages_read_engagement et pages_show_list. "
+    "Dans Graph API Explorer : générez un token utilisateur avec ces permissions, "
+    "puis appelez GET /me/accounts?fields=id,name,access_token et copiez le token "
+    "de votre page PilotCore."
+)
+
 
 def get_config():
     return {
@@ -51,12 +65,89 @@ def disconnect():
     content.set_setting(SETTING_PAGE_NAME, "")
 
 
-def verify_connection():
-    """Best-effort check that the stored token can read the Page. Returns
-    (ok, message)."""
+def resolve_page_access_token(token: str, page_id: str) -> tuple[str | None, str | None]:
+    """Exchange a user token for the matching page access token when possible."""
+    token = (token or "").strip()
+    page_id = str(page_id or "").strip()
+    if not token or not page_id:
+        return None, None
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/me/accounts",
+            params={
+                "access_token": token,
+                "fields": "id,name,access_token",
+                "limit": 100,
+            },
+            timeout=12,
+        )
+        data = resp.json()
+        if not resp.ok:
+            return None, None
+        for page in data.get("data", []):
+            if str(page.get("id")) == page_id:
+                return page.get("access_token"), page.get("name")
+    except requests.RequestException:
+        logger.exception("Facebook page token resolution failed")
+    return None, None
+
+
+def _is_permission_error(data) -> bool:
+    err = _graph_error(data)
+    if err.get("code") == 10:
+        return True
+    msg = (err.get("message") or "").lower()
+    return "does not have permission" in msg or "permission" in msg and "action" in msg
+
+
+def _permission_error_message(data) -> str:
+    base = _graph_error(data).get("message", "Permission Facebook refusée.")
+    if _is_permission_error(data):
+        return f"{base} {PERMISSION_ERROR_HINT}"[:500]
+    return base[:500]
+
+
+def _probe_publish_permission(cfg) -> tuple[bool, str]:
+    """Create then delete an unpublished post to confirm pages_manage_posts."""
+    try:
+        resp = requests.post(
+            f"{GRAPH_BASE}/{cfg['page_id']}/feed",
+            data={
+                "message": "PilotCore — test permission publication.",
+                "published": "false",
+                "access_token": cfg["token"],
+            },
+            timeout=15,
+        )
+        data = resp.json()
+        if not resp.ok:
+            return False, _permission_error_message(data)
+        post_id = data.get("id")
+        if post_id:
+            requests.delete(
+                f"{GRAPH_BASE}/{post_id}",
+                params={"access_token": cfg["token"]},
+                timeout=10,
+            )
+        return True, "Publication autorisée."
+    except requests.RequestException as exc:
+        return False, str(exc)
+
+
+def verify_connection(*, check_publish: bool = False):
+    """Best-effort check that the stored token can access (and optionally publish to) the Page.
+
+    Returns (ok, message).
+    """
     cfg = get_config()
     if not (cfg["page_id"] and cfg["token"]):
         return False, "Aucune page connectée."
+
+    page_token, page_name = resolve_page_access_token(cfg["token"], cfg["page_id"])
+    if page_token and page_token != cfg["token"]:
+        save_connection(cfg["page_id"], page_token, page_name or cfg["page_name"])
+        cfg = get_config()
+
     try:
         resp = requests.get(
             f"{GRAPH_BASE}/{cfg['page_id']}",
@@ -64,12 +155,22 @@ def verify_connection():
             timeout=12,
         )
         data = resp.json()
-        if resp.ok and data.get("name"):
-            if data["name"] != cfg["page_name"]:
-                content.set_setting(SETTING_PAGE_NAME, data["name"])
-            return True, data["name"]
-        err = (data.get("error") or {}).get("message", "Erreur inconnue")
-        return False, err
+        if not resp.ok or not data.get("name"):
+            err = _graph_error(data).get("message", "Erreur inconnue")
+            if _is_permission_error(data):
+                err = _permission_error_message(data)
+            return False, err
+
+        name = data["name"]
+        if name != cfg["page_name"]:
+            content.set_setting(SETTING_PAGE_NAME, name)
+
+        if check_publish:
+            ok_pub, pub_msg = _probe_publish_permission(cfg)
+            if not ok_pub:
+                return False, pub_msg
+
+        return True, name
     except requests.RequestException as exc:
         return False, str(exc)
 
@@ -210,7 +311,9 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
             )
         else:
             post.status = "failed"
-            post.error = _graph_error(data).get("message", "Réponse Facebook invalide.")[:500]
+            post.error = _permission_error_message(data) if _is_permission_error(data) else (
+                _graph_error(data).get("message", "Réponse Facebook invalide.")[:500]
+            )
             if _is_custom_link_preview_error(data):
                 post.error = (
                     f"{post.error} "

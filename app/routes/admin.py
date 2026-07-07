@@ -1458,7 +1458,10 @@ def social_connect():
         flash("Identifiant de page et token requis.", "error")
         return redirect(url_for("admin.social"))
     social.save_connection(page_id, token)
-    ok, message = social.verify_connection()
+    page_token, page_name = social.resolve_page_access_token(token, page_id)
+    if page_token:
+        social.save_connection(page_id, page_token, page_name or "")
+    ok, message = social.verify_connection(check_publish=True)
     if ok:
         flash(f"Page Facebook « {message} » connectée.", "success")
         log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {message}", level=LEVEL_SUCCESS)

@@ -24,28 +24,48 @@
       .replace(/"/g, "&quot;");
   }
 
-  // Minimal, safe markdown → HTML (bold, inline code, line breaks, bullets).
+  // Safe markdown → HTML: headings, bold/italic, inline code, links, ordered &
+  // unordered lists, blockquotes, line breaks. Emojis pass through untouched.
   function fmt(text) {
     var lines = esc(text).split(/\n/);
     var out = [];
-    var inList = false;
+    var listType = null; // "ul" | "ol" | null
+    function closeList() { if (listType) { out.push("</" + listType + ">"); listType = null; } }
     lines.forEach(function (ln) {
-      var bullet = ln.match(/^\s*[-*•]\s+(.*)$/) || ln.match(/^\s*\d+[.)]\s+(.*)$/);
-      if (bullet) {
-        if (!inList) { out.push("<ul>"); inList = true; }
-        out.push("<li>" + inline(bullet[1]) + "</li>");
+      var heading = ln.match(/^\s*(#{1,4})\s+(.*)$/);
+      var ol = ln.match(/^\s*\d+[.)]\s+(.*)$/);
+      var ul = ln.match(/^\s*[-*•]\s+(.*)$/);
+      var quote = ln.match(/^\s*>\s+(.*)$/);
+      if (heading) {
+        closeList();
+        var lvl = Math.min(4, heading[1].length) + 2; // #→h3 … ####→h6
+        out.push("<h" + lvl + ' class="nova-h">' + inline(heading[2]) + "</h" + lvl + ">");
+      } else if (ol) {
+        if (listType !== "ol") { closeList(); out.push("<ol>"); listType = "ol"; }
+        out.push("<li>" + inline(ol[1]) + "</li>");
+      } else if (ul) {
+        if (listType !== "ul") { closeList(); out.push("<ul>"); listType = "ul"; }
+        out.push("<li>" + inline(ul[1]) + "</li>");
+      } else if (quote) {
+        closeList();
+        out.push('<blockquote class="nova-quote">' + inline(quote[1]) + "</blockquote>");
       } else {
-        if (inList) { out.push("</ul>"); inList = false; }
+        closeList();
         if (ln.trim()) out.push("<p>" + inline(ln) + "</p>");
       }
     });
-    if (inList) out.push("</ul>");
+    closeList();
     return out.join("");
   }
   function inline(s) {
     return s
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/`([^`]+)`/g, "<code>$1</code>");
+      .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)/g,
+        '<a href="$2" class="nova-link" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(])\*([^*\s][^*]*?)\*/g, "$1<em>$2</em>")
+      .replace(/(^|[\s(])_([^_\s][^_]*?)_/g, "$1<em>$2</em>");
   }
 
   function scrollDown() {
@@ -72,6 +92,31 @@
         '<span class="nova-action-ico">✅</span>' +
         '<span class="nova-action-label">' + esc(a.label) + "</span>" + badge + "</a>";
     }).join("");
+    messages.appendChild(wrap);
+    scrollDown();
+  }
+
+  // Clickable "next step" buttons Nova proposes. Clicking one sends its prompt.
+  function addSuggestions(items) {
+    if (!items || !items.length) return;
+    var wrap = document.createElement("div");
+    wrap.className = "nova-suggest-actions";
+    items.slice(0, 4).forEach(function (a) {
+      if (!a || !a.label) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nova-suggest-btn nova-suggest-btn--" + (a.style || "primary");
+      btn.textContent = a.label;
+      var prompt = a.prompt || a.label;
+      btn.addEventListener("click", function () {
+        if (btn.disabled) return;
+        // Consume the whole group so a proposal isn't triggered twice.
+        wrap.querySelectorAll(".nova-suggest-btn").forEach(function (b) { b.disabled = true; });
+        wrap.classList.add("is-used");
+        send(prompt);
+      });
+      wrap.appendChild(btn);
+    });
     messages.appendChild(wrap);
     scrollDown();
   }
@@ -110,7 +155,7 @@
 
   if (resetBtn) resetBtn.addEventListener("click", function () {
     history = [];
-    messages.querySelectorAll(".nova-msg:not(.nova-msg--intro), .nova-actions").forEach(function (n) { n.remove(); });
+    messages.querySelectorAll(".nova-msg:not(.nova-msg--intro), .nova-actions, .nova-suggest-actions").forEach(function (n) { n.remove(); });
     if (suggests) suggests.style.display = "";
   });
 
@@ -154,6 +199,7 @@
       var reply = res.data.reply || "…";
       addBubble("bot", fmt(reply));
       addActions(res.data.actions);
+      addSuggestions(res.data.suggestions);
       history.push({ role: "assistant", content: reply });
       if (res.data.actions && res.data.actions.length) {
         // A dashboard/content page may now be stale — hint a refresh softly.

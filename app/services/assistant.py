@@ -344,6 +344,32 @@ def tool_recent_activity(_actions, *, limit=15):
     ]}
 
 
+_SUGGESTION_STYLES = {"primary", "accent", "ghost", "danger"}
+
+
+def tool_propose_actions(ctx, *, actions=None):
+    """Surface clickable next-step buttons in the chat.
+
+    Each item is ``{label, prompt, style}``. Clicking a button in the UI sends
+    ``prompt`` back to Nova, so the operator acts in a single click. This does
+    **not** perform anything itself — it only proposes.
+    """
+    items = []
+    for raw in (actions or [])[:4]:
+        if not isinstance(raw, dict):
+            continue
+        label = str(raw.get("label") or "").strip()[:64]
+        if not label:
+            continue
+        prompt = str(raw.get("prompt") or raw.get("label") or "").strip()[:400]
+        style = str(raw.get("style") or "primary").strip().lower()
+        if style not in _SUGGESTION_STYLES:
+            style = "primary"
+        items.append({"label": label, "prompt": prompt, "style": style})
+    ctx["suggestions"].extend(items)
+    return {"ok": True, "count": len(items)}
+
+
 _TOOL_IMPL = {
     "get_site_overview": tool_get_site_overview,
     "create_blog_article": tool_create_blog_article,
@@ -355,6 +381,7 @@ _TOOL_IMPL = {
     "send_outreach_email": tool_send_outreach_email,
     "send_email": tool_send_email,
     "recent_activity": tool_recent_activity,
+    # propose_actions is handled specially in _run_tool (needs the full ctx).
 }
 
 
@@ -419,6 +446,25 @@ def _tool_schemas() -> list[dict]:
         fn("recent_activity",
            "Récupère les derniers évènements du journal (connexions, envois, erreurs…).",
            {"limit": {"type": "integer"}}),
+        fn("propose_actions",
+           "Affiche 1 à 4 boutons d'action cliquables sous ta réponse pour que l'admin agisse en un clic. "
+           "N'exécute rien : chaque bouton renvoie son 'prompt' à toi quand on clique. "
+           "Utilise-le à chaque fois que tu proposes des prochaines étapes concrètes.",
+           {"actions": {
+               "type": "array",
+               "description": "Liste de boutons.",
+               "items": {
+                   "type": "object",
+                   "properties": {
+                       "label": {"type": "string", "description": "Texte court du bouton (avec emoji)."},
+                       "prompt": {"type": "string",
+                                  "description": "Instruction renvoyée à Nova au clic (ex: « Rédige l'article … »)."},
+                       "style": {"type": "string", "enum": ["primary", "accent", "ghost", "danger"]},
+                   },
+                   "required": ["label", "prompt"],
+               },
+           }},
+           ["actions"]),
     ]
 
 
@@ -437,7 +483,14 @@ def _system_prompt() -> str:
         "3. Quand l'utilisateur te demande d'agir, utilise directement l'outil approprié — n'invente jamais de résultat.\n"
         "4. Créations de contenu : publie seulement si on te le demande explicitement ; sinon laisse en brouillon.\n"
         "5. Actions externes (envoi d'e-mails, publication) : confirme l'intention avant si l'utilisateur reste vague.\n"
-        "6. Réponds en français, de façon concise et orientée action. Utilise des listes courtes.\n\n"
+        "6. Réponds en français, de façon concise et orientée action.\n\n"
+        "MISE EN FORME (importante) :\n"
+        "• Structure tes réponses en Markdown : **gras** pour les points clés, titres « ### », listes à puces "
+        "ou numérotées courtes, `code` pour un slug/nom technique, [texte](url) pour un lien.\n"
+        "• Utilise des emojis pertinents et sobres (🚀 📈 📝 🎯 ✉️ ✅ ⚠️) pour rythmer, sans excès.\n"
+        "• Chaque fois que tu proposes des prochaines étapes, appelle l'outil propose_actions pour afficher des "
+        "boutons cliquables (1 à 4). Rédige des labels courts avec emoji et un 'prompt' clair qui te dit quoi faire "
+        "au clic. Mets 'style':'accent' pour l'action recommandée, 'ghost' pour une option secondaire.\n\n"
         f"CONTEXTE ACTUEL (JSON) : {json.dumps(snap, ensure_ascii=False)}\n"
         f"DERNIERS CONTENUS : {json.dumps(titles, ensure_ascii=False)}"
     )
@@ -455,13 +508,19 @@ def _client():
     return Mistral(api_key=api_key), current_app.config.get("MISTRAL_MODEL", "mistral-small-latest")
 
 
-def _run_tool(name, arguments, actions) -> dict:
+def _run_tool(name, arguments, ctx) -> dict:
+    kwargs = arguments if isinstance(arguments, dict) else {}
+    if name == "propose_actions":
+        try:
+            return tool_propose_actions(ctx, **kwargs)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Nova propose_actions failed")
+            return {"ok": False, "error": str(exc)[:300]}
     impl = _TOOL_IMPL.get(name)
     if impl is None:
         return {"ok": False, "error": f"Outil inconnu : {name}"}
     try:
-        kwargs = arguments if isinstance(arguments, dict) else {}
-        return impl(actions, **kwargs)
+        return impl(ctx["actions"], **kwargs)
     except content_ai.ContentAIError as exc:
         return {"ok": False, "error": f"Génération IA impossible : {exc}"}
     except Exception as exc:  # noqa: BLE001 — a broken tool must not kill the chat
@@ -489,6 +548,8 @@ def chat(user_message: str, history: list[dict] | None = None) -> dict:
 
     tools = _tool_schemas()
     actions: list[dict] = []
+    suggestions: list[dict] = []
+    ctx = {"actions": actions, "suggestions": suggestions}
 
     for _round in range(MAX_TOOL_ROUNDS):
         try:
@@ -505,7 +566,8 @@ def chat(user_message: str, history: list[dict] | None = None) -> dict:
         content = msg.content or ""
 
         if not tool_calls:
-            return {"reply": content.strip() or "…", "actions": actions}
+            return {"reply": content.strip() or "…", "actions": actions,
+                    "suggestions": _dedupe_suggestions(suggestions)}
 
         messages.append({
             "role": "assistant",
@@ -523,7 +585,7 @@ def chat(user_message: str, history: list[dict] | None = None) -> dict:
                 args = json.loads(tc.function.arguments) if tc.function.arguments else {}
             except (json.JSONDecodeError, TypeError):
                 args = {}
-            result = _run_tool(name, args, actions)
+            result = _run_tool(name, args, ctx)
             messages.append({
                 "role": "tool",
                 "tool_call_id": getattr(tc, "id", None) or "",
@@ -537,7 +599,21 @@ def chat(user_message: str, history: list[dict] | None = None) -> dict:
         final = resp.choices[0].message.content or ""
     except Exception:  # noqa: BLE001
         final = "J'ai réalisé plusieurs actions — consulte le récapitulatif ci-dessous."
-    return {"reply": final.strip() or "Actions réalisées.", "actions": actions}
+    return {"reply": final.strip() or "Actions réalisées.", "actions": actions,
+            "suggestions": _dedupe_suggestions(suggestions)}
+
+
+def _dedupe_suggestions(suggestions: list[dict]) -> list[dict]:
+    """Keep at most 4 unique proposed-action buttons (by label)."""
+    seen, out = set(), []
+    for s in suggestions:
+        key = s.get("label", "").lower()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(s)
+        if len(out) >= 4:
+            break
+    return out
 
 
 # --------------------------------------------------------------------------- #

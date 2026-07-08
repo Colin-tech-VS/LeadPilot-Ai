@@ -363,6 +363,40 @@ def _ensure_schema_updates():
                     "outreach_prospects.id uuid normalisation failed"
                 )
 
+    if "heatmap_events" not in table_names:
+        with db.engine.begin() as conn:
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE heatmap_events (
+                        id UUID PRIMARY KEY,
+                        visitor_id VARCHAR(40),
+                        session_id VARCHAR(40),
+                        event_type VARCHAR(20) NOT NULL DEFAULT 'click',
+                        path VARCHAR(500),
+                        x_ratio FLOAT,
+                        y_px INTEGER,
+                        vw INTEGER,
+                        vh INTEGER,
+                        doc_w INTEGER,
+                        doc_h INTEGER,
+                        scroll_depth INTEGER,
+                        el_selector VARCHAR(300),
+                        el_text VARCHAR(200),
+                        device VARCHAR(20),
+                        created_at {ts_type} NOT NULL
+                    )
+                    """
+                )
+            )
+            for col in ("visitor_id", "session_id", "event_type", "path", "created_at"):
+                conn.execute(
+                    text(
+                        f"CREATE INDEX IF NOT EXISTS ix_heatmap_events_{col} "
+                        f"ON heatmap_events ({col})"
+                    )
+                )
+
     if "ip_geo_cache" not in table_names:
         with db.engine.begin() as conn:
             conn.execute(

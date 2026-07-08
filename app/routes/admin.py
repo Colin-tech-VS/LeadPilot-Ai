@@ -208,6 +208,46 @@ def api_traffic_realtime():
     return jsonify(traffic.realtime())
 
 
+# ------------------------------------------------------------------ heatmap
+@admin_bp.route("/heatmap")
+@admin_required
+def heatmap_page():
+    return render_template("admin/heatmap.html")
+
+
+@admin_bp.route("/api/heatmap/overview")
+@admin_required
+def api_heatmap_overview():
+    from app.services import heatmap as heatmap_service
+
+    return jsonify(heatmap_service.overview(_range_days()))
+
+
+@admin_bp.route("/api/heatmap/points")
+@admin_required
+def api_heatmap_points():
+    from app.services import heatmap as heatmap_service
+
+    path = request.args.get("path", "/")
+    return jsonify(heatmap_service.clicks_for_path(path, _range_days()))
+
+
+@admin_bp.route("/api/heatmap/journeys")
+@admin_required
+def api_heatmap_journeys():
+    from app.services import heatmap as heatmap_service
+
+    return jsonify({"journeys": heatmap_service.journeys(_range_days())})
+
+
+@admin_bp.route("/api/heatmap/journey/<visitor_id>")
+@admin_required
+def api_heatmap_journey(visitor_id):
+    from app.services import heatmap as heatmap_service
+
+    return jsonify(heatmap_service.journey_detail(visitor_id))
+
+
 # ------------------------------------------------------------------ GSC (Google Search Console)
 @admin_bp.route("/gsc")
 @admin_required

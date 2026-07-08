@@ -1,0 +1,350 @@
+{% extends "admin/base.html" %}
+{% block title %}Heatmap · Admin{% endblock %}
+{% block page_title %}Heatmap{% endblock %}
+{% block topbar_actions %}
+  <select id="hm-range" class="admin-select">
+    <option value="1">Aujourd'hui</option>
+    <option value="7">7 jours</option>
+    <option value="30" selected>30 jours</option>
+    <option value="90">90 jours</option>
+    <option value="365">1 an</option>
+  </select>
+  <span class="admin-live" id="hm-updated">—</span>
+{% endblock %}
+
+{% block content %}
+<p class="dash-intro">Suivi du parcours réel de chaque visiteur unique (dès son arrivée, sur toutes ses sessions) et carte des zones les plus cliquées.</p>
+
+  {# ── KPIs ── #}
+  <div class="traffic-kpi-row">
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Visiteurs suivis</span>
+      <span class="kpi-value" id="hm-visitors" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Clics enregistrés</span>
+      <span class="kpi-value" id="hm-clicks" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Clics de rage</span>
+      <span class="kpi-value" id="hm-rage" data-count="0">0</span>
+    </div>
+    <div class="kpi-card kpi-card--sm">
+      <span class="kpi-label">Pages vues</span>
+      <span class="kpi-value" id="hm-pageviews" data-count="0">0</span>
+    </div>
+  </div>
+
+  {# ══════════════ PART 1 — Parcours des visiteurs ══════════════ #}
+  <section class="admin-panel">
+    <h2>👣 Parcours des visiteurs</h2>
+    <p class="admin-panel-lead">Chaque ligne = un visiteur unique. Cliquez pour dérouler tout son parcours, session après session.</p>
+    <div class="hm-journey">
+      <div class="hm-journey-list">
+        <table class="traffic-table" id="hm-journey-table">
+          <thead><tr><th>Visiteur</th><th>Vu</th><th>Sess.</th><th>Clics</th></tr></thead>
+          <tbody><tr><td colspan="4" class="admin-empty-inline">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="hm-journey-detail" id="hm-journey-detail">
+        <div class="hm-detail-empty">Sélectionnez un visiteur pour voir son parcours complet.</div>
+      </div>
+    </div>
+  </section>
+
+  {# ══════════════ PART 2 — Carte de chaleur ══════════════ #}
+  <section class="admin-panel">
+    <div class="traffic-panel-head">
+      <h2>🔥 Carte de chaleur des clics</h2>
+      <select id="hm-page" class="admin-select"></select>
+    </div>
+    <p class="admin-panel-lead">Zones les plus cliquées de la page sélectionnée. <span class="hm-dot hm-dot--hot"></span> clics · <span class="hm-dot hm-dot--rage"></span> clics de rage · <span id="hm-point-count">0</span> points.</p>
+    <div class="hm-canvas-wrap" id="hm-canvas-wrap">
+      <canvas id="hm-canvas"></canvas>
+      <div class="hm-canvas-empty" id="hm-canvas-empty">Aucune donnée de clic pour cette page.</div>
+    </div>
+  </section>
+
+  {# ── Top éléments cliqués ── #}
+  <div class="admin-grid-2">
+    <section class="admin-panel">
+      <h2>Éléments les plus cliqués (page)</h2>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table table-stack" id="hm-page-elements">
+          <thead><tr><th>Élément</th><th>Libellé</th><th>Clics</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel">
+      <h2>Éléments les plus cliqués (site)</h2>
+      <div class="traffic-table-wrap">
+        <table class="traffic-table table-stack" id="hm-top-elements">
+          <thead><tr><th>Élément</th><th>Libellé</th><th>Clics</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {# ── Pages les plus chaudes ── #}
+  <section class="admin-panel">
+    <h2>Pages les plus chaudes</h2>
+    <div class="traffic-table-wrap">
+      <table class="traffic-table table-stack" id="hm-top-pages">
+        <thead><tr><th>Page</th><th>Clics</th><th>Visiteurs</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+<style>
+  .hm-journey { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  .hm-journey-list { max-height: 460px; overflow-y: auto; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; }
+  .hm-journey-list table { margin: 0; }
+  .hm-journey-list tbody tr { cursor: pointer; }
+  .hm-journey-list tbody tr.active { background: rgba(27,87,224,.08); }
+  .hm-vid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+  .hm-vid-dev { font-size: .72rem; opacity: .6; margin-left: 6px; }
+  .hm-journey-detail { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 16px; max-height: 460px; overflow-y: auto; }
+  .hm-detail-empty { opacity: .55; text-align: center; padding: 40px 12px; }
+  .hm-detail-head { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed var(--admin-border, #e5e7eb); font-size: .85rem; }
+  .hm-detail-head strong { font-size: 1.05rem; }
+  .hm-session-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .6; margin: 14px 0 8px; }
+  .hm-tl { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--admin-border, #e5e7eb); }
+  .hm-tl li { position: relative; padding: 6px 0 6px 22px; font-size: .86rem; }
+  .hm-tl li::before { content: ""; position: absolute; left: -7px; top: 11px; width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; }
+  .hm-tl li.ev-pageview::before { background: #1B57E0; }
+  .hm-tl li.ev-click::before { background: #16a34a; }
+  .hm-tl li.ev-rageclick::before { background: #dc2626; }
+  .hm-tl li.ev-scroll::before { background: #f59e0b; }
+  .hm-tl-time { opacity: .5; font-size: .74rem; margin-left: 6px; }
+  .hm-tl-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; }
+  .hm-tl-label { font-weight: 600; }
+
+  .hm-canvas-wrap { position: relative; width: 100%; max-height: 640px; overflow: auto; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; background:
+      linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px) 0 0 / 40px 40px,
+      #fafafa; }
+  .hm-canvas-wrap canvas { display: block; width: 100%; height: auto; }
+  .hm-canvas-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; opacity: .55; }
+  .hm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+  .hm-dot--hot { background: #f97316; }
+  .hm-dot--rage { background: #dc2626; }
+  @media (max-width: 720px) { .hm-journey { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+  var URLS = {
+    overview: "{{ url_for('admin.api_heatmap_overview') }}",
+    points: "{{ url_for('admin.api_heatmap_points') }}",
+    journeys: "{{ url_for('admin.api_heatmap_journeys') }}",
+    journey: "{{ url_for('admin.api_heatmap_journey', visitor_id='__VID__') }}",
+  };
+  var fmtInt = new Intl.NumberFormat("fr-FR");
+  function days() { return document.getElementById("hm-range").value || "30"; }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return (s == null ? "" : String(s)).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function ago(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso), diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "à l'instant";
+    if (diff < 3600) return Math.floor(diff / 60) + " min";
+    if (diff < 86400) return Math.floor(diff / 3600) + " h";
+    return Math.floor(diff / 86400) + " j";
+  }
+  function timeStr(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " +
+      d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // ---------------- Overview + tables ----------------
+  function fillElements(tbodySel, rows) {
+    var tb = document.querySelector(tbodySel + " tbody");
+    if (!tb) return;
+    if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="3" class="admin-empty-inline">—</td></tr>'; return; }
+    tb.innerHTML = rows.map(function (r) {
+      return "<tr><td><code>" + esc(r.selector) + "</code></td><td>" + esc(r.text || "—") +
+        "</td><td>" + fmtInt.format(r.clicks) + "</td></tr>";
+    }).join("");
+  }
+
+  function loadOverview() {
+    fetch(URLS.overview + "?days=" + days()).then(function (r) { return r.json(); }).then(function (d) {
+      $("hm-visitors").textContent = fmtInt.format(d.tracked_visitors || 0);
+      $("hm-clicks").textContent = fmtInt.format(d.clicks || 0);
+      $("hm-rage").textContent = fmtInt.format(d.rage_clicks || 0);
+      $("hm-pageviews").textContent = fmtInt.format(d.pageviews || 0);
+      fillElements("#hm-top-elements", d.top_elements);
+
+      var tp = document.querySelector("#hm-top-pages tbody");
+      tp.innerHTML = (d.top_pages && d.top_pages.length)
+        ? d.top_pages.map(function (p) {
+            return "<tr><td><code>" + esc(p.path) + "</code></td><td>" + fmtInt.format(p.clicks) +
+              "</td><td>" + fmtInt.format(p.visitors) + "</td></tr>";
+          }).join("")
+        : '<tr><td colspan="3" class="admin-empty-inline">Aucune donnée</td></tr>';
+
+      // Page selector for the heatmap.
+      var sel = $("hm-page");
+      var prev = sel.value;
+      var pages = d.pages || [];
+      sel.innerHTML = pages.length
+        ? pages.map(function (p) { return '<option value="' + esc(p.path) + '">' + esc(p.path) + " (" + p.clicks + ")</option>"; }).join("")
+        : '<option value="">— aucune page —</option>';
+      if (prev && pages.some(function (p) { return p.path === prev; })) sel.value = prev;
+      loadHeatmap();
+
+      var upd = $("hm-updated");
+      if (upd) upd.textContent = "MàJ " + new Date().toLocaleTimeString("fr-FR");
+    }).catch(function () {});
+  }
+
+  // ---------------- Heatmap canvas ----------------
+  var CANVAS_W = 1200;
+  function loadHeatmap() {
+    var path = $("hm-page").value;
+    if (!path) { drawHeat({ points: [], doc_w: 1440, doc_h: 800 }); fillElements("#hm-page-elements", []); return; }
+    fetch(URLS.points + "?path=" + encodeURIComponent(path) + "&days=" + days())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        $("hm-point-count").textContent = fmtInt.format(d.count || 0);
+        drawHeat(d);
+        fillElements("#hm-page-elements", d.elements);
+      }).catch(function () {});
+  }
+
+  function drawHeat(d) {
+    var canvas = $("hm-canvas");
+    var refW = d.doc_w || 1440;
+    var scale = CANVAS_W / refW;
+    var h = Math.max(300, Math.round((d.doc_h || 800) * scale));
+    canvas.width = CANVAS_W;
+    canvas.height = h;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, CANVAS_W, h);
+
+    var pts = d.points || [];
+    $("hm-canvas-empty").style.display = pts.length ? "none" : "flex";
+    if (!pts.length) return;
+
+    var radius = 34;
+    // Accumulate heat (alpha) with additive blending, then colourise.
+    ctx.globalCompositeOperation = "lighter";
+    pts.forEach(function (p) {
+      var x = p.x * CANVAS_W;
+      var y = p.y * scale;
+      var g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      var core = p.rage ? "rgba(220,38,38,0.55)" : "rgba(249,115,22,0.40)";
+      g.addColorStop(0, core);
+      g.addColorStop(1, "rgba(249,115,22,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  // ---------------- Journeys ----------------
+  var activeVid = null;
+  function loadJourneys() {
+    fetch(URLS.journeys + "?days=" + days()).then(function (r) { return r.json(); }).then(function (d) {
+      var tb = document.querySelector("#hm-journey-table tbody");
+      var rows = d.journeys || [];
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="4" class="admin-empty-inline">Aucun visiteur suivi</td></tr>'; return; }
+      tb.innerHTML = rows.map(function (j) {
+        var dev = j.device === "mobile" ? "📱" : "🖥️";
+        return '<tr data-vid="' + esc(j.visitor_id) + '">' +
+          '<td><span class="hm-vid">' + esc(j.short_id) + '</span><span class="hm-vid-dev">' + dev + '</span></td>' +
+          "<td>" + ago(j.last_seen) + "</td>" +
+          "<td>" + j.sessions + "</td>" +
+          "<td>" + fmtInt.format(j.clicks) + "</td></tr>";
+      }).join("");
+      tb.querySelectorAll("tr").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          tb.querySelectorAll("tr").forEach(function (x) { x.classList.remove("active"); });
+          tr.classList.add("active");
+          loadJourney(tr.getAttribute("data-vid"));
+        });
+      });
+      if (activeVid && rows.some(function (j) { return j.visitor_id === activeVid; })) {
+        var sel = tb.querySelector('tr[data-vid="' + activeVid + '"]');
+        if (sel) sel.classList.add("active");
+      }
+    }).catch(function () {});
+  }
+
+  function loadJourney(vid) {
+    activeVid = vid;
+    var host = $("hm-journey-detail");
+    host.innerHTML = '<div class="hm-detail-empty">Chargement…</div>';
+    fetch(URLS.journey.replace("__VID__", encodeURIComponent(vid)) + "?days=" + days())
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderJourney(host, d); })
+      .catch(function () { host.innerHTML = '<div class="hm-detail-empty">Erreur de chargement.</div>'; });
+  }
+
+  var EV = {
+    pageview: { ico: "📄", verb: "Arrive sur" },
+    click: { ico: "🖱️", verb: "Clique" },
+    rageclick: { ico: "😠", verb: "Clic de rage" },
+    scroll: { ico: "↕️", verb: "Défile" },
+  };
+  function renderJourney(host, d) {
+    var dev = d.device === "mobile" ? "📱 Mobile" : (d.device ? "🖥️ Bureau" : "—");
+    var html = '<div class="hm-detail-head">' +
+      '<strong>' + esc(d.short_id) + '</strong>' +
+      "<span>" + dev + "</span>" +
+      "<span>" + (d.sessions || 0) + " session(s)</span>" +
+      "<span>" + (d.events || 0) + " événement(s)</span>" +
+      "<span>" + (d.pages ? d.pages.length : 0) + " page(s)</span>" +
+      "<span>Depuis " + timeStr(d.first_seen) + "</span>" +
+      "</div>";
+
+    var tl = d.timeline || [];
+    if (!tl.length) { host.innerHTML = html + '<div class="hm-detail-empty">Aucun événement.</div>'; return; }
+
+    var curSession = null;
+    tl.forEach(function (e) {
+      if (e.session_no !== curSession) {
+        if (curSession !== null) html += "</ul>";
+        curSession = e.session_no;
+        html += '<div class="hm-session-label">Session ' + curSession + "</div><ul class=\"hm-tl\">";
+      }
+      var meta = EV[e.type] || { ico: "•", verb: e.type };
+      var line = "<li class=\"ev-" + esc(e.type) + '"><span>' + meta.ico + " </span>";
+      if (e.type === "pageview") {
+        line += meta.verb + ' <span class="hm-tl-path">' + esc(e.path) + "</span>";
+      } else if (e.type === "scroll") {
+        line += meta.verb + " jusqu'à " + (e.scroll_depth || 0) + "% de <span class=\"hm-tl-path\">" + esc(e.path) + "</span>";
+      } else {
+        line += meta.verb + (e.el_text ? ' sur <span class="hm-tl-label">« ' + esc(e.el_text) + " »</span>" : "") +
+          (e.el_selector ? " <code>" + esc(e.el_selector) + "</code>" : "");
+      }
+      line += '<span class="hm-tl-time">' + timeStr(e.at) + "</span></li>";
+      html += line;
+    });
+    html += "</ul>";
+    host.innerHTML = html;
+  }
+
+  // ---------------- wiring ----------------
+  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); });
+  $("hm-page").addEventListener("change", loadHeatmap);
+  loadOverview();
+  loadJourneys();
+  setInterval(function () { loadOverview(); loadJourneys(); }, 60000);
+})();
+</script>
+{% endblock %}

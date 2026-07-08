@@ -194,6 +194,45 @@ def notifications_mark_read():
     return jsonify({"ok": True}), 200
 
 
+@web_bp.route("/api/heatmap/collect", methods=["POST"])
+def heatmap_collect():
+    """Ingest client-side interaction events for the admin heatmap / journey.
+
+    Visitor & session ids come from the httpOnly ``lp_vid`` / ``lp_sid`` cookies
+    (the same ids used by server-side page-view tracking) so every visitor is
+    followed as one continuous journey and the client can't spoof another
+    visitor. Bots are dropped. Always returns 204 — tracking must never surface
+    an error to the page.
+    """
+    from app.core.tracking import (
+        SESSION_COOKIE,
+        VISITOR_COOKIE,
+        _device,
+        is_bot,
+    )
+
+    try:
+        ua = request.headers.get("User-Agent", "")
+        if is_bot(ua):
+            return ("", 204)
+        visitor_id = request.cookies.get(VISITOR_COOKIE)
+        session_id = request.cookies.get(SESSION_COOKIE)
+        if not visitor_id:
+            return ("", 204)  # no cookie yet → nothing to attach the journey to
+        payload = request.get_json(silent=True) or {}
+        events = payload.get("events")
+        from app.services import heatmap as heatmap_service
+
+        heatmap_service.record_events(visitor_id, session_id, _device(ua), events)
+    except Exception:
+        current_app.logger.exception("heatmap collect failed")
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return ("", 204)
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     from app.utils.llm_discovery import render_robots_txt

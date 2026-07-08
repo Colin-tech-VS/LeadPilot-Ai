@@ -96,12 +96,33 @@ def _referrer_host(ref):
     return m.group(1) if m else None
 
 
+_TRACKER_TAG = '<script src="/static/js/heatmap.js?v=1" defer></script>'
+
+
+def _inject_tracker(response):
+    """Add the client-side heatmap tracker just before </body> on tracked
+    HTML pages, so every public / app page follows the visitor without editing
+    each layout template."""
+    try:
+        if getattr(response, "direct_passthrough", False):
+            return
+        html = response.get_data(as_text=True)
+        if "</body>" not in html or "heatmap.js" in html:
+            return
+        head, sep, tail = html.rpartition("</body>")
+        response.set_data(head + _TRACKER_TAG + sep + tail)
+    except Exception:
+        logger.debug("tracker injection skipped", exc_info=True)
+
+
 def register_tracking(app):
     @app.after_request
     def _track(response):
         try:
             if not _should_track(response):
                 return response
+
+            _inject_tracker(response)
 
             visitor_id = request.cookies.get(VISITOR_COOKIE)
             session_id = request.cookies.get(SESSION_COOKIE)

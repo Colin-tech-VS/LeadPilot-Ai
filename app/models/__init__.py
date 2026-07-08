@@ -1,6 +1,7 @@
 from app.models.appointment import Appointment
 from app.models.email_message import EmailMessage
 from app.models.event import Event
+from app.models.heatmap_event import HeatmapEvent
 from app.models.lead import Lead
 from app.models.notification import Notification
 from app.models.offer import Offer
@@ -32,6 +33,7 @@ __all__ = [
     "OutreachProspect",
     "EmailMessage",
     "Event",
+    "HeatmapEvent",
     "PageView",
     "IpGeoCache",
 ]

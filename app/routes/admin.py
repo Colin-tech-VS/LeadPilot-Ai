@@ -1652,13 +1652,26 @@ def prospecting_send(prospect_id):
 
     try:
         result = prospecting.send_outreach_email(prospect_id)
-        log_event(
-            CAT_ADMIN,
-            "prospect_email_send",
-            summary=f"E-mail prospection envoyé à {result['prospect'].get('email')}",
-            level=LEVEL_SUCCESS,
-        )
-        flash(f"E-mail envoyé à {result['prospect'].get('email')} ({result['email_status']}).", "success")
+        email = result["prospect"].get("email")
+        if result["email_status"] == "failed":
+            log_event(
+                CAT_ADMIN,
+                "prospect_email_send",
+                summary=f"Échec e-mail prospection à {email} — {result.get('email_error')}",
+                level=LEVEL_ERROR,
+            )
+            flash(
+                f"Échec d'envoi à {email} : {result.get('email_error') or 'erreur SMTP inconnue'}",
+                "error",
+            )
+        else:
+            log_event(
+                CAT_ADMIN,
+                "prospect_email_send",
+                summary=f"E-mail prospection envoyé à {email}",
+                level=LEVEL_SUCCESS,
+            )
+            flash(f"E-mail envoyé à {email} ({result['email_status']}).", "success")
     except prospecting.ProspectingError as exc:
         flash(str(exc), "error")
     return redirect(url_for("admin.prospecting"))
@@ -1667,15 +1680,21 @@ def prospecting_send(prospect_id):
 @admin_bp.route("/prospecting/resend", methods=["POST"], endpoint="prospecting_resend")
 @admin_required
 def prospecting_resend():
-    """Renvoie l'e-mail de prospection aux contactés dont l'envoi avait échoué."""
+    """Renvoie l'e-mail de prospection aux contactés dont l'envoi avait échoué.
+
+    ``mode=all`` force le renvoi à tous les contactés, y compris ceux dont le
+    dernier e-mail était marqué « sent » (cas d'un serveur qui accepte le
+    message puis le bloque en aval).
+    """
     from app.services import prospecting
 
-    result = prospecting.resend_outreach_emails()
+    resend_all = request.form.get("mode") == "all"
+    result = prospecting.resend_outreach_emails(only_failed=not resend_all)
     log_event(
         CAT_ADMIN,
         "prospect_email_resend",
         summary=(
-            f"Renvoi prospection : {result['sent']} envoyé(s), "
+            f"Renvoi prospection{' (forcé)' if resend_all else ''} : {result['sent']} envoyé(s), "
             f"{result['skipped']} déjà reçu(s), {len(result['failed'])} échec(s)"
         ),
         level=LEVEL_SUCCESS if not result["failed"] else LEVEL_ERROR,
@@ -1683,9 +1702,24 @@ def prospecting_resend():
     if result["sent"]:
         flash(f"{result['sent']} e-mail(s) de prospection renvoyé(s).", "success")
     if result["skipped"]:
-        flash(f"{result['skipped']} prospect(s) ignoré(s) : leur e-mail était déjà bien parti.", "info")
+        flash(
+            f"{result['skipped']} prospect(s) ignoré(s) : leur e-mail était déjà bien parti. "
+            "Utilisez « Tout renvoyer » pour forcer le renvoi.",
+            "info",
+        )
     if result["failed"]:
-        flash("Échec pour : " + ", ".join(result["failed"][:10]), "error")
+        extra = len(result["failed"]) - 5
+        flash(
+            f"Échec pour {len(result['failed'])} envoi(s) : "
+            + " · ".join(result["failed"][:5])
+            + (f" (+{extra} autres — détail dans le Journal)" if extra > 0 else ""),
+            "error",
+        )
+    if result.get("remaining"):
+        flash(
+            f"{result['remaining']} envoi(s) en attente (lot limité) — cliquez à nouveau pour continuer.",
+            "info",
+        )
     if not result["total"]:
         flash("Aucun prospect contacté à renvoyer.", "info")
     return redirect(url_for("admin.prospecting"))

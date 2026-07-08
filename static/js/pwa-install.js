@@ -18,7 +18,11 @@
     },
   }[lang];
 
-  var DISMISS_KEY = "PilotCore:installDismissed";
+  /* Admin and public site are two distinct PWAs (different manifests):
+     dismissing the prompt on one must not hide it on the other. */
+  var isAdminZone =
+    document.body && document.body.classList.contains("zone-admin");
+  var DISMISS_KEY = "PilotCore:installDismissed" + (isAdminZone ? ":admin" : "");
 
   function isStandalone() {
     return (

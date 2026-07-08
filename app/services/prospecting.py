@@ -385,17 +385,19 @@ def send_outreach_email(prospect_id) -> dict:
     prospect.last_contacted_at = datetime.now(timezone.utc)
     prospect.updated_at = utcnow()
     db.session.commit()
-    return {"prospect": prospect.to_dict(), "email_status": row.status}
+    return {"prospect": prospect.to_dict(), "email_status": row.status, "email_error": row.error}
 
 
-def resend_outreach_emails(*, only_failed: bool = True) -> dict:
-    """Re-send the outreach e-mail to every already-contacted prospect.
+def resend_outreach_emails(*, only_failed: bool = True, max_batch: int = 20) -> dict:
+    """Re-send the outreach e-mail to already-contacted prospects.
 
     Used after an SMTP outage (ex. blocage du filtre sortant LWS) : les
     prospects étaient passés en « contacté » alors que l'e-mail n'était jamais
     parti. Par défaut on ne renvoie qu'aux prospects dont le dernier e-mail
     n'a PAS le statut ``sent``, pour ne jamais envoyer deux fois le même
-    message à quelqu'un qui l'a déjà reçu.
+    message à quelqu'un qui l'a déjà reçu. ``only_failed=False`` force le
+    renvoi à tous les contactés — utile quand le serveur avait accepté les
+    messages (statut « sent ») avant que le filtre sortant ne les jette.
     """
     from app.models.email_message import DIRECTION_OUTBOUND, STATUS_SENT, EmailMessage
 
@@ -406,12 +408,14 @@ def resend_outreach_emails(*, only_failed: bool = True) -> dict:
             OutreachProspect.email.isnot(None),
             OutreachProspect.email != "",
             OutreachProspect.outreach_subject.isnot(None),
+            OutreachProspect.outreach_subject != "",
             OutreachProspect.outreach_body.isnot(None),
+            OutreachProspect.outreach_body != "",
         )
         .order_by(OutreachProspect.created_at.asc())
         .all()
     )
-    sent, skipped, failed = 0, 0, []
+    sent, skipped, failed, remaining = 0, 0, [], 0
     for prospect in prospects:
         if only_failed:
             last = (
@@ -424,16 +428,32 @@ def resend_outreach_emails(*, only_failed: bool = True) -> dict:
             if last is not None and last.status == STATUS_SENT:
                 skipped += 1
                 continue
+        if sent + len(failed) >= max_batch:
+            # Chaque envoi ouvre une connexion SMTP (2-5 s) : un lot illimité
+            # dépasserait le timeout gunicorn et les quotas horaires LWS.
+            remaining += 1
+            continue
         try:
             result = send_outreach_email(prospect.id)
         except ProspectingError as exc:
-            failed.append(f"{prospect.email} ({exc})")
+            failed.append(f"{prospect.email} — {exc}")
+            continue
+        except Exception as exc:  # noqa: BLE001 — un prospect cassé ne doit pas faire un 500 sur tout le lot
+            db.session.rollback()
+            logger.exception("Resend outreach failed for %s", prospect.email)
+            failed.append(f"{prospect.email} — {type(exc).__name__}: {exc}")
             continue
         if result["email_status"] == "failed":
-            failed.append(prospect.email)
+            failed.append(f"{prospect.email} — {result.get('email_error') or 'erreur SMTP inconnue'}")
         else:
             sent += 1
-    return {"total": len(prospects), "sent": sent, "skipped": skipped, "failed": failed}
+    return {
+        "total": len(prospects),
+        "sent": sent,
+        "skipped": skipped,
+        "failed": failed,
+        "remaining": remaining,
+    }
 
 
 def update_status(prospect_id, status: str) -> OutreachProspect:

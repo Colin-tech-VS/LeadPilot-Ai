@@ -128,6 +128,13 @@
       🔁 Renvoyer les échecs
     </button>
   </form>
+  <form method="POST" action="{{ url_for('admin.prospecting_resend') }}"
+        onsubmit="return confirm('Forcer le renvoi à TOUS les prospects contactés, y compris ceux dont l\'e-mail est marqué « envoyé » ? Ceux qui l\'ont déjà reçu le recevront une seconde fois.')">
+    <input type="hidden" name="mode" value="all">
+    <button type="submit" class="admin-btn tiny ghost" title="Renvoie à tous les contactés, même ceux marqués « envoyé » (cas d'un blocage après acceptation SMTP)">
+      📤 Tout renvoyer
+    </button>
+  </form>
   {% endif %}
 </div>
 

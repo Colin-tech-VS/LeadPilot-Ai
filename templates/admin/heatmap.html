@@ -26,7 +26,7 @@
       <span class="kpi-value" id="hm-clicks" data-count="0">0</span>
     </div>
     <div class="kpi-card kpi-card--sm">
-      <span class="kpi-label">Clics de rage</span>
+      <span class="kpi-label" title="Plusieurs clics rapides au même endroit : signe que le visiteur s'énerve (bouton qui ne marche pas, lien mort…).">Clics d'agacement</span>
       <span class="kpi-value" id="hm-rage" data-count="0">0</span>
     </div>
     <div class="kpi-card kpi-card--sm">
@@ -55,32 +55,38 @@
   {# ══════════════ PART 2 — Carte de chaleur ══════════════ #}
   <section class="admin-panel">
     <div class="traffic-panel-head">
-      <h2>🔥 Carte de chaleur des clics</h2>
+      <h2>🔥 Où les visiteurs cliquent sur la page</h2>
       <select id="hm-page" class="admin-select"></select>
     </div>
-    <p class="admin-panel-lead">Zones les plus cliquées de la page sélectionnée. <span class="hm-dot hm-dot--hot"></span> clics · <span class="hm-dot hm-dot--rage"></span> clics de rage · <span id="hm-point-count">0</span> points.</p>
+    <p class="admin-panel-lead">La vraie page s'affiche ci-dessous avec, par-dessus, les endroits où l'on clique le plus.
+      <span class="hm-dot hm-dot--hot"></span> plus c'est orange/rouge, plus ça a été cliqué ·
+      <span class="hm-dot hm-dot--rage"></span> en rouge vif, les clics d'agacement ·
+      <span id="hm-point-count">0</span> clics affichés.</p>
     <div class="hm-canvas-wrap" id="hm-canvas-wrap">
-      <canvas id="hm-canvas"></canvas>
-      <div class="hm-canvas-empty" id="hm-canvas-empty">Aucune donnée de clic pour cette page.</div>
+      <div class="hm-stage" id="hm-stage">
+        <iframe class="hm-frame" id="hm-frame" title="Aperçu de la page" scrolling="no" tabindex="-1" aria-hidden="true"></iframe>
+        <canvas id="hm-canvas" class="hm-overlay"></canvas>
+      </div>
+      <div class="hm-canvas-empty" id="hm-canvas-empty">Aucun clic enregistré sur cette page pour l'instant.</div>
     </div>
   </section>
 
   {# ── Top éléments cliqués ── #}
   <div class="admin-grid-2">
     <section class="admin-panel">
-      <h2>Éléments les plus cliqués (page)</h2>
+      <h2>Ce qu'on clique le plus (cette page)</h2>
       <div class="traffic-table-wrap">
         <table class="traffic-table table-stack" id="hm-page-elements">
-          <thead><tr><th>Élément</th><th>Libellé</th><th>Clics</th></tr></thead>
+          <thead><tr><th>Ce qui est cliqué</th><th>Clics</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </section>
     <section class="admin-panel">
-      <h2>Éléments les plus cliqués (site)</h2>
+      <h2>Ce qu'on clique le plus (tout le site)</h2>
       <div class="traffic-table-wrap">
         <table class="traffic-table table-stack" id="hm-top-elements">
-          <thead><tr><th>Élément</th><th>Libellé</th><th>Clics</th></tr></thead>
+          <thead><tr><th>Ce qui est cliqué</th><th>Clics</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -89,7 +95,7 @@
 
   {# ── Pages les plus chaudes ── #}
   <section class="admin-panel">
-    <h2>Pages les plus chaudes</h2>
+    <h2>Pages où l'on clique le plus</h2>
     <div class="traffic-table-wrap">
       <table class="traffic-table table-stack" id="hm-top-pages">
         <thead><tr><th>Page</th><th>Clics</th><th>Visiteurs</th></tr></thead>
@@ -122,15 +128,17 @@
   .hm-tl-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; }
   .hm-tl-label { font-weight: 600; }
 
-  .hm-canvas-wrap { position: relative; width: 100%; max-height: 640px; overflow: auto; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; background:
-      linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px) 0 0 / 40px 40px,
-      linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px) 0 0 / 40px 40px,
-      #fafafa; }
-  .hm-canvas-wrap canvas { display: block; width: 100%; height: auto; }
-  .hm-canvas-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; opacity: .55; }
+  .hm-canvas-wrap { position: relative; width: 100%; max-height: 640px; overflow: auto; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; background: #fff; }
+  .hm-stage { position: relative; margin: 0 auto; }
+  .hm-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; pointer-events: none; background: #fff; }
+  .hm-overlay { position: absolute; top: 0; left: 0; display: block; pointer-events: none; }
+  .hm-canvas-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 24px; opacity: .6; background: rgba(255,255,255,.75); }
   .hm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
   .hm-dot--hot { background: #f97316; }
   .hm-dot--rage { background: #dc2626; }
+  .hm-type { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(27,87,224,.10); color: #1B57E0; vertical-align: middle; }
+  .hm-what { margin-left: 6px; }
+  .hm-what--muted { opacity: .5; font-style: italic; }
   @media (max-width: 720px) { .hm-journey { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
@@ -168,14 +176,42 @@
       d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   }
 
+  // ---------------- Plain-language click descriptions ----------------
+  // Turn a raw CSS selector (button#id.class) into a human word in French.
+  var EL_WORDS = {
+    a: "Lien", button: "Bouton", input: "Champ", textarea: "Champ",
+    select: "Menu déroulant", label: "Champ", form: "Formulaire",
+    img: "Image", picture: "Image", svg: "Icône", i: "Icône", use: "Icône",
+    nav: "Menu", header: "En-tête", footer: "Bas de page",
+    li: "Élément de menu", ul: "Menu", ol: "Liste", td: "Cellule", th: "Cellule",
+    h1: "Titre", h2: "Titre", h3: "Titre", h4: "Titre", h5: "Titre", h6: "Titre",
+    summary: "Section dépliable", details: "Section dépliable",
+    p: "Texte", span: "Texte", section: "Section", article: "Section",
+  };
+  function elType(selector) {
+    if (!selector) return "Zone";
+    var tag = String(selector).split(/[#.\[\s>]/)[0].toLowerCase();
+    return EL_WORDS[tag] || "Zone";
+  }
+  // Rendered HTML: a plain type badge + the visible label (« Prendre RDV »).
+  // The raw selector is tucked into the title attribute for the curious.
+  function describeClick(selector, text) {
+    var label = (text == null ? "" : String(text)).replace(/\s+/g, " ").trim();
+    var html = '<span class="hm-type" title="' + esc(selector || "") + '">' + esc(elType(selector)) + "</span>";
+    html += label
+      ? '<span class="hm-what">« ' + esc(label) + " »</span>"
+      : '<span class="hm-what hm-what--muted">(sans texte)</span>';
+    return html;
+  }
+
   // ---------------- Overview + tables ----------------
   function fillElements(tbodySel, rows) {
     var tb = document.querySelector(tbodySel + " tbody");
     if (!tb) return;
-    if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="3" class="admin-empty-inline">—</td></tr>'; return; }
+    if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="2" class="admin-empty-inline">—</td></tr>'; return; }
     tb.innerHTML = rows.map(function (r) {
-      return "<tr><td><code>" + esc(r.selector) + "</code></td><td>" + esc(r.text || "—") +
-        "</td><td>" + fmtInt.format(r.clicks) + "</td></tr>";
+      return "<tr><td>" + describeClick(r.selector, r.text) + "</td><td>" +
+        fmtInt.format(r.clicks) + "</td></tr>";
     }).join("");
   }
 
@@ -210,11 +246,26 @@
     }).catch(function () {});
   }
 
-  // ---------------- Heatmap canvas ----------------
-  var CANVAS_W = 1200;
+  // ---------------- Heatmap: real page + click overlay ----------------
+  var lastHeat = null;   // last dataset, so we can redraw on resize
+  var framePath = null;  // path currently loaded in the iframe (avoid reloads)
+
   function loadHeatmap() {
     var path = $("hm-page").value;
-    if (!path) { drawHeat({ points: [], doc_w: 1440, doc_h: 800 }); fillElements("#hm-page-elements", []); return; }
+    if (!path) {
+      framePath = null;
+      $("hm-frame").removeAttribute("src");
+      drawHeat({ points: [], doc_w: 1440, doc_h: 800 });
+      fillElements("#hm-page-elements", []);
+      return;
+    }
+    // Load the real page behind the heat, but only when the path changes so it
+    // doesn't flicker on every auto-refresh. hmpreview=1 tells the tracker to
+    // stay silent for this embedded copy.
+    if (path !== framePath) {
+      framePath = path;
+      $("hm-frame").src = path + (path.indexOf("?") === -1 ? "?" : "&") + "hmpreview=1";
+    }
     fetch(URLS.points + "?path=" + encodeURIComponent(path) + "&days=" + days())
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -225,27 +276,44 @@
   }
 
   function drawHeat(d) {
-    var canvas = $("hm-canvas");
-    var refW = d.doc_w || 1440;
-    var scale = CANVAS_W / refW;
-    var h = Math.max(300, Math.round((d.doc_h || 800) * scale));
-    canvas.width = CANVAS_W;
-    canvas.height = h;
+    lastHeat = d;
+    var wrap = $("hm-canvas-wrap"), stage = $("hm-stage"),
+        frame = $("hm-frame"), canvas = $("hm-canvas");
+    var docW = d.doc_w || 1440;
+    var docH = d.doc_h || 800;
+
+    // Fit the real page (rendered at its native width) into the panel width.
+    var boxW = Math.max(320, (wrap.clientWidth || 1000) - 2);
+    var scale = boxW / docW;
+    var dispH = Math.max(240, Math.round(docH * scale));
+
+    // The page: render at true size, then shrink to fit.
+    frame.style.width = docW + "px";
+    frame.style.height = docH + "px";
+    frame.style.transform = "scale(" + scale + ")";
+    stage.style.width = boxW + "px";
+    stage.style.height = dispH + "px";
+
+    // The heat overlay: same on-screen size as the shrunk page.
+    canvas.width = Math.round(boxW);
+    canvas.height = dispH;
+    canvas.style.width = boxW + "px";
+    canvas.style.height = dispH + "px";
     var ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, CANVAS_W, h);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var pts = d.points || [];
     $("hm-canvas-empty").style.display = pts.length ? "none" : "flex";
     if (!pts.length) return;
 
-    var radius = 34;
-    // Accumulate heat (alpha) with additive blending, then colourise.
+    var radius = Math.max(18, boxW * 0.028);
+    // Accumulate heat with additive blending so overlapping clicks glow hotter.
     ctx.globalCompositeOperation = "lighter";
     pts.forEach(function (p) {
-      var x = p.x * CANVAS_W;
-      var y = p.y * scale;
+      var x = p.x * boxW;      // x is a 0-1 ratio of the page width
+      var y = p.y * scale;     // y is a pixel offset in the full page
       var g = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      var core = p.rage ? "rgba(220,38,38,0.55)" : "rgba(249,115,22,0.40)";
+      var core = p.rage ? "rgba(220,38,38,0.60)" : "rgba(249,115,22,0.45)";
       g.addColorStop(0, core);
       g.addColorStop(1, "rgba(249,115,22,0)");
       ctx.fillStyle = g;
@@ -296,10 +364,10 @@
   }
 
   var EV = {
-    pageview: { ico: "📄", verb: "Arrive sur" },
+    pageview: { ico: "📄", verb: "Arrive sur la page" },
     click: { ico: "🖱️", verb: "Clique" },
-    rageclick: { ico: "😠", verb: "Clic de rage" },
-    scroll: { ico: "↕️", verb: "Défile" },
+    rageclick: { ico: "😠", verb: "Clique plusieurs fois (agacé)" },
+    scroll: { ico: "↕️", verb: "Descend" },
   };
   function renderJourney(host, d) {
     var dev = d.device === "mobile" ? "📱 Mobile" : (d.device ? "🖥️ Bureau" : "—");
@@ -329,8 +397,7 @@
       } else if (e.type === "scroll") {
         line += meta.verb + " jusqu'à " + (e.scroll_depth || 0) + "% de <span class=\"hm-tl-path\">" + esc(e.path) + "</span>";
       } else {
-        line += meta.verb + (e.el_text ? ' sur <span class="hm-tl-label">« ' + esc(e.el_text) + " »</span>" : "") +
-          (e.el_selector ? " <code>" + esc(e.el_selector) + "</code>" : "");
+        line += meta.verb + " sur " + describeClick(e.el_selector, e.el_text);
       }
       line += '<span class="hm-tl-time">' + timeStr(e.at) + "</span></li>";
       html += line;
@@ -342,6 +409,11 @@
   // ---------------- wiring ----------------
   $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); });
   $("hm-page").addEventListener("change", loadHeatmap);
+  var rsz;
+  window.addEventListener("resize", function () {
+    clearTimeout(rsz);
+    rsz = setTimeout(function () { if (lastHeat) drawHeat(lastHeat); }, 150);
+  });
   loadOverview();
   loadJourneys();
   setInterval(function () { loadOverview(); loadJourneys(); }, 60000);

@@ -14,6 +14,7 @@ from app.constants.trades import TRADES, trade_label
 from app.core.extensions import db
 from app.models.outreach_prospect import OutreachProspect, utcnow
 from app.services import admin_email, content_ai, prospect_search
+from app.services.email_validation import check_recipient
 from app.services.transactional_email import render_email
 
 logger = logging.getLogger(__name__)
@@ -353,6 +354,18 @@ def send_outreach_email(prospect_id) -> dict:
         raise ProspectingError("Ce prospect s'est désinscrit.")
     if not prospect.email:
         raise ProspectingError("Aucun e-mail pour ce prospect.")
+    # Never hand an undeliverable address to the relay: a harvested asset ref
+    # (logo@2x.png) or malformed capture bounces every time and, en volume,
+    # dégrade la réputation d'envoi au point de faire rebondir les e-mails
+    # sains. On sort le prospect du flux d'envoi plutôt que de générer un bounce.
+    deliverable, reason = check_recipient(prospect.email)
+    if not deliverable:
+        prospect.status = "skipped"
+        note = f"[Non délivrable] {prospect.email} — {reason}"
+        prospect.notes = (f"{prospect.notes}\n{note}" if prospect.notes else note).strip()
+        prospect.updated_at = utcnow()
+        db.session.commit()
+        raise ProspectingError(f"E-mail non délivrable ({reason}).")
     if not prospect.outreach_subject or not prospect.outreach_body:
         raise ProspectingError("Générez d'abord l'e-mail de prospection.")
 

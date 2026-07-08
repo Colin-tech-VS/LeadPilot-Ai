@@ -46,6 +46,29 @@ confirmation de RDV…) sont **simulés** et jamais réellement délivrés.
 > **Vérification** : `/admin/diagnostics` liste l'état de chaque variable,
 > teste la connexion SMTP en direct et envoie un e-mail de test.
 
+#### Délivrabilité de la prospection — « Bounced by relay »
+
+Un e-mail marqué **`sent`** côté app a seulement été *accepté par le relais
+LWS* ; s'il rebondit ensuite, LWS l'affiche **`Bounced by relay`** (le serveur
+du destinataire l'a refusé). Deux causes, dans l'ordre :
+
+1. **Adresses invalides récoltées sur le web.** Le scraping capture parfois des
+   références d'images rétina (`logo@2x.png`) ou des adresses mal formées qui
+   ressemblent à `local@domaine.tld`. Elles rebondissent à 100 % et, en
+   volume, dégradent la réputation d'envoi jusqu'à faire rebondir les e-mails
+   *sains*. → Filtrées automatiquement à la récolte **et** avant chaque envoi
+   (`app/services/email_validation.py`) : un prospect non délivrable passe en
+   `skipped` sans jamais atteindre le relais.
+2. **Authentification du domaine.** Pour que les serveurs destinataires
+   acceptent `pilotcore.fr`, la zone DNS doit publier :
+   - **SPF** — autoriser les serveurs d'envoi LWS (`v=spf1 include:_spf.lws.fr ~all`).
+   - **DKIM** — activer la signature dans le panel LWS et publier la clé publique.
+   - **DMARC** — `v=DMARC1; p=none; rua=mailto:contact@pilotcore.fr` pour démarrer.
+   - **PTR** (reverse DNS) cohérent, géré par LWS.
+
+   Sans SPF/DKIM/DMARC, la prospection à froid rebondit quel que soit le
+   contenu — c'est un réglage **DNS**, pas applicatif.
+
 ## 3. Sécurité
 
 - `TWILIO_AUTO_PROVISION_NUMBERS=0` au lancement (pas d’achat auto de numéros).

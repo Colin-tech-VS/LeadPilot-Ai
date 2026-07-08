@@ -13,6 +13,10 @@
   var path = location.pathname || "/";
   // Never track the admin console itself.
   if (path.indexOf("/admin") === 0) return;
+  // Never track the read-only preview the admin heatmap embeds in an iframe:
+  // it would record fake page views / clicks for a page nobody really visited.
+  if (location.search.indexOf("hmpreview=1") !== -1) return;
+  try { if (window.self !== window.top) return; } catch (e) { return; }
 
   var ENDPOINT = "/api/heatmap/collect";
   var queue = [];

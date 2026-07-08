@@ -162,6 +162,54 @@
     setInterval(function () { loadAnalytics(rangeSel ? rangeSel.value : 30); }, 30000);
   }
 
+  // ---- Nova insights card (dashboard) ----
+  var novaInsights = document.getElementById("nova-insights");
+  if (novaInsights && window.NOVA_INSIGHTS_URL) {
+    var novaGrid = document.getElementById("nova-insights-grid");
+    var novaHeadline = document.getElementById("nova-insights-headline");
+    var novaRefresh = document.getElementById("nova-insights-refresh");
+    var actionLabels = {
+      create_blog: "📝 Rédiger l'article", create_page: "📄 Créer la page",
+      social: "📣 Créer le post", prospecting: "🎯 Prospecter",
+      email: "✉️ Envoyer", seo: "🔍 Optimiser le SEO", none: "💬 En parler à Nova",
+    };
+    function escN(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function loadInsights() {
+      if (novaGrid) novaGrid.innerHTML =
+        '<div class="nova-insight nova-insight--skeleton"></div>'.repeat(3);
+      if (novaHeadline) novaHeadline.textContent = "Analyse en cours…";
+      fetch(window.NOVA_INSIGHTS_URL).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || !d.insights || !d.insights.length) {
+          if (novaHeadline) novaHeadline.textContent = d && d.error ? "Analyse indisponible pour le moment." : "Pas encore assez de données à analyser.";
+          if (novaGrid) novaGrid.innerHTML = "";
+          return;
+        }
+        if (novaHeadline) novaHeadline.textContent = d.headline || "Recommandations prioritaires.";
+        novaGrid.innerHTML = d.insights.map(function (it) {
+          var label = actionLabels[it.action] || actionLabels.none;
+          var prompt = it.title + " — " + it.detail + " Aide-moi à le faire maintenant.";
+          return '<article class="nova-insight nova-insight--' + escN(it.priority || "medium") + '">' +
+            '<span class="nova-insight-prio">' + escN(it.priority || "medium") + "</span>" +
+            '<h3>' + escN(it.title) + "</h3>" +
+            '<p>' + escN(it.detail) + "</p>" +
+            '<button type="button" class="nova-insight-act" data-prompt="' +
+              escN(prompt).replace(/"/g, "&quot;") + '">' + label + "</button>" +
+            "</article>";
+        }).join("");
+        novaGrid.querySelectorAll(".nova-insight-act").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (window.NovaAsk) window.NovaAsk(btn.getAttribute("data-prompt"));
+          });
+        });
+      }).catch(function () {
+        if (novaHeadline) novaHeadline.textContent = "Analyse indisponible.";
+        if (novaGrid) novaGrid.innerHTML = "";
+      });
+    }
+    loadInsights();
+    if (novaRefresh) novaRefresh.addEventListener("click", loadInsights);
+  }
+
   // ---- live log stream ----
   var stream = document.getElementById("log-stream");
   var liveToggle = document.getElementById("live-toggle");

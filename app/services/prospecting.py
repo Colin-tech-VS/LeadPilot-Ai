@@ -330,9 +330,10 @@ def generate_outreach_email(prospect_id, *, tone: str = "professionnel", angle: 
     raw = content_ai._complete(system, user, json_mode=True, max_tokens=900, temperature=0.55)
     try:
         data = content_ai._parse_json_response(raw)
-    except (json.JSONDecodeError, TypeError) as exc:
+    except (json.JSONDecodeError, TypeError, content_ai.ContentAIError) as exc:
         # The model occasionally wraps JSON in ``` fences or truncates it — never
-        # let that surface as a 500. Mirror the other content_ai generators.
+        # let that surface as a 500. The shared lenient parser already tries to
+        # salvage a truncated object; if even that fails we ask for a retry.
         logger.warning("Prospect outreach email JSON unparseable: %s", exc)
         raise ProspectingError("La réponse de l'IA n'était pas exploitable, réessayez.") from exc
     if not isinstance(data, dict):

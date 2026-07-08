@@ -50,6 +50,86 @@ def _complete(system, user, *, json_mode=False, max_tokens=1500, temperature=0.6
         raise ContentAIError(f"Génération IA impossible : {exc}") from exc
 
 
+def _repair_truncated_json(fragment: str):
+    """Best-effort repair of a JSON object cut off mid-stream (token limit).
+
+    Long articles occasionally hit ``max_tokens`` and the model returns a valid
+    prefix that ``json.loads`` rejects. We close any dangling string and balance
+    the open braces/brackets so at least the fields produced so far survive —
+    much better UX than a hard "réponse inexploitable".
+    """
+    out = []
+    stack = []
+    in_str = False
+    escape = False
+    for ch in fragment:
+        if escape:
+            out.append(ch)
+            escape = False
+            continue
+        if in_str and ch == "\\":
+            out.append(ch)
+            escape = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            out.append(ch)
+            continue
+        if not in_str:
+            if ch in "{[":
+                stack.append("}" if ch == "{" else "]")
+            elif ch in "}]":
+                if stack and stack[-1] == ch:
+                    stack.pop()
+        out.append(ch)
+
+    text = "".join(out)
+    if in_str:
+        text += '"'
+    # Drop a dangling ``"key":`` / trailing comma left by the cut.
+    text = re.sub(r'(?:,|\s*"[^"]*"\s*:)\s*$', "", text.rstrip())
+    while stack:
+        text += stack.pop()
+    try:
+        return json.loads(text)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _loads_lenient(raw: str) -> dict:
+    """Parse a JSON object from an LLM reply, tolerating code fences, prose
+    around the object and truncated output. Raises ContentAIError if nothing
+    usable can be recovered."""
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return data
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            data = json.loads(text[start : end + 1])
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if start != -1:
+        repaired = _repair_truncated_json(text[start:])
+        if isinstance(repaired, dict) and repaired:
+            logger.warning("Recovered truncated AI JSON (%d chars).", len(text))
+            return repaired
+
+    raise ContentAIError("La réponse de l'IA n'était pas exploitable.")
+
+
 _PAGE_SYSTEM = (
     "Tu es un rédacteur web et concepteur marketing pour PilotCore, un "
     "standardiste téléphonique IA pour artisans (plombiers, électriciens, etc.). "
@@ -73,11 +153,8 @@ def generate_page(prompt: str, tone: str = "professionnel") -> dict:
         f"Ton souhaité : {tone}.\n"
         "Génère une page complète et prête à publier."
     )
-    raw = _complete(_PAGE_SYSTEM, user, json_mode=True, max_tokens=2200, temperature=0.6)
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, TypeError) as exc:
-        raise ContentAIError("La réponse de l'IA n'était pas exploitable.") from exc
+    raw = _complete(_PAGE_SYSTEM, user, json_mode=True, max_tokens=3000, temperature=0.6)
+    data = _loads_lenient(raw)
     return {
         "title": (data.get("title") or "").strip(),
         "meta_description": (data.get("meta_description") or "").strip()[:300],
@@ -99,7 +176,9 @@ _BLOG_SYSTEM = (
     '- "body_html" : article complet (1500-2200 mots) — balises h2, h3, p, ul, li, strong, em, '
     "blockquote, section uniquement. PAS de h1 (ajouté par le template). "
     "Inclure une intro, 4-6 sections, conclusion avec CTA doux vers PilotCore (sans URL brute).\n"
-    '- "faq" : tableau de 3 à 5 objets {"question": "...", "answer": "..."} pour rich snippets.'
+    '- "faq" : tableau de 3 à 5 objets {"question": "...", "answer": "..."} pour rich snippets.\n'
+    "IMPÉRATIF : renvoie un objet JSON COMPLET et bien fermé. Vise 1000-1500 mots pour "
+    "le body_html afin de ne jamais dépasser la limite et de toujours produire un JSON valide."
 )
 
 
@@ -111,11 +190,10 @@ def generate_blog_post(prompt: str, tone: str = "expert", *, category_hint: str 
         f"Catégorie suggérée : {category_hint or 'au choix'}.\n"
         "Rédige l'article de blog complet."
     )
-    raw = _complete(_BLOG_SYSTEM, user, json_mode=True, max_tokens=4500, temperature=0.58)
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, TypeError) as exc:
-        raise ContentAIError("La réponse de l'IA n'était pas exploitable.") from exc
+    raw = _complete(_BLOG_SYSTEM, user, json_mode=True, max_tokens=6000, temperature=0.58)
+    data = _loads_lenient(raw)
+    if not (data.get("title") or data.get("body_html")):
+        raise ContentAIError("La réponse de l'IA n'était pas exploitable.")
 
     faq_raw = data.get("faq") or []
     faq = []
@@ -171,11 +249,9 @@ _SOCIAL_SYSTEM = (
 
 
 def _parse_json_response(raw: str) -> dict:
-    text = (raw or "").strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
-    return json.loads(text)
+    """Backward-compatible name kept for callers (prospecting, social). Now
+    tolerates fenced / truncated JSON via the shared lenient loader."""
+    return _loads_lenient(raw)
 
 
 def generate_social_post(

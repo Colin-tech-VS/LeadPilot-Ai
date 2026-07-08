@@ -205,6 +205,8 @@ _CONTACT_PATHS = ("/contact", "/contactez-nous", "/nous-contacter", "/mentions-l
 
 
 def extract_emails_from_html(html: str) -> list[str]:
+    from app.services.email_validation import looks_like_asset
+
     found = []
     seen = set()
     for match in _EMAIL_RE.findall(html or ""):
@@ -212,6 +214,11 @@ def extract_emails_from_html(html: str) -> list[str]:
         if any(email.endswith(s) for s in _JUNK_EMAIL_SUFFIXES):
             continue
         if email.startswith(("noreply@", "no-reply@", "donotreply@")):
+            continue
+        # Retina image / asset references (``logo@2x.png``, ``icon@2x.svg``)
+        # match the address shape but are not mailboxes — sending to them is a
+        # guaranteed bounce that hurts the domain's sending reputation.
+        if looks_like_asset(email):
             continue
         if email not in seen:
             seen.add(email)

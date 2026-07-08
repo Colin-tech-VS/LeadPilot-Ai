@@ -1,7 +1,7 @@
 /* PilotCore — service worker (PWA shell + notifications) */
 /* Bump CACHE on every asset change: the activate handler purges every older
    cache, so returning users can never be stuck on a stale bundle. */
-const CACHE = "PilotCore-v5";
+const CACHE = "PilotCore-v6";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",
@@ -14,6 +14,10 @@ const ASSETS = [
   "/static/admin/admin.css",
   "/static/admin/admin.js",
   "/static/images/logo.svg",
+  "/static/images/admin-icon-192.png",
+  "/static/images/admin-icon-512.png",
+  "/static/images/admin-icon-maskable-512.png",
+  "/static/images/admin-touch-icon-180.png",
   "/manifest.webmanifest",
   "/public.webmanifest",
 ];

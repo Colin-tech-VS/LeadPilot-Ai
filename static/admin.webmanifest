@@ -1,6 +1,7 @@
 {
+  "id": "/admin",
   "name": "PilotCore Admin",
-  "short_name": "LP Admin",
+  "short_name": "PC Admin",
   "description": "Console d'administration PilotCore : analytics, trafic, clients et gestion de contenu.",
   "lang": "fr",
   "start_url": "/admin",
@@ -12,10 +13,39 @@
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/static/images/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/static/images/admin-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/admin-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/admin-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trafic",
+      "url": "/admin/traffic",
+      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Emails",
+      "url": "/admin/emails",
+      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Prospection",
+      "url": "/admin/prospecting",
+      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

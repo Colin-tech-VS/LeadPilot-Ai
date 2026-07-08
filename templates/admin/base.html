@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/admin-touch-icon-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=13">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=14">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -118,12 +118,14 @@
       </div>
     </main>
   </div>
+  {% if nova_available %}{% include 'admin/_assistant.html' %}{% endif %}
 {% else %}
   {% block auth_content %}{% endblock %}
 {% endif %}
   {% block scripts %}{% endblock %}
   {{ google_places_scripts() }}
-  <script src="{{ url_for('static', filename='admin/admin.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='admin/admin.js') }}?v=7"></script>
+  {% if nova_available %}<script src="{{ url_for('static', filename='admin/assistant.js') }}?v=1"></script>{% endif %}
   <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=2"></script>
   <script>
     if ('serviceWorker' in navigator) {

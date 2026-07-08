@@ -14,6 +14,26 @@
 {% block content %}
 <p class="dash-intro">Entonnoir commercial — prospects, rendez-vous, devis et revenus récurrents des artisans.</p>
 
+{% if nova_available %}
+<section class="nova-insights admin-panel" id="nova-insights" aria-live="polite">
+  <div class="nova-insights-head">
+    <div class="nova-insights-id">
+      <span class="nova-avatar nova-avatar--sm" aria-hidden="true"><span class="nova-avatar-core"></span></span>
+      <div>
+        <h2>{{ nova_name }} — analyse du site</h2>
+        <p class="nova-insights-sub" id="nova-insights-headline">Analyse en cours…</p>
+      </div>
+    </div>
+    <button type="button" class="admin-btn ghost tiny" id="nova-insights-refresh">Rafraîchir</button>
+  </div>
+  <div class="nova-insights-grid" id="nova-insights-grid">
+    <div class="nova-insight nova-insight--skeleton"></div>
+    <div class="nova-insight nova-insight--skeleton"></div>
+    <div class="nova-insight nova-insight--skeleton"></div>
+  </div>
+</section>
+{% endif %}
+
 <div class="dash-kpi-hero" id="kpi-grid">
   <div class="kpi-card kpi-card--hero" data-kpi="revenue_estimate_cents">
     <span class="kpi-label">MRR estimé</span>
@@ -84,5 +104,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script>window.ADMIN_ANALYTICS_URL = "{{ url_for('admin.api_analytics') }}";</script>
+<script>
+  window.ADMIN_ANALYTICS_URL = "{{ url_for('admin.api_analytics') }}";
+  {% if nova_available %}window.NOVA_INSIGHTS_URL = "{{ url_for('admin.api_assistant_insights') }}";{% endif %}
+</script>
 {% endblock %}

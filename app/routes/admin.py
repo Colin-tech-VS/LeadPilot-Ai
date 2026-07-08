@@ -113,11 +113,21 @@ TABLES = {
 
 @admin_bp.context_processor
 def inject_admin():
+    nova_available = False
+    if is_admin_logged_in():
+        try:
+            from app.services import assistant
+
+            nova_available = assistant.available()
+        except Exception:  # noqa: BLE001 — never break page render over the copilot
+            nova_available = False
     return {
         "admin_username": g.get("admin_username"),
         "is_admin": is_admin_logged_in(),
         "admin_tables": {k: v.label for k, v in TABLES.items()},
         "current_year": datetime.now(timezone.utc).year,
+        "nova_available": nova_available,
+        "nova_name": "Nova",
     }
 
 
@@ -180,6 +190,40 @@ def dashboard():
 @admin_required
 def api_analytics():
     return jsonify(analytics.dashboard_payload(_range_days()))
+
+
+# ------------------------------------------------------------------ Nova (AI copilot)
+@admin_bp.route("/api/assistant/chat", methods=["POST"])
+@admin_required
+@rate_limit(limit=40, window=300, scope="admin_assistant")
+def api_assistant_chat():
+    from app.services import assistant
+
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") if isinstance(data.get("history"), list) else []
+    if not message:
+        return jsonify({"error": "Message vide."}), 400
+    try:
+        result = assistant.chat(message, history=history)
+        return jsonify(result)
+    except assistant.AssistantError as exc:
+        return jsonify({"error": str(exc)}), 503
+    except Exception as exc:  # noqa: BLE001 — never 500 the chat widget
+        current_app.logger.exception("assistant chat failed")
+        return jsonify({"error": f"Nova a rencontré une erreur : {exc}"}), 502
+
+
+@admin_bp.route("/api/assistant/insights")
+@admin_required
+def api_assistant_insights():
+    from app.services import assistant
+
+    try:
+        return jsonify(assistant.insights())
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("assistant insights failed")
+        return jsonify({"available": False, "headline": "", "insights": [], "error": str(exc)[:200]})
 
 
 def _range_days(default=30):

@@ -1,0 +1,53 @@
+{# Nova — AI copilot: floating launcher + slide-in chat panel. Injected on every
+   admin page from base.html when the copilot is available. #}
+<button type="button" class="nova-fab" id="nova-fab" aria-label="Ouvrir {{ nova_name }}, le copilote IA">
+  <span class="nova-fab-orb" aria-hidden="true">
+    <span class="nova-fab-spark"></span>
+  </span>
+  <span class="nova-fab-label">{{ nova_name }}</span>
+</button>
+
+<div class="nova-overlay" id="nova-overlay" aria-hidden="true"></div>
+
+<section class="nova-panel" id="nova-panel" aria-hidden="true" aria-label="{{ nova_name }} — copilote IA">
+  <header class="nova-head">
+    <div class="nova-head-id">
+      <span class="nova-avatar" aria-hidden="true"><span class="nova-avatar-core"></span></span>
+      <div>
+        <strong>{{ nova_name }}</strong>
+        <span class="nova-head-sub">Copilote IA · connaît tout le site</span>
+      </div>
+    </div>
+    <div class="nova-head-actions">
+      <button type="button" class="nova-icon-btn" id="nova-reset" title="Nouvelle conversation" aria-label="Réinitialiser">⟳</button>
+      <button type="button" class="nova-icon-btn" id="nova-close" title="Fermer" aria-label="Fermer">✕</button>
+    </div>
+  </header>
+
+  <div class="nova-messages" id="nova-messages" role="log" aria-live="polite">
+    <div class="nova-msg nova-msg--bot nova-msg--intro">
+      <div class="nova-bubble">
+        <p>Bonjour 👋 Je suis <strong>{{ nova_name }}</strong>, votre copilote. J'analyse tout le site et je peux
+        <strong>agir</strong> : rédiger &amp; publier des articles ou des pages, créer des posts, trouver des prospects
+        et envoyer des e-mails.</p>
+        <p class="nova-intro-hint">Essayez une action rapide&nbsp;:</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="nova-suggests" id="nova-suggests">
+    <button type="button" class="nova-chip" data-prompt="Analyse le site et donne-moi les 3 actions prioritaires pour gagner en trafic et en clients.">🔎 Analyser &amp; prioriser</button>
+    <button type="button" class="nova-chip" data-prompt="Propose 5 idées d'articles de blog SEO pour attirer des artisans, puis rédige le meilleur en brouillon.">📝 Idées d'articles</button>
+    <button type="button" class="nova-chip" data-prompt="Rédige un post social engageant sur le standard téléphonique IA pour artisans (en brouillon).">📣 Post social</button>
+    <button type="button" class="nova-chip" data-prompt="Cherche des plombiers à Lyon et prépare un e-mail de prospection pour le premier avec e-mail valide.">🎯 Prospecter</button>
+  </div>
+
+  <form class="nova-composer" id="nova-form" autocomplete="off">
+    <textarea id="nova-input" class="nova-input" rows="1"
+      placeholder="Demandez à {{ nova_name }}… (ex. « crée une page sur le dépannage plomberie »)"></textarea>
+    <button type="submit" class="nova-send" id="nova-send" aria-label="Envoyer">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </form>
+  <p class="nova-foot">{{ nova_name }} peut réaliser de vraies actions — vérifiez toujours le résultat.</p>
+</section>

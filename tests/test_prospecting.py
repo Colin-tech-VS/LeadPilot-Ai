@@ -202,3 +202,69 @@ def test_generate_email_bad_uuid_is_clean_error(client):
     res = client.post("/admin/api/prospecting/not-a-uuid/generate-email", json={})
     assert res.status_code in (400, 404, 502)
     assert "error" in res.get_json()
+
+
+def _make_contacted_prospect(app, *, email_status=None):
+    """Prospect « contacté » avec, si demandé, un EmailMessage sortant associé."""
+    with app.app_context():
+        from app.core.extensions import db
+        from app.models.email_message import DIRECTION_OUTBOUND, EmailMessage
+        from app.models.outreach_prospect import utcnow
+
+        prospect = OutreachProspect(
+            id=uuid.uuid4(),
+            company_name="Plomberie Martin",
+            email=f"test-{uuid.uuid4().hex[:8]}@example.com",
+            trade_type="plombier",
+            city="Lyon",
+            status="contacted",
+            outreach_subject="PilotCore pour votre activité",
+            outreach_body="Bonjour, découvrez PilotCore.",
+            last_contacted_at=utcnow(),
+        )
+        db.session.add(prospect)
+        if email_status:
+            db.session.add(
+                EmailMessage(
+                    direction=DIRECTION_OUTBOUND,
+                    status=email_status,
+                    to_addr=prospect.email,
+                    subject=prospect.outreach_subject,
+                    body=prospect.outreach_body,
+                )
+            )
+        db.session.commit()
+        return str(prospect.id), prospect.email
+
+
+def test_resend_targets_only_failed_sends(app, client):
+    """« Renvoyer les échecs » ne renvoie qu'aux prospects dont l'e-mail a échoué."""
+    _login_admin(client)
+    _, failed_email = _make_contacted_prospect(app, email_status="failed")
+    _, sent_email = _make_contacted_prospect(app, email_status="sent")
+
+    with patch("app.services.prospecting.admin_email.send_email") as send_mock:
+        send_mock.return_value.status = "sent"
+        res = client.post("/admin/prospecting/resend", follow_redirects=True)
+    assert res.status_code == 200
+    called = [c.args[0] for c in send_mock.call_args_list]
+    assert failed_email in called
+    assert sent_email not in called
+
+
+def test_resend_skips_opted_out(app, client):
+    _login_admin(client)
+    pid, email = _make_contacted_prospect(app, email_status="failed")
+    with app.app_context():
+        from app.core.extensions import db
+        from app.models.outreach_prospect import utcnow
+
+        row = db.session.get(OutreachProspect, uuid.UUID(pid))
+        row.opted_out_at = utcnow()
+        db.session.commit()
+
+    with patch("app.services.prospecting.admin_email.send_email") as send_mock:
+        send_mock.return_value.status = "sent"
+        res = client.post("/admin/prospecting/resend", follow_redirects=True)
+    assert res.status_code == 200
+    assert email not in [c.args[0] for c in send_mock.call_args_list]

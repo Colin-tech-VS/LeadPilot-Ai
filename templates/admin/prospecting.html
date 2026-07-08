@@ -120,6 +120,15 @@
       </select>
     </label>
   </form>
+
+  {% if stats.by_status.get('contacted', 0) > 0 %}
+  <form method="POST" action="{{ url_for('admin.prospecting_resend') }}"
+        onsubmit="return confirm('Renvoyer l\'e-mail de prospection aux prospects contactés dont l\'envoi avait échoué ?')">
+    <button type="submit" class="admin-btn tiny" title="Ne renvoie qu'aux prospects dont l'e-mail n'était pas parti (échec SMTP)">
+      🔁 Renvoyer les échecs
+    </button>
+  </form>
+  {% endif %}
 </div>
 
 {% if prospects %}

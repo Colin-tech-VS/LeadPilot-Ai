@@ -388,6 +388,54 @@ def send_outreach_email(prospect_id) -> dict:
     return {"prospect": prospect.to_dict(), "email_status": row.status}
 
 
+def resend_outreach_emails(*, only_failed: bool = True) -> dict:
+    """Re-send the outreach e-mail to every already-contacted prospect.
+
+    Used after an SMTP outage (ex. blocage du filtre sortant LWS) : les
+    prospects étaient passés en « contacté » alors que l'e-mail n'était jamais
+    parti. Par défaut on ne renvoie qu'aux prospects dont le dernier e-mail
+    n'a PAS le statut ``sent``, pour ne jamais envoyer deux fois le même
+    message à quelqu'un qui l'a déjà reçu.
+    """
+    from app.models.email_message import DIRECTION_OUTBOUND, STATUS_SENT, EmailMessage
+
+    prospects = (
+        OutreachProspect.query.filter(
+            OutreachProspect.status == "contacted",
+            OutreachProspect.opted_out_at.is_(None),
+            OutreachProspect.email.isnot(None),
+            OutreachProspect.email != "",
+            OutreachProspect.outreach_subject.isnot(None),
+            OutreachProspect.outreach_body.isnot(None),
+        )
+        .order_by(OutreachProspect.created_at.asc())
+        .all()
+    )
+    sent, skipped, failed = 0, 0, []
+    for prospect in prospects:
+        if only_failed:
+            last = (
+                EmailMessage.query.filter_by(
+                    direction=DIRECTION_OUTBOUND, to_addr=prospect.email
+                )
+                .order_by(EmailMessage.created_at.desc())
+                .first()
+            )
+            if last is not None and last.status == STATUS_SENT:
+                skipped += 1
+                continue
+        try:
+            result = send_outreach_email(prospect.id)
+        except ProspectingError as exc:
+            failed.append(f"{prospect.email} ({exc})")
+            continue
+        if result["email_status"] == "failed":
+            failed.append(prospect.email)
+        else:
+            sent += 1
+    return {"total": len(prospects), "sent": sent, "skipped": skipped, "failed": failed}
+
+
 def update_status(prospect_id, status: str) -> OutreachProspect:
     if status not in ("new", "ready", "contacted", "replied", "converted", "unsubscribed", "skipped"):
         raise ProspectingError("Statut invalide.")

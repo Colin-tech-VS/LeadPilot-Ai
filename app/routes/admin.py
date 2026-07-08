@@ -59,7 +59,7 @@ from app.services import (
     traffic,
     twilio_admin,
 )
-from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_SUCCESS, LEVEL_WARNING, log_event
+from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_ERROR, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
 admin_bp = Blueprint(
     "admin",
@@ -1661,6 +1661,33 @@ def prospecting_send(prospect_id):
         flash(f"E-mail envoyé à {result['prospect'].get('email')} ({result['email_status']}).", "success")
     except prospecting.ProspectingError as exc:
         flash(str(exc), "error")
+    return redirect(url_for("admin.prospecting"))
+
+
+@admin_bp.route("/prospecting/resend", methods=["POST"], endpoint="prospecting_resend")
+@admin_required
+def prospecting_resend():
+    """Renvoie l'e-mail de prospection aux contactés dont l'envoi avait échoué."""
+    from app.services import prospecting
+
+    result = prospecting.resend_outreach_emails()
+    log_event(
+        CAT_ADMIN,
+        "prospect_email_resend",
+        summary=(
+            f"Renvoi prospection : {result['sent']} envoyé(s), "
+            f"{result['skipped']} déjà reçu(s), {len(result['failed'])} échec(s)"
+        ),
+        level=LEVEL_SUCCESS if not result["failed"] else LEVEL_ERROR,
+    )
+    if result["sent"]:
+        flash(f"{result['sent']} e-mail(s) de prospection renvoyé(s).", "success")
+    if result["skipped"]:
+        flash(f"{result['skipped']} prospect(s) ignoré(s) : leur e-mail était déjà bien parti.", "info")
+    if result["failed"]:
+        flash("Échec pour : " + ", ".join(result["failed"][:10]), "error")
+    if not result["total"]:
+        flash("Aucun prospect contacté à renvoyer.", "info")
     return redirect(url_for("admin.prospecting"))
 
 

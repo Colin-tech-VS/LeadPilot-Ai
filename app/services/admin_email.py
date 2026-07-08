@@ -42,6 +42,23 @@ def default_from_addr() -> str:
     )
 
 
+def smtp_from_addr(from_addr: str | None = None) -> str:
+    """Adresse d'enveloppe et d'en-tête From — doit correspondre à SMTP_USER (LWS)."""
+    fallback = (from_addr or "contact@pilotcore.fr").strip()
+    try:
+        user = (current_app.config.get("SMTP_USER") or "").strip()
+        if user and "@" in user:
+            return user
+        return (
+            from_addr
+            or current_app.config.get("EMAIL_FROM")
+            or user
+            or fallback
+        ).strip()
+    except RuntimeError:
+        return fallback
+
+
 def send_email(
     to_addr,
     subject,
@@ -56,7 +73,8 @@ def send_email(
     list_unsubscribe=None,
 ):
     """Send (or simulate) an email and record it. Returns the EmailMessage."""
-    from_addr = from_addr or default_from_addr()
+    header_from = smtp_from_addr(from_addr)
+    from_addr = header_from
     msg_row = EmailMessage(
         direction=DIRECTION_OUTBOUND,
         status="queued",
@@ -156,35 +174,37 @@ def _build_mime(
 ):
     if is_html or html_body:
         mime = MIMEMultipart("alternative")
-        plain = (body or "").strip()
-        derived = _html_to_text(html_body or body or "")
-        # Une partie texte trop maigre face au HTML fait grimper le score spam :
-        # on complète avec la version texte dérivée du HTML.
-        if derived and len(plain) < len(derived) // 2:
-            plain = derived
+        html_content = html_body or body or ""
+        # Toujours dériver le texte brut du HTML : SpamAssassin (filtre LWS)
+        # pénalise MPART_ALT_DIFF quand les deux parties divergent, même si le
+        # corps brut est long mais formulé différemment du HTML.
+        plain = _html_to_text(html_content) if html_content else (body or "").strip()
         mime.attach(MIMEText(plain, "plain", "utf-8"))
-        mime.attach(MIMEText(html_body or body or "", "html", "utf-8"))
+        mime.attach(MIMEText(html_content, "html", "utf-8"))
     else:
         mime = MIMEText(body or "", "plain", "utf-8")
 
+    header_from = smtp_from_addr(from_addr)
     mime["Subject"] = subject
-    mime["From"] = formataddr(("PilotCore", from_addr))
+    mime["From"] = formataddr(("PilotCore", header_from))
     mime["To"] = to_addr
     if cc_addrs:
         mime["Cc"] = cc_addrs
     # Un message sans Date déclenche MISSING_DATE (+1,4 pt) sur le filtre
     # sortant LWS — assez pour faire bloquer un e-mail par ailleurs sain.
     mime["Date"] = formatdate(localtime=True)
-    mime["Message-ID"] = make_msgid(domain=from_addr.split("@")[-1] if "@" in from_addr else "pilotcore.fr")
+    domain = header_from.split("@")[-1] if "@" in header_from else "pilotcore.fr"
+    mime["Message-ID"] = make_msgid(domain=domain)
     if in_reply_to:
         mime["In-Reply-To"] = in_reply_to
     if references:
         mime["References"] = references
-    if reply_to:
-        mime["Reply-To"] = reply_to
+    reply_to = reply_to or header_from
+    mime["Reply-To"] = reply_to
     if list_unsubscribe:
         mime["List-Unsubscribe"] = list_unsubscribe
         mime["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+        mime["Precedence"] = "bulk"
     return mime
 
 
@@ -247,9 +267,7 @@ def _smtp_send(from_addr, recipients, raw_message):
         pwd = cfg.get("SMTP_PASSWORD")
         if user and pwd:
             server.login(user, pwd)
-        # LWS refuse un MAIL FROM différent de la boîte authentifiée : on
-        # aligne l'enveloppe sur le compte SMTP quand il s'agit d'une adresse.
-        envelope_from = user if (user and "@" in user) else from_addr
+        envelope_from = smtp_from_addr(from_addr)
         server.sendmail(envelope_from, recipients, raw_message)
     finally:
         server.quit()

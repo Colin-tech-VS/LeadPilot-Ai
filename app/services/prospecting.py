@@ -1,6 +1,7 @@
 """B2B artisan prospecting — search, enrich, AI outreach emails."""
 from __future__ import annotations
 
+import html as html_lib
 import json
 import logging
 import re
@@ -357,28 +358,28 @@ def send_outreach_email(prospect_id) -> dict:
 
     base_url = str(current_app.config.get("PUBLIC_BASE_URL") or "https://www.pilotcore.fr").rstrip("/")
     unsubscribe = f"{base_url}/contact?subject=desinscription-prospection&email={prospect.email}"
-    plain = (
-        prospect.outreach_body
-        + "\n\n—\n"
-        + "PilotCore · contact@pilotcore.fr\n"
-        + f"Pour ne plus recevoir de messages : {unsubscribe}"
+    intro_html = (
+        html_lib.escape(prospect.outreach_body)
+        .replace("\n\n", "</p><p>")
+        .replace("\n", "<br>")
     )
     html = render_email(
         prospect.outreach_subject,
-        prospect.outreach_body.replace("\n\n", "</p><p>").replace("\n", "<br>"),
+        intro_html,
         cta_label="Essayer PilotCore gratuitement",
         cta_url=f"{base_url}/register",
         outro=(
             "PilotCore · contact@pilotcore.fr<br>"
-            f'<a href="{unsubscribe}">Se désinscrire de nos messages</a>'
+            f'<a href="{html_lib.escape(unsubscribe)}">Se désinscrire de nos messages</a>'
         ),
     )
     row = admin_email.send_email(
         prospect.email,
         prospect.outreach_subject,
-        plain,
+        "",
         is_html=True,
         html_body=html,
+        reply_to=admin_email.default_from_addr(),
         list_unsubscribe=f"<mailto:contact@pilotcore.fr?subject=desinscription>, <{unsubscribe}>",
     )
     prospect.status = "contacted"

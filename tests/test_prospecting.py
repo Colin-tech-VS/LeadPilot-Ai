@@ -1,7 +1,7 @@
 """Tests for B2B prospecting module."""
 import json
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.models.outreach_prospect import OutreachProspect
 
@@ -250,6 +250,69 @@ def test_resend_targets_only_failed_sends(app, client):
     called = [c.args[0] for c in send_mock.call_args_list]
     assert failed_email in called
     assert sent_email not in called
+
+
+def _clear_prospects(app):
+    """Vide la table pour isoler les tests du lot (max_batch) des résidus."""
+    with app.app_context():
+        from app.core.extensions import db
+
+        OutreachProspect.query.delete()
+        db.session.commit()
+
+
+def test_resend_all_mode_forces_already_sent(app, client):
+    """« Tout renvoyer » (mode=all) renvoie même aux prospects marqués « sent »."""
+    _login_admin(client)
+    _clear_prospects(app)
+    _, sent_email = _make_contacted_prospect(app, email_status="sent")
+
+    with patch("app.services.prospecting.admin_email.send_email") as send_mock:
+        send_mock.return_value.status = "sent"
+        send_mock.return_value.error = None
+        res = client.post(
+            "/admin/prospecting/resend", data={"mode": "all"}, follow_redirects=True
+        )
+    assert res.status_code == 200
+    assert sent_email in [c.args[0] for c in send_mock.call_args_list]
+
+
+def test_resend_failure_reports_smtp_error(app, client):
+    """L'erreur SMTP enregistrée doit remonter dans le flash, pas juste l'adresse."""
+    _login_admin(client)
+    _clear_prospects(app)
+    _, email = _make_contacted_prospect(app, email_status="failed")
+
+    with patch("app.services.prospecting.admin_email.send_email") as send_mock:
+        send_mock.return_value.status = "failed"
+        send_mock.return_value.error = "550 blocked by content filter"
+        res = client.post("/admin/prospecting/resend", follow_redirects=True)
+    assert res.status_code == 200
+    assert b"550 blocked by content filter" in res.data
+
+
+def test_resend_survives_unexpected_error_on_one_prospect(app, client):
+    """Une exception inattendue sur un prospect ne doit pas interrompre le lot."""
+    _login_admin(client)
+    _clear_prospects(app)
+    _make_contacted_prospect(app, email_status="failed")
+    _make_contacted_prospect(app, email_status="failed")
+
+    ok = MagicMock(status="sent", error=None)
+    state = {"calls": 0}
+
+    def _boom_then_ok(*args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] == 1:
+            raise RuntimeError("boom")
+        return ok
+
+    with patch("app.services.prospecting.admin_email.send_email") as send_mock:
+        send_mock.side_effect = _boom_then_ok
+        res = client.post("/admin/prospecting/resend", follow_redirects=True)
+    assert res.status_code == 200
+    # Le premier envoi explose, mais le lot continue sur les suivants.
+    assert send_mock.call_count >= 2
 
 
 def test_resend_skips_opted_out(app, client):

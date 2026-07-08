@@ -1572,3 +1572,66 @@ body.admin.sidebar-open { overflow: hidden; }
   .bar-row .bar-val { text-align: left; }
   .admin-page-title { font-size: 15px; }
 }
+
+/* ---- PWA install prompt (pwa-install.js) ---- */
+.lp-install {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 9997;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+}
+
+.lp-install-btn {
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lp-install-btn:hover { background: var(--brand-strong); }
+
+.lp-install-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.lp-install-close:hover { color: var(--text); }
+
+.lp-install-hint {
+  max-width: min(320px, calc(100vw - 36px));
+  padding: 10px 6px 10px 14px;
+  border-radius: var(--radius);
+}
+
+.lp-install-hint-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .lp-install {
+    left: 12px;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0));
+    justify-content: center;
+  }
+  .lp-install-btn { flex: 1; }
+}

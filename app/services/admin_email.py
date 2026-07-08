@@ -6,11 +6,13 @@ STARTTLS (587). Without SMTP the message is still recorded with status
 
 Inbound: IMAP sync (LWS mailbox) and/or provider webhook at /admin/email/inbound.
 """
+import html as html_lib
 import logging
+import re
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import formataddr, make_msgid
+from email.utils import formataddr, formatdate, make_msgid
 
 from flask import current_app
 
@@ -51,6 +53,7 @@ def send_email(
     in_reply_to_row=None,
     html_body=None,
     reply_to=None,
+    list_unsubscribe=None,
 ):
     """Send (or simulate) an email and record it. Returns the EmailMessage."""
     from_addr = from_addr or default_from_addr()
@@ -95,6 +98,7 @@ def send_email(
             in_reply_to=msg_row.rfc_in_reply_to,
             references=msg_row.references_header,
             reply_to=reply_to,
+            list_unsubscribe=list_unsubscribe,
         )
         if not msg_row.provider_id:
             msg_row.provider_id = mime.get("Message-ID")
@@ -116,6 +120,27 @@ def send_email(
     return msg_row
 
 
+def _html_to_text(html: str) -> str:
+    """Plain-text rendition of an HTML body, for the text/plain alternative.
+
+    The two MIME parts must carry the same content: anti-spam filters (dont
+    celui de LWS, basé sur SpamAssassin) pénalisent fortement un texte brut
+    très différent — ou beaucoup plus court — que la partie HTML
+    (règle ``MPART_ALT_DIFF``).
+    """
+    if not html:
+        return ""
+    text = re.sub(r"(?is)<(style|script|head)\b.*?</\1>", " ", html)
+    text = re.sub(r"(?is)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?is)</(p|div|tr|table|h[1-6]|li)>", "\n", text)
+    # Keep link destinations so the text part carries the same URLs as the HTML.
+    text = re.sub(r'(?is)<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>', r"\2 (\1)", text)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    text = html_lib.unescape(text)
+    text = "\n".join(re.sub(r"[ \t]+", " ", ln).strip() for ln in text.splitlines())
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def _build_mime(
     from_addr,
     to_addr,
@@ -127,10 +152,16 @@ def _build_mime(
     in_reply_to=None,
     references=None,
     reply_to=None,
+    list_unsubscribe=None,
 ):
     if is_html or html_body:
         mime = MIMEMultipart("alternative")
-        plain = body or ""
+        plain = (body or "").strip()
+        derived = _html_to_text(html_body or body or "")
+        # Une partie texte trop maigre face au HTML fait grimper le score spam :
+        # on complète avec la version texte dérivée du HTML.
+        if derived and len(plain) < len(derived) // 2:
+            plain = derived
         mime.attach(MIMEText(plain, "plain", "utf-8"))
         mime.attach(MIMEText(html_body or body or "", "html", "utf-8"))
     else:
@@ -141,6 +172,9 @@ def _build_mime(
     mime["To"] = to_addr
     if cc_addrs:
         mime["Cc"] = cc_addrs
+    # Un message sans Date déclenche MISSING_DATE (+1,4 pt) sur le filtre
+    # sortant LWS — assez pour faire bloquer un e-mail par ailleurs sain.
+    mime["Date"] = formatdate(localtime=True)
     mime["Message-ID"] = make_msgid(domain=from_addr.split("@")[-1] if "@" in from_addr else "pilotcore.fr")
     if in_reply_to:
         mime["In-Reply-To"] = in_reply_to
@@ -148,6 +182,9 @@ def _build_mime(
         mime["References"] = references
     if reply_to:
         mime["Reply-To"] = reply_to
+    if list_unsubscribe:
+        mime["List-Unsubscribe"] = list_unsubscribe
+        mime["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     return mime
 
 
@@ -210,7 +247,10 @@ def _smtp_send(from_addr, recipients, raw_message):
         pwd = cfg.get("SMTP_PASSWORD")
         if user and pwd:
             server.login(user, pwd)
-        server.sendmail(from_addr, recipients, raw_message)
+        # LWS refuse un MAIL FROM différent de la boîte authentifiée : on
+        # aligne l'enveloppe sur le compte SMTP quand il s'agit d'une adresse.
+        envelope_from = user if (user and "@" in user) else from_addr
+        server.sendmail(envelope_from, recipients, raw_message)
     finally:
         server.quit()
 

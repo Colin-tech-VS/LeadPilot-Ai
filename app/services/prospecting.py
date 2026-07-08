@@ -379,6 +379,7 @@ def send_outreach_email(prospect_id) -> dict:
         plain,
         is_html=True,
         html_body=html,
+        list_unsubscribe=f"<mailto:contact@pilotcore.fr?subject=desinscription>, <{unsubscribe}>",
     )
     prospect.status = "contacted"
     prospect.last_contacted_at = datetime.now(timezone.utc)

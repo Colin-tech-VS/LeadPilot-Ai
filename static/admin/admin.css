@@ -1953,147 +1953,122 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
 }
 
 /* ================================================================== */
-/*  NVX — modern admin dashboard (bento layout, keeps the design system) */
+/*  NVX — admin dashboard (clean, professional, keeps the design system)*/
 /* ================================================================== */
-.nvx { display: flex; flex-direction: column; gap: 22px; }
+.nvx { display: flex; flex-direction: column; gap: 20px; }
 
-.nvx-eyebrow {
-  display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--brand-strong); opacity: .85; margin: 0;
+/* Flat, calm panels: hairline border, no default shadow (SaaS look). */
+.nvx-panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 22px; box-shadow: none; display: flex; flex-direction: column;
 }
-.nvx-section-label { margin: 4px 2px -8px; opacity: .7; }
+.nvx-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.nvx-panel-title { margin: 0; font-size: 14.5px; font-weight: 700; letter-spacing: -.1px; color: var(--text); }
+
+/* ---- header row ---- */
+.nvx-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.nvx-head-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
+.nvx-head-sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.nvx-status {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--muted);
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel);
+}
+.nvx-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); transition: background .3s ease, box-shadow .3s ease; }
+.nvx-status-dot.on { background: var(--green); box-shadow: 0 0 0 3px rgba(5,150,105,.16); }
 
 /* ---- topbar controls ---- */
-.nvx-updated { font-size: 12px; color: var(--muted); font-weight: 600; }
-.nvx-range { font-weight: 700; border-radius: 999px; }
+.nvx-updated { font-size: 12px; color: var(--muted); font-weight: 500; }
+.nvx-range { font-weight: 600; }
 
-/* ---- greeting hero ---- */
-.nvx-hero {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
-  flex-wrap: wrap; padding: 4px 2px 0;
+/* ---- KPI band ---- */
+.nvx-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.nvx-stat {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+  transition: border-color .16s ease, box-shadow .16s ease;
 }
-.nvx-hero-date { margin: 0; font-size: 12.5px; color: var(--muted); text-transform: capitalize; font-weight: 600; }
-.nvx-hero-title { margin: 4px 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -.6px; line-height: 1.1; }
-.nvx-hero-name { background: var(--nova-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.nvx-hero-sub { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 68ch; }
-.nvx-hero-pulse {
-  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
-  background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow-sm);
-  font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap;
+.nvx-stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.nvx-stat--primary { grid-column: span 2; box-shadow: inset 3px 0 0 var(--brand); }
+.nvx-stat-label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .01em; }
+.nvx-stat-value { font-size: 27px; font-weight: 700; letter-spacing: -.5px; color: var(--text); line-height: 1.1; }
+.nvx-stat--primary .nvx-stat-value { font-size: 32px; }
+.nvx-stat-foot { font-size: 12px; color: var(--muted); }
+.nvx-stat-foot span { color: var(--text); font-weight: 600; }
+.nvx-stat .kpi-trend {
+  align-self: flex-start; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-top: -1px;
 }
-.nvx-pulse-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); transition: background .3s ease, box-shadow .3s ease; }
-.nvx-pulse-dot.on { background: var(--green); box-shadow: 0 0 0 4px rgba(5,150,105,.18); animation: pulse 2s infinite; }
+.nvx-stat .kpi-trend.up { background: rgba(5,150,105,.1); color: var(--green); }
+.nvx-stat .kpi-trend.down { background: rgba(220,38,38,.1); color: var(--red); }
 
-/* ---- Nova command center ---- */
-.nvx-nova {
-  position: relative; overflow: hidden; padding: 22px 24px;
-  border: 1px solid rgba(124,58,237,.18); border-radius: var(--radius); background: var(--panel);
-  box-shadow: var(--shadow-sm);
+/* ---- Nova insights — understated, brand-neutral (no flashy AI look) ---- */
+.nvx-ai { border-color: var(--border); }
+.nvx-ai-head { align-items: flex-start; margin-bottom: 18px; }
+.nvx-ai-id { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.nvx-ai-badge {
+  flex-shrink: 0; display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+  background: var(--brand-soft); color: var(--brand-strong); font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  border: 1px solid rgba(27,87,224,.16);
 }
-.nvx-nova::before {
-  content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--nova-grad);
-}
-.nvx-nova-glow {
-  position: absolute; top: -60px; right: -40px; width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,58,237,.18), transparent 70%); pointer-events: none;
-}
-.nvx-nova-head {
-  position: relative; display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
-}
-.nvx-nova-id { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
-.nvx-nova-id h3 { margin: 2px 0 3px; font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
-.nvx-nova-sub { margin: 0; font-size: 13px; color: var(--muted); max-width: 64ch; }
-.nvx-nova-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.nvx-nova-open { background: var(--nova-grad); background-size: 160% 160%; box-shadow: 0 6px 16px rgba(124,58,237,.28); }
-.nvx-nova-open:hover { background-position: 100% 0; box-shadow: 0 10px 22px rgba(124,58,237,.4); }
-.nvx-nova-grid {
-  position: relative; display: grid; gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-}
+.nvx-ai-sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); max-width: 68ch; }
+.nvx-ai-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.nvx-ai-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
 
-/* ---- bento metrics ---- */
-.nvx-bento { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(112px, auto); gap: 16px; }
-.nvx-tile {
-  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 4px;
-  padding: 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm); transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease;
+/* Insight cards rendered by admin.js — flat, calm, brand accents (not purple). */
+.nvx-ai .nova-insight {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 11px; padding: 15px 16px;
+  display: flex; flex-direction: column; gap: 8px; box-shadow: none;
 }
-.nvx-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border-strong); }
-.nvx-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-.nvx-tile-ico {
-  display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 12px;
-  font-size: 18px; background: var(--brand-soft);
+.nvx-ai .nova-insight:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); transform: none; }
+.nvx-ai .nova-insight h3 { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.nvx-ai .nova-insight p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; flex: 1; }
+.nvx-ai .nova-insight-prio {
+  align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 5px;
 }
-.nvx-ico-blue { background: rgba(27,87,224,.12); }
-.nvx-ico-cyan { background: rgba(6,182,212,.14); }
-.nvx-ico-green { background: rgba(5,150,105,.14); }
-.nvx-ico-amber { background: rgba(217,119,6,.14); }
-.nvx-tile-value { font-size: 30px; font-weight: 800; letter-spacing: -.6px; color: var(--text); line-height: 1.05; margin-top: auto; }
-.nvx-tile-label { font-size: 13px; font-weight: 600; color: var(--text); }
-.nvx-tile-sub { font-size: 12px; color: var(--muted); }
-.nvx-tile .kpi-trend { font-size: 12.5px; font-weight: 800; }
+.nvx-ai .nova-insight-act {
+  align-self: flex-start; margin-top: 2px; border: 1px solid var(--border-strong); background: var(--panel);
+  color: var(--brand-strong); font-family: inherit; font-size: 12px; font-weight: 600; padding: 7px 13px;
+  border-radius: 8px; cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.nvx-ai .nova-insight-act:hover { background: var(--brand); color: #fff; border-color: var(--brand); transform: none; }
+.nvx-ai .nova-insight--skeleton { min-height: 118px; border-style: dashed; }
 
-.nvx-tile--mrr {
-  grid-column: span 2; grid-row: span 2; color: #fff;
-  background: linear-gradient(135deg, var(--brand-strong) 0%, var(--brand) 52%, var(--brand-2) 100%);
-  border: 0; box-shadow: 0 18px 40px rgba(15,45,110,.28);
-}
-.nvx-tile--mrr .nvx-tile-ico { background: rgba(255,255,255,.16); }
-.nvx-tile--mrr .nvx-tile-label { color: rgba(255,255,255,.9); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
-.nvx-tile--mrr .nvx-tile-value { color: #fff; font-size: 46px; }
-.nvx-tile--mrr .nvx-tile-sub { color: rgba(255,255,255,.82); font-size: 13px; }
-.nvx-tile--mrr .nvx-tile-sub strong { color: #fff; }
-.nvx-tile-spark {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 46px; opacity: .5;
-  background:
-    radial-gradient(60px 46px at 18% 120%, rgba(255,255,255,.35), transparent 70%),
-    radial-gradient(70px 50px at 78% 130%, rgba(255,255,255,.28), transparent 70%);
-  pointer-events: none;
-}
+/* ---- chart / distribution rows ---- */
+.nvx-row { display: grid; gap: 16px; }
+.nvx-row--2 { grid-template-columns: 1.6fr 1fr; }
+.nvx-row--3 { grid-template-columns: repeat(3, 1fr); }
 
-/* ---- chart rows ---- */
-.nvx-charts { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
-.nvx-charts--3 { grid-template-columns: 1fr 1fr 1fr; }
-.nvx-panel { display: flex; flex-direction: column; }
-.nvx-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.nvx-panel-head h2 { margin: 3px 0 0; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
-.nvx-panel-lead { margin: -6px 0 14px; font-size: 12.5px; color: var(--muted); }
-
-/* ---- mini KPI list ---- */
-.nvx-mini-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.nvx-mini-list li {
-  display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border);
+/* ---- volumes list ---- */
+.nvx-vol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.nvx-vol li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 2px; border-bottom: 1px solid var(--border);
 }
-.nvx-mini-ico { font-size: 18px; }
-.nvx-mini-value { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
-.nvx-mini-label { font-size: 12.5px; color: var(--muted); font-weight: 600; text-align: right; }
+.nvx-vol li:last-child { border-bottom: 0; padding-bottom: 0; }
+.nvx-vol li:first-child { padding-top: 0; }
+.nvx-vol-label { font-size: 13px; color: var(--muted); }
+.nvx-vol-value { font-size: 18px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
 
-/* ---- reveal animation ---- */
-.nvx .dash-animate { opacity: 0; transform: translateY(10px); }
-.nvx .dash-animate.is-visible { opacity: 1; transform: none; transition: opacity .45s ease, transform .45s ease; }
+/* ---- charts inherit the clean panel look ---- */
+.nvx .chart-host { width: 100%; }
+.nvx .funnel-bar { background: linear-gradient(90deg, var(--brand), var(--brand-mid, var(--brand))); }
 
 /* ---- responsive ---- */
-@media (max-width: 1080px) {
-  .nvx-charts, .nvx-charts--3 { grid-template-columns: 1fr 1fr; }
-  .nvx-charts--3 .nvx-mini-kpis { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .nvx-stats { grid-template-columns: repeat(3, 1fr); }
+  .nvx-stat--primary { grid-column: span 3; }
+  .nvx-row--2, .nvx-row--3 { grid-template-columns: 1fr 1fr; }
+  .nvx-row--3 > .nvx-panel:last-child { grid-column: 1 / -1; }
 }
-@media (max-width: 820px) {
-  .nvx-bento { grid-template-columns: repeat(2, 1fr); }
-  .nvx-tile--mrr { grid-column: 1 / -1; grid-row: auto; }
-  .nvx-tile--mrr .nvx-tile-value { font-size: 40px; }
-  .nvx-charts, .nvx-charts--3 { grid-template-columns: 1fr; }
-  .nvx-hero-title { font-size: 22px; }
+@media (max-width: 720px) {
+  .nvx-stats { grid-template-columns: repeat(2, 1fr); }
+  .nvx-stat--primary { grid-column: 1 / -1; }
+  .nvx-row--2, .nvx-row--3 { grid-template-columns: 1fr; }
+  .nvx-row--3 > .nvx-panel:last-child { grid-column: auto; }
+  .nvx-head-title { font-size: 18px; }
 }
-@media (max-width: 480px) {
-  .nvx-bento { grid-template-columns: 1fr; }
-  .nvx-tile-value { font-size: 26px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nvx .dash-animate { opacity: 1; transform: none; transition: none; }
-  .nvx-pulse-dot.on { animation: none; }
+@media (max-width: 440px) {
+  .nvx-stats { grid-template-columns: 1fr; }
 }
 
 /* ---------------------------------------------------------------- dark theme touch-ups */

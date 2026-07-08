@@ -4,51 +4,72 @@
 {% block body_class %} nvx-page{% endblock %}
 {% block topbar_actions %}
   <span class="nvx-updated" id="analytics-updated">—</span>
-  <div class="nvx-range-wrap">
-    <select id="range-select" class="admin-select nvx-range">
-      <option value="7">7 jours</option>
-      <option value="30" selected>30 jours</option>
-      <option value="90">90 jours</option>
-      <option value="365">1 an</option>
-    </select>
-  </div>
+  <select id="range-select" class="admin-select nvx-range">
+    <option value="7">7 jours</option>
+    <option value="30" selected>30 jours</option>
+    <option value="90">90 jours</option>
+    <option value="365">12 mois</option>
+  </select>
 {% endblock %}
 
 {% block content %}
 <div class="nvx" id="kpi-grid">
 
-  <!-- ── Greeting hero ─────────────────────────────────────────────── -->
-  <header class="nvx-hero dash-animate">
-    <div class="nvx-hero-text">
-      <p class="nvx-hero-date" id="nvx-date">—</p>
-      <h2 class="nvx-hero-title"><span id="nvx-greeting">Bonjour</span>{% if admin_username %}, <span class="nvx-hero-name">{{ admin_username }}</span>{% endif %}</h2>
-      <p class="nvx-hero-sub">Voici l'entonnoir commercial de PilotCore — prospects, rendez-vous, devis et revenus récurrents.</p>
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header class="nvx-head">
+    <div>
+      <h2 class="nvx-head-title">Vue d'ensemble</h2>
+      <p class="nvx-head-sub"><span id="nvx-date">—</span> · entonnoir commercial des artisans</p>
     </div>
-    <div class="nvx-hero-pulse" title="Visiteurs en direct">
-      <span class="nvx-pulse-dot" id="nav-live-dot"></span>
-      <span class="nvx-pulse-label">Site en ligne</span>
-    </div>
+    <span class="nvx-status">
+      <span class="nvx-status-dot" id="nav-live-dot"></span> Données en direct
+    </span>
   </header>
 
-  <!-- ── Nova command center ───────────────────────────────────────── -->
+  <!-- ── KPI band ───────────────────────────────────────────────────── -->
+  <div class="nvx-stats">
+    <article class="nvx-stat nvx-stat--primary" data-kpi="revenue_estimate_cents">
+      <span class="nvx-stat-label">MRR estimé</span>
+      <span class="nvx-stat-value" data-count="0" data-money="1">0 €</span>
+      <span class="nvx-stat-foot"><span data-kpi-inline="paid_tenants">0</span> abonnés payants</span>
+    </article>
+    <article class="nvx-stat" data-kpi="leads_total">
+      <span class="nvx-stat-label">Prospects</span>
+      <span class="nvx-stat-value" data-count="0">0</span>
+      <span class="kpi-trend" data-trend="leads_trend"></span>
+    </article>
+    <article class="nvx-stat" data-kpi="conversion_rate">
+      <span class="nvx-stat-label">Taux de conversion</span>
+      <span class="nvx-stat-value" data-count="0" data-suffix="%">0</span>
+      <span class="nvx-stat-foot">prospects → RDV</span>
+    </article>
+    <article class="nvx-stat" data-kpi="booked_total">
+      <span class="nvx-stat-label">RDV confirmés</span>
+      <span class="nvx-stat-value" data-count="0">0</span>
+    </article>
+    <article class="nvx-stat" data-kpi="quote_acceptance_rate">
+      <span class="nvx-stat-label">Devis acceptés</span>
+      <span class="nvx-stat-value" data-count="0" data-suffix="%">0</span>
+    </article>
+  </div>
+
+  <!-- ── Nova insights (understated) ────────────────────────────────── -->
   {% if nova_available %}
-  <section class="nvx-nova dash-animate" id="nova-insights" aria-live="polite">
-    <div class="nvx-nova-glow" aria-hidden="true"></div>
-    <div class="nvx-nova-head">
-      <div class="nvx-nova-id">
-        <span class="nova-avatar nova-avatar--sm" aria-hidden="true"><span class="nova-avatar-core"></span></span>
+  <section class="nvx-panel nvx-ai" id="nova-insights" aria-live="polite">
+    <div class="nvx-panel-head nvx-ai-head">
+      <div class="nvx-ai-id">
+        <span class="nvx-ai-badge">IA</span>
         <div>
-          <span class="nvx-eyebrow">Copilote IA</span>
-          <h3>{{ nova_name }} — analyse de votre site</h3>
-          <p class="nvx-nova-sub" id="nova-insights-headline">Analyse en cours…</p>
+          <h3 class="nvx-panel-title">Recommandations de {{ nova_name }}</h3>
+          <p class="nvx-ai-sub" id="nova-insights-headline">Analyse en cours…</p>
         </div>
       </div>
-      <div class="nvx-nova-actions">
-        <button type="button" class="admin-btn ghost tiny" id="nova-insights-refresh">↻ Rafraîchir</button>
-        <button type="button" class="admin-btn tiny nvx-nova-open" onclick="window.NovaAsk && window.NovaAsk('')">💬 Ouvrir {{ nova_name }}</button>
+      <div class="nvx-ai-actions">
+        <button type="button" class="admin-btn ghost tiny" id="nova-insights-refresh">Rafraîchir</button>
+        <button type="button" class="admin-btn ghost tiny" onclick="window.NovaAsk && window.NovaAsk('')">Ouvrir {{ nova_name }}</button>
       </div>
     </div>
-    <div class="nvx-nova-grid" id="nova-insights-grid">
+    <div class="nvx-ai-grid" id="nova-insights-grid">
       <div class="nova-insight nova-insight--skeleton"></div>
       <div class="nova-insight nova-insight--skeleton"></div>
       <div class="nova-insight nova-insight--skeleton"></div>
@@ -56,122 +77,59 @@
   </section>
   {% endif %}
 
-  <!-- ── Primary metrics (bento) ───────────────────────────────────── -->
-  <p class="nvx-eyebrow nvx-section-label">Indicateurs clés</p>
-  <div class="nvx-bento">
-    <article class="nvx-tile nvx-tile--mrr" data-kpi="revenue_estimate_cents">
-      <div class="nvx-tile-top">
-        <span class="nvx-tile-ico">💶</span>
-        <span class="nvx-tile-label">MRR estimé</span>
-      </div>
-      <span class="nvx-tile-value" data-count="0" data-money="1">0 €</span>
-      <span class="nvx-tile-sub"><strong data-kpi-inline="paid_tenants">0</strong> artisan(s) payant(s)</span>
-      <div class="nvx-tile-spark" aria-hidden="true"></div>
-    </article>
-
-    <article class="nvx-tile" data-kpi="leads_total">
-      <div class="nvx-tile-top">
-        <span class="nvx-tile-ico nvx-ico-blue">👥</span>
-        <span class="kpi-trend" data-trend="leads_trend"></span>
-      </div>
-      <span class="nvx-tile-value" data-count="0">0</span>
-      <span class="nvx-tile-label">Prospects</span>
-    </article>
-
-    <article class="nvx-tile" data-kpi="conversion_rate">
-      <div class="nvx-tile-top">
-        <span class="nvx-tile-ico nvx-ico-cyan">⚡</span>
-      </div>
-      <span class="nvx-tile-value" data-count="0" data-suffix="%">0</span>
-      <span class="nvx-tile-label">Taux de conversion</span>
-      <span class="nvx-tile-sub">prospects → RDV</span>
-    </article>
-
-    <article class="nvx-tile" data-kpi="booked_total">
-      <div class="nvx-tile-top">
-        <span class="nvx-tile-ico nvx-ico-green">📅</span>
-      </div>
-      <span class="nvx-tile-value" data-count="0">0</span>
-      <span class="nvx-tile-label">RDV confirmés</span>
-    </article>
-
-    <article class="nvx-tile" data-kpi="quote_acceptance_rate">
-      <div class="nvx-tile-top">
-        <span class="nvx-tile-ico nvx-ico-amber">📝</span>
-      </div>
-      <span class="nvx-tile-value" data-count="0" data-suffix="%">0</span>
-      <span class="nvx-tile-label">Devis acceptés</span>
-    </article>
-  </div>
-
-  <!-- ── Charts ────────────────────────────────────────────────────── -->
-  <div class="nvx-charts">
-    <section class="admin-panel nvx-panel nvx-panel--wide dash-animate">
+  <!-- ── Charts ─────────────────────────────────────────────────────── -->
+  <div class="nvx-row nvx-row--2">
+    <section class="nvx-panel">
       <div class="nvx-panel-head">
-        <div>
-          <span class="nvx-eyebrow">Acquisition</span>
-          <h2>Prospects par jour</h2>
-        </div>
+        <h3 class="nvx-panel-title">Prospects par jour</h3>
       </div>
       <div class="chart-host"><svg id="leads-chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg></div>
     </section>
 
-    <section class="admin-panel nvx-panel dash-animate">
+    <section class="nvx-panel">
       <div class="nvx-panel-head">
-        <div>
-          <span class="nvx-eyebrow">Pipeline</span>
-          <h2>Entonnoir de conversion</h2>
-        </div>
+        <h3 class="nvx-panel-title">Entonnoir de conversion</h3>
       </div>
-      <p class="nvx-panel-lead">Prospect → RDV → devis → paiement</p>
       <div id="funnel" class="funnel funnel--traffic"></div>
     </section>
   </div>
 
-  <!-- ── Distribution + secondary KPIs ─────────────────────────────── -->
-  <div class="nvx-charts nvx-charts--3">
-    <section class="admin-panel nvx-panel dash-animate">
+  <!-- ── Distributions + volumes ────────────────────────────────────── -->
+  <div class="nvx-row nvx-row--3">
+    <section class="nvx-panel">
       <div class="nvx-panel-head">
-        <div>
-          <span class="nvx-eyebrow">Demande</span>
-          <h2>Répartition par urgence</h2>
-        </div>
+        <h3 class="nvx-panel-title">Répartition par urgence</h3>
       </div>
       <div id="urgency-chart" class="bars"></div>
     </section>
 
-    <section class="admin-panel nvx-panel dash-animate">
+    <section class="nvx-panel">
       <div class="nvx-panel-head">
-        <div>
-          <span class="nvx-eyebrow">Abonnements</span>
-          <h2>Répartition des offres</h2>
-        </div>
+        <h3 class="nvx-panel-title">Répartition des offres</h3>
       </div>
       <div id="plans-chart" class="bars"></div>
     </section>
 
-    <section class="admin-panel nvx-panel nvx-mini-kpis dash-animate">
+    <section class="nvx-panel">
       <div class="nvx-panel-head">
-        <div>
-          <span class="nvx-eyebrow">Volume</span>
-          <h2>En un coup d'œil</h2>
-        </div>
+        <h3 class="nvx-panel-title">Volumes</h3>
       </div>
-      <ul class="nvx-mini-list">
+      <ul class="nvx-vol">
         <li data-kpi="tenants_total">
-          <span class="nvx-mini-ico">🏗️</span>
-          <span class="nvx-mini-value" data-count="0">0</span>
-          <span class="nvx-mini-label">Artisans</span>
+          <span class="nvx-vol-label">Artisans inscrits</span>
+          <span class="nvx-vol-value" data-count="0">0</span>
         </li>
         <li data-kpi="appointments_total">
-          <span class="nvx-mini-ico">📆</span>
-          <span class="nvx-mini-value" data-count="0">0</span>
-          <span class="nvx-mini-label">Rendez-vous</span>
+          <span class="nvx-vol-label">Rendez-vous</span>
+          <span class="nvx-vol-value" data-count="0">0</span>
         </li>
         <li data-kpi="emails_sent">
-          <span class="nvx-mini-ico">✉️</span>
-          <span class="nvx-mini-value" data-count="0">0</span>
-          <span class="nvx-mini-label">Emails envoyés · <span data-kpi-inline="emails_received">0</span> reçus</span>
+          <span class="nvx-vol-label">Emails envoyés</span>
+          <span class="nvx-vol-value" data-count="0">0</span>
+        </li>
+        <li>
+          <span class="nvx-vol-label">Emails reçus</span>
+          <span class="nvx-vol-value" data-kpi-inline="emails_received">0</span>
         </li>
       </ul>
     </section>
@@ -184,21 +142,13 @@
   window.ADMIN_ANALYTICS_URL = "{{ url_for('admin.api_analytics') }}";
   {% if nova_available %}window.NOVA_INSIGHTS_URL = "{{ url_for('admin.api_assistant_insights') }}";{% endif %}
   (function () {
-    var h = new Date().getHours();
-    var g = document.getElementById("nvx-greeting");
-    if (g) g.textContent = h < 12 ? "Bonjour" : (h < 18 ? "Bon après-midi" : "Bonsoir");
     var d = document.getElementById("nvx-date");
     if (d) {
       try {
-        d.textContent = new Date().toLocaleDateString("fr-FR",
-          { weekday: "long", day: "numeric", month: "long" });
+        var s = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        d.textContent = s.charAt(0).toUpperCase() + s.slice(1);
       } catch (e) {}
     }
-    // Staggered reveal of the dashboard blocks.
-    var reveal = document.querySelectorAll(".nvx .dash-animate");
-    reveal.forEach(function (el, i) {
-      setTimeout(function () { el.classList.add("is-visible"); }, 60 + i * 70);
-    });
   })();
 </script>
 {% endblock %}

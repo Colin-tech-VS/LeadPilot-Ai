@@ -122,6 +122,29 @@ a:hover {
   white-space: nowrap;
 }
 
+/* Lang switcher relocated into the mobile dropdown menu */
+.app-nav-lang {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 14px 14px 4px;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.app-nav-lang .lang-btn {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: none;
+}
+
+.app-nav-lang .lang-btn.active {
+  background: none;
+  color: var(--blue-primary);
+}
+
 .topbar-logout {
   display: none;
   flex-shrink: 0;
@@ -3116,6 +3139,30 @@ html.js-enabled .dash-card-in.is-visible {
 
   .topbar-inner {
     min-height: 56px;
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+
+  .topbar-left {
+    flex-wrap: nowrap;
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .topbar-left .brand {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .topbar .brand-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-right {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 12px;
   }
 
   .nav-toggle {
@@ -3182,6 +3229,41 @@ html.js-enabled .dash-card-in.is-visible {
 
   .agenda-day-count {
     margin-left: 0;
+  }
+}
+
+/* Compact phones: keep the topbar on a single tidy row */
+@media (max-width: 560px) {
+  .topbar-inner {
+    gap: 10px;
+  }
+
+  .topbar-left {
+    gap: 8px;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  /* Decorative zone badge — redundant on small screens */
+  .topbar-left .brand .zone-badge {
+    display: none;
+  }
+
+  /* Lang switcher moves from the topbar into the dropdown menu */
+  .topbar .lang-switcher {
+    display: none;
+  }
+
+  .app-nav.is-open .app-nav-lang {
+    display: flex;
+  }
+
+  .notif-bell,
+  .nav-toggle {
+    width: 38px;
+    height: 38px;
   }
 }
 

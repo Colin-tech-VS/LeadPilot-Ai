@@ -84,6 +84,11 @@
           <a href="{{ url_for('billing.billing_page') }}" class="{% if request.endpoint == 'billing.billing_page' %}active{% endif %}">{{ _('nav.billing') }}</a>
           <a href="{{ url_for('web.settings_page') }}" class="{% if request.endpoint == 'web.settings_page' %}active{% endif %}">{{ _('nav.settings') }}</a>
           <a href="{{ url_for('web.logout') }}" class="nav-logout nav-logout-mobile">{{ _('nav.logout') }}</a>
+          <div class="app-nav-lang">
+            <a href="{{ url_for('web.set_language', lang='fr') }}" class="lang-btn{% if lang == 'fr' %} active{% endif %}">{{ _('lang.fr') }}</a>
+            <span class="lang-sep">|</span>
+            <a href="{{ url_for('web.set_language', lang='en') }}" class="lang-btn{% if lang == 'en' %} active{% endif %}">{{ _('lang.en') }}</a>
+          </div>
         </div>
       </nav>
       {% endif %}

@@ -65,6 +65,12 @@ class Config:
     WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "whisper-1")
     TTS_MODEL = os.environ.get("TTS_MODEL", "tts-1")
     TTS_VOICE = os.environ.get("TTS_VOICE", "nova")
+    # Which engine speaks on real phone calls (the voice the caller hears):
+    #   "auto"   -> OpenAI TTS when OPENAI_API_KEY is set, else Amazon Polly (Twilio)
+    #   "openai" -> force OpenAI TTS (still falls back to Polly on error/no key)
+    #   "twilio" -> always Amazon Polly <Say> (no OpenAI call, lowest latency)
+    # OpenAI gives a more natural voice; Polly is instant and Twilio-native.
+    VOICE_TTS_PROVIDER = os.environ.get("VOICE_TTS_PROVIDER", "auto")
     # Twilio <Say> voice — Amazon Polly neural for a natural, human tone.
     TWILIO_VOICE = os.environ.get("TWILIO_VOICE", "Polly.Lea-Neural")
     # Twilio speech-recognition model. IMPORTANT: the legacy "phone_call" enhanced

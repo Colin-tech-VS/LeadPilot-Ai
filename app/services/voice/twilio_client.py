@@ -1,5 +1,9 @@
+import logging
+
 from flask import current_app, has_app_context
 from twilio.twiml.voice_response import Gather, VoiceResponse
+
+logger = logging.getLogger(__name__)
 
 
 class TwilioVoiceClient:
@@ -49,8 +53,34 @@ class TwilioVoiceClient:
             return current_app.config.get("TWILIO_SPEECH_MODEL") or self.DEFAULT_SPEECH_MODEL
         return self.DEFAULT_SPEECH_MODEL
 
+    def _openai_audio_url(self, text: str) -> str | None:
+        """Synthesize `text` with OpenAI TTS and return a public MP3 URL Twilio
+        can <Play>, or None to fall back to Amazon Polly <Say>.
+
+        Controlled by VOICE_TTS_PROVIDER: "twilio" skips OpenAI entirely, while
+        "auto"/"openai" try OpenAI and fall back gracefully on any error or when
+        no OPENAI_API_KEY is configured — so a real call never breaks over TTS."""
+        provider = "auto"
+        if has_app_context():
+            provider = (current_app.config.get("VOICE_TTS_PROVIDER") or "auto").lower()
+        if provider == "twilio":
+            return None
+        try:
+            from app.services.voice.text_to_speech import TextToSpeech
+
+            result = TextToSpeech().synthesize(text)
+            if result.get("provider") == "openai" and result.get("audio_url"):
+                return result["audio_url"]
+        except Exception:
+            logger.exception("OpenAI TTS failed — falling back to Twilio voice")
+        return None
+
     def say(self, text: str, language: str | None = None) -> "TwilioVoiceClient":
-        self.response.say(text, voice=self.voice, language=language or self.LANGUAGE)
+        audio_url = self._openai_audio_url(text)
+        if audio_url:
+            self.response.play(audio_url)
+        else:
+            self.response.say(text, voice=self.voice, language=language or self.LANGUAGE)
         return self
 
     def record(
@@ -103,7 +133,11 @@ class TwilioVoiceClient:
             kwargs["enhanced"] = True
         gather = Gather(**kwargs)
         if prompt:
-            gather.say(prompt, voice=self.voice, language=self.LANGUAGE)
+            audio_url = self._openai_audio_url(prompt)
+            if audio_url:
+                gather.play(audio_url)
+            else:
+                gather.say(prompt, voice=self.voice, language=self.LANGUAGE)
         self.response.append(gather)
         return self
 

@@ -31,6 +31,7 @@ class ConversationState:
     failure_count: int = 0
     failsafe_mode: bool = False
     urgency_ack_done: bool = False
+    issue_ask_count: int = 0
     asked_slots: list = field(default_factory=list)
     account_flow: dict = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -78,6 +79,7 @@ class ConversationState:
             "failure_count": self.failure_count,
             "failsafe_mode": self.failsafe_mode,
             "urgency_ack_done": self.urgency_ack_done,
+            "issue_ask_count": self.issue_ask_count,
             "asked_slots": self.asked_slots,
             "account_flow": self.account_flow,
             "created_at": self.created_at,
@@ -104,6 +106,7 @@ class ConversationState:
             failure_count=int(data.get("failure_count") or 0),
             failsafe_mode=bool(data.get("failsafe_mode")),
             urgency_ack_done=bool(data.get("urgency_ack_done")),
+            issue_ask_count=int(data.get("issue_ask_count") or 0),
             asked_slots=list(data.get("asked_slots") or []),
             account_flow=dict(data.get("account_flow") or {}),
             created_at=data.get("created_at") or datetime.now(timezone.utc).isoformat(),

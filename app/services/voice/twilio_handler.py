@@ -49,6 +49,10 @@ REQUIRED_SLOTS = [
 ]
 # Safety guard against an endless loop (counts both caller and assistant turns).
 MAX_QUESTION_TURNS = 20
+# How many times we re-ask the caller to describe the problem before giving up.
+# Without this cap the "issue" slot loops forever whenever the extractor can't
+# map a description onto a known issue type (noisy line, unusual wording).
+MAX_ISSUE_ASKS = 2
 
 ISSUE_LABELS_FR = {
     "leak": "fuite d'eau",
@@ -230,7 +234,9 @@ class TwilioVoiceHandler:
             slot, question = nxt
             if slot not in state.asked_slots:
                 state.asked_slots.append(slot)
-            if slot.startswith("account:"):
+            if slot == "issue":
+                state.issue_ask_count += 1
+            elif slot.startswith("account:"):
                 counts = state.account_flow.setdefault("ask_counts", {})
                 counts[slot] = counts.get(slot, 0) + 1
             prompt = f"{self._acknowledge(state)} {question}"
@@ -261,7 +267,11 @@ class TwilioVoiceHandler:
     def _next_question(self, state) -> tuple[str, str] | None:
         """Return the next (slot, question) still missing, or None when done."""
         if not self._slot_filled("issue", state.extracted_lead_data):
-            return self._question_for_slot("issue")
+            # Only re-ask a bounded number of times. If the extractor still can't
+            # classify the problem, stop looping and move on — the full transcript
+            # is saved and re-parsed when the lead is created, so nothing is lost.
+            if state.issue_ask_count < MAX_ISSUE_ASKS:
+                return self._question_for_slot("issue")
 
         account_q = self._next_account_question(state)
         if account_q:

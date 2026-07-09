@@ -754,6 +754,67 @@ def clients():
     )
 
 
+@admin_bp.route("/clients/artisans/<tenant_id>/delete", methods=["POST"])
+@admin_required
+def delete_tenant(tenant_id):
+    """Delete a single artisan account (tenant) and all its dependent rows.
+
+    Deletes in FK-safe order — appointments/quotes reference leads, everything
+    references tenants — inside one transaction. Other accounts are untouched.
+    The typed confirmation must match the account name to avoid mistakes.
+    """
+    tenant = db.session.get(Tenant, _pk_value(Tenant, tenant_id))
+    if not tenant:
+        abort(404)
+
+    confirm = (request.form.get("confirm") or "").strip()
+    if confirm.lower() != (tenant.name or "").strip().lower():
+        flash(
+            "Confirmation incorrecte — retapez le nom exact du compte pour "
+            "confirmer la suppression.",
+            "error",
+        )
+        return redirect(url_for("admin.clients", tab="artisans"))
+
+    name = tenant.name
+    tid = tenant.id
+    # tenant_id-scoped models, ordered so children (appointments/quotes ->
+    # leads) go before leads, and everything before the tenant row itself.
+    # ORM deletes bind the Uuid column type correctly on both Postgres (prod)
+    # and SQLite (tests), unlike raw text SQL.
+    scoped = [
+        ("appointments", Appointment),
+        ("quotes", Quote),
+        ("notifications", Notification),
+        ("users", User),
+        ("email_messages", EmailMessage),
+        ("events", Event),
+        ("leads", Lead),
+    ]
+    try:
+        counts = {}
+        for label, model in scoped:
+            counts[label] = (
+                model.query.filter(model.tenant_id == tid).delete(
+                    synchronize_session=False
+                )
+            )
+        db.session.delete(tenant)
+        db.session.commit()
+        summary = ", ".join(f"{n} {t}" for t, n in counts.items() if n)
+        log_event(
+            CAT_ADMIN,
+            "tenant_delete",
+            summary=f"Compte « {name} » supprimé ({summary or 'aucune donnée liée'})",
+            level=LEVEL_WARNING,
+        )
+        flash(f"Compte « {name} » supprimé, avec toutes ses données liées.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Erreur pendant la suppression : {exc}", "error")
+    return redirect(url_for("admin.clients", tab="artisans"))
+
+
 # Legacy alias kept for bookmarks
 @admin_bp.route("/clients/")
 @admin_required

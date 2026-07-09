@@ -109,6 +109,7 @@
           <th>Annuaire</th>
           <th>Leads</th>
           <th>Inscrit le</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -131,6 +132,13 @@
           </td>
           <td data-label="Leads"><span class="accounts-stat">{{ a.leads }}</span></td>
           <td data-label="Inscrit le" class="accounts-date">{{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '—' }}</td>
+          <td data-label="Actions">
+            <form method="POST" action="{{ url_for('admin.delete_tenant', tenant_id=a.id) }}"
+                  class="js-delete-tenant" data-name="{{ a.name }}" style="display:inline">
+              <input type="hidden" name="confirm" value="">
+              <button type="submit" class="admin-btn tiny danger">Supprimer</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -146,4 +154,23 @@
   {% endif %}
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.js-delete-tenant').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      var name = form.getAttribute('data-name') || '';
+      var typed = window.prompt(
+        'Suppression DÉFINITIVE du compte « ' + name +' » et de toutes ses '
+        + 'données (leads, RDV, devis, notifications, e-mails). '
+        + 'Cette action est irréversible.\n\n'
+        + 'Retapez le nom exact du compte pour confirmer :'
+      );
+      if (typed === null) { e.preventDefault(); return; }
+      var field = form.querySelector('input[name="confirm"]');
+      if (field) { field.value = typed; }
+    });
+  });
+</script>
 {% endblock %}

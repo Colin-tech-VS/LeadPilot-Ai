@@ -87,6 +87,42 @@ def test_urgency_ack_flag_survives_serialization():
     assert restored.urgency_ack_done is True
 
 
+def test_issue_slot_stops_looping_when_unclassifiable():
+    """The receptionist must not re-ask "describe the problem" forever when the
+    extractor cannot map the caller's description onto a known issue type."""
+    from app.services.voice.twilio_handler import MAX_ISSUE_ASKS
+
+    handler = TwilioVoiceHandler()
+    state = ConversationState(call_id="c", tenant_id="t", caller_phone="+33600000000")
+    # issue_type never becomes a concrete type — mirrors a noisy transcript.
+    state.extracted_lead_data = {"issue_type": "general_inquiry"}
+
+    issue_asks = 0
+    for _ in range(MAX_ISSUE_ASKS + 5):
+        nxt = handler._next_question(state)
+        if nxt is None:
+            break
+        slot, _q = nxt
+        if slot != "issue":
+            break
+        # Simulate the handler emitting the question and the caller replying
+        # without the extractor ever classifying the problem.
+        state.issue_ask_count += 1
+        issue_asks += 1
+        state.append_transcript("user", "euh je sais pas trop comment expliquer")
+    else:  # pragma: no cover - only hit if the loop never breaks
+        raise AssertionError("issue slot kept looping — infinite question loop")
+
+    assert issue_asks <= MAX_ISSUE_ASKS
+
+
+def test_issue_ask_count_survives_serialization():
+    state = ConversationState(call_id="c", tenant_id="t", caller_phone="+33600000000")
+    state.issue_ask_count = 2
+    restored = ConversationState.from_dict(state.to_dict())
+    assert restored.issue_ask_count == 2
+
+
 def _drive_account_flow(app, answer_fn, prefill=None, max_turns=15):
     """Run the account sub-flow with a caller who answers via answer_fn."""
     from app.services.voice import customer_account as vca

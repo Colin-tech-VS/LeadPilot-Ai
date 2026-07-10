@@ -60,21 +60,36 @@ def register_plumber(
     user.set_password(password)
     db.session.add(user)
 
+    # Persist the account FIRST. Everything below (phone provisioning, welcome
+    # email) is best-effort and must NEVER be able to prevent — or roll back —
+    # the account creation itself.
+    #
+    # Phone provisioning in particular makes synchronous Twilio API calls
+    # (number search + purchase, regulatory-bundle lookups) that can be slow or
+    # hang. When it ran *before* this commit, a slow/looping purchase could push
+    # the request past the gunicorn worker timeout: the worker was killed before
+    # the commit, so the artisan filled the whole form yet ended up with NO
+    # account. Committing first makes account creation independent of Twilio.
+    db.session.commit()
+
     # Automatically give this artisan a dedicated AI phone number at signup.
-    # The dialed number is the only way to route inbound calls to the right tenant.
+    # The dialed number is the only way to route inbound calls to the right
+    # tenant. Best-effort: a failure/slowness here only means the tenant falls
+    # back to the shared number — the account already exists.
     try:
         from app.services.twilio_provisioning import provision_ai_number
 
         number = provision_ai_number(tenant)
-        if not number and not tenant.ai_phone_number:
+        if number:
+            db.session.commit()  # save the acquired number on the tenant
+        elif not tenant.ai_phone_number:
             logger.warning(
                 "No dedicated AI number for tenant=%s — enable TWILIO_AUTO_PROVISION_NUMBERS and PUBLIC_BASE_URL",
                 tenant.id,
             )
     except Exception:  # pragma: no cover - defensive, provisioning already swallows
         logger.exception("AI number provisioning failed for tenant=%s", tenant.id)
-
-    db.session.commit()
+        db.session.rollback()  # account is already committed; drop any half state
 
     # Automatic branded welcome email (never blocks signup).
     try:

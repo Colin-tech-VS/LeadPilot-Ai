@@ -233,6 +233,41 @@ def heatmap_collect():
     return ("", 204)
 
 
+@web_bp.route("/api/heatmap/record", methods=["POST"])
+def heatmap_record():
+    """Ingest a session-replay track (cursor movements / clicks / scroll) so the
+    admin can watch a "film" of a visitor's page visit.
+
+    Same trust model as :func:`heatmap_collect`: visitor & session ids come from
+    the httpOnly cookies, bots are dropped, always returns 204."""
+    from app.core.tracking import (
+        SESSION_COOKIE,
+        VISITOR_COOKIE,
+        _device,
+        is_bot,
+    )
+
+    try:
+        ua = request.headers.get("User-Agent", "")
+        if is_bot(ua):
+            return ("", 204)
+        visitor_id = request.cookies.get(VISITOR_COOKIE)
+        session_id = request.cookies.get(SESSION_COOKIE)
+        if not visitor_id:
+            return ("", 204)
+        payload = request.get_json(silent=True) or {}
+        from app.services import heatmap as heatmap_service
+
+        heatmap_service.record_session(visitor_id, session_id, _device(ua), payload)
+    except Exception:
+        current_app.logger.exception("heatmap record failed")
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return ("", 204)
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     from app.utils.llm_discovery import render_robots_txt

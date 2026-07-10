@@ -11,6 +11,7 @@ from app.models.ip_geo_cache import IpGeoCache
 from app.models.outreach_prospect import OutreachProspect
 from app.models.page_view import PageView
 from app.models.quote import Quote
+from app.models.session_recording import SessionRecording
 from app.models.setting import SiteSetting
 from app.models.site_page import SitePage
 from app.models.social_post import SocialPost
@@ -34,6 +35,7 @@ __all__ = [
     "EmailMessage",
     "Event",
     "HeatmapEvent",
+    "SessionRecording",
     "PageView",
     "IpGeoCache",
 ]

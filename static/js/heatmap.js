@@ -19,9 +19,34 @@
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
   var ENDPOINT = "/api/heatmap/collect";
+  var REC_ENDPOINT = "/api/heatmap/record";
   var queue = [];
   var maxScroll = 0;
   var scrollDirty = false;
+
+  // --- session recording ("film" of the cursor) ---
+  // A compact time-series of pointer moves / clicks / scroll positions, replayed
+  // in the admin as a video of the visit. Coordinates match the heatmap: x is a
+  // 0-1 fraction of the document width, y an absolute pixel offset in the page.
+  var REC_ID = (function () {
+    try {
+      if (window.crypto && crypto.getRandomValues) {
+        var a = new Uint8Array(16);
+        crypto.getRandomValues(a);
+        return Array.prototype.map.call(a, function (b) { return (b + 256).toString(16).slice(1); }).join("");
+      }
+    } catch (e) { /* fall through */ }
+    return "r" + Date.now().toString(16) + Math.random().toString(16).slice(2, 10);
+  })();
+  var REC_START = Date.now();
+  var REC_MOVE_MS = 70;      // sample the pointer at most this often
+  var REC_MAX_MOVES = 4000;  // hard client cap (mirrors the server)
+  var recMoves = [];
+  var recClicks = [];
+  var recScrolls = [];
+  var recLastMove = 0;
+  var recDirty = false;
+  function recT() { return Date.now() - REC_START; }
 
   function docWidth() {
     var d = document.documentElement, b = document.body;
@@ -105,8 +130,29 @@
         s: selectorFor(target),
         txt: labelFor(target),
       });
+
+      // Recording: mark the click on the cursor film.
+      if (recClicks.length < 400) {
+        recClicks.push([recT(), Math.max(0, Math.min(1, x)), Math.round(e.pageY)]);
+        recDirty = true;
+      }
     },
     true
+  );
+
+  // --- recording: throttled pointer track ---
+  window.addEventListener(
+    "mousemove",
+    function (e) {
+      var now = Date.now();
+      if (now - recLastMove < REC_MOVE_MS) return;
+      recLastMove = now;
+      if (recMoves.length >= REC_MAX_MOVES) return;
+      var dw = docWidth();
+      recMoves.push([recT(), dw ? Math.max(0, Math.min(1, e.pageX / dw)) : 0, Math.round(e.pageY)]);
+      recDirty = true;
+    },
+    { passive: true }
   );
 
   // --- scroll depth (kept as a single max %, flushed with the batch) ---
@@ -117,6 +163,16 @@
       if (h <= 0) return;
       var pct = Math.round(((window.pageYOffset || 0) / h) * 100);
       if (pct > maxScroll) { maxScroll = Math.min(100, pct); scrollDirty = true; }
+
+      // Recording: sample absolute scroll position so the replay scrolls too.
+      if (recScrolls.length < 1000) {
+        var yOff = Math.round(window.pageYOffset || 0);
+        var last = recScrolls[recScrolls.length - 1];
+        if (!last || Math.abs(last[1] - yOff) > 8) {
+          recScrolls.push([recT(), yOff]);
+          recDirty = true;
+        }
+      }
     },
     { passive: true }
   );
@@ -153,9 +209,43 @@
     }
   }
 
-  setInterval(function () { flush(false); }, 8000);
+  // --- recording flush: send the full, growing track (server upserts by id) ---
+  function recFlush(useBeacon) {
+    if (!recDirty) return;
+    if (recMoves.length + recClicks.length + recScrolls.length < 4) return;
+    recDirty = false;
+    var body = JSON.stringify({
+      rec_id: REC_ID,
+      p: path,
+      vw: window.innerWidth,
+      vh: window.innerHeight,
+      dw: docWidth(),
+      dh: docHeight(),
+      dur: recT(),
+      track: { m: recMoves, c: recClicks, s: recScrolls },
+    });
+    var sent = false;
+    if (useBeacon && navigator.sendBeacon) {
+      try {
+        sent = navigator.sendBeacon(REC_ENDPOINT, new Blob([body], { type: "application/json" }));
+      } catch (err) { sent = false; }
+    }
+    if (!sent) {
+      try {
+        fetch(REC_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body,
+          keepalive: true,
+          credentials: "same-origin",
+        }).catch(function () {});
+      } catch (err) { /* give up silently */ }
+    }
+  }
+
+  setInterval(function () { flush(false); recFlush(false); }, 8000);
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") flush(true);
+    if (document.visibilityState === "hidden") { flush(true); recFlush(true); }
   });
-  window.addEventListener("pagehide", function () { flush(true); });
+  window.addEventListener("pagehide", function () { flush(true); recFlush(true); });
 })();

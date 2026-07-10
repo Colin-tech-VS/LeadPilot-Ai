@@ -96,7 +96,7 @@ def _referrer_host(ref):
     return m.group(1) if m else None
 
 
-_TRACKER_TAG = '<script src="/static/js/heatmap.js?v=1" defer></script>'
+_TRACKER_TAG = '<script src="/static/js/heatmap.js?v=2" defer></script>'
 
 
 def _inject_tracker(response):

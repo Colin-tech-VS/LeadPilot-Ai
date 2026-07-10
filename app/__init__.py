@@ -397,6 +397,39 @@ def _ensure_schema_updates():
                     )
                 )
 
+    if "session_recordings" not in table_names:
+        with db.engine.begin() as conn:
+            conn.execute(
+                text(
+                    f"""
+                    CREATE TABLE session_recordings (
+                        rec_id VARCHAR(40) PRIMARY KEY,
+                        visitor_id VARCHAR(40),
+                        session_id VARCHAR(40),
+                        path VARCHAR(500),
+                        device VARCHAR(20),
+                        vw INTEGER,
+                        vh INTEGER,
+                        doc_w INTEGER,
+                        doc_h INTEGER,
+                        duration_ms INTEGER,
+                        samples INTEGER,
+                        click_count INTEGER,
+                        track TEXT,
+                        created_at {ts_type} NOT NULL,
+                        updated_at {ts_type} NOT NULL
+                    )
+                    """
+                )
+            )
+            for col in ("visitor_id", "session_id", "path", "created_at"):
+                conn.execute(
+                    text(
+                        f"CREATE INDEX IF NOT EXISTS ix_session_recordings_{col} "
+                        f"ON session_recordings ({col})"
+                    )
+                )
+
     if "ip_geo_cache" not in table_names:
         with db.engine.begin() as conn:
             conn.execute(

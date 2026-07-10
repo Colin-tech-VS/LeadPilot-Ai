@@ -75,6 +75,8 @@
         </div>
         <div class="v-footer-col">
           <h4>{{ _('vitrine.footer_clients') }}</h4>
+          <a href="{{ url_for('web.find_artisan') }}">Trouver un artisan</a>
+          <a href="{{ url_for('web.depannage_urgent') }}">Dépannage urgent 24h/24</a>
           <a href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
           <a href="{{ url_for('web.blog_index') }}">Blog</a>
           <a href="{{ url_for('customer.login') }}">{{ _('client.nav_login') }}</a>

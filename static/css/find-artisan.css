@@ -1,0 +1,369 @@
+/* PilotCore — Pages SEO/CRO « Trouver un artisan » & « Dépannage urgent »
+   Feuille autonome : ne dépend d'aucune autre CSS que tokens.css. */
+
+.fa-page {
+  color: var(--lp-text);
+  font-family: var(--lp-font);
+}
+
+.fa-page .container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* ---- Fil d'Ariane ---- */
+.fa-breadcrumb {
+  padding: 18px 20px 0;
+}
+.fa-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--lp-text-muted);
+}
+.fa-breadcrumb-list li {
+  display: inline-flex;
+  align-items: center;
+}
+.fa-breadcrumb-list li:not(:last-child)::after {
+  content: "›";
+  margin-left: 6px;
+  opacity: 0.45;
+}
+.fa-breadcrumb-list a {
+  color: var(--lp-brand-mid);
+  font-weight: 600;
+  text-decoration: none;
+}
+.fa-breadcrumb-list a:hover { text-decoration: underline; }
+.fa-breadcrumb-list [aria-current="page"] { color: var(--lp-text-muted); }
+
+/* ---- Hero ---- */
+.fa-hero {
+  padding: 34px 0 40px;
+}
+.fa-hero--urgent {
+  background:
+    radial-gradient(1200px 400px at 80% -10%, rgba(240, 68, 56, 0.10), transparent),
+    linear-gradient(180deg, #FFF6F5 0%, var(--lp-bg) 100%);
+}
+.fa-hero--pillar {
+  background:
+    radial-gradient(1200px 460px at 78% -10%, rgba(37, 99, 235, 0.12), transparent),
+    linear-gradient(180deg, var(--lp-brand-soft) 0%, var(--lp-bg) 100%);
+}
+.fa-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 44px;
+  align-items: center;
+}
+.fa-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--lp-radius-pill);
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border-strong);
+  box-shadow: var(--lp-shadow-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lp-brand-deep);
+  margin-bottom: 18px;
+}
+.fa-hero--urgent .fa-kicker { color: var(--lp-danger); }
+.fa-hero h1 {
+  font-size: clamp(2rem, 4.4vw, 3.05rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  font-weight: 800;
+}
+.fa-hero h1 em { color: var(--lp-brand); font-style: normal; }
+.fa-hero--urgent h1 em { color: var(--lp-danger); }
+.fa-hero-lead {
+  font-size: 1.14rem;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+  max-width: 34em;
+  margin: 0 0 22px;
+}
+
+/* ---- Recherche (CRO) ---- */
+.fa-search {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius-lg);
+  box-shadow: var(--lp-shadow-md);
+  padding: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+.fa-search-field { flex: 1 1 160px; display: flex; flex-direction: column; gap: 5px; }
+.fa-search-field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lp-text-muted);
+  padding-left: 4px;
+}
+.fa-search-field select,
+.fa-search-field input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--lp-border-strong);
+  border-radius: var(--lp-radius);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--lp-text);
+  background: #fff;
+}
+.fa-search-field select:focus,
+.fa-search-field input:focus {
+  outline: none;
+  border-color: var(--lp-brand-mid);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.fa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: var(--lp-radius);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  white-space: nowrap;
+}
+.fa-btn:active { transform: translateY(1px); }
+.fa-btn--primary {
+  background: linear-gradient(180deg, var(--lp-brand-mid), var(--lp-brand));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(27, 87, 224, 0.28);
+}
+.fa-btn--primary:hover { box-shadow: 0 12px 26px rgba(27, 87, 224, 0.36); }
+.fa-btn--danger {
+  background: linear-gradient(180deg, #F45B50, var(--lp-danger));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(240, 68, 56, 0.28);
+}
+.fa-btn--danger:hover { box-shadow: 0 12px 26px rgba(240, 68, 56, 0.36); }
+.fa-btn--ghost {
+  background: var(--lp-surface);
+  color: var(--lp-brand-deep);
+  border-color: var(--lp-border-strong);
+}
+.fa-btn--ghost:hover { border-color: var(--lp-brand-mid); }
+.fa-btn--lg { padding: 15px 28px; font-size: 16px; }
+.fa-search .fa-btn { flex: 0 0 auto; align-self: stretch; }
+
+.fa-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+
+/* ---- Trust row (CRO) ---- */
+.fa-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 20px;
+  padding: 0;
+  list-style: none;
+}
+.fa-trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lp-text);
+}
+.fa-trust li svg { flex: 0 0 auto; color: var(--lp-success); }
+
+/* ---- Hero aside card ---- */
+.fa-hero-card {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius-lg);
+  box-shadow: var(--lp-shadow-lg);
+  padding: 22px;
+}
+.fa-hero-card h2 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+.fa-hero-card p { font-size: 13.5px; color: var(--lp-text-muted); margin: 0 0 16px; }
+.fa-mini-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fa-mini-list li {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius);
+  background: var(--lp-bg);
+}
+.fa-mini-num {
+  flex: 0 0 26px; height: 26px; border-radius: 50%;
+  background: var(--lp-brand); color: #fff;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+}
+.fa-hero--urgent .fa-mini-num { background: var(--lp-danger); }
+.fa-mini-list strong { display: block; font-size: 14px; }
+.fa-mini-list span { font-size: 13px; color: var(--lp-text-muted); }
+
+/* ---- Sections ---- */
+.fa-section { padding: 56px 0; }
+.fa-section--tint { background: var(--lp-surface); border-top: 1px solid var(--lp-border); border-bottom: 1px solid var(--lp-border); }
+.fa-section-head { max-width: 720px; margin: 0 auto 34px; text-align: center; }
+.fa-section-head h2 {
+  font-size: clamp(1.5rem, 3vw, 2.05rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  font-weight: 800;
+}
+.fa-section-head p { font-size: 1.05rem; color: var(--lp-text-muted); margin: 0; line-height: 1.6; }
+.fa-eyebrow {
+  display: inline-block;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--lp-brand-mid); margin-bottom: 10px;
+}
+.fa-hero--urgent ~ .fa-section .fa-eyebrow,
+.fa-section .fa-eyebrow--danger { color: var(--lp-danger); }
+
+/* ---- Steps ---- */
+.fa-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.fa-step {
+  position: relative;
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius-lg);
+  padding: 26px 22px;
+  box-shadow: var(--lp-shadow-sm);
+}
+.fa-step-num {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; font-weight: 800; font-size: 18px;
+  background: var(--lp-brand-soft); color: var(--lp-brand); margin-bottom: 14px;
+}
+.fa-step h3 { font-size: 1.12rem; margin: 0 0 8px; }
+.fa-step p { font-size: 14.5px; color: var(--lp-text-muted); margin: 0; line-height: 1.55; }
+
+/* ---- Trades mesh (maillage interne) ---- */
+.fa-trades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 14px;
+}
+.fa-trade-card {
+  display: flex; align-items: center; gap: 13px;
+  padding: 16px 18px;
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  text-decoration: none; color: var(--lp-text);
+  box-shadow: var(--lp-shadow-sm);
+  transition: border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+.fa-trade-card:hover {
+  border-color: var(--lp-brand-mid);
+  transform: translateY(-2px);
+  box-shadow: var(--lp-shadow-md);
+}
+.fa-trade-emoji {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 22px;
+  background: var(--lp-brand-soft);
+}
+.fa-trade-card strong { display: block; font-size: 15px; }
+.fa-trade-card span { font-size: 13px; color: var(--lp-text-muted); }
+.fa-trade-card .fa-trade-arrow { margin-left: auto; color: var(--lp-brand-mid); font-weight: 700; }
+
+/* ---- Reassure / value columns ---- */
+.fa-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.fa-value h3 { font-size: 1.12rem; margin: 0 0 8px; display: flex; align-items: center; gap: 10px; }
+.fa-value h3 .fa-ic {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--lp-brand-soft); font-size: 17px;
+}
+.fa-value p { font-size: 14.5px; color: var(--lp-text-muted); line-height: 1.6; margin: 0; }
+
+/* ---- Prose (contenu SEO) ---- */
+.fa-prose { max-width: 780px; margin: 0 auto; }
+.fa-prose h2 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); margin: 0 0 14px; letter-spacing: -0.01em; }
+.fa-prose h3 { font-size: 1.2rem; margin: 28px 0 10px; }
+.fa-prose p { font-size: 1.02rem; line-height: 1.72; color: #33405a; margin: 0 0 16px; }
+.fa-prose ul { margin: 0 0 18px; padding-left: 22px; }
+.fa-prose li { font-size: 1.02rem; line-height: 1.7; color: #33405a; margin-bottom: 8px; }
+.fa-prose a { color: var(--lp-brand-mid); font-weight: 600; }
+
+/* ---- FAQ ---- */
+.fa-faq { max-width: 800px; margin: 0 auto; display: grid; gap: 12px; }
+.fa-faq details {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  padding: 4px 18px;
+  box-shadow: var(--lp-shadow-sm);
+}
+.fa-faq summary {
+  cursor: pointer; list-style: none; padding: 16px 30px 16px 0; position: relative;
+  font-weight: 700; font-size: 1.02rem;
+}
+.fa-faq summary::-webkit-details-marker { display: none; }
+.fa-faq summary::after {
+  content: "+"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+  font-size: 22px; font-weight: 400; color: var(--lp-brand-mid); transition: transform 0.15s ease;
+}
+.fa-faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+.fa-faq details p { margin: 0 0 16px; color: var(--lp-text-muted); line-height: 1.65; font-size: 15px; }
+
+/* ---- CTA band ---- */
+.fa-cta {
+  margin: 0 auto;
+  max-width: 960px;
+  text-align: center;
+  background: linear-gradient(135deg, var(--lp-brand-deep), var(--lp-brand));
+  color: #fff;
+  border-radius: var(--lp-radius-lg);
+  padding: 48px 28px;
+  box-shadow: var(--lp-shadow-lg);
+}
+.fa-cta--urgent { background: linear-gradient(135deg, #8A1B14, var(--lp-danger)); }
+.fa-cta h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0 0 10px; font-weight: 800; }
+.fa-cta p { font-size: 1.08rem; opacity: 0.92; margin: 0 0 24px; }
+.fa-cta .fa-btn--primary,
+.fa-cta .fa-btn--danger { background: #fff; color: var(--lp-brand-deep); box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+.fa-cta--urgent .fa-btn--danger { color: #8A1B14; }
+.fa-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.fa-cta .fa-btn--ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.55); }
+
+/* ---- Internal links footer strip ---- */
+.fa-links { display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center; margin-top: 8px; }
+.fa-links a {
+  font-size: 13.5px; color: var(--lp-brand-mid); font-weight: 600; text-decoration: none;
+  padding: 6px 12px; border: 1px solid var(--lp-border-strong); border-radius: var(--lp-radius-pill);
+  background: var(--lp-surface);
+}
+.fa-links a:hover { border-color: var(--lp-brand-mid); }
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .fa-hero-grid { grid-template-columns: 1fr; gap: 30px; }
+  .fa-steps { grid-template-columns: 1fr; }
+  .fa-values { grid-template-columns: 1fr; gap: 26px; }
+}
+@media (max-width: 560px) {
+  .fa-search { flex-direction: column; align-items: stretch; }
+  .fa-search .fa-btn { width: 100%; }
+  .fa-hero-actions .fa-btn, .fa-cta-actions .fa-btn { width: 100%; }
+}

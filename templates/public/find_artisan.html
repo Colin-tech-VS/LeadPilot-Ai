@@ -1,0 +1,284 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/breadcrumb.html' import breadcrumb with context %}
+{% set nav_active = 'directory' %}
+
+{% set _t = "Trouver un artisan près de chez vous — plombier, serrurier, électricien | RDV en ligne" %}
+{% set _d = "Trouvez un artisan de confiance près de chez vous et prenez rendez-vous en ligne 24h/24. Plombier, serrurier, électricien, chauffagiste, menuisier… Comparez les disponibilités, réservez un créneau en 2 minutes. Gratuit, sans engagement." %}
+{% set _k = "trouver un artisan, artisan près de chez moi, artisan de confiance, comment choisir un artisan, prendre rdv artisan en ligne, plombier serrurier électricien, dépannage à domicile, devis artisan gratuit" %}
+{% set _path = "/trouver-un-artisan" %}
+
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-find-artisan{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=1">
+{% endblock %}
+
+{% block meta %}
+{% set page_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": {{ (canonical_url(_path) ~ '#webpage')|tojson }},
+      "url": {{ canonical_url(_path)|tojson }},
+      "name": {{ _t|tojson }},
+      "description": {{ _d|tojson }},
+      "inLanguage": "fr-FR",
+      "isPartOf": { "@id": {{ (site_base_url() ~ '/#website')|tojson }} },
+      "primaryImageOfPage": { "@type": "ImageObject", "url": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }} }
+    },
+    {
+      "@type": "Service",
+      "name": "Mise en relation avec un artisan et prise de rendez-vous en ligne",
+      "serviceType": "Annuaire d'artisans et réservation en ligne",
+      "provider": { "@id": {{ (site_base_url() ~ '/#organization')|tojson }} },
+      "areaServed": { "@type": "Country", "name": "France" },
+      "audience": { "@type": "Audience", "audienceType": "Particuliers cherchant un artisan" },
+      "url": {{ canonical_url(_path)|tojson }},
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "description": "Recherche et prise de rendez-vous gratuites pour les particuliers" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Comment trouver un artisan de confiance près de chez moi ?", "acceptedAnswer": { "@type": "Answer", "text": "Indiquez votre métier et votre ville dans la recherche : l'annuaire PilotCore affiche les artisans disponibles autour de vous, avec leur zone d'intervention et la possibilité de réserver un créneau en ligne. Chaque fiche précise le métier, la localisation et les moyens de contact." } },
+        { "@type": "Question", "name": "Est-ce gratuit pour trouver un artisan et prendre rendez-vous ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. La recherche d'artisan et la prise de rendez-vous en ligne sont totalement gratuites et sans engagement pour les particuliers. Vous ne payez que la prestation de l'artisan, selon le devis qu'il vous transmet." } },
+        { "@type": "Question", "name": "Puis-je prendre rendez-vous 24h/24 ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. La plupart des artisans référencés proposent la réservation en ligne à toute heure, et un assistant vocal peut répondre et qualifier votre demande même en dehors des horaires d'ouverture." } },
+        { "@type": "Question", "name": "Comment savoir quel artisan appeler pour mon problème ?", "acceptedAnswer": { "@type": "Answer", "text": "Une fuite d'eau relève d'un plombier, une porte claquée d'un serrurier, une panne de courant d'un électricien, une chaudière en panne d'un chauffagiste. Vous pouvez aussi décrire votre problème en langage naturel dans la recherche : nous identifions automatiquement le métier et la ville." } },
+        { "@type": "Question", "name": "Comment obtenir un devis avant l'intervention ?", "acceptedAnswer": { "@type": "Answer", "text": "Après votre demande, l'artisan vous transmet un devis détaillé avant toute intervention. Vous le validez en ligne : l'intervention n'est confirmée qu'une fois le devis accepté, sans mauvaise surprise sur le prix." } }
+      ]
+    }
+  ]
+}
+{% endset %}
+{{ seo_meta(_t, _d, _path, _k, 'website', None, 'index, follow', page_ld, lang) }}
+{% endblock %}
+
+{% macro _check_icon() %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endmacro %}
+
+{% block content %}
+{{ breadcrumb([('Accueil', url_for('web.client_home')), ('Trouver un artisan', None)]) }}
+
+<section class="fa-hero fa-hero--pillar">
+  <div class="container fa-hero-grid">
+    <div>
+      <span class="fa-kicker">✓ Artisans locaux · RDV en ligne</span>
+      <h1>Trouvez un <em>artisan de confiance</em> près de chez vous</h1>
+      <p class="fa-hero-lead">
+        Plombier, serrurier, électricien, chauffagiste, menuisier… Recherchez par métier
+        et par ville, comparez les disponibilités et réservez votre créneau en ligne en 2 minutes.
+        Gratuit, sans engagement.
+      </p>
+
+      <form class="fa-search" action="{{ url_for('web.artisan_directory') }}" method="get" role="search" aria-label="Rechercher un artisan">
+        <div class="fa-search-field">
+          <label for="fa-metier">Métier</label>
+          <select id="fa-metier" name="metier">
+            <option value="">Tous les métiers</option>
+            {% for t in trades %}
+            <option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fa-search-field">
+          <label for="fa-ville">Ville ou code postal</label>
+          <input type="text" id="fa-ville" name="ville" placeholder="Ex. : Lyon, 69003…" autocomplete="off">
+        </div>
+        <button type="submit" class="fa-btn fa-btn--primary">Trouver un artisan</button>
+      </form>
+
+      <ul class="fa-trust">
+        <li>{{ _check_icon() }} Artisans locaux vérifiés</li>
+        <li>{{ _check_icon() }} Réservation en ligne 24h/24</li>
+        <li>{{ _check_icon() }} Devis avant intervention</li>
+        <li>{{ _check_icon() }} 100 % gratuit</li>
+      </ul>
+    </div>
+
+    <aside class="fa-hero-card" aria-label="Comment ça marche">
+      <h2>Réservez en 3 étapes</h2>
+      <p>De la recherche à l'intervention, sans passer des dizaines d'appels.</p>
+      <ul class="fa-mini-list">
+        <li><span class="fa-mini-num">1</span><span><strong>Décrivez votre besoin</strong><span>Métier + ville, ou votre problème en une phrase.</span></span></li>
+        <li><span class="fa-mini-num">2</span><span><strong>Choisissez un créneau</strong><span>Consultez les disponibilités et réservez en ligne.</span></span></li>
+        <li><span class="fa-mini-num">3</span><span><strong>L'artisan intervient</strong><span>Devis validé, rendez-vous confirmé.</span></span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow">Tous les métiers</span>
+      <h2>Quel artisan recherchez-vous ?</h2>
+      <p>Choisissez votre métier pour voir les artisans disponibles près de chez vous et réserver en ligne.</p>
+    </div>
+    <div class="fa-trades">
+      {% for t in trades %}
+      {% if t.key != 'autre' %}
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier={{ t.key }}">
+        <span class="fa-trade-emoji" aria-hidden="true">{{ t.icon }}</span>
+        <span>
+          <strong>{{ t.label }}</strong>
+          <span>Trouver un {{ t.label|lower }}</span>
+        </span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="fa-links" style="margin-top:22px;">
+      <a href="{{ url_for('web.artisan_directory') }}">Voir tout l'annuaire des artisans</a>
+      <a href="{{ url_for('web.depannage_urgent') }}">Dépannage urgent 24h/24</a>
+      <a href="{{ url_for('web.blog_index') }}">Conseils & guides artisans</a>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section fa-section--tint">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow">Simple &amp; rapide</span>
+      <h2>Comment trouver le bon artisan ?</h2>
+      <p>Fini les 10 coups de fil sans réponse. Trouvez, comparez et réservez en quelques clics.</p>
+    </div>
+    <div class="fa-steps">
+      <article class="fa-step">
+        <div class="fa-step-num">1</div>
+        <h3>Recherchez par métier &amp; ville</h3>
+        <p>Sélectionnez le métier dont vous avez besoin et votre ville. Vous pouvez aussi écrire votre problème comme vous le diriez à l'oral : « fuite sous l'évier à Lyon ».</p>
+      </article>
+      <article class="fa-step">
+        <div class="fa-step-num">2</div>
+        <h3>Comparez les artisans disponibles</h3>
+        <p>Consultez les fiches, la zone d'intervention et les créneaux libres. Prenez rendez-vous directement en ligne, à l'heure qui vous arrange.</p>
+      </article>
+      <article class="fa-step">
+        <div class="fa-step-num">3</div>
+        <h3>Recevez un devis, puis l'intervention</h3>
+        <p>L'artisan vous transmet un devis clair avant de se déplacer. Vous validez en ligne : le rendez-vous n'est confirmé qu'une fois le prix accepté.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow">Pourquoi PilotCore</span>
+      <h2>Le bon artisan, sans perdre de temps</h2>
+      <p>Un annuaire pensé pour les particuliers : trouver vite, réserver simplement, en toute confiance.</p>
+    </div>
+    <div class="fa-values">
+      <div class="fa-value">
+        <h3><span class="fa-ic" aria-hidden="true">📍</span> Des artisans près de chez vous</h3>
+        <p>Chaque artisan indique sa zone d'intervention. Vous ne perdez plus de temps avec un pro trop éloigné : seuls ceux qui couvrent votre secteur s'affichent.</p>
+      </div>
+      <div class="fa-value">
+        <h3><span class="fa-ic" aria-hidden="true">🗓️</span> Rendez-vous en ligne 24h/24</h3>
+        <p>Réservez un créneau à toute heure, même le soir ou le week-end. Un assistant vocal peut répondre et enregistrer votre demande quand l'artisan est en intervention.</p>
+      </div>
+      <div class="fa-value">
+        <h3><span class="fa-ic" aria-hidden="true">🧾</span> Un devis avant tout engagement</h3>
+        <p>Le prix est annoncé avant l'intervention. Vous validez le devis en ligne, sans surprise et sans pression, et vous gardez la main jusqu'au bout.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section fa-section--tint">
+  <div class="container">
+    <article class="fa-prose">
+      <h2>Trouver un artisan de confiance : le guide express</h2>
+      <p>
+        Une fuite d'eau, une panne de courant, une porte claquée, une chaudière qui lâche en plein hiver :
+        au moment où vous avez besoin d'un artisan, chaque minute compte. Le réflexe habituel — appeler dix
+        numéros trouvés au hasard et tomber sur des messageries — fait perdre un temps précieux. PilotCore
+        rassemble des <strong>artisans locaux</strong> qui acceptent les rendez-vous en ligne pour vous permettre
+        de <strong>trouver le bon professionnel près de chez vous</strong> et de réserver en quelques clics.
+      </p>
+
+      <h3>1. Identifiez le bon métier</h3>
+      <p>
+        Chaque problème a son spécialiste. Pour vous aider à choisir :
+      </p>
+      <ul>
+        <li><strong>Plombier</strong> — fuite, dégât des eaux, chauffe-eau, WC ou canalisation bouchée.</li>
+        <li><strong>Serrurier</strong> — porte claquée, clé cassée, serrure bloquée ou à changer.</li>
+        <li><strong>Électricien</strong> — panne de courant, tableau électrique, prise ou installation.</li>
+        <li><strong>Chauffagiste</strong> — chaudière, radiateur, entretien ou panne de chauffage.</li>
+        <li><strong>Vitrier, menuisier, peintre, maçon…</strong> — pour tous vos travaux et réparations.</li>
+      </ul>
+      <p>
+        Vous hésitez ? Décrivez simplement votre situation dans la barre de recherche : nous détectons
+        automatiquement le métier concerné et votre ville.
+      </p>
+
+      <h3>2. Privilégiez la proximité et la disponibilité</h3>
+      <p>
+        Un artisan proche se déplace plus vite et connaît votre secteur. Vérifiez sa <strong>zone d'intervention</strong>
+        et ses <strong>créneaux disponibles</strong> : sur PilotCore, seuls les artisans qui couvrent votre ville
+        apparaissent, et vous voyez immédiatement quand ils peuvent intervenir.
+      </p>
+
+      <h3>3. Demandez toujours un devis avant l'intervention</h3>
+      <p>
+        Un professionnel sérieux annonce son prix avant de se déplacer. Avec la réservation en ligne, vous recevez
+        un <strong>devis clair</strong> que vous validez à distance : le rendez-vous n'est confirmé qu'une fois le
+        montant accepté. Vous évitez ainsi les mauvaises surprises et gardez le contrôle du budget.
+      </p>
+      <p>
+        Prêt à démarrer ? <a href="{{ url_for('web.artisan_directory') }}">Parcourez l'annuaire des artisans</a>,
+        ou en cas d'urgence, consultez notre page <a href="{{ url_for('web.depannage_urgent') }}">dépannage urgent 24h/24</a>.
+      </p>
+    </article>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow">FAQ</span>
+      <h2>Questions fréquentes</h2>
+    </div>
+    <div class="fa-faq">
+      <details open>
+        <summary>Comment trouver un artisan de confiance près de chez moi ?</summary>
+        <p>Indiquez votre métier et votre ville dans la recherche : l'annuaire affiche les artisans disponibles autour de vous, avec leur zone d'intervention et la possibilité de réserver un créneau en ligne. Chaque fiche précise le métier, la localisation et les moyens de contact.</p>
+      </details>
+      <details>
+        <summary>Est-ce gratuit de trouver un artisan et de prendre rendez-vous ?</summary>
+        <p>Oui. La recherche et la prise de rendez-vous en ligne sont totalement gratuites et sans engagement pour les particuliers. Vous ne réglez que la prestation de l'artisan, selon le devis qu'il vous transmet.</p>
+      </details>
+      <details>
+        <summary>Puis-je réserver 24h/24, même le week-end ?</summary>
+        <p>Oui. La plupart des artisans référencés proposent la réservation en ligne à toute heure, et un assistant vocal peut répondre et qualifier votre demande même en dehors des horaires d'ouverture.</p>
+      </details>
+      <details>
+        <summary>Comment savoir quel artisan appeler pour mon problème ?</summary>
+        <p>Une fuite relève d'un plombier, une porte claquée d'un serrurier, une panne de courant d'un électricien, une chaudière en panne d'un chauffagiste. Vous pouvez aussi décrire votre problème en langage naturel : nous identifions automatiquement le métier et la ville.</p>
+      </details>
+      <details>
+        <summary>Comment obtenir un devis avant l'intervention ?</summary>
+        <p>Après votre demande, l'artisan vous transmet un devis détaillé avant toute intervention. Vous le validez en ligne : l'intervention n'est confirmée qu'une fois le devis accepté, sans mauvaise surprise sur le prix.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-cta">
+      <h2>Trouvez votre artisan maintenant</h2>
+      <p>Des artisans locaux, disponibles et prêts à intervenir près de chez vous.</p>
+      <div class="fa-cta-actions">
+        <a href="{{ url_for('web.artisan_directory') }}" class="fa-btn fa-btn--primary fa-btn--lg">Voir les artisans disponibles</a>
+        <a href="{{ url_for('web.depannage_urgent') }}" class="fa-btn fa-btn--ghost fa-btn--lg">C'est une urgence</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

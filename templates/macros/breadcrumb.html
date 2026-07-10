@@ -1,0 +1,35 @@
+{# Fil d'Ariane réutilisable + BreadcrumbList JSON-LD (SEO).
+   `items` = liste de tuples (label, path) — le dernier élément est la page
+   courante (rendu sans lien). `path` peut être None pour la page active. #}
+{% macro breadcrumb(items) %}
+<nav class="fa-breadcrumb container" aria-label="Fil d'Ariane">
+  <ol class="fa-breadcrumb-list">
+    {% for label, path in items %}
+    <li>
+      {% if path and not loop.last %}
+      <a href="{{ path }}">{{ label }}</a>
+      {% else %}
+      <span aria-current="page">{{ label }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% set _crumb_ld %}
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {%- for label, path in items %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "name": {{ label|tojson }}{% if path %},
+      "item": {{ canonical_url(path)|tojson }}{% endif %}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]
+}
+{% endset %}
+<script type="application/ld+json">{{ _crumb_ld | safe }}</script>
+{% endmacro %}

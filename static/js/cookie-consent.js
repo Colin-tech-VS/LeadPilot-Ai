@@ -28,16 +28,41 @@
     }
   }
 
+  // The banner is position:fixed at the bottom of the viewport. On small
+  // screens it is tall enough to sit ON TOP of a form's submit button (the
+  // artisan sign-up "Continue"/"Créer mon compte" CTA), so taps land on the
+  // banner and the visitor — who filled everything — simply cannot submit.
+  // Reserve the banner's height at the bottom of the page while it is visible
+  // so nothing interactive is ever hidden beneath it.
+  var _resizeBound = null;
+  function reserveSpace(banner) {
+    var h = banner.offsetHeight || 0;
+    document.body.style.paddingBottom = h ? h + "px" : "";
+  }
+  function clearSpace() {
+    document.body.style.paddingBottom = "";
+    if (_resizeBound) {
+      window.removeEventListener("resize", _resizeBound);
+      _resizeBound = null;
+    }
+  }
+
   function hide(banner) {
     banner.hidden = true;
     banner.classList.remove("is-visible");
+    clearSpace();
   }
 
   function show(banner) {
     banner.hidden = false;
-    // next frame so the CSS transition plays
+    // next frame so the CSS transition plays and the height is measurable
     requestAnimationFrame(function () {
       banner.classList.add("is-visible");
+      reserveSpace(banner);
+      if (!_resizeBound) {
+        _resizeBound = function () { reserveSpace(banner); };
+        window.addEventListener("resize", _resizeBound);
+      }
     });
   }
 

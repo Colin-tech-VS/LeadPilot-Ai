@@ -102,9 +102,134 @@ def site_snapshot() -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "kpis_30d": kpis,
         "content": content,
+        "content_health": _safe(content_audit_summary, {}),
         "prospecting": prospect_stats,
+        "traffic_30d": _safe(lambda: _traffic_summary(30), {}) or {},
+        "seo": _safe(_seo_summary, {}) or {},
         "integrations": integrations,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Deep analysis helpers — these give Nova a real, data-driven view of the site
+# so her recommendations and actions target genuine gaps, not guesses.
+# --------------------------------------------------------------------------- #
+def _traffic_summary(days: int = 30) -> dict:
+    """Compact web-analytics view (audience + conversion) for the snapshot."""
+    from app.services import traffic
+
+    k = traffic.kpis(days) or {}
+    conv = traffic.conversions(days) or {}
+    return {
+        "range_days": days,
+        "pageviews": k.get("pageviews"),
+        "unique_visitors": k.get("unique_visitors"),
+        "visitors_trend": k.get("visitors_trend"),
+        "sessions": k.get("sessions"),
+        "bounce_rate": k.get("bounce_rate"),
+        "pages_per_session": k.get("pages_per_session"),
+        "signups_total": conv.get("signups_total"),
+        "visitor_to_signup_rate": conv.get("visitor_to_signup_rate"),
+    }
+
+
+def _seo_summary(days: int = 28) -> dict:
+    """Google Search Console headline metrics (only if connected)."""
+    try:
+        from app.services import google_gsc
+
+        if not google_gsc.is_connected():
+            return {"connected": False}
+        data = google_gsc.dashboard_payload(days)
+    except Exception:  # noqa: BLE001
+        return {"connected": False}
+    summary = data.get("summary") or {}
+    return {
+        "connected": True,
+        "site_url": data.get("site_url"),
+        "clicks": summary.get("clicks"),
+        "impressions": summary.get("impressions"),
+        "ctr": summary.get("ctr"),
+        "avg_position": summary.get("position"),
+        "error": data.get("error"),
+    }
+
+
+def _strip_html(html: str) -> str:
+    return re.sub(r"<[^>]+>", " ", html or "")
+
+
+def _audit_model(model, *, thin_chars: int = 600, sample: int = 6) -> dict:
+    """SEO/quality audit for one content model (pages or blog posts)."""
+    rows = model.query.all()
+    missing_meta, thin, drafts = [], [], []
+    for r in rows:
+        title = (getattr(r, "title", "") or "").strip() or "(sans titre)"
+        if not (getattr(r, "meta_description", "") or "").strip():
+            missing_meta.append(title)
+        if len(_strip_html(getattr(r, "body_html", "")).strip()) < thin_chars:
+            thin.append(title)
+        if getattr(r, "status", "") != "published":
+            drafts.append(title)
+    return {
+        "total": len(rows),
+        "published": sum(1 for r in rows if getattr(r, "status", "") == "published"),
+        "missing_meta_count": len(missing_meta),
+        "thin_count": len(thin),
+        "draft_count": len(drafts),
+        "missing_meta": missing_meta[:sample],
+        "thin": thin[:sample],
+        "drafts": drafts[:sample],
+    }
+
+
+def content_audit() -> dict:
+    """Full content audit — actionable SEO/quality gaps across pages & blog."""
+    from app.models.blog_post import BlogPost
+    from app.models.site_page import SitePage
+
+    return {"pages": _audit_model(SitePage), "blog": _audit_model(BlogPost)}
+
+
+def content_audit_summary() -> dict:
+    """Just the counts — cheap enough to include in every snapshot."""
+    audit = content_audit()
+    return {
+        "pages_missing_meta": audit["pages"]["missing_meta_count"],
+        "pages_thin": audit["pages"]["thin_count"],
+        "pages_drafts": audit["pages"]["draft_count"],
+        "blog_missing_meta": audit["blog"]["missing_meta_count"],
+        "blog_thin": audit["blog"]["thin_count"],
+        "blog_drafts": audit["blog"]["draft_count"],
+    }
+
+
+def _gsc_row(row: dict) -> dict:
+    """Flatten a Search Console analytics row (keys[] + metrics)."""
+    keys = row.get("keys") or []
+    ctr = float(row.get("ctr") or 0)
+    return {
+        "key": keys[0] if keys else "",
+        "clicks": int(row.get("clicks") or 0),
+        "impressions": int(row.get("impressions") or 0),
+        "ctr": round(ctr * 100, 2) if ctr <= 1 else round(ctr, 2),
+        "position": round(float(row.get("position") or 0), 1),
+    }
+
+
+def _seo_opportunities(query_rows: list[dict], *, limit: int = 8) -> list[dict]:
+    """Queries where the site already ranks/shows but under-performs — i.e.
+    prime targets for a new article or an on-page optimisation."""
+    opps = []
+    for raw in query_rows or []:
+        row = _gsc_row(raw)
+        if not row["key"] or row["impressions"] < 15:
+            continue
+        # High visibility but weak position or click-through = opportunity.
+        if row["position"] > 8 or row["ctr"] < 2:
+            opps.append(row)
+    opps.sort(key=lambda r: r["impressions"], reverse=True)
+    return opps[:limit]
 
 
 def _recent_titles(limit: int = 8) -> dict:
@@ -159,6 +284,91 @@ def tool_get_site_overview(_actions) -> dict:
     snap = site_snapshot()
     snap["recent_content"] = _recent_titles()
     return snap
+
+
+def tool_analyze_traffic(_actions, *, days=30) -> dict:
+    """Deep web-analytics: audience, conversion, top pages, sources, funnel."""
+    from app.services import traffic
+
+    days = max(1, min(int(days or 30), 365))
+    try:
+        return {
+            "ok": True,
+            "range_days": days,
+            "audience": traffic.kpis(days),
+            "conversions": traffic.conversions(days),
+            "acquisition_funnel": traffic.acquisition_funnel(days),
+            "top_pages": traffic.top_pages(days, 10),
+            "top_referrers": traffic.top_referrers(days, 8),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"Analyse de trafic impossible : {exc}"}
+
+
+def tool_analyze_seo(_actions, *, days=28) -> dict:
+    """Google Search Console: totals, top queries/pages and — most useful —
+    the concrete opportunity keywords Nova can turn into optimised content."""
+    from app.services import google_gsc
+
+    if not google_gsc.is_connected():
+        return {"ok": False, "connected": False,
+                "error": "Google Search Console n'est pas connecté. "
+                         "Connecte-le dans /admin/seo pour l'analyse SEO."}
+    days = max(1, min(int(days or 28), 480))
+    try:
+        data = google_gsc.dashboard_payload(days)
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "connected": True, "error": f"Search Console : {exc}"}
+    if data.get("error"):
+        return {"ok": False, "connected": True, "error": data["error"]}
+    queries = data.get("queries") or []
+    return {
+        "ok": True,
+        "connected": True,
+        "site_url": data.get("site_url"),
+        "range_days": days,
+        "summary": data.get("summary"),
+        "top_queries": [_gsc_row(r) for r in queries[:10]],
+        "top_pages": [_gsc_row(r) for r in (data.get("pages") or [])[:10]],
+        "opportunities": _seo_opportunities(queries),
+    }
+
+
+def tool_audit_content(_actions) -> dict:
+    """Content-quality audit: drafts pending, missing meta descriptions and
+    thin pages/articles — the concrete gaps Nova's actions should fill."""
+    try:
+        return {"ok": True, **content_audit()}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"Audit de contenu impossible : {exc}"}
+
+
+def tool_system_health(_actions) -> dict:
+    """Configuration & connectivity health: what's wired up, what's missing."""
+    from app.services import diagnostics
+
+    try:
+        groups = diagnostics.collect()
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"Diagnostic impossible : {exc}"}
+    summ = diagnostics.summary(groups)
+    missing_required = []
+    for g in groups:
+        for row in g.get("rows", []):
+            if row.get("required") and not row.get("present"):
+                missing_required.append({"group": g.get("title"), "item": row.get("label")})
+    db_probe = diagnostics.database_probe()
+    return {
+        "ok": True,
+        "checks_total": summ.get("total"),
+        "missing_required_count": summ.get("missing_required"),
+        "missing_required": missing_required[:12],
+        "database_ok": db_probe.get("ok"),
+        "database_detail": db_probe.get("detail"),
+        "integrations": {
+            g.get("title"): g.get("status") for g in groups
+        },
+    }
 
 
 def tool_create_blog_article(actions, *, topic, tone="expert", category_hint="", publish=False):
@@ -372,6 +582,10 @@ def tool_propose_actions(ctx, *, actions=None):
 
 _TOOL_IMPL = {
     "get_site_overview": tool_get_site_overview,
+    "analyze_traffic": tool_analyze_traffic,
+    "analyze_seo": tool_analyze_seo,
+    "audit_content": tool_audit_content,
+    "system_health": tool_system_health,
     "create_blog_article": tool_create_blog_article,
     "create_page": tool_create_page,
     "create_social_post": tool_create_social_post,
@@ -402,8 +616,27 @@ def _tool_schemas() -> list[dict]:
 
     return [
         fn("get_site_overview",
-           "Récupère un instantané complet du site : KPIs 30 jours, inventaire de contenu, "
-           "statut des intégrations, stats de prospection et derniers contenus. À appeler pour analyser.",
+           "Récupère un instantané complet du site : KPIs 30 jours, inventaire + santé du contenu, "
+           "trafic web, SEO, statut des intégrations, stats de prospection et derniers contenus. "
+           "À appeler EN PREMIER pour toute analyse ou conseil.",
+           {}),
+        fn("analyze_traffic",
+           "Analyse détaillée du trafic web : audience (visites, visiteurs, rebond), conversions "
+           "(inscriptions, taux), entonnoir d'acquisition, pages les plus vues et sources de trafic. "
+           "Utilise-le pour comprendre l'audience et où optimiser la conversion.",
+           {"days": {"type": "integer", "description": "Fenêtre d'analyse en jours (défaut 30)."}}),
+        fn("analyze_seo",
+           "Analyse SEO via Google Search Console : clics, impressions, position moyenne, meilleures "
+           "requêtes/pages et surtout les OPPORTUNITÉS (requêtes à fort potentiel mal positionnées) — "
+           "des sujets d'articles à créer pour gagner du trafic. À utiliser avant de conseiller du contenu SEO.",
+           {"days": {"type": "integer", "description": "Fenêtre en jours (défaut 28)."}}),
+        fn("audit_content",
+           "Audit qualité/SEO du contenu existant : brouillons en attente, méta-descriptions manquantes "
+           "et pages/articles trop courts (thin content). Donne les lacunes concrètes à corriger.",
+           {}),
+        fn("system_health",
+           "État de configuration et de connectivité : variables requises manquantes, base de données, "
+           "intégrations actives. Utile pour diagnostiquer ce qui empêche une fonctionnalité de marcher.",
            {}),
         fn("create_blog_article",
            "Génère (IA) puis enregistre un article de blog SEO. publish=false → brouillon (défaut, sûr).",
@@ -477,13 +710,24 @@ def _system_prompt() -> str:
         "Tu connais TOUT le site et tu peux AGIR grâce à tes outils : créer/publier des articles de blog "
         "et des pages, rédiger et publier des posts sociaux, chercher des prospects, rédiger et envoyer des "
         "e-mails de prospection.\n\n"
+        "OUTILS D'ANALYSE (utilise-les avant de conseiller — ne devine jamais) :\n"
+        "• get_site_overview : vue d'ensemble (toujours en premier).\n"
+        "• analyze_traffic : audience, conversion, pages populaires, sources.\n"
+        "• analyze_seo : Search Console + opportunités de mots-clés à transformer en contenu.\n"
+        "• audit_content : brouillons, méta manquantes, contenus trop courts.\n"
+        "• system_health : configuration/intégrations manquantes.\n\n"
         "MÉTHODE :\n"
-        "1. Pour analyser, commence par appeler get_site_overview.\n"
-        "2. Propose des actions concrètes et priorisées (créer telle page, écrire tel article, contacter tels prospects).\n"
-        "3. Quand l'utilisateur te demande d'agir, utilise directement l'outil approprié — n'invente jamais de résultat.\n"
-        "4. Créations de contenu : publie seulement si on te le demande explicitement ; sinon laisse en brouillon.\n"
-        "5. Actions externes (envoi d'e-mails, publication) : confirme l'intention avant si l'utilisateur reste vague.\n"
-        "6. Réponds en français, de façon concise et orientée action.\n\n"
+        "1. ANALYSE D'ABORD : quand on te demande d'analyser ou de conseiller, appelle les outils d'analyse "
+        "pertinents (overview, puis trafic/SEO/contenu selon la question) et fonde-toi sur les CHIFFRES réels.\n"
+        "2. CONSEILLE : propose 3-5 actions concrètes, PRIORISÉES et chiffrées (impact attendu), en t'appuyant "
+        "sur les lacunes détectées (opportunités SEO, méta manquantes, faible conversion, brouillons à publier…).\n"
+        "3. AGIS DE FAÇON OPTIMISÉE : quand l'utilisateur demande d'agir, cible les vraies lacunes. Pour un "
+        "article, pars d'une opportunité SEO réelle (analyze_seo) plutôt qu'un sujet au hasard ; passe le mot-clé "
+        "en category_hint. Corrige d'abord ce qui existe (méta, brouillons) avant de multiplier le contenu.\n"
+        "4. Utilise toujours l'outil approprié — n'invente jamais un résultat.\n"
+        "5. Créations de contenu : publie seulement si on te le demande explicitement ; sinon laisse en brouillon.\n"
+        "6. Actions externes (envoi d'e-mails, publication) : confirme l'intention avant si l'utilisateur reste vague.\n"
+        "7. Réponds en français, de façon concise et orientée action.\n\n"
         "MISE EN FORME (importante) :\n"
         "• Structure tes réponses en Markdown : **gras** pour les points clés, titres « ### », listes à puces "
         "ou numérotées courtes, `code` pour un slug/nom technique, [texte](url) pour un lien.\n"
@@ -620,13 +864,15 @@ def _dedupe_suggestions(suggestions: list[dict]) -> list[dict]:
 # Proactive insights — a one-shot recommender for the dashboard card.
 # --------------------------------------------------------------------------- #
 _INSIGHTS_SYSTEM = (
-    f"Tu es {ASSISTANT_NAME}, copilote IA de PilotCore. On te donne un instantané JSON du site. "
+    f"Tu es {ASSISTANT_NAME}, copilote IA de PilotCore. On te donne un instantané JSON complet du site "
+    "(KPIs, santé du contenu, trafic web, SEO/Search Console, prospection, intégrations). "
     "Analyse-le et renvoie UNIQUEMENT un JSON : "
     '{"headline": "synthèse en une phrase", '
-    '"insights": [{"title": "...", "detail": "recommandation actionnable (1-2 phrases)", '
+    '"insights": [{"title": "...", "detail": "recommandation actionnable et chiffrée (1-2 phrases)", '
     '"action": "create_blog|create_page|social|prospecting|email|seo|none", "priority": "high|medium|low"}]}. '
-    "3 à 5 recommandations concrètes, priorisées, orientées croissance (SEO, contenu, prospection, conversion). "
-    "En français."
+    "3 à 5 recommandations concrètes, PRIORISÉES et fondées sur les chiffres réels de l'instantané "
+    "(ex : méta-descriptions manquantes, brouillons à publier, taux de rebond/conversion, opportunités SEO, "
+    "prospects à contacter). Vise la croissance (SEO, contenu, prospection, conversion). En français."
 )
 
 

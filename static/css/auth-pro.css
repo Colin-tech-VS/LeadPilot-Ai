@@ -267,6 +267,96 @@
   line-height: 1.5;
 }
 
+/* Trust badges (register) */
+.auth-pro__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-pro__trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: 999px;
+}
+
+.auth-pro__trust li::before {
+  content: "✓";
+  font-weight: 800;
+  color: #0d9488;
+}
+
+/* Selected-plan notice (from pricing card) */
+.auth-pro__plan-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(27, 87, 224, 0.08));
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.auth-pro__plan-notice-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0d9488;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.auth-pro__plan-notice strong {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 800;
+}
+
+/* Step hint microcopy */
+.auth-pro__step-hint {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0d9488;
+}
+
+/* Reassurance line near submit */
+.auth-pro__reassure {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--lp-text-muted, #64748b);
+}
+
+.auth-pro__reassure-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 /* Steps (register) */
 .auth-pro__steps {
   display: flex;
@@ -429,6 +519,12 @@
   background: #f1f5f9;
   color: #334155;
   border: 1px solid #e2e8f0;
+}
+
+/* `.btn { display:inline-flex }` otherwise overrides the [hidden] attribute,
+   leaving the "Back" button visible on step 1 of the register wizard. */
+.auth-pro__actions .btn[hidden] {
+  display: none;
 }
 
 .auth-forgot {

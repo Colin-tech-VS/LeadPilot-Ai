@@ -75,11 +75,11 @@
       <p class="v-kicker">{{ _('landing.hero_badge') }}</p>
       <h1>{{ _('landing.hero_title') }}</h1>
       <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
-      <p class="v-search-hint" style="margin-bottom:0;">{{ _('landing.hero_trial') }}</p>
       <div class="v-hero-cta">
-        <a href="#demo" class="btn btn-primary btn-lg">{{ _('landing.cta_demo') }}</a>
-        <a href="#how" class="btn btn-outline btn-lg">{{ _('landing.cta_how') }}</a>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_free') }}</a>
+        <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_see_demo') }}</a>
       </div>
+      <p class="v-search-hint v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
       <ul class="v-trust">
         <li>{{ _('landing.trust_1') }}</li>
         <li>{{ _('landing.trust_2') }}</li>
@@ -101,6 +101,30 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="v-problem-section">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.problem_kicker') }}</p>
+      <h2>{{ _('landing.problem_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.problem_lead') }}</p>
+    </div>
+    <div class="v-problem-grid">
+      <article class="v-problem-card v-reveal">
+        <h3>{{ _('landing.problem_1_title') }}</h3>
+        <p>{{ _('landing.problem_1_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-1">
+        <h3>{{ _('landing.problem_2_title') }}</h3>
+        <p>{{ _('landing.problem_2_desc') }}</p>
+      </article>
+      <article class="v-problem-card v-reveal v-reveal-delay-2">
+        <h3>{{ _('landing.problem_3_title') }}</h3>
+        <p>{{ _('landing.problem_3_desc') }}</p>
+      </article>
     </div>
   </div>
 </section>
@@ -132,6 +156,58 @@
         <p>{{ _('landing.step_4_desc') }}</p>
       </li>
     </ol>
+  </div>
+</section>
+
+<section class="v-impact-section">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.impact_kicker') }}</p>
+      <h2>{{ _('landing.impact_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.impact_lead') }}</p>
+    </div>
+    <div class="v-stat-grid">
+      <div class="v-stat-card v-reveal">
+        <span class="v-stat-value">{{ _('landing.impact_stat_1_value') }}</span>
+        <span class="v-stat-label">{{ _('landing.impact_stat_1_label') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-1">
+        <span class="v-stat-value">{{ _('landing.impact_stat_2_value') }}</span>
+        <span class="v-stat-label">{{ _('landing.impact_stat_2_label') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-2">
+        <span class="v-stat-value">{{ _('landing.impact_stat_3_value') }}</span>
+        <span class="v-stat-label">{{ _('landing.impact_stat_3_label') }}</span>
+      </div>
+      <div class="v-stat-card v-reveal v-reveal-delay-3">
+        <span class="v-stat-value">{{ _('landing.impact_stat_4_value') }}</span>
+        <span class="v-stat-label">{{ _('landing.impact_stat_4_label') }}</span>
+      </div>
+    </div>
+    <div class="v-roi-compare">
+      <div class="v-roi-col v-roi-col--before">
+        <h3>{{ _('landing.roi_before_title') }}</h3>
+        <ul>
+          <li>{{ _('landing.roi_before_1') }}</li>
+          <li>{{ _('landing.roi_before_2') }}</li>
+          <li>{{ _('landing.roi_before_3') }}</li>
+          <li>{{ _('landing.roi_before_4') }}</li>
+        </ul>
+      </div>
+      <div class="v-roi-col v-roi-col--after">
+        <h3>{{ _('landing.roi_after_title') }}</h3>
+        <ul>
+          <li>{{ _('landing.roi_after_1') }}</li>
+          <li>{{ _('landing.roi_after_2') }}</li>
+          <li>{{ _('landing.roi_after_3') }}</li>
+          <li>{{ _('landing.roi_after_4') }}</li>
+        </ul>
+      </div>
+    </div>
+    <p class="v-sources">{{ _('landing.roi_sources') }}</p>
+    <div class="v-impact-cta">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_free') }}</a>
+    </div>
   </div>
 </section>
 
@@ -287,7 +363,7 @@
                 <li>{{ _('landing.pricing_launch_feat_4') }}</li>
                 <li>{{ _('landing.pricing_launch_feat_5') }}</li>
               </ul>
-              <a href="#demo" class="btn btn-primary btn-block">{{ _('landing.pricing_launch_cta') }}</a>
+              <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.cta_start_free') }}</a>
             </article>
 
             {% for offer in offers %}
@@ -300,7 +376,7 @@
               <ul class="pricing-features">
                 {% for feat in offer.feature_list() %}<li>{{ feat }}</li>{% endfor %}
               </ul>
-              <a href="{{ url_for('web.register') }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
+              <a href="{{ url_for('web.register', plan=offer.key) }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
             </article>
             {% endfor %}
           </div>
@@ -348,7 +424,12 @@
   <div class="container">
     <h2>{{ _('landing.cta_band_title') }}</h2>
     <p>{{ _('landing.cta_band_sub') }}</p>
-    <a href="#demo" class="btn btn-primary btn-lg">{{ _('landing.cta_demo') }}</a>
+    <div class="v-cta-band-actions">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_now') }}</a>
+      <a href="#demo" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_see_demo') }}</a>
+    </div>
+    <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
+    <p class="v-cta-band-proof">{{ _('landing.social_proof') }}</p>
   </div>
 </section>
 {% endblock %}

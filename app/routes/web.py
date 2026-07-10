@@ -703,10 +703,44 @@ def demo_simulate():
         return jsonify({"error": "demo failed", "demo": True}), 503
 
 
+def _post_register_redirect(tenant, plan_key):
+    """Where to send a freshly registered artisan.
+
+    When they came from a paid pricing card (``?plan=starter|pro|premium``) we
+    take them straight to Stripe Checkout for that plan so the subscription is
+    set up in one flow. Falls back to the billing page (Stripe not configured or
+    checkout failed) or the dashboard (free trial / no plan chosen)."""
+    from app.services import billing
+
+    if plan_key and plan_key in billing.available_plans():
+        if billing.is_configured():
+            try:
+                success_url = url_for("billing.billing_page", status="success", _external=True)
+                cancel_url = url_for("billing.billing_page", status="cancel", _external=True)
+                checkout_url = billing.create_checkout_session(tenant, plan_key, success_url, cancel_url)
+                return redirect(checkout_url, code=303)
+            except Exception:
+                current_app.logger.exception(
+                    "Post-register checkout failed tenant=%s plan=%s", tenant.id, plan_key
+                )
+                return redirect(url_for("billing.billing_page", status="error"))
+        # Stripe not configured — land on billing so they can subscribe later.
+        return redirect(url_for("billing.billing_page", status="plan_selected"))
+    return redirect(url_for("web.dashboard"))
+
+
 @web_bp.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id") and session.get("tenant_id"):
         return redirect(url_for("web.dashboard"))
+
+    from app.services import billing
+
+    # Plan pre-selected from the pricing grid (?plan=starter|pro|premium), carried
+    # through the two-step form via a hidden field so it survives the POST.
+    selected_plan = (request.values.get("plan") or "").strip().lower()
+    if selected_plan not in billing.available_plans():
+        selected_plan = ""
 
     error = None
     form = {}
@@ -739,7 +773,7 @@ def register():
                 try:
                     validate_email(form["email"])
                     validate_password(password)
-                    user, _tenant = register_plumber(
+                    user, tenant = register_plumber(
                         email=form["email"],
                         password=password,
                         company_name=form["company_name"],
@@ -750,7 +784,7 @@ def register():
                         trade_type=form["trade_type"],
                     )
                     login_user_to_session(user)
-                    return redirect(url_for("web.dashboard"))
+                    return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
                     error = translate("register.error.email_taken")
                 except AppError as e:
@@ -768,7 +802,15 @@ def register():
     from app.constants.trades import trade_choices
 
     lang = getattr(g, "lang", "fr")
-    return render_template("pro/register.html", error=error, form=form, trades=trade_choices(lang))
+    selected_plan_name = billing.available_plans().get(selected_plan, {}).get("name", "") if selected_plan else ""
+    return render_template(
+        "pro/register.html",
+        error=error,
+        form=form,
+        trades=trade_choices(lang),
+        selected_plan=selected_plan,
+        selected_plan_name=selected_plan_name,
+    )
 
 
 @web_bp.route("/login", methods=["GET", "POST"])

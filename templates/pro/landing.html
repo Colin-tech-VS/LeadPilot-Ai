@@ -376,7 +376,7 @@
               <ul class="pricing-features">
                 {% for feat in offer.feature_list() %}<li>{{ feat }}</li>{% endfor %}
               </ul>
-              <a href="{{ url_for('web.register') }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
+              <a href="{{ url_for('web.register', plan=offer.key) }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
             </article>
             {% endfor %}
           </div>

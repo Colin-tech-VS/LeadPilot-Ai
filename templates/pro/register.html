@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=4">
 {% endblock %}
 
 {% block content %}
@@ -29,6 +29,16 @@
         <li>{{ _('register.trust_cancel') }}</li>
       </ul>
 
+      {% if selected_plan_name %}
+      <div class="auth-pro__plan-notice">
+        <span class="auth-pro__plan-notice-icon" aria-hidden="true">✓</span>
+        <span>
+          <strong>{{ _('register.plan_selected', plan=selected_plan_name) }}</strong>
+          {{ _('register.plan_selected_sub') }}
+        </span>
+      </div>
+      {% endif %}
+
       <div class="auth-pro__steps" aria-hidden="true">
         <div class="auth-pro__step is-active" data-step-indicator><span></span></div>
         <div class="auth-pro__step" data-step-indicator><span></span></div>
@@ -43,6 +53,7 @@
       {% endif %}
 
       <form method="post" class="auth-form" id="register-form">
+        <input type="hidden" name="plan" value="{{ selected_plan }}">
         <div class="auth-pro__form-step is-active" data-register-step>
           <p class="auth-pro__step-hint">{{ _('register.step1_hint') }}</p>
           <label class="auth-field">

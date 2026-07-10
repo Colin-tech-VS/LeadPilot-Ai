@@ -304,6 +304,8 @@ def sitemap_xml():
     urls: list[tuple[str, str, str, str | None]] = [
         ("", "daily", "1.0", today),
         ("/artisans", "daily", "0.95", today),
+        ("/trouver-un-artisan", "weekly", "0.9", today),
+        ("/depannage-urgent", "weekly", "0.9", today),
         ("/pro", "weekly", "0.9", today),
         ("/contact", "monthly", "0.5", today),
         ("/blog", "daily", "0.85", today),
@@ -558,6 +560,24 @@ def contact():
                 return redirect(url_for("web.contact", sent=1))
 
     return render_template("public/contact.html", error=error, success=success, form=form)
+
+
+@web_bp.route("/trouver-un-artisan", methods=["GET"])
+def find_artisan():
+    """SEO/CRO pillar page — how to find and book a trusted artisan."""
+    from app.constants.trades import trade_choices
+
+    lang = getattr(g, "lang", "fr")
+    return render_template("public/find_artisan.html", trades=trade_choices(lang))
+
+
+@web_bp.route("/depannage-urgent", methods=["GET"])
+def depannage_urgent():
+    """SEO/CRO landing page for high-intent emergency ("dépannage urgent") search."""
+    from app.constants.trades import trade_choices
+
+    lang = getattr(g, "lang", "fr")
+    return render_template("public/depannage_urgent.html", trades=trade_choices(lang))
 
 
 @web_bp.route("/artisans", methods=["GET"])

@@ -117,6 +117,8 @@ def render_llms_txt() -> str:
         "## Pages principales",
         "",
         f"- [Accueil particuliers]({canonical_url('/')}): Trouver un artisan de confiance près de chez vous",
+        f"- [Trouver un artisan]({canonical_url('/trouver-un-artisan')}): Guide et recherche pour trouver le bon artisan et réserver en ligne",
+        f"- [Dépannage urgent 24h/24]({canonical_url('/depannage-urgent')}): Plombier, serrurier, électricien, chauffagiste disponibles en urgence",
         f"- [Annuaire artisans]({canonical_url('/artisans')}): Recherche par métier, ville et disponibilités",
         f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA et réception d'appels 24h/24",
         f"- [Blog PilotCore]({canonical_url('/blog')}): Conseils artisans, dépannage maison et téléphonie IA",

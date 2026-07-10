@@ -1,0 +1,271 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/breadcrumb.html' import breadcrumb with context %}
+{% set nav_active = 'directory' %}
+
+{% set _t = "Dépannage urgent 24h/24 — plombier, serrurier, électricien en urgence près de chez vous" %}
+{% set _d = "Besoin d'un artisan en urgence ? Trouvez un plombier, serrurier, électricien ou chauffagiste disponible 24h/24 et 7j/7 près de chez vous. Intervention rapide, devis avant déplacement, réservation en ligne immédiate." %}
+{% set _k = "dépannage urgent, artisan urgence 24h/24, plombier urgence, serrurier urgence, électricien urgence, dépannage à domicile, intervention rapide, artisan 7j/7, dépannage nuit et week-end" %}
+{% set _path = "/depannage-urgent" %}
+
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-depannage-urgent{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=1">
+{% endblock %}
+
+{% block meta %}
+{% set page_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": {{ (canonical_url(_path) ~ '#webpage')|tojson }},
+      "url": {{ canonical_url(_path)|tojson }},
+      "name": {{ _t|tojson }},
+      "description": {{ _d|tojson }},
+      "inLanguage": "fr-FR",
+      "isPartOf": { "@id": {{ (site_base_url() ~ '/#website')|tojson }} }
+    },
+    {
+      "@type": "Service",
+      "name": "Dépannage d'urgence par un artisan 24h/24",
+      "serviceType": "Dépannage et intervention d'urgence à domicile",
+      "provider": { "@id": {{ (site_base_url() ~ '/#organization')|tojson }} },
+      "areaServed": { "@type": "Country", "name": "France" },
+      "hoursAvailable": { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], "opens": "00:00", "closes": "23:59" },
+      "url": {{ canonical_url(_path)|tojson }}
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Comment trouver un artisan en urgence 24h/24 ?", "acceptedAnswer": { "@type": "Answer", "text": "Choisissez le métier concerné (plombier, serrurier, électricien, chauffagiste) et votre ville : les artisans disponibles autour de vous s'affichent immédiatement. Vous pouvez réserver un créneau en ligne ou joindre un assistant vocal qui répond 24h/24, y compris la nuit et le week-end." } },
+        { "@type": "Question", "name": "Quel artisan appeler en cas d'urgence ?", "acceptedAnswer": { "@type": "Answer", "text": "Une fuite d'eau ou une inondation relève d'un plombier, une porte claquée ou une serrure bloquée d'un serrurier, une coupure de courant d'un électricien, une panne de chauffage d'un chauffagiste. En cas de danger immédiat (gaz, incendie, électrocution), appelez d'abord les secours." } },
+        { "@type": "Question", "name": "Le prix est-il connu avant l'intervention d'urgence ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Même en urgence, l'artisan vous communique un devis ou une estimation avant de se déplacer. Vous validez le montant avant l'intervention : pas de mauvaise surprise sur la facture." } },
+        { "@type": "Question", "name": "En combien de temps un artisan peut-il intervenir ?", "acceptedAnswer": { "@type": "Answer", "text": "Le délai dépend du métier, de votre localisation et de l'heure. En choisissant un artisan proche affiché comme disponible, vous obtenez généralement une intervention le jour même, souvent en quelques heures pour les urgences." } }
+      ]
+    }
+  ]
+}
+{% endset %}
+{{ seo_meta(_t, _d, _path, _k, 'website', None, 'index, follow', page_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+{% macro _check_icon() %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endmacro %}
+{{ breadcrumb([('Accueil', url_for('web.client_home')), ('Trouver un artisan', url_for('web.find_artisan')), ('Dépannage urgent', None)]) }}
+
+<section class="fa-hero fa-hero--urgent">
+  <div class="container fa-hero-grid">
+    <div>
+      <span class="fa-kicker">⚡ Urgence · disponible 24h/24 · 7j/7</span>
+      <h1>Un <em>dépannage urgent</em> ? Trouvez un artisan disponible maintenant</h1>
+      <p class="fa-hero-lead">
+        Fuite d'eau, porte claquée, panne de courant, chauffage en rade… Trouvez un plombier,
+        serrurier, électricien ou chauffagiste près de chez vous, prêt à intervenir rapidement.
+        Devis avant déplacement, réservation immédiate.
+      </p>
+
+      <form class="fa-search" action="{{ url_for('web.artisan_directory') }}" method="get" role="search" aria-label="Rechercher un artisan en urgence">
+        <div class="fa-search-field">
+          <label for="du-metier">Type d'urgence</label>
+          <select id="du-metier" name="metier">
+            <option value="plombier">🔧 Plombier — fuite, inondation, WC</option>
+            <option value="serrurier">🔑 Serrurier — porte claquée, serrure</option>
+            <option value="electricien">⚡ Électricien — panne de courant</option>
+            <option value="chauffagiste">🔥 Chauffagiste — panne de chauffage</option>
+            <option value="vitrier">🪟 Vitrier — vitre cassée</option>
+            <option value="">Autre — voir tous les métiers</option>
+          </select>
+        </div>
+        <div class="fa-search-field">
+          <label for="du-ville">Ville ou code postal</label>
+          <input type="text" id="du-ville" name="ville" placeholder="Ex. : Marseille, 13006…" autocomplete="off">
+        </div>
+        <button type="submit" class="fa-btn fa-btn--danger">Trouver en urgence</button>
+      </form>
+
+      <ul class="fa-trust">
+        <li>{{ _check_icon() }} Disponible 24h/24 &amp; 7j/7</li>
+        <li>{{ _check_icon() }} Artisans proches de chez vous</li>
+        <li>{{ _check_icon() }} Devis avant déplacement</li>
+        <li>{{ _check_icon() }} Intervention le jour même</li>
+      </ul>
+    </div>
+
+    <aside class="fa-hero-card" aria-label="Réagir en cas d'urgence">
+      <h2>Les bons réflexes</h2>
+      <p>Avant l'arrivée de l'artisan, limitez les dégâts.</p>
+      <ul class="fa-mini-list">
+        <li><span class="fa-mini-num">💧</span><span><strong>Fuite d'eau</strong><span>Coupez l'arrivée d'eau au compteur.</span></span></li>
+        <li><span class="fa-mini-num">⚡</span><span><strong>Panne électrique</strong><span>Coupez le disjoncteur général, ne touchez rien d'humide.</span></span></li>
+        <li><span class="fa-mini-num">🔑</span><span><strong>Porte claquée</strong><span>Ne forcez pas la serrure, contactez un serrurier.</span></span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow fa-eyebrow--danger">Interventions d'urgence</span>
+      <h2>Quel dépannage vous faut-il ?</h2>
+      <p>Sélectionnez votre urgence pour voir les artisans disponibles autour de vous, tout de suite.</p>
+    </div>
+    <div class="fa-trades">
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=plombier">
+        <span class="fa-trade-emoji" aria-hidden="true">🔧</span>
+        <span><strong>Plombier urgence</strong><span>Fuite, dégât des eaux, WC bouché</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=serrurier">
+        <span class="fa-trade-emoji" aria-hidden="true">🔑</span>
+        <span><strong>Serrurier urgence</strong><span>Porte claquée, clé cassée, serrure</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=electricien">
+        <span class="fa-trade-emoji" aria-hidden="true">⚡</span>
+        <span><strong>Électricien urgence</strong><span>Panne de courant, tableau, court-circuit</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=chauffagiste">
+        <span class="fa-trade-emoji" aria-hidden="true">🔥</span>
+        <span><strong>Chauffagiste urgence</strong><span>Chaudière en panne, plus de chauffage</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=vitrier">
+        <span class="fa-trade-emoji" aria-hidden="true">🪟</span>
+        <span><strong>Vitrier urgence</strong><span>Vitre cassée, mise en sécurité</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier=climaticien">
+        <span class="fa-trade-emoji" aria-hidden="true">❄️</span>
+        <span><strong>Climaticien urgence</strong><span>Panne de climatisation</span></span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+    <div class="fa-links" style="margin-top:22px;">
+      <a href="{{ url_for('web.artisan_directory') }}">Tout l'annuaire des artisans</a>
+      <a href="{{ url_for('web.find_artisan') }}">Comment trouver un artisan</a>
+      <a href="{{ url_for('web.blog_index') }}">Conseils dépannage</a>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section fa-section--tint">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow fa-eyebrow--danger">Rapide &amp; sûr</span>
+      <h2>Comment obtenir un dépannage en urgence ?</h2>
+      <p>Trois étapes pour être dépanné vite, sans mauvaise surprise sur le prix.</p>
+    </div>
+    <div class="fa-steps">
+      <article class="fa-step">
+        <div class="fa-step-num">1</div>
+        <h3>Décrivez l'urgence</h3>
+        <p>Choisissez le type de panne et votre ville. Les artisans proches, affichés comme disponibles, apparaissent immédiatement.</p>
+      </article>
+      <article class="fa-step">
+        <div class="fa-step-num">2</div>
+        <h3>Réservez ou faites-vous rappeler</h3>
+        <p>Prenez un créneau en ligne ou laissez un assistant vocal enregistrer votre demande — même la nuit et le week-end.</p>
+      </article>
+      <article class="fa-step">
+        <div class="fa-step-num">3</div>
+        <h3>Devis puis intervention</h3>
+        <p>L'artisan confirme un prix avant de se déplacer et intervient rapidement. Vous validez avant tout engagement.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <article class="fa-prose">
+      <h2>Dépannage urgent : que faire en attendant l'artisan ?</h2>
+      <p>
+        Une urgence à la maison ne prévient jamais. En attendant l'arrivée du professionnel, quelques gestes
+        simples permettent de <strong>limiter les dégâts</strong> et de rester en sécurité. Voici les bons
+        réflexes selon la situation.
+      </p>
+
+      <h3>Fuite d'eau ou dégât des eaux</h3>
+      <p>
+        Coupez immédiatement l'<strong>arrivée d'eau</strong> au robinet d'arrêt ou au compteur, épongez pour
+        éviter l'infiltration chez les voisins, et coupez l'électricité de la zone si l'eau approche d'une prise.
+        Contactez ensuite un <a href="{{ url_for('web.artisan_directory') }}?metier=plombier">plombier en urgence</a>.
+      </p>
+
+      <h3>Porte claquée ou serrure bloquée</h3>
+      <p>
+        Ne forcez pas la serrure : vous risqueriez de l'endommager et d'alourdir la facture. Vérifiez si une
+        autre entrée est accessible, puis faites appel à un
+        <a href="{{ url_for('web.artisan_directory') }}?metier=serrurier">serrurier</a> qui pourra ouvrir sans
+        casse dans la plupart des cas. Demandez toujours le tarif d'ouverture avant l'intervention.
+      </p>
+
+      <h3>Panne de courant</h3>
+      <p>
+        Vérifiez d'abord s'il s'agit d'une coupure générale du quartier. Sinon, coupez le disjoncteur général,
+        débranchez les appareils sensibles et ne manipulez rien d'humide. Un
+        <a href="{{ url_for('web.artisan_directory') }}?metier=electricien">électricien</a> identifiera l'origine
+        du problème (tableau, court-circuit, surcharge) en toute sécurité.
+      </p>
+
+      <h3>Panne de chauffage</h3>
+      <p>
+        En hiver, une chaudière à l'arrêt devient vite un problème. Vérifiez la pression et le thermostat, puis
+        contactez un <a href="{{ url_for('web.artisan_directory') }}?metier=chauffagiste">chauffagiste</a>. En cas
+        d'<strong>odeur de gaz</strong>, n'actionnez aucun interrupteur, aérez et appelez le numéro d'urgence gaz.
+      </p>
+
+      <p>
+        <strong>En cas de danger immédiat</strong> (incendie, fuite de gaz, risque d'électrocution, personne en
+        difficulté), appelez d'abord les services de secours (18, 15 ou 112) avant tout dépannage.
+      </p>
+    </article>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-section-head">
+      <span class="fa-eyebrow fa-eyebrow--danger">FAQ urgence</span>
+      <h2>Questions fréquentes</h2>
+    </div>
+    <div class="fa-faq">
+      <details open>
+        <summary>Comment trouver un artisan en urgence 24h/24 ?</summary>
+        <p>Choisissez le métier concerné et votre ville : les artisans disponibles autour de vous s'affichent immédiatement. Vous pouvez réserver un créneau en ligne ou joindre un assistant vocal qui répond 24h/24, y compris la nuit et le week-end.</p>
+      </details>
+      <details>
+        <summary>Quel artisan appeler en cas d'urgence ?</summary>
+        <p>Une fuite ou une inondation relève d'un plombier, une porte claquée ou une serrure bloquée d'un serrurier, une coupure de courant d'un électricien, une panne de chauffage d'un chauffagiste. En cas de danger immédiat (gaz, incendie, électrocution), appelez d'abord les secours.</p>
+      </details>
+      <details>
+        <summary>Le prix est-il connu avant l'intervention d'urgence ?</summary>
+        <p>Oui. Même en urgence, l'artisan vous communique un devis ou une estimation avant de se déplacer. Vous validez le montant avant l'intervention : pas de mauvaise surprise sur la facture.</p>
+      </details>
+      <details>
+        <summary>En combien de temps un artisan peut-il intervenir ?</summary>
+        <p>Le délai dépend du métier, de votre localisation et de l'heure. En choisissant un artisan proche affiché comme disponible, vous obtenez généralement une intervention le jour même, souvent en quelques heures pour les urgences.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="fa-section">
+  <div class="container">
+    <div class="fa-cta fa-cta--urgent">
+      <h2>Besoin d'un dépannage maintenant ?</h2>
+      <p>Trouvez un artisan disponible près de chez vous et réglez votre urgence sans attendre.</p>
+      <div class="fa-cta-actions">
+        <a href="{{ url_for('web.artisan_directory') }}" class="fa-btn fa-btn--danger fa-btn--lg">Trouver un artisan en urgence</a>
+        <a href="{{ url_for('web.find_artisan') }}" class="fa-btn fa-btn--ghost fa-btn--lg">Comment ça marche</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

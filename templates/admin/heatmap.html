@@ -94,7 +94,7 @@
             </div>
           </div>
           <div class="hm-rec-controls">
-            <button type="button" class="btn btn-primary hm-rec-btn" id="hm-rec-play">▶︎ Lecture</button>
+            <button type="button" class="hm-rec-btn" id="hm-rec-play">▶︎ Lecture</button>
             <input type="range" id="hm-rec-seek" min="0" max="1000" value="0" class="hm-rec-seek" aria-label="Progression">
             <span class="hm-rec-time" id="hm-rec-time">0:00 / 0:00</span>
             <select id="hm-rec-speed" class="admin-select hm-rec-speed" aria-label="Vitesse">
@@ -187,7 +187,7 @@
   .hm-rec-list tbody tr.active { background: rgba(27,87,224,.08); }
   .hm-rec-list td { font-size: .82rem; }
   .hm-rec-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
-  .hm-rec-player { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 14px; min-height: 320px; }
+  .hm-rec-player { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 14px; min-height: 320px; min-width: 0; }
   .hm-rec-empty { opacity: .55; text-align: center; padding: 80px 12px; }
   .hm-rec-canvas-wrap { position: relative; width: 100%; max-height: 560px; overflow: hidden; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 10px; background: #fff; }
   .hm-rec-stage { position: relative; margin: 0 auto; }
@@ -198,14 +198,49 @@
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); transition: left .06s linear, top .06s linear; }
   .hm-rec-cursor.is-click::after { content: ""; position: absolute; left: 2px; top: 2px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #f97316; animation: hmRipple .5s ease-out; }
   @keyframes hmRipple { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
-  .hm-rec-controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-  .hm-rec-btn { min-width: 118px; }
-  .hm-rec-seek { flex: 1; accent-color: #1B57E0; }
-  .hm-rec-time { font-variant-numeric: tabular-nums; font-size: .82rem; opacity: .75; min-width: 92px; text-align: right; }
-  .hm-rec-speed { width: auto; }
-  .hm-rec-meta { font-size: .78rem; opacity: .6; margin: 8px 2px 0; }
+  .hm-rec-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
+  .hm-rec-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-width: 120px; padding: 10px 18px; line-height: 1; white-space: nowrap;
+    font-size: .9rem; font-weight: 700; color: #fff; border: 0; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(90deg, #1B57E0, #06b6d4);
+    box-shadow: 0 4px 14px rgba(27,87,224,.28);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .hm-rec-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(27,87,224,.36); filter: brightness(1.03); }
+  .hm-rec-btn:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(27,87,224,.28); }
+  .hm-rec-btn:focus-visible { outline: 2px solid #1B57E0; outline-offset: 2px; }
+
+  .hm-rec-seek {
+    flex: 1 1 180px; min-width: 120px; height: 6px; margin: 0; padding: 0;
+    -webkit-appearance: none; appearance: none; cursor: pointer; border-radius: 999px;
+    background: linear-gradient(90deg, #1B57E0 var(--pct, 0%), #e2e8f0 var(--pct, 0%));
+  }
+  .hm-rec-seek::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 3px solid #1B57E0; box-shadow: 0 1px 5px rgba(15,23,42,.35);
+    cursor: pointer; transition: transform .1s ease;
+  }
+  .hm-rec-seek::-webkit-slider-thumb:hover { transform: scale(1.18); }
+  .hm-rec-seek::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid #1B57E0;
+    box-shadow: 0 1px 5px rgba(15,23,42,.35); cursor: pointer;
+  }
+  .hm-rec-seek::-moz-range-progress { background: #1B57E0; height: 6px; border-radius: 999px; }
+  .hm-rec-seek::-moz-range-track { background: #e2e8f0; height: 6px; border-radius: 999px; }
+  .hm-rec-seek:focus-visible { outline: 2px solid rgba(27,87,224,.5); outline-offset: 4px; }
+
+  .hm-rec-time { font-variant-numeric: tabular-nums; font-size: .82rem; font-weight: 600; opacity: .8; min-width: 88px; text-align: right; }
+  .hm-rec-speed { width: auto; flex: 0 0 auto; }
+  .hm-rec-meta { font-size: .78rem; opacity: .6; margin: 10px 2px 0; }
 
   @media (max-width: 720px) { .hm-journey { grid-template-columns: 1fr; } .hm-rec { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) {
+    .hm-rec-controls { gap: 10px; }
+    .hm-rec-seek { order: -1; flex: 1 1 100%; }
+    .hm-rec-btn { flex: 1 1 auto; }
+    .hm-rec-time { flex: 1 1 auto; text-align: left; }
+  }
 </style>
 {% endblock %}
 
@@ -552,7 +587,9 @@
     var d = P.data; if (!d) return;
     var wrap = $("hm-rec-canvas-wrap"), stage = $("hm-rec-stage"), frame = $("hm-rec-frame");
     var docW = d.doc_w || 1440, docH = d.doc_h || 800;
-    var boxW = Math.max(320, (wrap.clientWidth || 900));
+    // Fit to the container width so the film stays fully visible on any screen
+    // (never wider than the wrapper, which would clip under overflow:hidden).
+    var boxW = Math.max(200, (wrap.clientWidth || 900));
     P.box = boxW;
     P.scale = boxW / docW;
     var dispH = Math.max(240, Math.round(docH * P.scale));
@@ -624,7 +661,9 @@
   function updateTime() {
     $("hm-rec-time").textContent = fmtDur(P.curMs) + " / " + fmtDur(P.durMs);
     var seek = $("hm-rec-seek");
-    if (document.activeElement !== seek) seek.value = Math.round((P.curMs / P.durMs) * 1000);
+    var pct = P.durMs ? (P.curMs / P.durMs) * 100 : 0;
+    if (document.activeElement !== seek) seek.value = Math.round(pct * 10);
+    seek.style.setProperty("--pct", pct.toFixed(2) + "%");
   }
 
   function frame() {

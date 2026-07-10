@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -22,6 +22,12 @@
         <h2>{{ _('register.form_title') }}</h2>
         <p class="auth-pro__card-sub">{{ _('register.form_sub') }}</p>
       </header>
+
+      <ul class="auth-pro__trust" aria-label="{{ _('register.form_sub') }}">
+        <li>{{ _('register.trust_free') }}</li>
+        <li>{{ _('register.trust_no_card') }}</li>
+        <li>{{ _('register.trust_cancel') }}</li>
+      </ul>
 
       <div class="auth-pro__steps" aria-hidden="true">
         <div class="auth-pro__step is-active" data-step-indicator><span></span></div>
@@ -38,6 +44,7 @@
 
       <form method="post" class="auth-form" id="register-form">
         <div class="auth-pro__form-step is-active" data-register-step>
+          <p class="auth-pro__step-hint">{{ _('register.step1_hint') }}</p>
           <label class="auth-field">
             <span class="auth-field__label">{{ _('register.company') }}</span>
             <span class="auth-field__wrap">
@@ -73,6 +80,7 @@
         </div>
 
         <div class="auth-pro__form-step" data-register-step>
+          <p class="auth-pro__step-hint">{{ _('register.step2_hint') }}</p>
           <div class="auth-form-row">
             <label class="auth-field">
               <span class="auth-field__label">{{ _('register.first_name') }}</span>
@@ -125,6 +133,11 @@
                   data-next-label="{{ _('auth.step_next') }}"
                   data-submit-label="{{ _('register.submit') }}">{{ _('auth.step_next') }}</button>
         </div>
+
+        <p class="auth-pro__reassure">
+          <span class="auth-pro__reassure-icon" aria-hidden="true">🔒</span>
+          {{ _('register.reassure') }}
+        </p>
       </form>
 
       <p class="auth-switch">

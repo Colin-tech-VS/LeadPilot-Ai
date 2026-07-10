@@ -1372,6 +1372,50 @@
   margin-right: auto;
 }
 
+/* ── Pro landing: conversion helpers ── */
+.vitrine .v-hero-microtrust {
+  margin: 16px 0 0;
+  font-weight: 500;
+}
+
+.vitrine .v-impact-cta {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.vitrine .v-cta-band-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vitrine .v-cta-band .v-cta-band-secondary {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.vitrine .v-cta-band .v-cta-band-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+  color: #fff;
+}
+
+.vitrine .v-cta-band-note {
+  margin: 20px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.vitrine .v-cta-band-proof {
+  margin: 10px auto 0;
+  max-width: 520px;
+  font-size: 13px;
+  opacity: 0.6;
+  line-height: 1.5;
+}
+
 /* ── Mobile nav ── */
 @media (max-width: 900px) {
   .vitrine .v-hero-client-grid {

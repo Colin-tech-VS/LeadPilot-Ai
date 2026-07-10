@@ -71,6 +71,45 @@
     </div>
   </section>
 
+  {# ══════════════ PART 3 — Rejouer les sessions (film du curseur) ══════════════ #}
+  <section class="admin-panel">
+    <h2>🎥 Rejouer les sessions</h2>
+    <p class="admin-panel-lead">Le vrai film de la visite : la souris qui bouge, les clics et le défilement, rejoués par-dessus la vraie page.
+      Choisissez un enregistrement à gauche pour lancer la lecture.</p>
+    <div class="hm-rec">
+      <div class="hm-rec-list">
+        <table class="traffic-table" id="hm-rec-table">
+          <thead><tr><th>Visiteur</th><th>Page</th><th>Durée</th></tr></thead>
+          <tbody><tr><td colspan="3" class="admin-empty-inline">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="hm-rec-player">
+        <div class="hm-rec-empty" id="hm-rec-empty">Sélectionnez un enregistrement pour lancer le film. 🍿</div>
+        <div class="hm-rec-stagebox" id="hm-rec-stagebox" hidden>
+          <div class="hm-rec-canvas-wrap" id="hm-rec-canvas-wrap">
+            <div class="hm-rec-stage" id="hm-rec-stage">
+              <iframe class="hm-rec-frame" id="hm-rec-frame" title="Rejeu de la page" scrolling="no" tabindex="-1" aria-hidden="true"></iframe>
+              <div class="hm-rec-viewport" id="hm-rec-viewport"></div>
+              <div class="hm-rec-cursor" id="hm-rec-cursor" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="hm-rec-controls">
+            <button type="button" class="btn btn-primary hm-rec-btn" id="hm-rec-play">▶︎ Lecture</button>
+            <input type="range" id="hm-rec-seek" min="0" max="1000" value="0" class="hm-rec-seek" aria-label="Progression">
+            <span class="hm-rec-time" id="hm-rec-time">0:00 / 0:00</span>
+            <select id="hm-rec-speed" class="admin-select hm-rec-speed" aria-label="Vitesse">
+              <option value="1">1×</option>
+              <option value="2" selected>2×</option>
+              <option value="4">4×</option>
+              <option value="8">8×</option>
+            </select>
+          </div>
+          <p class="hm-rec-meta" id="hm-rec-meta"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {# ── Top éléments cliqués ── #}
   <div class="admin-grid-2">
     <section class="admin-panel">
@@ -139,7 +178,34 @@
   .hm-type { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(27,87,224,.10); color: #1B57E0; vertical-align: middle; }
   .hm-what { margin-left: 6px; }
   .hm-what--muted { opacity: .5; font-style: italic; }
-  @media (max-width: 720px) { .hm-journey { grid-template-columns: 1fr; } }
+
+  /* ── Part 3: session replay ── */
+  .hm-rec { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  .hm-rec-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; }
+  .hm-rec-list table { margin: 0; }
+  .hm-rec-list tbody tr { cursor: pointer; }
+  .hm-rec-list tbody tr.active { background: rgba(27,87,224,.08); }
+  .hm-rec-list td { font-size: .82rem; }
+  .hm-rec-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+  .hm-rec-player { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 14px; min-height: 320px; }
+  .hm-rec-empty { opacity: .55; text-align: center; padding: 80px 12px; }
+  .hm-rec-canvas-wrap { position: relative; width: 100%; max-height: 560px; overflow: hidden; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 10px; background: #fff; }
+  .hm-rec-stage { position: relative; margin: 0 auto; }
+  .hm-rec-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; pointer-events: none; background: #fff; }
+  .hm-rec-viewport { position: absolute; left: 0; width: 100%; border: 2px solid rgba(27,87,224,.35); background: rgba(27,87,224,.04); box-shadow: 0 0 0 9999px rgba(15,23,42,.12); pointer-events: none; transition: top .12s linear; box-sizing: border-box; }
+  .hm-rec-cursor { position: absolute; top: 0; left: 0; width: 20px; height: 20px; margin: -4px 0 0 -4px; pointer-events: none; z-index: 3;
+    background: no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'><path d='M4 2l7 18 2.5-7L20 10.5z' fill='white' stroke='%230f172a' stroke-width='1.5' stroke-linejoin='round'/></svg>");
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); transition: left .06s linear, top .06s linear; }
+  .hm-rec-cursor.is-click::after { content: ""; position: absolute; left: 2px; top: 2px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #f97316; animation: hmRipple .5s ease-out; }
+  @keyframes hmRipple { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+  .hm-rec-controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .hm-rec-btn { min-width: 118px; }
+  .hm-rec-seek { flex: 1; accent-color: #1B57E0; }
+  .hm-rec-time { font-variant-numeric: tabular-nums; font-size: .82rem; opacity: .75; min-width: 92px; text-align: right; }
+  .hm-rec-speed { width: auto; }
+  .hm-rec-meta { font-size: .78rem; opacity: .6; margin: 8px 2px 0; }
+
+  @media (max-width: 720px) { .hm-journey { grid-template-columns: 1fr; } .hm-rec { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
@@ -406,17 +472,221 @@
     host.innerHTML = html;
   }
 
+  // ---------------- Session replay (cursor "film") ----------------
+  URLS.recordings = "{{ url_for('admin.api_heatmap_recordings') }}";
+  URLS.recording = "{{ url_for('admin.api_heatmap_recording', rec_id='__RID__') }}";
+
+  var activeRid = null;
+  function loadRecordings() {
+    fetch(URLS.recordings + "?days=" + days()).then(function (r) { return r.json(); }).then(function (d) {
+      var tb = document.querySelector("#hm-rec-table tbody");
+      var rows = d.recordings || [];
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="3" class="admin-empty-inline">Aucun enregistrement</td></tr>'; return; }
+      tb.innerHTML = rows.map(function (r) {
+        var dev = r.device === "mobile" ? "📱" : "🖥️";
+        return '<tr data-rid="' + esc(r.rec_id) + '">' +
+          '<td><span class="hm-vid">' + esc(r.short_id) + '</span> ' + dev + '</td>' +
+          '<td><span class="hm-rec-path" title="' + esc(r.path || "") + '">' + esc(r.path || "—") + "</span></td>" +
+          "<td>" + fmtDur(r.duration_ms) + "</td></tr>";
+      }).join("");
+      tb.querySelectorAll("tr").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          tb.querySelectorAll("tr").forEach(function (x) { x.classList.remove("active"); });
+          tr.classList.add("active");
+          openRecording(tr.getAttribute("data-rid"));
+        });
+      });
+      if (activeRid) {
+        var sel = tb.querySelector('tr[data-rid="' + activeRid + '"]');
+        if (sel) sel.classList.add("active");
+      }
+    }).catch(function () {});
+  }
+
+  function fmtDur(ms) {
+    var s = Math.round((ms || 0) / 1000);
+    return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
+  }
+
+  // --- the player ---
+  var P = {
+    data: null, box: 0, scale: 1, durMs: 0, curMs: 0,
+    playing: false, speed: 2, raf: null, baseWall: 0, baseMs: 0, framePath: null, clkIdx: 0,
+  };
+
+  function openRecording(rid) {
+    activeRid = rid;
+    stopPlay();
+    fetch(URLS.recording.replace("__RID__", encodeURIComponent(rid)) + "?days=" + days())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) setupPlayer(d); })
+      .catch(function () {});
+  }
+
+  function setupPlayer(d) {
+    P.data = d;
+    var t = d.track || { m: [], c: [], s: [] };
+    var maxT = d.duration_ms || 0;
+    [t.m, t.c].forEach(function (arr) { (arr || []).forEach(function (p) { if (p[0] > maxT) maxT = p[0]; }); });
+    (t.s || []).forEach(function (p) { if (p[0] > maxT) maxT = p[0]; });
+    P.durMs = Math.max(1, maxT);
+    P.curMs = 0; P.clkIdx = 0; P.speed = parseFloat($("hm-rec-speed").value) || 2;
+
+    $("hm-rec-empty").hidden = true;
+    $("hm-rec-stagebox").hidden = false;
+    $("hm-rec-meta").textContent = (d.samples || 0) + " points · " + (d.click_count || 0) +
+      " clic(s) · écran " + (d.vw || "?") + "×" + (d.vh || "?") + " · " + fmtDur(P.durMs);
+
+    // Load the real page behind the replay (silent copy via hmpreview=1).
+    if (d.path && d.path !== P.framePath) {
+      P.framePath = d.path;
+      $("hm-rec-frame").src = d.path + (d.path.indexOf("?") === -1 ? "?" : "&") + "hmpreview=1";
+    }
+    layoutPlayer();
+    renderAt(0);
+    $("hm-rec-seek").value = 0;
+    updateTime();
+  }
+
+  function layoutPlayer() {
+    var d = P.data; if (!d) return;
+    var wrap = $("hm-rec-canvas-wrap"), stage = $("hm-rec-stage"), frame = $("hm-rec-frame");
+    var docW = d.doc_w || 1440, docH = d.doc_h || 800;
+    var boxW = Math.max(320, (wrap.clientWidth || 900));
+    P.box = boxW;
+    P.scale = boxW / docW;
+    var dispH = Math.max(240, Math.round(docH * P.scale));
+    // Cap the visible height so a very long page stays usable; the viewport
+    // rectangle then shows which slice the visitor actually saw.
+    var shownH = Math.min(dispH, 560);
+    frame.style.width = docW + "px";
+    frame.style.height = docH + "px";
+    frame.style.transform = "scale(" + P.scale + ")";
+    stage.style.width = boxW + "px";
+    stage.style.height = dispH + "px";
+    wrap.style.height = shownH + "px";
+    // Viewport rectangle size (visitor's window, scaled).
+    var vp = $("hm-rec-viewport");
+    vp.style.height = Math.round((d.vh || 800) * P.scale) + "px";
+  }
+
+  function scrollYAt(atMs) {
+    var s = (P.data.track && P.data.track.s) || [];
+    var y = 0;
+    for (var i = 0; i < s.length; i++) { if (s[i][0] <= atMs) y = s[i][1]; else break; }
+    return y;
+  }
+
+  function cursorAt(atMs) {
+    var m = (P.data.track && P.data.track.m) || [];
+    if (!m.length) return null;
+    if (atMs <= m[0][0]) return { x: m[0][1], y: m[0][2] };
+    if (atMs >= m[m.length - 1][0]) { var last = m[m.length - 1]; return { x: last[1], y: last[2] }; }
+    var lo = 0, hi = m.length - 1;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (m[mid][0] < atMs) lo = mid + 1; else hi = mid; }
+    var a = m[lo - 1], b = m[lo];
+    var f = (atMs - a[0]) / ((b[0] - a[0]) || 1);
+    return { x: a[1] + (b[1] - a[1]) * f, y: a[2] + (b[2] - a[2]) * f };
+  }
+
+  function renderAt(atMs) {
+    if (!P.data) return;
+    P.curMs = atMs;
+    var pos = cursorAt(atMs);
+    var cur = $("hm-rec-cursor");
+    if (pos) {
+      cur.style.display = "block";
+      cur.style.left = (pos.x * P.box) + "px";
+      cur.style.top = (pos.y * P.scale) + "px";
+    } else {
+      cur.style.display = "none";
+    }
+    // Viewport rectangle follows the recorded scroll position.
+    $("hm-rec-viewport").style.top = Math.round(scrollYAt(atMs) * P.scale) + "px";
+
+    // Fire click ripples as the play-head crosses them (forward only).
+    var c = (P.data.track && P.data.track.c) || [];
+    while (P.clkIdx < c.length && c[P.clkIdx][0] <= atMs) {
+      if (P.playing) pingClick(c[P.clkIdx]);
+      P.clkIdx++;
+    }
+    updateTime();
+  }
+
+  function pingClick(pt) {
+    var cur = $("hm-rec-cursor");
+    cur.classList.remove("is-click");
+    // force reflow so the animation restarts
+    void cur.offsetWidth;
+    cur.classList.add("is-click");
+  }
+
+  function updateTime() {
+    $("hm-rec-time").textContent = fmtDur(P.curMs) + " / " + fmtDur(P.durMs);
+    var seek = $("hm-rec-seek");
+    if (document.activeElement !== seek) seek.value = Math.round((P.curMs / P.durMs) * 1000);
+  }
+
+  function frame() {
+    if (!P.playing) return;
+    var atMs = P.baseMs + (performance.now() - P.baseWall) * P.speed;
+    if (atMs >= P.durMs) { renderAt(P.durMs); stopPlay(); return; }
+    renderAt(atMs);
+    P.raf = requestAnimationFrame(frame);
+  }
+
+  function startPlay() {
+    if (!P.data || P.playing) return;
+    if (P.curMs >= P.durMs) { P.curMs = 0; P.clkIdx = 0; }
+    P.playing = true;
+    P.baseMs = P.curMs;
+    P.baseWall = performance.now();
+    $("hm-rec-play").textContent = "❚❚ Pause";
+    P.raf = requestAnimationFrame(frame);
+  }
+
+  function stopPlay() {
+    P.playing = false;
+    if (P.raf) cancelAnimationFrame(P.raf);
+    P.raf = null;
+    var btn = $("hm-rec-play");
+    if (btn) btn.textContent = "▶︎ Lecture";
+  }
+
+  function seekTo(atMs) {
+    // Reset the click index so ripples fire correctly after a jump.
+    P.clkIdx = 0;
+    var c = (P.data.track && P.data.track.c) || [];
+    while (P.clkIdx < c.length && c[P.clkIdx][0] <= atMs) P.clkIdx++;
+    renderAt(atMs);
+    if (P.playing) { P.baseMs = atMs; P.baseWall = performance.now(); }
+  }
+
+  $("hm-rec-play").addEventListener("click", function () { P.playing ? stopPlay() : startPlay(); });
+  $("hm-rec-speed").addEventListener("change", function () {
+    P.speed = parseFloat(this.value) || 1;
+    if (P.playing) { P.baseMs = P.curMs; P.baseWall = performance.now(); }
+  });
+  $("hm-rec-seek").addEventListener("input", function () {
+    if (!P.data) return;
+    seekTo((this.value / 1000) * P.durMs);
+  });
+
   // ---------------- wiring ----------------
-  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); });
+  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); loadRecordings(); });
   $("hm-page").addEventListener("change", loadHeatmap);
   var rsz;
   window.addEventListener("resize", function () {
     clearTimeout(rsz);
-    rsz = setTimeout(function () { if (lastHeat) drawHeat(lastHeat); }, 150);
+    rsz = setTimeout(function () {
+      if (lastHeat) drawHeat(lastHeat);
+      if (P.data) { layoutPlayer(); renderAt(P.curMs); }
+    }, 150);
   });
   loadOverview();
   loadJourneys();
-  setInterval(function () { loadOverview(); loadJourneys(); }, 60000);
+  loadRecordings();
+  setInterval(function () { loadOverview(); loadJourneys(); loadRecordings(); }, 60000);
 })();
 </script>
 {% endblock %}

@@ -21,6 +21,7 @@ from app.models.heatmap_event import (
     TYPE_SCROLL,
     HeatmapEvent,
 )
+from app.models.session_recording import SessionRecording, utcnow as _rec_utcnow
 
 # Cap how much we ever pull into memory so the admin page stays responsive
 # regardless of traffic volume.
@@ -334,3 +335,120 @@ def record_events(visitor_id, session_id, device, events):
     if saved:
         db.session.commit()
     return saved
+
+
+# --------------------------------------------------------------------------- #
+# Session recordings (cursor "film")                                          #
+# --------------------------------------------------------------------------- #
+# Hard caps so one visitor can never blow up a row or the replay list.
+MAX_TRACK_MOVES = 4000
+MAX_TRACK_CLICKS = 400
+MAX_TRACK_SCROLLS = 1000
+MAX_RECORDINGS = 200
+MIN_SAMPLES_TO_KEEP = 4  # ignore near-empty pings (bots, instant bounces)
+
+
+def _clean_moves(raw, cap):
+    """Coerce a raw list of [t, x, y] samples into bounded, valid triples."""
+    out = []
+    if not isinstance(raw, list):
+        return out
+    for item in raw:
+        if not isinstance(item, (list, tuple)) or len(item) < 3:
+            continue
+        t = _int(item[0], hi=3_600_000)
+        x = _float01(item[1])
+        y = _int(item[2])
+        if t is None or x is None or y is None:
+            continue
+        out.append([t, round(x, 4), y])
+        if len(out) >= cap:
+            break
+    return out
+
+
+def _clean_scrolls(raw, cap):
+    out = []
+    if not isinstance(raw, list):
+        return out
+    for item in raw:
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        t = _int(item[0], hi=3_600_000)
+        y = _int(item[1])
+        if t is None or y is None:
+            continue
+        out.append([t, y])
+        if len(out) >= cap:
+            break
+    return out
+
+
+def record_session(visitor_id, session_id, device, payload):
+    """Upsert one session recording (keyed by the client-generated ``rec_id``).
+
+    The client re-sends the full, growing track periodically and on unload, so
+    we replace the stored track with the latest version each time. Returns the
+    number of samples kept, or 0 when the payload is ignored."""
+    import json
+
+    if not isinstance(payload, dict):
+        return 0
+    rec_id = str(payload.get("rec_id") or "").strip()[:40]
+    if not rec_id:
+        return 0
+
+    track_in = payload.get("track") or {}
+    moves = _clean_moves(track_in.get("m"), MAX_TRACK_MOVES)
+    clicks = _clean_moves(track_in.get("c"), MAX_TRACK_CLICKS)
+    scrolls = _clean_scrolls(track_in.get("s"), MAX_TRACK_SCROLLS)
+    total = len(moves) + len(clicks) + len(scrolls)
+    if total < MIN_SAMPLES_TO_KEEP:
+        return 0
+
+    track_json = json.dumps({"m": moves, "c": clicks, "s": scrolls}, separators=(",", ":"))
+
+    rec = db.session.get(SessionRecording, rec_id)
+    if rec is None:
+        rec = SessionRecording(rec_id=rec_id, created_at=_rec_utcnow())
+        db.session.add(rec)
+
+    rec.visitor_id = visitor_id
+    rec.session_id = session_id
+    rec.device = device
+    rec.path = (str(payload.get("p") or ""))[:500] or None
+    rec.vw = _int(payload.get("vw"))
+    rec.vh = _int(payload.get("vh"))
+    rec.doc_w = _int(payload.get("dw"))
+    rec.doc_h = _int(payload.get("dh"))
+    rec.duration_ms = _int(payload.get("dur"), hi=3_600_000)
+    rec.samples = total
+    rec.click_count = len(clicks)
+    rec.track = track_json
+    rec.updated_at = _rec_utcnow()
+
+    db.session.commit()
+    return total
+
+
+def recordings(days=30):
+    """Most recent session recordings (metadata only) for the replay list."""
+    rows = (
+        SessionRecording.query.filter(
+            SessionRecording.created_at >= _since(days),
+            SessionRecording.samples.isnot(None),
+            SessionRecording.samples >= MIN_SAMPLES_TO_KEEP,
+        )
+        .order_by(SessionRecording.updated_at.desc())
+        .limit(MAX_RECORDINGS)
+        .all()
+    )
+    return [r.to_dict(include_track=False) for r in rows]
+
+
+def recording_detail(rec_id):
+    """One recording with its full replay track."""
+    rec = db.session.get(SessionRecording, rec_id)
+    if rec is None:
+        return None
+    return rec.to_dict(include_track=True)

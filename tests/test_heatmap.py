@@ -6,6 +6,7 @@ import pytest
 from app.core.admin_auth import ADMIN_SESSION_KEY, ADMIN_USER_KEY
 from app.core.extensions import db
 from app.models.heatmap_event import HeatmapEvent
+from app.models.session_recording import SessionRecording
 from app.services import heatmap as heatmap_service
 
 
@@ -14,6 +15,7 @@ def _clean_events(app):
     """The test DB is a shared file — start each test with an empty table."""
     with app.app_context():
         HeatmapEvent.query.delete()
+        SessionRecording.query.delete()
         db.session.commit()
     yield
 
@@ -123,3 +125,75 @@ def test_admin_heatmap_apis(client, app):
     assert pts["count"] == 2
     assert pts["doc_w"] == 1440
     assert any(e["selector"] == "a.cta" and e["clicks"] == 2 for e in pts["elements"])
+
+
+# ── Session recordings (cursor replay) ──────────────────────────────────────
+def _record(client, payload, ua=UA):
+    return client.post(
+        "/api/heatmap/record",
+        data=json.dumps(payload),
+        headers={"User-Agent": ua, "Content-Type": "application/json"},
+    )
+
+
+def _sample_track():
+    return {
+        "rec_id": "rec-test-0001",
+        "p": "/",
+        "vw": 1280, "vh": 800, "dw": 1280, "dh": 2600, "dur": 4200,
+        "track": {
+            "m": [[0, 0.1, 40], [500, 0.3, 200], [1200, 0.5, 900], [2500, 0.7, 1700]],
+            "c": [[1300, 0.5, 910]],
+            "s": [[600, 0], [1300, 800], [2600, 1600]],
+        },
+    }
+
+
+def test_record_requires_visitor_cookie(client, app):
+    r = _record(client, _sample_track())
+    assert r.status_code == 204
+    with app.app_context():
+        assert SessionRecording.query.count() == 0
+
+
+def test_record_bot_dropped(client, app):
+    client.get("/", headers={"User-Agent": UA})
+    r = _record(client, _sample_track(), ua=BOT_UA)
+    assert r.status_code == 204
+    with app.app_context():
+        assert SessionRecording.query.count() == 0
+
+
+def test_record_stores_and_upserts_track(client, app):
+    client.get("/", headers={"User-Agent": UA})
+    assert _record(client, _sample_track()).status_code == 204
+    with app.app_context():
+        rec = SessionRecording.query.one()
+        assert rec.visitor_id  # attached server-side from the cookie
+        assert rec.samples == 8  # 4 moves + 1 click + 3 scrolls
+        assert rec.click_count == 1
+
+    # Re-send the same rec_id with an extra move → upsert in place (no new row).
+    payload = _sample_track()
+    payload["track"]["m"].append([3200, 0.9, 2100])
+    assert _record(client, payload).status_code == 204
+    with app.app_context():
+        assert SessionRecording.query.count() == 1
+        assert SessionRecording.query.one().samples == 9
+
+
+def test_admin_recording_apis(client, app):
+    client.get("/", headers={"User-Agent": UA})
+    _record(client, _sample_track())
+    _login_admin(client)
+
+    lst = client.get("/admin/api/heatmap/recordings").get_json()
+    assert len(lst["recordings"]) == 1
+    assert lst["recordings"][0]["rec_id"] == "rec-test-0001"
+
+    detail = client.get("/admin/api/heatmap/recording/rec-test-0001").get_json()
+    assert set(detail["track"].keys()) == {"m", "c", "s"}
+    assert len(detail["track"]["m"]) == 4
+    assert detail["click_count"] == 1
+
+    assert client.get("/admin/api/heatmap/recording/nope").status_code == 404

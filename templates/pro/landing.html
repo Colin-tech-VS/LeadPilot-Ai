@@ -316,6 +316,71 @@
   </div>
 </section>
 
+<section class="v-value-section" id="value">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.value_kicker') }}</p>
+      <h2>{{ _('landing.value_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.value_lead') }}</p>
+    </div>
+
+    <div class="v-compare-grid">
+      <article class="v-compare-card">
+        <span class="v-compare-label">{{ _('landing.compare_1_label') }}</span>
+        <strong class="v-compare-value">{{ _('landing.compare_1_value') }}</strong>
+        <p class="v-compare-note">{{ _('landing.compare_1_note') }}</p>
+      </article>
+      <article class="v-compare-card">
+        <span class="v-compare-label">{{ _('landing.compare_2_label') }}</span>
+        <strong class="v-compare-value">{{ _('landing.compare_2_value') }}</strong>
+        <p class="v-compare-note">{{ _('landing.compare_2_note') }}</p>
+      </article>
+      <article class="v-compare-card v-compare-card--best">
+        <span class="v-compare-flag">{{ _('landing.compare_best') }}</span>
+        <span class="v-compare-label">{{ _('landing.compare_3_label') }}</span>
+        <strong class="v-compare-value">{{ _('landing.compare_3_value') }}</strong>
+        <p class="v-compare-note">{{ _('landing.compare_3_note') }}</p>
+      </article>
+    </div>
+
+    <div class="v-roi-calc" data-roi-calc
+         data-currency="{{ '€' if lang == 'fr' else '€' }}"
+         data-year-tpl="{{ _('landing.roi_calc_result_year', amount='{amount}') }}">
+      <div class="v-roi-calc-head">
+        <p class="v-kicker">{{ _('landing.roi_calc_kicker') }}</p>
+        <h3>{{ _('landing.roi_calc_title') }}</h3>
+        <p class="v-roi-calc-sub">{{ _('landing.roi_calc_sub') }}</p>
+      </div>
+      <div class="v-roi-calc-body">
+        <div class="v-roi-fields">
+          <label class="v-roi-field">
+            <span>{{ _('landing.roi_calc_missed') }}</span>
+            <input type="range" min="1" max="40" step="1" value="10" data-roi-missed>
+            <output data-roi-missed-out>10</output>
+          </label>
+          <label class="v-roi-field">
+            <span>{{ _('landing.roi_calc_basket') }}</span>
+            <input type="range" min="80" max="800" step="10" value="200" data-roi-basket>
+            <output data-roi-basket-out>200 €</output>
+          </label>
+          <label class="v-roi-field">
+            <span>{{ _('landing.roi_calc_rate') }}</span>
+            <input type="range" min="10" max="80" step="5" value="30" data-roi-rate>
+            <output data-roi-rate-out>30 %</output>
+          </label>
+        </div>
+        <div class="v-roi-result">
+          <span class="v-roi-result-label">{{ _('landing.roi_calc_result_label') }}</span>
+          <strong class="v-roi-result-value" data-roi-month>—</strong>
+          <span class="v-roi-result-year" data-roi-year></span>
+          <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block v-roi-cta">{{ _('landing.roi_calc_cta') }}</a>
+        </div>
+      </div>
+      <p class="v-sources">{{ _('landing.roi_calc_note') }}</p>
+    </div>
+  </div>
+</section>
+
 <section id="pricing" class="landing-section landing-pricing v-section">
   <div class="container">
     <div class="landing-section-head v-section-head v-section-head--center">
@@ -391,6 +456,16 @@
       </div>
     </div>
     <p class="pricing-note">{{ _('landing.pricing_note') }}</p>
+
+    <div class="v-guarantee">
+      <span class="v-guarantee-title">{{ _('landing.guarantee_title') }}</span>
+      <ul class="v-guarantee-list">
+        <li>{{ _('landing.guarantee_1') }}</li>
+        <li>{{ _('landing.guarantee_2') }}</li>
+        <li>{{ _('landing.guarantee_3') }}</li>
+        <li>{{ _('landing.guarantee_4') }}</li>
+      </ul>
+    </div>
   </div>
 </section>
 
@@ -467,4 +542,5 @@
 </script>
 <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pro-pricing.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/roi-calc.js') }}?v=1"></script>
 {% endblock %}

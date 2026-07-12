@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=5">
 {% endblock %}
 
 {% block content %}
@@ -28,6 +28,16 @@
         <li>{{ _('register.trust_no_card') }}</li>
         <li>{{ _('register.trust_cancel') }}</li>
       </ul>
+
+      <div class="auth-pro__value">
+        <span class="auth-pro__value-title">{{ _('register.value_title') }}</span>
+        <ul class="auth-pro__value-list">
+          <li>{{ _('register.value_1') }}</li>
+          <li>{{ _('register.value_2') }}</li>
+          <li>{{ _('register.value_3') }}</li>
+        </ul>
+        <p class="auth-pro__value-price">{{ _('register.price_reassure') }}</p>
+      </div>
 
       {% if selected_plan_name %}
       <div class="auth-pro__plan-notice">

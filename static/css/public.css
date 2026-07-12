@@ -1902,3 +1902,44 @@ html {
 .billing-manage-link:hover { color: var(--blue-primary); }
 .billing-manage-note { text-align: center; font-size: 13px; color: var(--text-muted); }
 .billing-manage-note--error { color: #B3261E; }
+
+/* ── Local SEO landing pages (/artisans/<trade>/<city>) ───────────────── */
+.dl-breadcrumb { padding: 14px 0 0; font-size: 13px; color: var(--text-muted); }
+.dl-breadcrumb .container { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dl-breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.dl-breadcrumb a:hover { color: var(--blue-primary); text-decoration: underline; }
+.dl-breadcrumb span[aria-current] { color: var(--text); font-weight: 600; }
+
+.dl-hero-lead { max-width: 760px; margin: 8px auto 0; color: var(--text-muted); font-size: 15.5px; line-height: 1.6; }
+
+.dl-local-content { padding: 40px 0 8px; }
+.dl-local-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.dl-local-main h2 { font-size: 22px; margin: 0 0 12px; color: var(--text); }
+.dl-local-main h2 + p { color: var(--text-muted); line-height: 1.7; }
+.dl-local-main > h2:nth-of-type(2) { margin-top: 28px; }
+.dl-local-points { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+.dl-local-points li { position: relative; padding-left: 28px; color: var(--text); line-height: 1.5; }
+.dl-local-points li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 999px; background: var(--lp-brand-soft); color: var(--blue-primary); font-weight: 700; font-size: 12px; display: grid; place-items: center; }
+.dl-local-faq { margin-top: 6px; display: grid; gap: 10px; }
+.dl-local-faq .faq-item { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; background: var(--card); }
+.dl-local-faq summary { font-weight: 600; cursor: pointer; color: var(--text); list-style: none; }
+.dl-local-faq summary::-webkit-details-marker { display: none; }
+.dl-local-faq summary::after { content: "＋"; float: right; color: var(--text-muted); }
+.dl-local-faq details[open] summary::after { content: "－"; }
+.dl-local-faq .faq-item p { margin: 10px 0 0; color: var(--text-muted); line-height: 1.65; }
+
+.dl-local-aside { display: grid; gap: 16px; position: sticky; top: 16px; }
+.dl-local-box { border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); padding: 16px 18px; background: var(--card); }
+.dl-local-box h3 { font-size: 14px; margin: 0 0 12px; color: var(--text); }
+.dl-local-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.dl-local-links a { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--text); text-decoration: none; transition: all .15s ease; }
+.dl-local-links a:hover { border-color: var(--lp-brand-light); color: var(--blue-primary); background: var(--lp-brand-soft); }
+
+.dl-local-cta { margin: 32px 0 8px; padding: 28px; border-radius: var(--radius-lg, 18px); background: linear-gradient(135deg, var(--lp-brand-soft), #fff); border: 1px solid var(--lp-border-strong); text-align: center; }
+.dl-local-cta h2 { font-size: 22px; margin: 0 0 8px; }
+.dl-local-cta p { color: var(--text-muted); max-width: 620px; margin: 0 auto 18px; line-height: 1.6; }
+
+@media (max-width: 860px) {
+  .dl-local-grid { grid-template-columns: 1fr; gap: 24px; }
+  .dl-local-aside { position: static; }
+}

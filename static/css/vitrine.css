@@ -1612,3 +1612,82 @@
   .vitrine .v-header-end .lang-switcher { font-size: 12px; }
   .vitrine .directory-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Pro landing: value / ROI / guarantee (conversion) ─────────────────── */
+.vitrine .v-value-section { padding: 72px 0; background: var(--v-bg); }
+.vitrine .v-compare-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px;
+}
+.vitrine .v-compare-card {
+  position: relative; padding: 26px 22px; border-radius: var(--v-radius);
+  border: 1px solid var(--v-border); background: var(--v-surface); text-align: center;
+}
+.vitrine .v-compare-card--best {
+  border-color: var(--v-accent); background: var(--v-accent-soft);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
+}
+.vitrine .v-compare-flag {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+  background: var(--v-accent); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap;
+}
+.vitrine .v-compare-label { display: block; font-size: 13px; color: var(--v-muted); font-weight: 600; }
+.vitrine .v-compare-value {
+  display: block; margin: 10px 0 8px; font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 800; letter-spacing: -0.03em; color: var(--v-ink, #0C1220);
+}
+.vitrine .v-compare-card--best .v-compare-value { color: var(--v-accent); }
+.vitrine .v-compare-note { margin: 0; font-size: 13px; color: var(--v-muted); line-height: 1.5; }
+
+.vitrine .v-roi-calc {
+  margin-top: 40px; border: 1px solid var(--v-border); border-radius: var(--v-radius-lg, 20px);
+  background: var(--v-surface); overflow: hidden;
+}
+.vitrine .v-roi-calc-head { padding: 28px 28px 4px; text-align: center; }
+.vitrine .v-roi-calc-head h3 { margin: 6px 0 4px; font-size: clamp(1.2rem, 2.4vw, 1.55rem); letter-spacing: -0.02em; }
+.vitrine .v-roi-calc-sub { margin: 0; color: var(--v-muted); font-size: 14px; }
+.vitrine .v-roi-calc-body {
+  display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; padding: 24px 28px 8px; align-items: center;
+}
+.vitrine .v-roi-fields { display: grid; gap: 22px; }
+.vitrine .v-roi-field { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 14px; }
+.vitrine .v-roi-field > span { font-size: 14px; font-weight: 600; color: var(--v-ink, #0C1220); }
+.vitrine .v-roi-field output {
+  font-variant-numeric: tabular-nums; font-weight: 800; color: var(--v-accent);
+  min-width: 68px; text-align: right; font-size: 15px;
+}
+.vitrine .v-roi-field input[type="range"] {
+  grid-column: 1 / -1; width: 100%; accent-color: var(--v-accent); height: 6px; cursor: pointer;
+}
+.vitrine .v-roi-result {
+  text-align: center; padding: 26px 22px; border-radius: var(--v-radius);
+  background: linear-gradient(135deg, var(--v-accent), #1D4ED8); color: #fff;
+}
+.vitrine .v-roi-result-label { display: block; font-size: 13px; opacity: 0.9; }
+.vitrine .v-roi-result-value {
+  display: block; margin: 8px 0 2px; font-size: clamp(2rem, 6vw, 2.9rem);
+  font-weight: 800; letter-spacing: -0.04em; line-height: 1;
+}
+.vitrine .v-roi-result-year { display: block; font-size: 13px; opacity: 0.9; margin-bottom: 16px; }
+.vitrine .v-roi-cta { background: #fff; color: var(--v-accent); border-color: #fff; }
+.vitrine .v-roi-cta:hover { background: rgba(255,255,255,0.9); color: var(--v-accent); }
+.vitrine .v-roi-calc .v-sources { margin: 4px auto 22px; }
+
+.vitrine .v-guarantee {
+  margin: 28px auto 0; max-width: 900px; padding: 20px 24px; border-radius: var(--v-radius);
+  border: 1px dashed var(--v-border); background: var(--v-bg); text-align: center;
+}
+.vitrine .v-guarantee-title { display: block; font-weight: 700; margin-bottom: 12px; font-size: 15px; }
+.vitrine .v-guarantee-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 10px 20px;
+}
+.vitrine .v-guarantee-list li { position: relative; padding-left: 24px; font-size: 14px; color: var(--v-muted); }
+.vitrine .v-guarantee-list li::before {
+  content: "✓"; position: absolute; left: 0; color: #059669; font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .vitrine .v-compare-grid { grid-template-columns: 1fr; }
+  .vitrine .v-roi-calc-body { grid-template-columns: 1fr; }
+}

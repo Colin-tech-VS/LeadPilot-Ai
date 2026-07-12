@@ -74,6 +74,47 @@ def test_directory_empty_filter_is_noindexed(client):
     assert 'name="robots" content="noindex, follow"' in html
 
 
+def test_local_trade_city_landing(client):
+    """Clean-URL local landing page is indexable, self-canonical and rich."""
+    response = client.get("/artisans/plombier/lyon")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "Plombier" in html and "Lyon" in html
+    assert '<meta name="robots" content="index, follow">' in html
+    assert "/artisans/plombier/lyon" in html  # self-referencing canonical
+    assert "BreadcrumbList" in html
+    assert "FAQPage" in html
+    # cross-links to other cities and trades for internal SEO
+    assert "/artisans/plombier/paris" in html
+
+
+def test_local_trade_pillar_landing(client):
+    response = client.get("/artisans/metier/serrurier")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "Serrurier" in html
+    assert '<meta name="robots" content="index, follow">' in html
+    assert "/artisans/metier/serrurier" in html
+
+
+def test_local_landing_invalid_trade_is_404(client):
+    assert client.get("/artisans/notatrade/lyon").status_code == 404
+    assert client.get("/artisans/metier/notatrade").status_code == 404
+
+
+def test_local_landing_normalizes_city_slug(client):
+    """Accented/cased city input redirects to the canonical slug URL (301)."""
+    response = client.get("/artisans/plombier/Lyon", follow_redirects=False)
+    assert response.status_code == 301
+    assert response.headers["Location"].endswith("/artisans/plombier/lyon")
+
+
+def test_sitemap_includes_local_pages(client):
+    body = client.get("/sitemap.xml").data.decode()
+    assert "/artisans/metier/plombier</loc>" in body
+    assert "/artisans/plombier/lyon</loc>" in body
+
+
 def test_sitemap_includes_key_pages(client):
     response = client.get("/sitemap.xml")
     assert response.status_code == 200

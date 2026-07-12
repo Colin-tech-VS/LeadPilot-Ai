@@ -315,6 +315,17 @@ def sitemap_xml():
         ("/cookies", "yearly", "0.3", None),
     ]
 
+    # Programmatic local SEO: one clean-URL landing page per trade and per
+    # trade × top-city so local-intent queries (« plombier lyon ») can rank.
+    from app.constants.cities import TOP_CITIES
+    from app.constants.trades import TRADES
+
+    seo_trades = [k for k in TRADES if k != "autre"]
+    for trade in seo_trades:
+        urls.append((f"/artisans/metier/{trade}", "weekly", "0.85", today))
+        for city_slug, _city_name in TOP_CITIES:
+            urls.append((f"/artisans/{trade}/{city_slug}", "weekly", "0.7", today))
+
     for tenant in list_public_artisans(limit=2000):
         if tenant.public_slug:
             urls.append(
@@ -607,6 +618,85 @@ def artisan_directory():
         trades=trades,
         seo=seo,
         filters={"metier": trade or "", "ville": city or "", "q": q or ""},
+    )
+
+
+@web_bp.route("/artisans/metier/<trade>", methods=["GET"])
+def artisan_trade_landing(trade):
+    """Clean-URL pillar page for a trade (e.g. /artisans/metier/plombier)."""
+    from flask import abort
+
+    from app.constants.cities import TOP_CITIES
+    from app.constants.trades import TRADES, trade_choices, trade_label
+    from app.services.artisan_directory import list_public_artisans
+    from app.utils.seo import local_landing_seo
+
+    trade = (trade or "").strip().lower()
+    if trade not in TRADES:
+        abort(404)
+    lang = getattr(g, "lang", "fr")
+    label = trade_label(trade, lang)
+    artisans = list_public_artisans(trade=trade)
+    seo = local_landing_seo(
+        trade_key=trade,
+        trade_label=label,
+        canonical_path=f"/artisans/metier/{trade}",
+        lang=lang,
+    )
+    return render_template(
+        "public/annuaire.html",
+        artisans=artisans,
+        trades=trade_choices(lang),
+        seo=seo,
+        filters={"metier": trade, "ville": "", "q": ""},
+        local_ctx={"trade_key": trade, "trade_label": label, "city": None},
+        top_cities=TOP_CITIES[:12],
+    )
+
+
+@web_bp.route("/artisans/<trade>/<city>", methods=["GET"])
+def artisan_trade_city_landing(trade, city):
+    """Clean-URL local landing page (e.g. /artisans/plombier/lyon).
+
+    Programmatic local SEO: one self-canonical, keyword-rich, indexable page per
+    trade × city so high-intent queries like « plombier lyon » can rank.
+    """
+    from flask import abort
+
+    from app.constants.cities import TOP_CITIES, city_display_name, city_slugify
+    from app.constants.trades import TRADES, trade_choices, trade_label
+    from app.services.artisan_directory import list_public_artisans
+    from app.utils.seo import local_landing_seo
+
+    trade = (trade or "").strip().lower()
+    if trade not in TRADES:
+        abort(404)
+    city_slug = city_slugify(city)
+    if not city_slug:
+        abort(404)
+    # Redirect messy inputs (accents, spaces, casing) to the canonical slug URL.
+    if city_slug != city:
+        return redirect(url_for("web.artisan_trade_city_landing", trade=trade, city=city_slug), code=301)
+
+    lang = getattr(g, "lang", "fr")
+    label = trade_label(trade, lang)
+    city_name = city_display_name(city_slug)
+    artisans = list_public_artisans(trade=trade, city=city_name)
+    seo = local_landing_seo(
+        trade_key=trade,
+        trade_label=label,
+        city=city_name,
+        canonical_path=f"/artisans/{trade}/{city_slug}",
+        lang=lang,
+    )
+    return render_template(
+        "public/annuaire.html",
+        artisans=artisans,
+        trades=trade_choices(lang),
+        seo=seo,
+        filters={"metier": trade, "ville": city_name, "q": ""},
+        local_ctx={"trade_key": trade, "trade_label": label, "city": city_name},
+        top_cities=TOP_CITIES[:12],
     )
 
 

@@ -103,6 +103,48 @@ def directory_seo(
     return seo
 
 
+def local_landing_seo(
+    *,
+    trade_key: str | None = None,
+    trade_label: str | None = None,
+    city: str | None = None,
+    canonical_path: str,
+    lang: str = "fr",
+) -> dict[str, str]:
+    """SEO for a clean-URL local landing page (/artisans/<trade>/<city>).
+
+    Unlike the query-param directory view, these are curated, self-canonical
+    pages with unique intro + FAQ content, so they are always indexable even
+    when few artisans currently match — they target local-intent demand and
+    capture it whether the listing is full or the visitor converts as a lead.
+    """
+    from app.utils.i18n import translate
+
+    def t(key: str, **kw) -> str:
+        return translate(key, lang, **kw)
+
+    seo = {
+        "title": t("directory.meta_title"),
+        "description": t("directory.meta_description"),
+        "h1": t("directory.hero_title"),
+        "keywords": t("client.meta_keywords"),
+        "canonical_path": canonical_path,
+        "robots": "index, follow",
+    }
+    city = (city or "").strip()
+    if trade_label and city:
+        seo["title"] = t("directory.meta_title_trade_city", trade=trade_label, city=city)
+        seo["description"] = t("directory.meta_description_trade_city", trade=trade_label, city=city)
+        seo["h1"] = t("directory.hero_title_trade_city", trade=trade_label, city=city)
+        seo["keywords"] = profile_keywords(trade_label, city, None, lang)
+    elif trade_label:
+        seo["title"] = t("directory.meta_title_trade", trade=trade_label)
+        seo["description"] = t("directory.meta_description_trade", trade=trade_label)
+        seo["h1"] = t("directory.hero_title_trade", trade=trade_label)
+        seo["keywords"] = profile_keywords(trade_label, "", None, lang)
+    return seo
+
+
 def profile_keywords(trade_label: str, city: str, postal_code: str | None, lang: str = "fr") -> str:
     city = (city or "").strip()
     postal = (postal_code or "").strip()

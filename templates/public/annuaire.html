@@ -41,6 +41,36 @@
       ]
     }
     {%- endif %}
+    {%- if local_ctx %},
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": {{ _('profile.breadcrumb_home')|tojson }}, "item": {{ canonical_url('/')|tojson }} },
+        { "@type": "ListItem", "position": 2, "name": {{ _('profile.breadcrumb_directory')|tojson }}, "item": {{ canonical_url('/artisans')|tojson }} },
+        { "@type": "ListItem", "position": 3, "name": {{ _seo_title|tojson }}, "item": {{ canonical_url(_seo_path)|tojson }} }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": {{ _('local.faq_1_q', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('local.faq_1_a', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('local.faq_2_q', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('local.faq_2_a', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('local.faq_3_q', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('local.faq_3_a', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }} }
+        }
+      ]
+    }
+    {%- endif %}
   ]
 }
 {% endset %}
@@ -48,9 +78,29 @@
 {% endblock %}
 
 {% block content %}
+{% if local_ctx %}
+<nav class="dl-breadcrumb" aria-label="Fil d'ariane">
+  <div class="container">
+    <a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a>
+    <span aria-hidden="true">›</span>
+    <a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">{{ seo.h1 }}</span>
+  </div>
+</nav>
+{% endif %}
 <section class="dl-hero dl-hero--compact">
   <div class="container dl-hero-inner">
     <h1 class="dl-hero-title dl-hero-title--sm">{{ seo.h1 or _('directory.hero_title') }}</h1>
+    {% if local_ctx %}
+    <p class="dl-hero-lead">
+      {%- if local_ctx.city -%}
+      {{ _('local.intro_trade_city', trade=local_ctx.trade_label, city=local_ctx.city) }}
+      {%- else -%}
+      {{ _('local.intro_trade', trade=local_ctx.trade_label) }}
+      {%- endif -%}
+    </p>
+    {% endif %}
 
     <form class="dl-search" id="directory-search-form" role="search">
       <div class="dl-search-fields">
@@ -121,6 +171,62 @@
     </div>
   </div>
 </section>
+
+{% if local_ctx %}
+{% set _lc_city = local_ctx.city or _('local.your_area') %}
+<section class="dl-local-content">
+  <div class="container">
+    <div class="dl-local-grid">
+      <article class="dl-local-main">
+        <h2>{{ _('local.why_title', trade=local_ctx.trade_label, city=_lc_city) }}</h2>
+        <p>{{ _('local.why_body', trade=local_ctx.trade_label, city=_lc_city) }}</p>
+        <ul class="dl-local-points">
+          <li>{{ _('local.point_1') }}</li>
+          <li>{{ _('local.point_2') }}</li>
+          <li>{{ _('local.point_3') }}</li>
+        </ul>
+
+        <h2>{{ _('local.faq_title') }}</h2>
+        <div class="dl-local-faq">
+          {% for i in [1, 2, 3] %}
+          <details class="faq-item"{% if i == 1 %} open{% endif %}>
+            <summary>{{ _('local.faq_' ~ i ~ '_q', trade=local_ctx.trade_label, city=_lc_city) }}</summary>
+            <p>{{ _('local.faq_' ~ i ~ '_a', trade=local_ctx.trade_label, city=_lc_city) }}</p>
+          </details>
+          {% endfor %}
+        </div>
+      </article>
+
+      <aside class="dl-local-aside">
+        {% if local_ctx.city %}
+        <div class="dl-local-box">
+          <h3>{{ _('local.other_trades_title', city=local_ctx.city) }}</h3>
+          <div class="dl-local-links">
+            {% for t in trades if t.key != local_ctx.trade_key and t.key != 'autre' %}
+            <a href="{{ url_for('web.artisan_trade_city_landing', trade=t.key, city=(local_ctx.city|lower|replace(' ', '-'))) }}">{{ t.icon }} {{ t.label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div class="dl-local-box">
+          <h3>{{ _('local.other_cities_title', trade=local_ctx.trade_label) }}</h3>
+          <div class="dl-local-links">
+            {% for cslug, cname in top_cities if cname != local_ctx.city %}
+            <a href="{{ url_for('web.artisan_trade_city_landing', trade=local_ctx.trade_key, city=cslug) }}">{{ cname }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="dl-local-cta">
+      <h2>{{ _('local.pro_cta_title', trade=local_ctx.trade_label) }}</h2>
+      <p>{{ _('local.pro_cta_body') }}</p>
+      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-primary btn-lg">{{ _('local.pro_cta_btn') }}</a>
+    </div>
+  </div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

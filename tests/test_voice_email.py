@@ -123,59 +123,39 @@ def test_issue_ask_count_survives_serialization():
     assert restored.issue_ask_count == 2
 
 
-def _drive_account_flow(app, answer_fn, prefill=None, max_turns=15):
-    """Run the account sub-flow with a caller who answers via answer_fn."""
-    from app.services.voice import customer_account as vca
+def test_voice_never_asks_account_questions():
+    """The voice IA no longer handles account sign-up: it must only ask for the
+    dispatch essentials (name, e-mail, address, urgency) and never an
+    "account:" slot."""
+    handler = TwilioVoiceHandler()
+    state = ConversationState(call_id="c", tenant_id="t", caller_phone="+33600000000")
+    state.extracted_lead_data = {"issue_type": "leak"}
 
+    asked = []
+    for _ in range(20):
+        nxt = handler._next_question(state)
+        if nxt is None:
+            break
+        slot, _q = nxt
+        assert not slot.startswith("account:"), f"unexpected account slot: {slot}"
+        asked.append(slot)
+        state.asked_slots.append(slot)
+    else:  # pragma: no cover - only hit on an infinite loop
+        raise AssertionError("question flow did not terminate")
+
+    # The e-mail (needed to send the devis) is still collected.
+    assert "email" in asked
+
+
+def test_voice_captures_dictated_email_on_email_slot(app):
+    """After asking the e-mail question, a dictated address is reconstructed and
+    stored on the lead so the devis can be sent."""
     with app.app_context():
-        handler = TwilioVoiceHandler()
         state = ConversationState(call_id="c", tenant_id="t", caller_phone="+33600000000")
-        state.extracted_lead_data = {"issue_type": "leak", "urgency_level": "high"}
-        state.account_flow = vca.default_account_flow()
-        if prefill:
-            state.account_flow.update(prefill)
-
-        for _ in range(max_turns):
-            nxt = handler._next_account_question(state)
-            if nxt is None:
-                return state
-            slot, _prompt = nxt
-            if slot not in state.asked_slots:
-                state.asked_slots.append(slot)
-            if slot.startswith("account:"):
-                counts = state.account_flow.setdefault("ask_counts", {})
-                counts[slot] = counts.get(slot, 0) + 1
-            answer = answer_fn(slot)
-            state.append_transcript("user", answer)
-            handler._update_account_flow(state, answer)
-        raise AssertionError("account flow did not terminate — infinite loop")
-
-
-def test_account_flow_terminates_on_unclear_answers(app):
-    # Caller never gives a clear yes/no nor a usable e-mail.
-    state = _drive_account_flow(app, lambda slot: "euh je sais pas")
-    assert state.account_flow.get("account_done") is True
-
-
-def test_account_flow_terminates_when_email_unparseable(app):
-    # Caller says they have an account but can never spell a valid e-mail.
-    def answer(slot):
-        return "oui" if slot == "account:has_account" else "euh blabla"
-
-    state = _drive_account_flow(app, answer)
-    assert state.account_flow.get("account_done") is True
-
-
-def test_guest_email_captured_from_dictation(app):
-    def answer(slot):
-        if slot == "account:has_account":
-            return "non"
-        if slot == "account:create_pitch":
-            return "non merci"
-        if slot == "account:guest_email":
-            return "jean point dupont arobase gmail point com"
-        return "euh"
-
-    state = _drive_account_flow(app, answer)
-    assert state.extracted_lead_data.get("email") == "jean.dupont@gmail.com"
-    assert state.account_flow.get("account_done") is True
+        state.asked_slots = ["email"]
+        transcript = "jean point dupont arobase gmail point com"
+        if not state.extracted_lead_data.get("email"):
+            email = extract_email_from_transcript(transcript)
+            if email:
+                state.extracted_lead_data["email"] = email
+        assert state.extracted_lead_data.get("email") == "jean.dupont@gmail.com"

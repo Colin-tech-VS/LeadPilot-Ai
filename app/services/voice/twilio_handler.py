@@ -8,7 +8,6 @@ from app.models.tenant import Tenant
 from app.services.booking_engine import ACTION_BOOK_NOW, ACTION_OUT_OF_ZONE, BookingEngine
 from app.services.inbound_call import process_inbound_call
 from app.services.lead_extractor import LeadExtractor
-from app.services.voice import customer_account as vca
 from app.services.voice.llm_receptionist import LLMReceptionist
 from app.services.voice.speech_to_text import transcribe
 from app.services.voice.state import conversation_store, get_call_state
@@ -200,9 +199,15 @@ class TwilioVoiceHandler:
             **state.extracted_lead_data,
             **{k: v for k, v in extracted.items() if v},
         }
-        self._ensure_account_flow(state)
-        self._update_account_flow(state, transcript)
-        self._maybe_finalize_account_creation(state)
+        # When we just asked for the e-mail, reconstruct a dictated address
+        # ("jean point dupont arobase gmail point com") from this exact reply —
+        # the caller is answering that question, so no keyword is required.
+        if "email" in state.asked_slots and not state.extracted_lead_data.get("email"):
+            from app.services.voice.customer_account import extract_email_from_transcript
+
+            dictated_email = extract_email_from_transcript(transcript)
+            if dictated_email:
+                state.extracted_lead_data["email"] = dictated_email
 
         booking = self.booking_engine.process_lead(state.extracted_lead_data, tenant)
         state.booking_result = booking
@@ -236,9 +241,6 @@ class TwilioVoiceHandler:
                 state.asked_slots.append(slot)
             if slot == "issue":
                 state.issue_ask_count += 1
-            elif slot.startswith("account:"):
-                counts = state.account_flow.setdefault("ask_counts", {})
-                counts[slot] = counts.get(slot, 0) + 1
             prompt = f"{self._acknowledge(state)} {question}"
             state.last_ai_response = prompt
             state.append_transcript("assistant", prompt)
@@ -273,20 +275,9 @@ class TwilioVoiceHandler:
             if state.issue_ask_count < MAX_ISSUE_ASKS:
                 return self._question_for_slot("issue")
 
-        account_q = self._next_account_question(state)
-        if account_q:
-            return account_q
-
         lead = state.extracted_lead_data
-        af = state.account_flow
-        skip = set()
-        if af.get("customer_user_id"):
-            skip.update({"name", "email"})
-        elif af.get("guest_mode") and lead.get("email"):
-            skip.add("email")
-
         for slot, _question in REQUIRED_SLOTS:
-            if slot in ("issue",) or slot in skip:
+            if slot == "issue":
                 continue
             if slot in state.asked_slots:
                 continue
@@ -300,311 +291,6 @@ class TwilioVoiceHandler:
             if key == slot:
                 return slot, question
         return slot, ""
-
-    def _ensure_account_flow(self, state) -> None:
-        flow = getattr(state, "account_flow", None)
-        if not flow:
-            state.account_flow = vca.default_account_flow()
-
-    def _last_account_slot(self, state) -> str | None:
-        for slot in reversed(state.asked_slots):
-            if slot.startswith("account:"):
-                return slot
-        return None
-
-    def _update_account_flow(self, state, transcript: str) -> None:
-        """Interprète la dernière réponse pour le parcours compte client."""
-        self._ensure_account_flow(state)
-        af = state.account_flow
-        lead = state.extracted_lead_data
-        last = self._last_account_slot(state)
-        if not last:
-            return
-
-        text = (transcript or "").strip()
-        lower = text.lower()
-
-        if last == "account:has_account":
-            if vca.is_yes(lower):
-                af["has_account"] = True
-            elif vca.is_no(lower):
-                af["has_account"] = False
-            return
-
-        if last == "account:lookup":
-            email = vca.extract_email_from_transcript(text) or lead.get("email")
-            if email:
-                lead["email"] = email
-            user = vca.lookup_customer(
-                email=email,
-                phone=state.caller_phone,
-                name_hint=text,
-            )
-            if user:
-                state.extracted_lead_data = vca.apply_customer_to_lead(user, lead)
-                af["customer_user_id"] = str(user.id)
-                af["account_done"] = True
-                af["lookup_failed"] = False
-            else:
-                af["lookup_failed"] = True
-            return
-
-        if last == "account:lookup_retry":
-            if vca.is_yes(lower):
-                af["wants_create"] = True
-                af["lookup_failed"] = False
-            elif vca.is_no(lower):
-                af["guest_mode"] = True
-            return
-
-        if last == "account:create_pitch":
-            if vca.is_yes(lower):
-                af["wants_create"] = True
-            elif vca.is_no(lower):
-                af["guest_mode"] = True
-            return
-
-        if last == "account:create_name":
-            name = (lead.get("name") or text).strip()
-            if name and name.lower() not in ("unknown", "inconnu"):
-                lead["name"] = name
-                first, last_name = vca.split_name(name)
-                af["create_first_name"] = first
-                af["create_last_name"] = last_name
-            else:
-                af["create_name_attempts"] = af.get("create_name_attempts", 0) + 1
-            return
-
-        if last == "account:create_email":
-            email = vca.extract_email_from_transcript(text)
-            if email:
-                af["pending_email"] = email
-                lead["email"] = email
-            else:
-                af["create_email_attempts"] = af.get("create_email_attempts", 0) + 1
-            return
-
-        if last == "account:email_confirm":
-            if vca.is_yes(lower):
-                af["email_confirmed"] = True
-            elif vca.is_no(lower):
-                af["pending_email"] = None
-                lead.pop("email", None)
-                af.pop("email_confirmed", None)
-            else:
-                # Not a clear yes/no — the caller likely re-dictated the address.
-                new_email = vca.extract_email_from_transcript(text)
-                if new_email and new_email != af.get("pending_email"):
-                    af["pending_email"] = new_email
-                    lead["email"] = new_email
-            return
-
-        if last == "account:guest_email":
-            email = vca.extract_email_from_transcript(text)
-            if email:
-                lead["email"] = email
-                af["account_done"] = True
-            else:
-                af["guest_email_attempts"] = af.get("guest_email_attempts", 0) + 1
-
-    def _maybe_finalize_account_creation(self, state) -> None:
-        af = state.account_flow
-        if not af.get("wants_create") or af.get("customer_user_id"):
-            return
-        if not af.get("email_confirmed") or not af.get("pending_email"):
-            return
-        if not af.get("create_first_name"):
-            return
-
-        password = vca.generate_voice_password()
-        try:
-            user = vca.create_customer_account(
-                email=af["pending_email"],
-                first_name=af.get("create_first_name"),
-                last_name=af.get("create_last_name"),
-                phone=state.caller_phone,
-                password=password,
-            )
-        except Exception:
-            logger.exception("Voice account creation failed call=%s", state.call_id)
-            af["create_failed"] = True
-            return
-
-        state.extracted_lead_data = vca.apply_customer_to_lead(user, state.extracted_lead_data)
-        af["customer_user_id"] = str(user.id)
-        af["voice_password"] = password
-        af["account_done"] = True
-        vca.send_credentials_email(user, password)
-
-    def _resolve_account_stalls(self, state) -> None:
-        """Break out of yes/no questions the caller never answers clearly.
-
-        After a slot has been asked twice without a usable reply, pick a sensible
-        default so the call keeps moving instead of repeating the same question."""
-        af = state.account_flow
-        counts = af.get("ask_counts", {})
-
-        def stuck(slot: str) -> bool:
-            return counts.get(slot, 0) >= 2
-
-        # Can't tell whether they have an account → assume none and offer to help.
-        if af.get("has_account") is None and stuck("account:has_account"):
-            af["has_account"] = False
-        # Can't confirm creating an account after a failed lookup → continue as guest.
-        if (
-            af.get("lookup_failed")
-            and af.get("wants_create") is None
-            and not af.get("guest_mode")
-            and stuck("account:lookup_retry")
-        ):
-            af["guest_mode"] = True
-        # No clear answer to the account pitch → continue as guest.
-        if (
-            not af.get("has_account")
-            and af.get("wants_create") is None
-            and not af.get("guest_mode")
-            and stuck("account:create_pitch")
-        ):
-            af["guest_mode"] = True
-        # Keeps not confirming the e-mail → accept the address as dictated.
-        if (
-            af.get("pending_email")
-            and not af.get("email_confirmed")
-            and stuck("account:email_confirm")
-        ):
-            af["email_confirmed"] = True
-
-    def _next_account_question(self, state) -> tuple[str, str] | None:
-        self._ensure_account_flow(state)
-        af = state.account_flow
-        lead = state.extracted_lead_data
-
-        if af.get("account_done"):
-            return None
-
-        self._resolve_account_stalls(state)
-
-        if af.get("has_account") is None:
-            if "account:has_account" in state.asked_slots:
-                if af.get("has_account") is None:
-                    return (
-                        "account:has_account",
-                        "Je n'ai pas bien compris. Avez-vous déjà un compte client PilotCore ? Dites oui ou non.",
-                    )
-            return (
-                "account:has_account",
-                "Avant de continuer, avez-vous déjà un compte client PilotCore ? Dites oui ou non.",
-            )
-
-        if af.get("has_account") and not af.get("wants_create") and not af.get("guest_mode"):
-            if not af.get("customer_user_id"):
-                if af.get("lookup_failed"):
-                    if "account:lookup_retry" not in state.asked_slots:
-                        return (
-                            "account:lookup_retry",
-                            "Je ne trouve pas de compte avec ces informations. "
-                            "Souhaitez-vous créer un compte gratuit maintenant ? Dites oui ou non.",
-                        )
-                    if af.get("wants_create") is None:
-                        return (
-                            "account:lookup_retry",
-                            "Dites oui pour créer un compte, ou non pour continuer sans compte.",
-                        )
-                elif "account:lookup" not in state.asked_slots or not lead.get("email"):
-                    return (
-                        "account:lookup",
-                        "Très bien. Quelle est l'adresse e-mail de votre compte ? "
-                        "Vous pouvez l'épeler, par exemple « jean point dupont arobase gmail point com ».",
-                    )
-            if af.get("customer_user_id"):
-                af["account_done"] = True
-                return None
-
-        if af.get("wants_create") and not af.get("customer_user_id"):
-            if af.get("create_failed"):
-                af["guest_mode"] = True
-                af["wants_create"] = False
-                return None
-            if not af.get("create_first_name"):
-                # Give up on account creation after two tries: fall back to guest
-                # mode so we can still capture the lead without looping.
-                if af.get("create_name_attempts", 0) >= 2:
-                    af["wants_create"] = False
-                    af["guest_mode"] = True
-                    return None
-                if "account:create_name" not in state.asked_slots or not lead.get("name"):
-                    return (
-                        "account:create_name",
-                        "Parfait ! Quel est votre prénom et votre nom, s'il vous plaît ?",
-                    )
-            if not af.get("pending_email"):
-                # After two failed attempts, stop asking for the e-mail — the
-                # lead is saved and the plumber collects it on callback.
-                if af.get("create_email_attempts", 0) >= 2:
-                    af["email_capture_failed"] = True
-                    af["account_done"] = True
-                    if "email" not in state.asked_slots:
-                        state.asked_slots.append("email")
-                    return None
-                if "account:create_email" not in state.asked_slots or not lead.get("email"):
-                    prompt = (
-                        "Merci. Quelle est votre adresse e-mail ? "
-                        "Épellez-la clairement, par exemple « jean point dupont arobase gmail point com »."
-                        if af.get("create_email_attempts", 0) == 0
-                        else "Je n'ai pas bien saisi. Redites votre e-mail lentement : "
-                        "d'abord ce qui est avant l'arobase, puis le fournisseur, "
-                        "par exemple « gmail point com »."
-                    )
-                    return ("account:create_email", prompt)
-            if af.get("pending_email") and not af.get("email_confirmed"):
-                email = af["pending_email"]
-                spelled = email.replace("@", " arobase ").replace(".", " point ")
-                return (
-                    "account:email_confirm",
-                    f"Je note l'adresse {spelled}. Est-ce correct ? Dites oui, ou répétez l'e-mail.",
-                )
-            if af.get("email_confirmed") and not af.get("customer_user_id"):
-                self._maybe_finalize_account_creation(state)
-            if af.get("customer_user_id"):
-                af["account_done"] = True
-            return None
-
-        if af.get("guest_mode"):
-            if not lead.get("email"):
-                # Two attempts max, then proceed without the e-mail so the call
-                # never gets stuck re-asking the same question.
-                if af.get("guest_email_attempts", 0) >= 2:
-                    af["email_capture_failed"] = True
-                    af["account_done"] = True
-                    if "email" not in state.asked_slots:
-                        state.asked_slots.append("email")
-                    return None
-                prompt = (
-                    "Pas de souci. Donnez-moi simplement votre adresse e-mail pour recevoir le devis. "
-                    "Épellez-la si besoin, par exemple « marie point martin arobase orange point fr »."
-                    if af.get("guest_email_attempts", 0) == 0
-                    else "Je n'ai pas bien entendu votre e-mail. Redites-le doucement, "
-                    "en disant « arobase » et « point », "
-                    "par exemple « marie point martin arobase orange point fr »."
-                )
-                return ("account:guest_email", prompt)
-            af["account_done"] = True
-            return None
-
-        if not af.get("has_account"):
-            if "account:create_pitch" not in state.asked_slots:
-                return (
-                    "account:create_pitch",
-                    "Avec un compte gratuit PilotCore, vous suivez vos devis et rendez-vous en ligne, "
-                    "et c'est beaucoup plus rapide la prochaine fois. "
-                    "Je peux vous créer un compte en une minute. Souhaitez-vous que je le fasse ? Dites oui ou non.",
-                )
-            return (
-                "account:create_pitch",
-                "Souhaitez-vous créer un compte client gratuit ? Dites oui ou non.",
-            )
-
-        return None
 
     def _slot_filled(self, slot: str, lead: dict) -> bool:
         if slot == "issue":
@@ -662,18 +348,6 @@ class TwilioVoiceHandler:
                 "Votre demande est bien enregistrée. "
                 "Un plombier vous rappelle très rapidement."
             )
-
-        af = state.account_flow or {}
-        if af.get("voice_password"):
-            pwd = af["voice_password"]
-            outcome += (
-                f" Votre compte PilotCore est créé. "
-                f"Votre mot de passe temporaire est {vca.spell_for_voice(pwd)}. "
-                "Je vous l'envoie aussi par e-mail : pensez à le modifier "
-                "dès votre première connexion sur le site PilotCore."
-            )
-        elif af.get("customer_user_id") and not af.get("voice_password"):
-            outcome += " J'ai retrouvé votre compte client PilotCore."
 
         return f"{greeting} {recap}{outcome} Bonne journée."
 

@@ -34,16 +34,18 @@ class TextToSpeech:
     def _synthesize_openai(self, text: str, call_id: str | None, api_key: str) -> dict:
         from openai import OpenAI
 
-        voice = current_app.config.get("TTS_VOICE", "nova")
-        model = current_app.config.get("TTS_MODEL", "tts-1")
+        voice = current_app.config.get("TTS_VOICE", "coral")
+        model = current_app.config.get("TTS_MODEL", "gpt-4o-mini-tts")
         client = OpenAI(api_key=api_key)
 
-        response = client.audio.speech.create(
-            model=model,
-            voice=voice,
-            input=text,
-            response_format="mp3",
-        )
+        params = dict(model=model, voice=voice, input=text, response_format="mp3")
+        # Tone steering (a warm, natural French receptionist) is only supported by
+        # the gpt-4o TTS models — passing it to tts-1 / tts-1-hd raises an error.
+        instructions = current_app.config.get("TTS_INSTRUCTIONS")
+        if instructions and "gpt-4o" in model:
+            params["instructions"] = instructions
+
+        response = client.audio.speech.create(**params)
 
         audio_bytes = response.content
         audio_dir = self._audio_output_dir()

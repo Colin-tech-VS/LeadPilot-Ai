@@ -8,6 +8,7 @@
 {% block content %}
 <p class="dash-intro">Créez des pages sur mesure (manuellement ou avec l'IA) et publiez-les sur <code>/p/&lt;slug&gt;</code>.</p>
 
+<h2 class="admin-section-title">Pages sur mesure</h2>
 <div class="studio-list">
   {% for page in pages %}
   <div class="studio-item">
@@ -43,4 +44,38 @@
   </div>
   {% endfor %}
 </div>
+
+{% if seo_pages %}
+<h2 class="admin-section-title">
+  Pages SEO locales
+  <span class="pill pill-published">{{ seo_total }} pages</span>
+</h2>
+<p class="dash-intro">
+  Générées automatiquement à partir des métiers et des villes — indexables et référencées dans le
+  <a href="{{ url_for('web.sitemap_xml') }}" target="_blank" rel="noopener">sitemap</a>.
+  {{ seo_pages|length }} pages métier + {{ seo_city_count }} pages métier&nbsp;×&nbsp;ville.
+  Rien à publier : elles sont en ligne dès le déploiement.
+</p>
+
+<div class="seo-pages-list">
+  {% for tp in seo_pages %}
+  <details class="seo-pages-group"{% if loop.first %} open{% endif %}>
+    <summary>
+      <span class="seo-pages-trade">{{ tp.icon }} {{ tp.label }}</span>
+      <span class="seo-pages-count">
+        {% if tp.cities %}1 page pilier + {{ tp.cities|length }} villes{% else %}page pilier{% endif %}
+      </span>
+      <a href="{{ tp.pillar_path }}" target="_blank" rel="noopener" class="admin-btn tiny ghost">Voir la page pilier ↗</a>
+    </summary>
+    {% if tp.cities %}
+    <div class="seo-pages-cities">
+      {% for c in tp.cities %}
+      <a href="/artisans/{{ tp.key }}/{{ c.slug }}" target="_blank" rel="noopener">{{ tp.label }} {{ c.name }} ↗</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

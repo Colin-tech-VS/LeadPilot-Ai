@@ -2074,3 +2074,19 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
 /* ---------------------------------------------------------------- dark theme touch-ups */
 :root[data-theme="dark"] .admin-topbar { background: rgba(15, 23, 42, .72); }
 :root[data-theme="dark"] .nova-fab-orb { box-shadow: inset 0 0 8px rgba(255,255,255,.5); }
+
+/* Pages tab: section titles + local-SEO pages list */
+.admin-section-title { font-size: 16px; font-weight: 800; margin: 26px 0 12px; display: flex; align-items: center; gap: 10px; }
+.admin-section-title:first-of-type { margin-top: 6px; }
+.seo-pages-list { display: grid; gap: 10px; }
+.seo-pages-group { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 4px 14px; }
+.seo-pages-group[open] { border-color: var(--border-strong); }
+.seo-pages-group summary { display: flex; align-items: center; gap: 12px; padding: 12px 2px; cursor: pointer; list-style: none; flex-wrap: wrap; }
+.seo-pages-group summary::-webkit-details-marker { display: none; }
+.seo-pages-group summary::before { content: "▸"; color: var(--muted); font-size: 12px; }
+.seo-pages-group[open] summary::before { content: "▾"; }
+.seo-pages-trade { font-weight: 700; }
+.seo-pages-count { font-size: 12px; color: var(--muted); flex: 1; }
+.seo-pages-cities { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 6px 14px 22px; }
+.seo-pages-cities a { font-size: 12.5px; color: var(--muted); text-decoration: none; }
+.seo-pages-cities a:hover { color: var(--brand); text-decoration: underline; }

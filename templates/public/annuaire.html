@@ -227,6 +227,10 @@
   </div>
 </section>
 {% endif %}
+
+{% if not local_ctx %}
+{% include 'partials/popular_local.html' %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

@@ -1,0 +1,22 @@
+{# Popular local searches — internal links into the trade × city SEO landing
+   pages. Rendered on the homepage and the main directory view. #}
+<section class="dl-popular">
+  <div class="container">
+    <div class="dl-popular-head">
+      <h2>{{ _('seo.popular_title') }}</h2>
+      <p>{{ _('seo.popular_sub') }}</p>
+    </div>
+    <div class="dl-popular-grid">
+      {% for t in seo_local_trades %}
+      <div class="dl-popular-col">
+        <a class="dl-popular-trade" href="{{ url_for('web.artisan_trade_landing', trade=t.key) }}">{{ t.icon }} {{ t.label }}</a>
+        <div class="dl-popular-links">
+          {% for cslug, cname in seo_top_cities[:6] %}
+          <a href="{{ url_for('web.artisan_trade_city_landing', trade=t.key, city=cslug) }}">{{ t.label }} {{ cname }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

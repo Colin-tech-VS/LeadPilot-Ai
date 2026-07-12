@@ -1261,8 +1261,43 @@ def offers_save():
 @admin_bp.route("/pages")
 @admin_required
 def pages():
+    from app.constants.cities import TOP_CITIES
+    from app.constants.trades import SEO_LOCAL_TRADES, TRADES, trade_icon, trade_label
+
     all_pages = SitePage.query.order_by(SitePage.updated_at.desc()).all()
-    return render_template("admin/pages.html", pages=all_pages)
+
+    # Programmatic local-SEO pages (generated from routes, not stored in DB).
+    # Surfaced here so the Pages tab shows the full public footprint at a glance.
+    seo_local_trades = set(SEO_LOCAL_TRADES)
+    seo_pages = []
+    seo_city_count = 0
+    for key, meta in TRADES.items():
+        if key == "autre":
+            continue
+        cities = (
+            [{"slug": s, "name": n} for s, n in TOP_CITIES]
+            if key in seo_local_trades
+            else []
+        )
+        seo_city_count += len(cities)
+        seo_pages.append(
+            {
+                "key": key,
+                "label": trade_label(key, "fr"),
+                "icon": trade_icon(key),
+                "pillar_path": f"/artisans/metier/{key}",
+                "cities": cities,
+            }
+        )
+    seo_total = len(seo_pages) + seo_city_count
+
+    return render_template(
+        "admin/pages.html",
+        pages=all_pages,
+        seo_pages=seo_pages,
+        seo_total=seo_total,
+        seo_city_count=seo_city_count,
+    )
 
 
 @admin_bp.route("/pages/new")

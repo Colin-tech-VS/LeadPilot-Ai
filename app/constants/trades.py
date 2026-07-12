@@ -19,6 +19,11 @@ TRADES = {
 
 DEFAULT_TRADE = "plombier"
 
+# High-intent "dépannage" trades that get a dedicated landing page per top city
+# (urgent/local search demand). Other trades keep a pillar page only, to avoid
+# spreading thin content across low-volume trade × city combinations.
+SEO_LOCAL_TRADES = ["plombier", "serrurier", "electricien", "chauffagiste", "climaticien", "vitrier"]
+
 # schema.org @type for local SEO on artisan profile pages
 TRADE_SCHEMA_TYPES = {
     "plombier": "Plumber",

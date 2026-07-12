@@ -52,6 +52,23 @@ def inject_tenant():
     }
 
 
+@web_bp.app_context_processor
+def inject_seo_local_links():
+    """Expose curated trade/city data so pages can link into the local SEO
+    landing pages (internal maillage → faster indexing, more authority)."""
+    from app.constants.cities import TOP_CITIES
+    from app.constants.trades import SEO_LOCAL_TRADES, trade_icon, trade_label
+
+    lang = getattr(g, "lang", "fr")
+    return {
+        "seo_local_trades": [
+            {"key": k, "label": trade_label(k, lang), "icon": trade_icon(k)}
+            for k in SEO_LOCAL_TRADES
+        ],
+        "seo_top_cities": TOP_CITIES,
+    }
+
+
 def _format_phone_display(e164: str | None) -> str:
     """Pretty-print an E.164 number for display, best-effort for FR."""
     if not e164:
@@ -318,11 +335,13 @@ def sitemap_xml():
     # Programmatic local SEO: one clean-URL landing page per trade and per
     # trade × top-city so local-intent queries (« plombier lyon ») can rank.
     from app.constants.cities import TOP_CITIES
-    from app.constants.trades import TRADES
+    from app.constants.trades import SEO_LOCAL_TRADES, TRADES
 
-    seo_trades = [k for k in TRADES if k != "autre"]
-    for trade in seo_trades:
+    # Every trade gets an indexable pillar page; only high-intent "dépannage"
+    # trades get a page per top city (focused, avoids thin trade × city combos).
+    for trade in (k for k in TRADES if k != "autre"):
         urls.append((f"/artisans/metier/{trade}", "weekly", "0.85", today))
+    for trade in SEO_LOCAL_TRADES:
         for city_slug, _city_name in TOP_CITIES:
             urls.append((f"/artisans/{trade}/{city_slug}", "weekly", "0.7", today))
 

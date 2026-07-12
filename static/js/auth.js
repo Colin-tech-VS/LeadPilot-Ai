@@ -59,7 +59,13 @@ document.documentElement.classList.add("js-enabled");
     restart();
   }
 
-  document.querySelectorAll("[data-auth-slider]").forEach(initSlider);
+  // Isolated so a slider failure can never prevent the register wizard below
+  // from initialising (which would leave users unable to submit the form).
+  try {
+    document.querySelectorAll("[data-auth-slider]").forEach(initSlider);
+  } catch (err) {
+    if (window.console) console.error("auth slider init failed", err);
+  }
 
   /* ── Password visibility toggle ── */
   document.querySelectorAll("[data-password-toggle]").forEach(function (btn) {
@@ -83,6 +89,11 @@ document.documentElement.classList.add("js-enabled");
     var btnNext = document.getElementById("register-next");
     var btnBack = document.getElementById("register-back");
     var current = 0;
+
+    // Enable step-by-step display only now that the wizard is really running.
+    // Until this class is set, CSS keeps every step visible so the form stays
+    // submittable even if this script is blocked or errors out.
+    document.documentElement.classList.add("js-wizard");
 
     function showStep(n) {
       current = n;

@@ -8,7 +8,7 @@
 {% block body_class %}page-customer-register{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=6">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-customer.css') }}?v=2">
 {% endblock %}
 
@@ -100,7 +100,7 @@
 
         <div class="auth-pro__actions">
           <button type="button" class="btn btn-auth-ghost" id="register-back" hidden>{{ _('auth.step_back') }}</button>
-          <button type="button" class="btn btn-primary" id="register-next"
+          <button type="submit" class="btn btn-primary" id="register-next"
                   data-next-label="{{ _('auth.step_next') }}"
                   data-submit-label="{{ _('customer.register.submit') }}">{{ _('auth.step_next') }}</button>
         </div>
@@ -122,5 +122,5 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=3"></script>
 {% endblock %}

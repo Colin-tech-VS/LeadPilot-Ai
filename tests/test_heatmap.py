@@ -197,3 +197,46 @@ def test_admin_recording_apis(client, app):
     assert detail["click_count"] == 1
 
     assert client.get("/admin/api/heatmap/recording/nope").status_code == 404
+
+
+def test_session_replay_groups_pages_of_one_visit(client, app):
+    """Two page recordings of the SAME browser session are grouped into one
+    replayable visit (chapters), following the visitor across pages."""
+    client.get("/", headers={"User-Agent": UA})  # sets lp_vid / lp_sid
+
+    home = _sample_track()
+    home["rec_id"], home["p"] = "rec-home", "/"
+    contact = _sample_track()
+    contact["rec_id"], contact["p"] = "rec-contact", "/contact"
+    assert _record(client, home).status_code == 204
+    assert _record(client, contact).status_code == 204
+
+    with app.app_context():
+        sessions = heatmap_service.session_replays(days=30)
+        assert len(sessions) == 1  # one visit, not one row per page
+        s = sessions[0]
+        assert s["page_count"] == 2
+        assert s["pages"] == ["/", "/contact"]
+        assert s["first_path"] == "/"
+
+
+def test_admin_session_replay_apis(client, app):
+    client.get("/", headers={"User-Agent": UA})
+    home = _sample_track(); home["rec_id"], home["p"] = "rec-home", "/"
+    contact = _sample_track(); contact["rec_id"], contact["p"] = "rec-contact", "/contact"
+    _record(client, home)
+    _record(client, contact)
+    _login_admin(client)
+
+    lst = client.get("/admin/api/heatmap/sessions").get_json()
+    assert len(lst["sessions"]) == 1
+    key = lst["sessions"][0]["key"]
+
+    detail = client.get("/admin/api/heatmap/session/" + key).get_json()
+    assert detail["page_count"] == 2
+    assert len(detail["chapters"]) == 2
+    # Chapters are ordered by arrival and carry their full replay track.
+    assert detail["chapters"][0]["path"] == "/"
+    assert set(detail["chapters"][0]["track"].keys()) == {"m", "c", "s"}
+
+    assert client.get("/admin/api/heatmap/session/does-not-exist").status_code == 404

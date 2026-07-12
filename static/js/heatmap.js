@@ -101,6 +101,11 @@
   // --- page view (arrival on this page) ---
   push({ t: "pageview", dw: docWidth(), dh: docHeight() });
 
+  // Seed the replay with the arrival scroll position (usually 0, but anchor
+  // links / restored scroll can land the visitor mid-page) so the camera in the
+  // admin film starts exactly where the visitor really started.
+  recScrolls.push([0, Math.round(window.pageYOffset || 0)]);
+
   // --- clicks + rage clicks ---
   var recent = [];
   document.addEventListener(

@@ -311,6 +311,25 @@ def api_heatmap_recording(rec_id):
     return jsonify(detail)
 
 
+@admin_bp.route("/api/heatmap/sessions")
+@admin_required
+def api_heatmap_sessions():
+    from app.services import heatmap as heatmap_service
+
+    return jsonify({"sessions": heatmap_service.session_replays(_range_days())})
+
+
+@admin_bp.route("/api/heatmap/session/<key>")
+@admin_required
+def api_heatmap_session(key):
+    from app.services import heatmap as heatmap_service
+
+    detail = heatmap_service.session_replay_detail(key)
+    if detail is None:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(detail)
+
+
 # ------------------------------------------------------------------ GSC (Google Search Console)
 @admin_bp.route("/gsc")
 @admin_required

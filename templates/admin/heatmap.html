@@ -71,28 +71,27 @@
     </div>
   </section>
 
-  {# ══════════════ PART 3 — Rejouer les sessions (film du curseur) ══════════════ #}
+  {# ══════════════ PART 3 — Rejouer les visites (film complet) ══════════════ #}
   <section class="admin-panel">
-    <h2>🎥 Rejouer les sessions</h2>
-    <p class="admin-panel-lead">Le vrai film de la visite : la souris qui bouge, les clics et le défilement, rejoués par-dessus la vraie page.
-      Choisissez un enregistrement à gauche pour lancer la lecture.</p>
+    <h2>🎥 Rejouer les visites</h2>
+    <p class="admin-panel-lead">Le vrai film de chaque visite, <strong>de l'arrivée au départ</strong> : la page défile comme le visiteur l'a vue, la souris bouge, les clics apparaissent, et on le suit d'une page à l'autre. Choisissez une visite à gauche pour lancer la lecture.</p>
     <div class="hm-rec">
       <div class="hm-rec-list">
         <table class="traffic-table" id="hm-rec-table">
-          <thead><tr><th>Visiteur</th><th>Page</th><th>Durée</th></tr></thead>
+          <thead><tr><th>Visiteur</th><th>Parcours</th><th>Durée</th></tr></thead>
           <tbody><tr><td colspan="3" class="admin-empty-inline">Chargement…</td></tr></tbody>
         </table>
       </div>
       <div class="hm-rec-player">
-        <div class="hm-rec-empty" id="hm-rec-empty">Sélectionnez un enregistrement pour lancer le film. 🍿</div>
+        <div class="hm-rec-empty" id="hm-rec-empty">Sélectionnez une visite pour lancer le film. 🍿</div>
         <div class="hm-rec-stagebox" id="hm-rec-stagebox" hidden>
-          <div class="hm-rec-canvas-wrap" id="hm-rec-canvas-wrap">
-            <div class="hm-rec-stage" id="hm-rec-stage">
-              <iframe class="hm-rec-frame" id="hm-rec-frame" title="Rejeu de la page" scrolling="no" tabindex="-1" aria-hidden="true"></iframe>
-              <div class="hm-rec-viewport" id="hm-rec-viewport"></div>
-              <div class="hm-rec-cursor" id="hm-rec-cursor" aria-hidden="true"></div>
-            </div>
+          <div class="hm-rec-cam" id="hm-rec-cam">
+            <iframe class="hm-rec-frame" id="hm-rec-frame" title="Rejeu de la page" scrolling="no" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="hm-rec-cursor" id="hm-rec-cursor" aria-hidden="true"></div>
+            <div class="hm-rec-overlay" id="hm-rec-overlay" hidden></div>
+            <div class="hm-rec-urlbar" id="hm-rec-urlbar"></div>
           </div>
+          <div class="hm-rec-chapters" id="hm-rec-chapters"></div>
           <div class="hm-rec-controls">
             <button type="button" class="hm-rec-btn" id="hm-rec-play">▶︎ Lecture</button>
             <input type="range" id="hm-rec-seek" min="0" max="1000" value="0" class="hm-rec-seek" aria-label="Progression">
@@ -186,18 +185,38 @@
   .hm-rec-list tbody tr { cursor: pointer; }
   .hm-rec-list tbody tr.active { background: rgba(27,87,224,.08); }
   .hm-rec-list td { font-size: .82rem; }
-  .hm-rec-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+  .hm-rec-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .75; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+  .hm-rec-more { font-family: system-ui, sans-serif; font-size: .68rem; font-weight: 700; color: #1B57E0; background: rgba(27,87,224,.1); border-radius: 999px; padding: 1px 6px; margin-left: 2px; }
   .hm-rec-player { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 14px; min-height: 320px; min-width: 0; }
   .hm-rec-empty { opacity: .55; text-align: center; padding: 80px 12px; }
-  .hm-rec-canvas-wrap { position: relative; width: 100%; max-height: 560px; overflow: hidden; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 10px; background: #fff; }
-  .hm-rec-stage { position: relative; margin: 0 auto; }
-  .hm-rec-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; pointer-events: none; background: #fff; }
-  .hm-rec-viewport { position: absolute; left: 0; width: 100%; border: 2px solid rgba(27,87,224,.35); background: rgba(27,87,224,.04); box-shadow: 0 0 0 9999px rgba(15,23,42,.12); pointer-events: none; transition: top .12s linear; box-sizing: border-box; }
+  /* The "camera": a fixed window the size of the visitor's viewport (scaled to
+     fit). The page inside scrolls exactly as the visitor scrolled it. */
+  .hm-rec-cam { position: relative; width: 100%; overflow: hidden; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 10px; background: #fff; }
+  .hm-rec-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; pointer-events: none; background: #fff; transition: top .08s linear; }
+  .hm-rec-urlbar { position: absolute; top: 8px; left: 8px; max-width: calc(100% - 16px); z-index: 4; pointer-events: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 600; color: #0f172a;
+    background: rgba(255,255,255,.9); border: 1px solid rgba(15,23,42,.1); border-radius: 999px; padding: 4px 12px;
+    box-shadow: 0 1px 4px rgba(15,23,42,.12); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hm-rec-overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: rgba(15,23,42,.55); color: #fff; pointer-events: none; padding: 24px; }
+  .hm-rec-overlay .hm-rec-ov-inner { font-size: 1.05rem; font-weight: 700; line-height: 1.4; }
+  .hm-rec-overlay .hm-rec-ov-path { display: block; margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; opacity: .92; }
   .hm-rec-cursor { position: absolute; top: 0; left: 0; width: 20px; height: 20px; margin: -4px 0 0 -4px; pointer-events: none; z-index: 3;
     background: no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'><path d='M4 2l7 18 2.5-7L20 10.5z' fill='white' stroke='%230f172a' stroke-width='1.5' stroke-linejoin='round'/></svg>");
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); transition: left .06s linear, top .06s linear; }
   .hm-rec-cursor.is-click::after { content: ""; position: absolute; left: 2px; top: 2px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #f97316; animation: hmRipple .5s ease-out; }
   @keyframes hmRipple { from { transform: scale(.4); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+  /* Page-by-page chapter strip: each chip = one page of the visit. */
+  .hm-rec-chapters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .hm-rec-chapters:empty { display: none; }
+  .hm-rec-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; padding: 4px 10px; border-radius: 999px;
+    font-size: .74rem; font-weight: 600; cursor: pointer; border: 1px solid var(--admin-border, #e5e7eb); background: #fff; color: #334155;
+    transition: background .15s ease, border-color .15s ease, color .15s ease; }
+  .hm-rec-chip:hover { border-color: #1B57E0; color: #1B57E0; }
+  .hm-rec-chip.active { background: linear-gradient(90deg, #1B57E0, #06b6d4); border-color: transparent; color: #fff; box-shadow: 0 2px 8px rgba(27,87,224,.25); }
+  .hm-rec-chip-no { font-variant-numeric: tabular-nums; opacity: .75; }
+  .hm-rec-chip-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
   .hm-rec-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
   .hm-rec-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -507,115 +526,163 @@
     host.innerHTML = html;
   }
 
-  // ---------------- Session replay (cursor "film") ----------------
-  URLS.recordings = "{{ url_for('admin.api_heatmap_recordings') }}";
-  URLS.recording = "{{ url_for('admin.api_heatmap_recording', rec_id='__RID__') }}";
+  // ---------------- Whole-visit replay (scroll-following film) ----------------
+  // The film follows the visitor from arrival to departure: the page scrolls
+  // exactly as they scrolled it (the "camera"), the cursor moves, clicks ripple,
+  // and we chain every page of the visit — with a "goes to /X" transition
+  // between pages and a "leaves the site" card at the end.
+  URLS.sessions = "{{ url_for('admin.api_heatmap_sessions') }}";
+  URLS.session = "{{ url_for('admin.api_heatmap_session', key='__KEY__') }}";
 
-  var activeRid = null;
-  function loadRecordings() {
-    fetch(URLS.recordings + "?days=" + days()).then(function (r) { return r.json(); }).then(function (d) {
-      var tb = document.querySelector("#hm-rec-table tbody");
-      var rows = d.recordings || [];
-      if (!rows.length) { tb.innerHTML = '<tr><td colspan="3" class="admin-empty-inline">Aucun enregistrement</td></tr>'; return; }
-      tb.innerHTML = rows.map(function (r) {
-        var dev = r.device === "mobile" ? "📱" : "🖥️";
-        return '<tr data-rid="' + esc(r.rec_id) + '">' +
-          '<td><span class="hm-vid">' + esc(r.short_id) + '</span> ' + dev + '</td>' +
-          '<td><span class="hm-rec-path" title="' + esc(r.path || "") + '">' + esc(r.path || "—") + "</span></td>" +
-          "<td>" + fmtDur(r.duration_ms) + "</td></tr>";
-      }).join("");
-      tb.querySelectorAll("tr").forEach(function (tr) {
-        tr.addEventListener("click", function () {
-          tb.querySelectorAll("tr").forEach(function (x) { x.classList.remove("active"); });
-          tr.classList.add("active");
-          openRecording(tr.getAttribute("data-rid"));
-        });
-      });
-      if (activeRid) {
-        var sel = tb.querySelector('tr[data-rid="' + activeRid + '"]');
-        if (sel) sel.classList.add("active");
-      }
-    }).catch(function () {});
-  }
+  var GAP_MS = 1100;   // on-screen page-to-page transition length
+  var activeKey = null;
 
   function fmtDur(ms) {
     var s = Math.round((ms || 0) / 1000);
     return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
   }
 
-  // --- the player ---
+  function loadSessions() {
+    fetch(URLS.sessions + "?days=" + days()).then(function (r) { return r.json(); }).then(function (d) {
+      var tb = document.querySelector("#hm-rec-table tbody");
+      var rows = d.sessions || [];
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="3" class="admin-empty-inline">Aucune visite enregistrée</td></tr>'; return; }
+      tb.innerHTML = rows.map(function (s) {
+        var dev = s.device === "mobile" ? "📱" : "🖥️";
+        var pages = s.page_count || 1;
+        var trail = esc(s.first_path || "—") + (pages > 1 ? ' <span class="hm-rec-more">+' + (pages - 1) + "</span>" : "");
+        return '<tr data-key="' + esc(s.key) + '">' +
+          '<td><span class="hm-vid">' + esc(s.short_id) + '</span> ' + dev + '</td>' +
+          '<td><span class="hm-rec-path" title="' + esc((s.pages || []).join(" → ")) + '">' + trail + "</span></td>" +
+          "<td>" + fmtDur(s.duration_ms) + "</td></tr>";
+      }).join("");
+      tb.querySelectorAll("tr").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          tb.querySelectorAll("tr").forEach(function (x) { x.classList.remove("active"); });
+          tr.classList.add("active");
+          openSession(tr.getAttribute("data-key"));
+        });
+      });
+      if (activeKey) {
+        var sel = tb.querySelector('tr[data-key="' + activeKey + '"]');
+        if (sel) sel.classList.add("active");
+      }
+    }).catch(function () {});
+  }
+
+  // --- the player: one visit = a list of page "chapters" on a global timeline ---
   var P = {
-    data: null, box: 0, scale: 1, durMs: 0, curMs: 0,
-    playing: false, speed: 2, raf: null, baseWall: 0, baseMs: 0, framePath: null, clkIdx: 0,
+    session: null, chapters: [], offsets: [], totalMs: 0, curMs: 0,
+    box: 0, scale: 1, camH: 0, dispI: -1, loadedSrc: null, clkIdx: 0,
+    playing: false, speed: 2, raf: null, baseWall: 0, baseMs: 0,
   };
 
-  function openRecording(rid) {
-    activeRid = rid;
+  function openSession(key) {
+    activeKey = key;
     stopPlay();
-    fetch(URLS.recording.replace("__RID__", encodeURIComponent(rid)) + "?days=" + days())
+    fetch(URLS.session.replace("__KEY__", encodeURIComponent(key)) + "?days=" + days())
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { if (d) setupPlayer(d); })
       .catch(function () {});
   }
 
+  function chapterMaxT(c) {
+    var maxT = c.duration_ms || 0;
+    var tr = c.track || {};
+    [tr.m, tr.c, tr.s].forEach(function (arr) {
+      (arr || []).forEach(function (p) { if (p[0] > maxT) maxT = p[0]; });
+    });
+    return Math.max(1, maxT);
+  }
+
   function setupPlayer(d) {
-    P.data = d;
-    var t = d.track || { m: [], c: [], s: [] };
-    var maxT = d.duration_ms || 0;
-    [t.m, t.c].forEach(function (arr) { (arr || []).forEach(function (p) { if (p[0] > maxT) maxT = p[0]; }); });
-    (t.s || []).forEach(function (p) { if (p[0] > maxT) maxT = p[0]; });
-    P.durMs = Math.max(1, maxT);
-    P.curMs = 0; P.clkIdx = 0; P.speed = parseFloat($("hm-rec-speed").value) || 2;
+    P.session = d;
+    P.chapters = (d.chapters || []).map(function (c) {
+      return {
+        path: c.path, track: c.track || { m: [], c: [], s: [] },
+        dur: chapterMaxT(c),
+        docW: c.doc_w || 1440, docH: c.doc_h || 800,
+        vw: c.vw || 1280, vh: c.vh || 800,
+        clickCount: c.click_count || 0,
+      };
+    });
+    if (!P.chapters.length) return;
+
+    // Build the global timeline: chapters end-to-end with a gap between pages.
+    P.offsets = []; var acc = 0;
+    for (var i = 0; i < P.chapters.length; i++) {
+      P.offsets[i] = acc;
+      acc += P.chapters[i].dur;
+      if (i < P.chapters.length - 1) acc += GAP_MS;
+    }
+    P.totalMs = Math.max(1, acc);
+    P.curMs = 0; P.dispI = -1; P.loadedSrc = null; P.clkIdx = 0;
+    P.speed = parseFloat($("hm-rec-speed").value) || 2;
 
     $("hm-rec-empty").hidden = true;
     $("hm-rec-stagebox").hidden = false;
-    $("hm-rec-meta").textContent = (d.samples || 0) + " points · " + (d.click_count || 0) +
-      " clic(s) · écran " + (d.vw || "?") + "×" + (d.vh || "?") + " · " + fmtDur(P.durMs);
+    var dev = d.device === "mobile" ? "📱 Mobile" : (d.device ? "🖥️ Bureau" : "—");
+    $("hm-rec-meta").textContent = dev + " · " + (d.page_count || 1) + " page(s) · " +
+      (d.click_count || 0) + " clic(s) · écran " + (P.chapters[0].vw || "?") + "×" +
+      (P.chapters[0].vh || "?") + " · " + fmtDur(P.totalMs) + " · arrivée " + timeStr(d.started_at);
 
-    // Load the real page behind the replay (silent copy via hmpreview=1).
-    if (d.path && d.path !== P.framePath) {
-      P.framePath = d.path;
-      $("hm-rec-frame").src = d.path + (d.path.indexOf("?") === -1 ? "?" : "&") + "hmpreview=1";
-    }
-    layoutPlayer();
+    renderChapters();
     renderAt(0);
     $("hm-rec-seek").value = 0;
-    updateTime();
   }
 
-  function layoutPlayer() {
-    var d = P.data; if (!d) return;
-    var wrap = $("hm-rec-canvas-wrap"), stage = $("hm-rec-stage"), frame = $("hm-rec-frame");
-    var docW = d.doc_w || 1440, docH = d.doc_h || 800;
-    // Fit to the container width so the film stays fully visible on any screen
-    // (never wider than the wrapper, which would clip under overflow:hidden).
-    var boxW = Math.max(200, (wrap.clientWidth || 900));
+  function renderChapters() {
+    var host = $("hm-rec-chapters");
+    host.innerHTML = P.chapters.map(function (c, i) {
+      return '<button type="button" class="hm-rec-chip" data-i="' + i + '" title="' + esc(c.path || "") + '">' +
+        '<span class="hm-rec-chip-no">' + (i + 1) + "</span>" +
+        '<span class="hm-rec-chip-path">' + esc(c.path || "—") + "</span></button>";
+    }).join("");
+    host.querySelectorAll(".hm-rec-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        seekTo(P.offsets[parseInt(chip.getAttribute("data-i"), 10)] + 1);
+      });
+    });
+  }
+
+  // Lay out the camera window for chapter i (scale page to container width; the
+  // window height is the visitor's viewport, scaled).
+  function layoutChapter(i) {
+    var c = P.chapters[i]; if (!c) return;
+    var cam = $("hm-rec-cam"), frame = $("hm-rec-frame");
+    var boxW = Math.max(200, cam.clientWidth || 900);
     P.box = boxW;
-    P.scale = boxW / docW;
-    var dispH = Math.max(240, Math.round(docH * P.scale));
-    // Cap the visible height so a very long page stays usable; the viewport
-    // rectangle then shows which slice the visitor actually saw.
-    var shownH = Math.min(dispH, 560);
-    frame.style.width = docW + "px";
-    frame.style.height = docH + "px";
+    P.scale = boxW / c.docW;
+    P.camH = Math.max(240, Math.min(640, Math.round(c.vh * P.scale)));
+    cam.style.height = P.camH + "px";
+    frame.style.width = c.docW + "px";
+    frame.style.height = c.docH + "px";
     frame.style.transform = "scale(" + P.scale + ")";
-    stage.style.width = boxW + "px";
-    stage.style.height = dispH + "px";
-    wrap.style.height = shownH + "px";
-    // Viewport rectangle size (visitor's window, scaled).
-    var vp = $("hm-rec-viewport");
-    vp.style.height = Math.round((d.vh || 800) * P.scale) + "px";
   }
 
-  function scrollYAt(atMs) {
-    var s = (P.data.track && P.data.track.s) || [];
+  // Make sure the iframe shows chapter i's page and the camera is laid out for it.
+  function ensureChapter(i) {
+    var c = P.chapters[i]; if (!c) return;
+    if (P.dispI !== i) {
+      P.dispI = i;
+      layoutChapter(i);
+      P.clkIdx = 0;   // recomputed against local time by the caller
+      var src = (c.path || "/") + ((c.path || "/").indexOf("?") === -1 ? "?" : "&") + "hmpreview=1";
+      if (src !== P.loadedSrc) {
+        P.loadedSrc = src;
+        $("hm-rec-frame").src = src;
+      }
+      $("hm-rec-urlbar").textContent = c.path || "/";
+    }
+  }
+
+  function scrollYAt(s, atMs) {
     var y = 0;
     for (var i = 0; i < s.length; i++) { if (s[i][0] <= atMs) y = s[i][1]; else break; }
     return y;
   }
 
-  function cursorAt(atMs) {
-    var m = (P.data.track && P.data.track.m) || [];
+  function cursorAt(m, atMs) {
     if (!m.length) return null;
     if (atMs <= m[0][0]) return { x: m[0][1], y: m[0][2] };
     if (atMs >= m[m.length - 1][0]) { var last = m[m.length - 1]; return { x: last[1], y: last[2] }; }
@@ -626,42 +693,96 @@
     return { x: a[1] + (b[1] - a[1]) * f, y: a[2] + (b[2] - a[2]) * f };
   }
 
-  function renderAt(atMs) {
-    if (!P.data) return;
-    P.curMs = atMs;
-    var pos = cursorAt(atMs);
+  // Map a global time to {chapter index, local time, transition/ended flags}.
+  function resolve(G) {
+    if (G <= 0) return { i: 0, local: 0 };
+    var last = P.chapters.length - 1;
+    for (var i = 0; i <= last; i++) {
+      var s = P.offsets[i], e = s + P.chapters[i].dur;
+      if (G <= e) return { i: i, local: G - s };
+      if (i < last && G < e + GAP_MS) return { i: i, local: P.chapters[i].dur, transition: true, next: i + 1 };
+    }
+    return { i: last, local: P.chapters[last].dur, ended: true };
+  }
+
+  function showOverlay(html) {
+    var ov = $("hm-rec-overlay");
+    if (html == null) { ov.hidden = true; ov.innerHTML = ""; return; }
+    ov.hidden = false;
+    ov.innerHTML = '<div class="hm-rec-ov-inner">' + html + "</div>";
+  }
+
+  function renderAt(G) {
+    if (!P.session) return;
+    P.curMs = Math.max(0, Math.min(G, P.totalMs));
+    var r = resolve(P.curMs);
+    var idx = r.transition ? r.next : r.i;
+    var prevDisp = P.dispI;
+    ensureChapter(idx);
+    var c = P.chapters[idx];
+    // On a transition we show the destination page at its top; otherwise the
+    // real local moment (the final frame when the visit has ended).
+    var atLocal = r.transition ? 0 : r.local;
+
+    var sY = scrollYAt(c.track.s, atLocal);
+    $("hm-rec-frame").style.top = Math.round(-sY * P.scale) + "px";
+
+    // Cursor at the recorded page position, translated into the camera window.
     var cur = $("hm-rec-cursor");
+    var pos = r.transition ? null : cursorAt(c.track.m, atLocal);
     if (pos) {
-      cur.style.display = "block";
-      cur.style.left = (pos.x * P.box) + "px";
-      cur.style.top = (pos.y * P.scale) + "px";
+      var top = (pos.y - sY) * P.scale;
+      if (top < -12 || top > P.camH + 12) { cur.style.display = "none"; }
+      else {
+        cur.style.display = "block";
+        cur.style.left = (pos.x * P.box) + "px";
+        cur.style.top = top + "px";
+      }
     } else {
       cur.style.display = "none";
     }
-    // Viewport rectangle follows the recorded scroll position.
-    $("hm-rec-viewport").style.top = Math.round(scrollYAt(atMs) * P.scale) + "px";
 
-    // Fire click ripples as the play-head crosses them (forward only).
-    var c = (P.data.track && P.data.track.c) || [];
-    while (P.clkIdx < c.length && c[P.clkIdx][0] <= atMs) {
-      if (P.playing) pingClick(c[P.clkIdx]);
-      P.clkIdx++;
+    // Transition / end cards.
+    if (r.transition) {
+      showOverlay("Le visiteur navigue vers<span class=\"hm-rec-ov-path\">" + esc(c.path || "/") + "</span>");
+    } else if (r.ended) {
+      showOverlay("🚪 Fin de la visite<span class=\"hm-rec-ov-path\">quitte le site après " +
+        (P.session.page_count || 1) + " page(s)</span>");
+    } else {
+      showOverlay(null);
     }
+
+    // Click ripples (forward only, within the displayed chapter).
+    if (prevDisp !== idx) {
+      P.clkIdx = 0;
+      var cc = c.track.c || [];
+      while (P.clkIdx < cc.length && cc[P.clkIdx][0] <= atLocal) P.clkIdx++;
+    } else if (!r.transition) {
+      var cl = c.track.c || [];
+      while (P.clkIdx < cl.length && cl[P.clkIdx][0] <= atLocal) {
+        if (P.playing) pingClick();
+        P.clkIdx++;
+      }
+    }
+
+    // Highlight the active page chip.
+    var chips = $("hm-rec-chapters").children;
+    for (var k = 0; k < chips.length; k++) chips[k].classList.toggle("active", k === idx);
+
     updateTime();
   }
 
-  function pingClick(pt) {
+  function pingClick() {
     var cur = $("hm-rec-cursor");
     cur.classList.remove("is-click");
-    // force reflow so the animation restarts
-    void cur.offsetWidth;
+    void cur.offsetWidth;  // restart the ripple animation
     cur.classList.add("is-click");
   }
 
   function updateTime() {
-    $("hm-rec-time").textContent = fmtDur(P.curMs) + " / " + fmtDur(P.durMs);
+    $("hm-rec-time").textContent = fmtDur(P.curMs) + " / " + fmtDur(P.totalMs);
     var seek = $("hm-rec-seek");
-    var pct = P.durMs ? (P.curMs / P.durMs) * 100 : 0;
+    var pct = P.totalMs ? (P.curMs / P.totalMs) * 100 : 0;
     if (document.activeElement !== seek) seek.value = Math.round(pct * 10);
     seek.style.setProperty("--pct", pct.toFixed(2) + "%");
   }
@@ -669,14 +790,14 @@
   function frame() {
     if (!P.playing) return;
     var atMs = P.baseMs + (performance.now() - P.baseWall) * P.speed;
-    if (atMs >= P.durMs) { renderAt(P.durMs); stopPlay(); return; }
+    if (atMs >= P.totalMs) { renderAt(P.totalMs); stopPlay(); return; }
     renderAt(atMs);
     P.raf = requestAnimationFrame(frame);
   }
 
   function startPlay() {
-    if (!P.data || P.playing) return;
-    if (P.curMs >= P.durMs) { P.curMs = 0; P.clkIdx = 0; }
+    if (!P.session || P.playing) return;
+    if (P.curMs >= P.totalMs) { P.curMs = 0; P.dispI = -1; }
     P.playing = true;
     P.baseMs = P.curMs;
     P.baseWall = performance.now();
@@ -693,12 +814,17 @@
   }
 
   function seekTo(atMs) {
-    // Reset the click index so ripples fire correctly after a jump.
-    P.clkIdx = 0;
-    var c = (P.data.track && P.data.track.c) || [];
-    while (P.clkIdx < c.length && c[P.clkIdx][0] <= atMs) P.clkIdx++;
+    // Force the displayed chapter to be re-resolved so click ripples re-arm
+    // correctly after jumping backward or across pages.
+    P.dispI = -1;
     renderAt(atMs);
-    if (P.playing) { P.baseMs = atMs; P.baseWall = performance.now(); }
+    if (P.playing) { P.baseMs = P.curMs; P.baseWall = performance.now(); }
+  }
+
+  function relayout() {
+    if (!P.session || P.dispI < 0) return;
+    layoutChapter(P.dispI);
+    renderAt(P.curMs);
   }
 
   $("hm-rec-play").addEventListener("click", function () { P.playing ? stopPlay() : startPlay(); });
@@ -707,25 +833,25 @@
     if (P.playing) { P.baseMs = P.curMs; P.baseWall = performance.now(); }
   });
   $("hm-rec-seek").addEventListener("input", function () {
-    if (!P.data) return;
-    seekTo((this.value / 1000) * P.durMs);
+    if (!P.session) return;
+    seekTo((this.value / 1000) * P.totalMs);
   });
 
   // ---------------- wiring ----------------
-  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); loadRecordings(); });
+  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); loadSessions(); });
   $("hm-page").addEventListener("change", loadHeatmap);
   var rsz;
   window.addEventListener("resize", function () {
     clearTimeout(rsz);
     rsz = setTimeout(function () {
       if (lastHeat) drawHeat(lastHeat);
-      if (P.data) { layoutPlayer(); renderAt(P.curMs); }
+      relayout();
     }, 150);
   });
   loadOverview();
   loadJourneys();
-  loadRecordings();
-  setInterval(function () { loadOverview(); loadJourneys(); loadRecordings(); }, 60000);
+  loadSessions();
+  setInterval(function () { loadOverview(); loadJourneys(); loadSessions(); }, 60000);
 })();
 </script>
 {% endblock %}

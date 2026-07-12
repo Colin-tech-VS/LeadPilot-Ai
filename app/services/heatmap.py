@@ -452,3 +452,129 @@ def recording_detail(rec_id):
     if rec is None:
         return None
     return rec.to_dict(include_track=True)
+
+
+# --------------------------------------------------------------------------- #
+# Whole-visit replays (a session = its ordered page recordings / "chapters")  #
+# --------------------------------------------------------------------------- #
+# A single :class:`SessionRecording` covers ONE page load. To follow a visitor
+# "completely, from their arrival" we group every page recording of the same
+# browser session into one continuous film: the page they land on, then each
+# page they navigate to, in order, until the visit ends.
+MAX_SESSION_CHAPTERS = 60
+
+
+def _group_key(rec):
+    """Grouping id for a recording: the browser session when we have one, else
+    the recording itself (so anonymous, session-less pings never merge together)."""
+    return rec.session_id if rec.session_id else ("rec:" + rec.rec_id)
+
+
+def session_replays(days=30):
+    """Group page recordings into whole-visit sessions, most recent visit first.
+
+    One row = one visit: its ordered page recordings ("chapters") plus a summary
+    (pages seen, clicks, total duration), so the admin sees each visitor as a
+    single journey to replay rather than a list of isolated pages."""
+    rows = (
+        SessionRecording.query.filter(
+            SessionRecording.created_at >= _since(days),
+            SessionRecording.samples.isnot(None),
+            SessionRecording.samples >= MIN_SAMPLES_TO_KEEP,
+        )
+        .order_by(SessionRecording.created_at.asc())
+        .limit(MAX_RECORDINGS)
+        .all()
+    )
+
+    groups = OrderedDict()
+    for r in rows:
+        key = _group_key(r)
+        g = groups.get(key)
+        if g is None:
+            g = groups[key] = {
+                "key": key,
+                "session_id": r.session_id,
+                "visitor_id": r.visitor_id,
+                "short_id": (r.visitor_id or "")[:8],
+                "device": r.device,
+                "started_at": r.created_at,
+                "last_at": r.updated_at or r.created_at,
+                "duration_ms": 0,
+                "click_count": 0,
+                "pages": [],
+                "page_count": 0,
+                "first_path": r.path,
+            }
+        if g["page_count"] < MAX_SESSION_CHAPTERS:
+            g["page_count"] += 1
+            g["duration_ms"] += r.duration_ms or 0
+            g["click_count"] += r.click_count or 0
+            if r.path and r.path not in g["pages"]:
+                g["pages"].append(r.path)
+        upd = r.updated_at or r.created_at
+        if upd and upd > g["last_at"]:
+            g["last_at"] = upd
+
+    out = []
+    for g in groups.values():
+        out.append(
+            {
+                "key": g["key"],
+                "session_id": g["session_id"],
+                "visitor_id": g["visitor_id"],
+                "short_id": g["short_id"],
+                "device": g["device"],
+                "started_at": g["started_at"].isoformat() if g["started_at"] else None,
+                "last_at": g["last_at"].isoformat() if g["last_at"] else None,
+                "duration_ms": g["duration_ms"],
+                "click_count": g["click_count"],
+                "page_count": g["page_count"],
+                "pages": g["pages"],
+                "first_path": g["first_path"],
+            }
+        )
+    out.sort(key=lambda s: s["last_at"] or "", reverse=True)
+    return out
+
+
+def session_replay_detail(key, days=90):
+    """All the page recordings of one visit, in order, each with its full track,
+    ready to be replayed back-to-back as a single film."""
+    if key and key.startswith("rec:"):
+        rec = db.session.get(SessionRecording, key[4:])
+        recs = [rec] if rec is not None else []
+    else:
+        recs = (
+            SessionRecording.query.filter(
+                SessionRecording.session_id == key,
+                SessionRecording.created_at >= _since(days),
+                SessionRecording.samples.isnot(None),
+                SessionRecording.samples >= MIN_SAMPLES_TO_KEEP,
+            )
+            .order_by(SessionRecording.created_at.asc())
+            .limit(MAX_SESSION_CHAPTERS)
+            .all()
+        )
+    if not recs:
+        return None
+
+    chapters = [r.to_dict(include_track=True) for r in recs]
+    first, last = recs[0], recs[-1]
+    pages = list(OrderedDict.fromkeys(r.path for r in recs if r.path))
+    return {
+        "key": key,
+        "session_id": first.session_id,
+        "visitor_id": first.visitor_id,
+        "short_id": (first.visitor_id or "")[:8],
+        "device": first.device,
+        "started_at": first.created_at.isoformat() if first.created_at else None,
+        "last_at": (last.updated_at or last.created_at).isoformat()
+        if (last.updated_at or last.created_at)
+        else None,
+        "duration_ms": sum(c["duration_ms"] for c in chapters),
+        "click_count": sum(c["click_count"] for c in chapters),
+        "page_count": len(chapters),
+        "pages": pages,
+        "chapters": chapters,
+    }

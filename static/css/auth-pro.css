@@ -401,13 +401,20 @@
   color: #0d9488;
 }
 
+/* No-JS / progressive enhancement: every step is visible by default so the
+   form is always submittable. The wizard (which hides inactive steps) only
+   kicks in once auth.js has actually initialised it (adds .js-wizard). */
 .auth-pro__form-step {
-  display: none;
-  animation: authStepIn 0.35s ease;
+  display: block;
 }
 
-.auth-pro__form-step.is-active {
+.js-wizard .auth-pro__form-step {
+  display: none;
+}
+
+.js-wizard .auth-pro__form-step.is-active {
   display: block;
+  animation: authStepIn 0.35s ease;
 }
 
 @keyframes authStepIn {

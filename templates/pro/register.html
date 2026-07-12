@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -150,7 +150,7 @@
 
         <div class="auth-pro__actions">
           <button type="button" class="btn btn-auth-ghost" id="register-back" hidden>{{ _('auth.step_back') }}</button>
-          <button type="button" class="btn btn-primary" id="register-next"
+          <button type="submit" class="btn btn-primary" id="register-next"
                   data-next-label="{{ _('auth.step_next') }}"
                   data-submit-label="{{ _('register.submit') }}">{{ _('auth.step_next') }}</button>
         </div>
@@ -172,6 +172,6 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=3"></script>
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 {% endblock %}

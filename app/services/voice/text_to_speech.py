@@ -45,7 +45,14 @@ class TextToSpeech:
         if instructions and "gpt-4o" in model:
             params["instructions"] = instructions
 
-        response = client.audio.speech.create(**params)
+        try:
+            response = client.audio.speech.create(**params)
+        except TypeError:
+            # Older openai SDKs don't accept `instructions` on speech.create.
+            # Retry without it so the (still far more natural) gpt-4o voice is
+            # used instead of hard-failing over to Amazon Polly.
+            params.pop("instructions", None)
+            response = client.audio.speech.create(**params)
 
         audio_bytes = response.content
         audio_dir = self._audio_output_dir()

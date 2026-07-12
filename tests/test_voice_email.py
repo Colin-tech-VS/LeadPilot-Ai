@@ -123,6 +123,40 @@ def test_issue_ask_count_survives_serialization():
     assert restored.issue_ask_count == 2
 
 
+def test_tts_retries_without_instructions_on_old_sdk(app, monkeypatch):
+    """Older openai SDKs reject `instructions` on speech.create. TTS must retry
+    without it instead of hard-failing over to Amazon Polly."""
+    import openai
+
+    from app.services.voice.text_to_speech import TextToSpeech
+
+    calls = []
+
+    class FakeSpeech:
+        def create(self, **params):
+            calls.append(params)
+            if "instructions" in params:
+                raise TypeError("unexpected keyword argument 'instructions'")
+            return type("R", (), {"content": b"MP3DATA"})()
+
+    class FakeClient:
+        def __init__(self, api_key=None):
+            self.audio = type("A", (), {"speech": FakeSpeech()})()
+
+    monkeypatch.setattr(openai, "OpenAI", FakeClient)
+
+    with app.app_context():
+        app.config["OPENAI_API_KEY"] = "sk-test"
+        app.config["TTS_MODEL"] = "gpt-4o-mini-tts"
+        app.config["TTS_INSTRUCTIONS"] = "Parle chaleureusement."
+        TextToSpeech().synthesize("Bonjour", call_id="c1")
+
+    # First attempt carries instructions and fails; the retry drops them.
+    assert len(calls) == 2
+    assert "instructions" in calls[0]
+    assert "instructions" not in calls[1]
+
+
 def test_voice_never_asks_account_questions():
     """The voice IA no longer handles account sign-up: it must only ask for the
     dispatch essentials (name, e-mail, address, urgency) and never an

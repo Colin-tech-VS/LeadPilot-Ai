@@ -60,11 +60,25 @@ class Config:
     # LLM) to keep a margin. Default: 0,50 € / extra call.
     CALL_OVERAGE_PRICE_CENTS = int(os.environ.get("CALL_OVERAGE_PRICE_CENTS", "50"))
 
-    # Voice pipeline (Whisper STT + OpenAI TTS — optional, text fallback supported)
+    # Voice pipeline (OpenAI STT + OpenAI TTS — optional, text fallback supported)
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "whisper-1")
-    TTS_MODEL = os.environ.get("TTS_MODEL", "tts-1")
-    TTS_VOICE = os.environ.get("TTS_VOICE", "nova")
+    # gpt-4o-transcribe is OpenAI's most accurate speech-to-text model (used for
+    # the recording fallback path). Override with WHISPER_MODEL=whisper-1 if needed.
+    WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "gpt-4o-transcribe")
+    # gpt-4o-mini-tts is the most natural, human-sounding OpenAI voice and is the
+    # only model that honours TTS_INSTRUCTIONS (tone steering). tts-1 / tts-1-hd
+    # still work if you prefer lower latency (they ignore the instructions).
+    TTS_MODEL = os.environ.get("TTS_MODEL", "gpt-4o-mini-tts")
+    # Female voices that sound natural in French: coral (warm), shimmer (soft),
+    # sage (calm), nova. Change with TTS_VOICE without touching code.
+    TTS_VOICE = os.environ.get("TTS_VOICE", "coral")
+    # Tone steering — only applied for gpt-4o TTS models (ignored by tts-1).
+    TTS_INSTRUCTIONS = os.environ.get(
+        "TTS_INSTRUCTIONS",
+        "Parle en français avec une voix chaleureuse, naturelle et rassurante, "
+        "comme une réceptionniste bienveillante. Débit posé, clair et poli, "
+        "sans intonation robotique.",
+    )
     # Which engine speaks on real phone calls (the voice the caller hears):
     #   "auto"   -> OpenAI TTS when OPENAI_API_KEY is set, else Amazon Polly (Twilio)
     #   "openai" -> force OpenAI TTS (still falls back to Polly on error/no key)

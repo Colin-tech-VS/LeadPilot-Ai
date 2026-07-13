@@ -95,7 +95,7 @@ document.documentElement.classList.add("js-enabled");
     // submittable even if this script is blocked or errors out.
     document.documentElement.classList.add("js-wizard");
 
-    function showStep(n) {
+    function showStep(n, animate) {
       current = n;
       steps.forEach(function (el, i) {
         el.classList.toggle("is-active", i === n);
@@ -111,6 +111,23 @@ document.documentElement.classList.add("js-enabled");
       if (btnNext) {
         btnNext.textContent = n === steps.length - 1 ? btnNext.dataset.submitLabel : btnNext.dataset.nextLabel;
         btnNext.type = n === steps.length - 1 ? "submit" : "button";
+      }
+
+      // When the user moves between steps, bring the form back into view and
+      // focus the first field of the new step. Without this, advancing past the
+      // trade picker can look like a dead-end on small screens: step 1 collapses
+      // and step 2's fields appear off-screen, so people never reach the end.
+      if (animate) {
+        var active = steps[n];
+        if (registerForm.scrollIntoView) {
+          registerForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        if (active) {
+          var firstField = active.querySelector("input, select, textarea");
+          if (firstField) {
+            try { firstField.focus({ preventScroll: true }); } catch (err) { firstField.focus(); }
+          }
+        }
       }
     }
 
@@ -132,13 +149,13 @@ document.documentElement.classList.add("js-enabled");
         if (btnNext.type !== "button") return;
         e.preventDefault();
         if (!validateStep(current)) return;
-        if (current < steps.length - 1) showStep(current + 1);
+        if (current < steps.length - 1) showStep(current + 1, true);
       });
     }
 
     if (btnBack) {
       btnBack.addEventListener("click", function () {
-        if (current > 0) showStep(current - 1);
+        if (current > 0) showStep(current - 1, true);
       });
     }
 
@@ -160,7 +177,7 @@ document.documentElement.classList.add("js-enabled");
     registerForm.addEventListener("submit", function (e) {
       if (current < steps.length - 1) {
         e.preventDefault();
-        if (validateStep(current)) showStep(current + 1);
+        if (validateStep(current)) showStep(current + 1, true);
         return;
       }
       syncValidity();

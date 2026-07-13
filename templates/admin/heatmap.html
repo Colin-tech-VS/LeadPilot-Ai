@@ -89,7 +89,6 @@
           <div class="hm-rec-canvas-wrap" id="hm-rec-canvas-wrap">
             <div class="hm-rec-stage" id="hm-rec-stage">
               <iframe class="hm-rec-frame" id="hm-rec-frame" title="Rejeu de la page" scrolling="no" tabindex="-1" aria-hidden="true"></iframe>
-              <div class="hm-rec-viewport" id="hm-rec-viewport"></div>
               <div class="hm-rec-cursor" id="hm-rec-cursor" aria-hidden="true"></div>
             </div>
           </div>
@@ -190,9 +189,10 @@
   .hm-rec-player { border: 1px solid var(--admin-border, #e5e7eb); border-radius: 12px; padding: 14px; min-height: 320px; min-width: 0; }
   .hm-rec-empty { opacity: .55; text-align: center; padding: 80px 12px; }
   .hm-rec-canvas-wrap { position: relative; width: 100%; max-height: 560px; overflow: hidden; border: 1px solid var(--admin-border, #e5e7eb); border-radius: 10px; background: #fff; }
-  .hm-rec-stage { position: relative; margin: 0 auto; }
+  /* The stage is translated vertically during playback so the page scrolls
+     under the fixed "camera" window exactly as the visitor scrolled it. */
+  .hm-rec-stage { position: relative; margin: 0 auto; will-change: transform; }
   .hm-rec-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; pointer-events: none; background: #fff; }
-  .hm-rec-viewport { position: absolute; left: 0; width: 100%; border: 2px solid rgba(27,87,224,.35); background: rgba(27,87,224,.04); box-shadow: 0 0 0 9999px rgba(15,23,42,.12); pointer-events: none; transition: top .12s linear; box-sizing: border-box; }
   .hm-rec-cursor { position: absolute; top: 0; left: 0; width: 20px; height: 20px; margin: -4px 0 0 -4px; pointer-events: none; z-index: 3;
     background: no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'><path d='M4 2l7 18 2.5-7L20 10.5z' fill='white' stroke='%230f172a' stroke-width='1.5' stroke-linejoin='round'/></svg>");
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); transition: left .06s linear, top .06s linear; }
@@ -545,7 +545,7 @@
 
   // --- the player ---
   var P = {
-    data: null, box: 0, scale: 1, durMs: 0, curMs: 0,
+    data: null, box: 0, scale: 1, durMs: 0, curMs: 0, maxCam: 0,
     playing: false, speed: 2, raf: null, baseWall: 0, baseMs: 0, framePath: null, clkIdx: 0,
   };
 
@@ -587,24 +587,27 @@
     var d = P.data; if (!d) return;
     var wrap = $("hm-rec-canvas-wrap"), stage = $("hm-rec-stage"), frame = $("hm-rec-frame");
     var docW = d.doc_w || 1440, docH = d.doc_h || 800;
-    // Fit to the container width so the film stays fully visible on any screen
-    // (never wider than the wrapper, which would clip under overflow:hidden).
+    var vh = d.vh || 800;
+    // Fit the page width to the panel, but never upscale a narrow (mobile)
+    // capture beyond its real size.
     var boxW = Math.max(200, (wrap.clientWidth || 900));
-    P.box = boxW;
-    P.scale = boxW / docW;
+    P.scale = Math.min(boxW / docW, 1);
+    P.box = Math.round(docW * P.scale);          // on-screen page width
     var dispH = Math.max(240, Math.round(docH * P.scale));
-    // Cap the visible height so a very long page stays usable; the viewport
-    // rectangle then shows which slice the visitor actually saw.
-    var shownH = Math.min(dispH, 560);
+    // The "camera" window is exactly what the visitor saw at once (their own
+    // viewport, scaled). During playback the stage is translated up by the
+    // recorded scroll offset so the page moves under this window — a real
+    // screen recording, not a static shrunk-to-fit page.
+    var camH = Math.min(560, Math.max(200, Math.round(vh * P.scale)));
     frame.style.width = docW + "px";
     frame.style.height = docH + "px";
     frame.style.transform = "scale(" + P.scale + ")";
-    stage.style.width = boxW + "px";
+    stage.style.width = P.box + "px";
     stage.style.height = dispH + "px";
-    wrap.style.height = shownH + "px";
-    // Viewport rectangle size (visitor's window, scaled).
-    var vp = $("hm-rec-viewport");
-    vp.style.height = Math.round((d.vh || 800) * P.scale) + "px";
+    wrap.style.height = camH + "px";
+    // How far the page can travel under the camera before its bottom would lift
+    // above the window — clamp scrolling to this so we never overscroll.
+    P.maxCam = Math.max(0, dispH - camH);
   }
 
   function scrollYAt(atMs) {
@@ -638,8 +641,10 @@
     } else {
       cur.style.display = "none";
     }
-    // Viewport rectangle follows the recorded scroll position.
-    $("hm-rec-viewport").style.top = Math.round(scrollYAt(atMs) * P.scale) + "px";
+    // Camera follows the visitor: slide the page up by however far they had
+    // scrolled at this moment, so the cursor stays where they really saw it.
+    var camY = Math.min(P.maxCam || 0, Math.round(scrollYAt(atMs) * P.scale));
+    $("hm-rec-stage").style.transform = "translateY(" + (-camY) + "px)";
 
     // Fire click ripples as the play-head crosses them (forward only).
     var c = (P.data.track && P.data.track.c) || [];

@@ -196,3 +196,35 @@ def test_artisan_profile_seo(client, app):
     assert "FAQPage" in html
     assert 'hreflang="en"' in html
     assert "plombier" in html.lower() or "plumber" in html.lower()
+
+
+def test_artisan_profile_local_seo_wiring(client, app):
+    """Profile links into the local-SEO cluster and ships an enriched breadcrumb."""
+    import uuid
+
+    slug = f"plomberie-cluster-{uuid.uuid4().hex[:8]}"
+    with app.app_context():
+        from app.core.extensions import db
+
+        tenant = Tenant(
+            name="Plomberie Cluster SEO",
+            trade_type="plombier",
+            city="Lyon",
+            postal_code="69003",
+            public_slug=slug,
+            is_public=True,
+            public_blurb="Dépannage plomberie 7j/7 à Lyon.",
+            service_radius_km=25,
+        )
+        db.session.add(tenant)
+        db.session.commit()
+
+    html = client.get(f"/artisans/{slug}").data.decode()
+    # Breadcrumb + internal links point at the clean local landing page.
+    assert "/artisans/plombier/lyon" in html
+    # Cluster cross-links this trade in other cities.
+    assert "/artisans/plombier/paris" in html
+    # Enriched 4-level BreadcrumbList (Home > Directory > Local landing > Name).
+    assert '"position": 4' in html or '"position":4' in html
+    # OG image is the branded per-artisan card, not the generic square logo.
+    assert "/media/social/profile-" in html

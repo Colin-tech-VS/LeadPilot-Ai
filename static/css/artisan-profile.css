@@ -513,3 +513,66 @@
     animation: none !important;
   }
 }
+
+/* ── Maillage local (cluster SEO) ── */
+.ap-cluster {
+  padding: 8px 0 48px;
+}
+.ap-cluster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.ap-cluster-box {
+  background: var(--surface, #fff);
+  border: 1px solid rgba(27, 87, 224, 0.12);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.ap-cluster-box h2 {
+  font-size: 1.02rem;
+  margin: 0 0 12px;
+  color: #0f2d6e;
+}
+.ap-cluster-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ap-cluster-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(27, 87, 224, 0.07);
+  color: #1b57e0;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ap-cluster-links a:hover {
+  background: rgba(27, 87, 224, 0.14);
+}
+.ap-cluster-links .ap-cluster-pillar {
+  background: #1b57e0;
+  color: #fff;
+  font-weight: 600;
+}
+.ap-cluster-links .ap-cluster-pillar:hover {
+  background: #1749bf;
+}
+@media (prefers-color-scheme: dark) {
+  .ap-cluster-box {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .ap-cluster-box h2 {
+    color: #cfe0ff;
+  }
+  .ap-cluster-links a {
+    background: rgba(120, 160, 255, 0.14);
+    color: #bcd3ff;
+  }
+}

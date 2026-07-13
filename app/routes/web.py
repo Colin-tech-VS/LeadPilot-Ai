@@ -755,7 +755,8 @@ def artisan_profile(slug):
     from flask import abort
     from urllib.parse import quote
 
-    from app.constants.trades import trade_icon, trade_label, trade_schema_type
+    from app.constants.cities import TOP_CITIES, city_slugify
+    from app.constants.trades import trade_choices, trade_icon, trade_label, trade_schema_type
     from app.services.artisan_directory import get_public_artisan_by_slug
     from app.services.availability import list_available_slots
     from app.services.plan_features import has_feature
@@ -804,6 +805,17 @@ def artisan_profile(slug):
     elif full_address:
         maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(full_address)}"
 
+    # Branded 1200×630 OG card (falls back to the default social image if the
+    # renderer is unavailable). Big CTR lever when the profile is shared locally.
+    from app.services.social_image import profile_card_url
+
+    social_image_url = profile_card_url(tenant, lang)
+
+    # Internal-link cluster: connect the profile to the programmatic local
+    # landing pages (same city / other trades, this trade / other cities) so link
+    # equity flows into the pages that rank for « {métier} {ville} » queries.
+    city_slug = city_slugify(tenant.city) if tenant.city else None
+
     return render_template(
         "public/artisan_profile.html",
         tenant=tenant,
@@ -811,6 +823,10 @@ def artisan_profile(slug):
         trade_label=trade_label(tenant.trade_type, lang),
         trade_icon=trade_icon(tenant.trade_type),
         trade_schema_type=trade_schema_type(tenant.trade_type),
+        trades=trade_choices(lang),
+        top_cities=TOP_CITIES[:12],
+        city_slug=city_slug,
+        social_image_url=social_image_url,
         slot_items=slot_items,
         customer_profile=customer_profile,
         pending_booking=pending_booking,

@@ -13,8 +13,15 @@
 <meta property="og:url" content="{{ canonical_url(path) }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <meta property="og:locale:alternate" content="{{ 'en_GB' if lang == 'fr' else 'fr_FR' }}">
-<meta property="og:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
+{% set _social_image = og_image or (site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png')) %}
+<meta property="og:image" content="{{ _social_image }}">
+<meta property="og:image:secure_url" content="{{ _social_image }}">
 <meta property="og:image:alt" content="{{ title }}">
+{% if not og_image %}
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+{% endif %}
 {% if article_published %}<meta property="article:published_time" content="{{ article_published }}">{% endif %}
 {% if article_modified %}<meta property="article:modified_time" content="{{ article_modified }}">{% endif %}
 {% if article_section %}<meta property="article:section" content="{{ article_section }}">{% endif %}
@@ -22,7 +29,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ title }}">
 <meta name="twitter:description" content="{{ description }}">
-<meta name="twitter:image" content="{{ og_image or (site_base_url() ~ url_for('static', filename='images/logo.svg')) }}">
+<meta name="twitter:image" content="{{ _social_image }}">
+<meta name="twitter:image:alt" content="{{ title }}">
 {% if json_ld %}
 <script type="application/ld+json">{{ json_ld | safe }}</script>
 {% endif %}

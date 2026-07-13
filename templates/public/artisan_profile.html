@@ -11,6 +11,8 @@
 {% set _meta_desc = _('profile.meta_description', name=tenant.name, trade=trade_label, city=_city, postal=_postal_suffix, phone=primary_phone or tenant.name) %}
 {% set _meta_keywords = _('profile.meta_keywords', trade=trade_label, city=_city) %}
 {% set _faq_area = _('profile.faq_area_a', name=tenant.name, city=_city, km=tenant.service_radius_km) if tenant.service_radius_km else _('profile.faq_area_city', name=tenant.name, city=_city) %}
+{% set _published = tenant.created_at.strftime('%Y-%m-%d') if tenant.created_at else None %}
+{% set _social_image = site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png') %}
 
 {% set profile_ld %}
 {
@@ -30,7 +32,8 @@
       "name": {{ tenant.name|tojson }},
       "description": {{ (_profile_desc|striptags)|tojson }},
       "url": {{ _profile_url|tojson }},
-      "image": "{{ site_base_url() }}{{ url_for('static', filename='images/logo.svg') }}"
+      "image": {{ _social_image|tojson }},
+      "mainEntityOfPage": {{ _profile_url|tojson }}
       {%- if primary_phone %},
       "telephone": {{ primary_phone|tojson }},
       "contactPoint": [{
@@ -72,11 +75,47 @@
       {%- endif %},
       "knowsAbout": {{ trade_label|tojson }},
       "priceRange": "€€",
+      "currenciesAccepted": "EUR",
+      "paymentAccepted": {{ _('profile.schema_payment')|tojson }},
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
       "makesOffer": {
         "@type": "Offer",
         "name": {{ _('profile.faq_book_q', name=tenant.name)|tojson }},
         "url": {{ _profile_url|tojson }},
-        "availability": "https://schema.org/InStock"
+        "availability": "https://schema.org/InStock",
+        "priceCurrency": "EUR"
+      },
+      "potentialAction": {
+        "@type": "ReserveAction",
+        "name": {{ _('profile.book_scroll')|tojson }},
+        "target": {{ (_profile_url ~ '#ap-booking')|tojson }},
+        "result": { "@type": "Reservation", "name": {{ _('directory.slots_title')|tojson }} }
+      }
+    },
+    {
+      "@type": "Service",
+      "@id": {{ (_profile_url ~ '#service')|tojson }},
+      "serviceType": {{ trade_label|tojson }},
+      "url": {{ _profile_url|tojson }},
+      "description": {{ (_profile_desc|striptags)|tojson }},
+      "provider": { "@id": {{ (_profile_url ~ '#business')|tojson }} }
+      {%- if tenant.city %},
+      "areaServed": { "@type": "City", "name": {{ _city|tojson }} }
+      {%- endif %},
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": {{ (trade_label ~ (' · ' ~ _city if tenant.city else ''))|tojson }},
+        "itemListElement": [{
+          "@type": "Offer",
+          "itemOffered": { "@type": "Service", "name": {{ trade_label|tojson }} },
+          "availability": "https://schema.org/InStock",
+          "priceCurrency": "EUR"
+        }]
       }
     },
     {
@@ -85,8 +124,14 @@
       "url": {{ _profile_url|tojson }},
       "name": {{ _meta_title|tojson }},
       "description": {{ (_profile_desc|striptags)|tojson }},
+      "inLanguage": {{ ('fr-FR' if lang == 'fr' else 'en-GB')|tojson }},
+      {%- if _published %}
+      "datePublished": {{ _published|tojson }},
+      {%- endif %}
+      "primaryImageOfPage": {{ _social_image|tojson }},
       "isPartOf": { "@type": "WebSite", "name": {{ _('app.name')|tojson }}, "url": {{ site_base_url()|tojson }} },
-      "about": { "@id": {{ (_profile_url ~ '#business')|tojson }} }
+      "about": { "@id": {{ (_profile_url ~ '#business')|tojson }} },
+      "mainEntity": { "@id": {{ (_profile_url ~ '#business')|tojson }} }
     },
     {
       "@type": "FAQPage",
@@ -120,12 +165,17 @@
 {% block body_class %}page-artisan-profile{% endblock %}
 
 {% block meta %}
-{{ seo_meta(_meta_title, _meta_desc, '/artisans/' ~ tenant.public_slug, _meta_keywords, 'business.business', None, 'index, follow', profile_ld, lang) }}
+{{ seo_meta(_meta_title, _meta_desc, '/artisans/' ~ tenant.public_slug, _meta_keywords, 'business.business', _social_image, 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', profile_ld, lang) }}
+{% if tenant.city %}<meta name="geo.placename" content="{{ tenant.city }}">{% endif %}
+{% if tenant.postal_code %}<meta name="geo.postal-code" content="{{ tenant.postal_code }}">{% endif %}
+<meta name="geo.region" content="FR">
+{% if has_map %}<meta name="geo.position" content="{{ tenant.latitude }};{{ tenant.longitude }}"><meta name="ICBM" content="{{ tenant.latitude }}, {{ tenant.longitude }}">{% endif %}
 {% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=2">
 {% if has_map %}
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 {% endif %}
 {% endblock %}

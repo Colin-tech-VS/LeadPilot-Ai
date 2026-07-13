@@ -12,7 +12,9 @@
 {% set _meta_keywords = _('profile.meta_keywords', trade=trade_label, city=_city) %}
 {% set _faq_area = _('profile.faq_area_a', name=tenant.name, city=_city, km=tenant.service_radius_km) if tenant.service_radius_km else _('profile.faq_area_city', name=tenant.name, city=_city) %}
 {% set _published = tenant.created_at.strftime('%Y-%m-%d') if tenant.created_at else None %}
-{% set _social_image = site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png') %}
+{% set _social_image = social_image_url or (site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png')) %}
+{% set _local_landing_path = ('/artisans/' ~ tenant.trade_type ~ '/' ~ city_slug) if (tenant.city and city_slug and tenant.trade_type) else ('/artisans/metier/' ~ tenant.trade_type if tenant.trade_type else '/artisans') %}
+{% set _local_landing_label = (trade_label ~ ' ' ~ tenant.city) if tenant.city else trade_label %}
 
 {% set profile_ld %}
 {
@@ -23,7 +25,8 @@
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": {{ _('profile.breadcrumb_home')|tojson }}, "item": {{ site_base_url()|tojson }} },
         { "@type": "ListItem", "position": 2, "name": {{ _('profile.breadcrumb_directory')|tojson }}, "item": {{ canonical_url('/artisans')|tojson }} },
-        { "@type": "ListItem", "position": 3, "name": {{ tenant.name|tojson }}, "item": {{ _profile_url|tojson }} }
+        { "@type": "ListItem", "position": 3, "name": {{ _local_landing_label|tojson }}, "item": {{ canonical_url(_local_landing_path)|tojson }} },
+        { "@type": "ListItem", "position": 4, "name": {{ tenant.name|tojson }}, "item": {{ _profile_url|tojson }} }
       ]
     },
     {
@@ -173,7 +176,7 @@
 {% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=3">
 {% if has_map %}
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -185,8 +188,7 @@
   <ol class="ap-breadcrumb-list">
     <li><a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a></li>
     <li><a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a></li>
-    {% if tenant.city %}<li><a href="{{ url_for('web.artisan_directory', ville=tenant.city) }}">{{ tenant.city }}</a></li>{% endif %}
-    {% if tenant.trade_type %}<li><a href="{{ url_for('web.artisan_directory', metier=tenant.trade_type, ville=tenant.city or '') }}">{{ trade_label }}</a></li>{% endif %}
+    {% if tenant.trade_type %}<li><a href="{{ _local_landing_path }}">{{ _local_landing_label }}</a></li>{% endif %}
     <li aria-current="page"><span>{{ tenant.name }}</span></li>
   </ol>
 </nav>
@@ -385,6 +387,33 @@
     </div>
   </div>
 </section>
+
+{# ── Maillage local : relie le profil aux pages « {métier} {ville} » ── #}
+{% if tenant.trade_type %}
+<section class="ap-cluster">
+  <div class="container ap-cluster-grid">
+    {% if tenant.city and city_slug %}
+    <div class="ap-cluster-box">
+      <h2>{{ _('local.other_trades_title', city=tenant.city) }}</h2>
+      <div class="ap-cluster-links">
+        {% for t in trades if t.key != tenant.trade_type and t.key != 'autre' %}
+        <a href="{{ url_for('web.artisan_trade_city_landing', trade=t.key, city=city_slug) }}">{{ t.icon }} {{ t.label }} {{ tenant.city }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="ap-cluster-box">
+      <h2>{{ _('local.other_cities_title', trade=trade_label) }}</h2>
+      <div class="ap-cluster-links">
+        {% for cslug, cname in top_cities if cname != tenant.city %}
+        <a href="{{ url_for('web.artisan_trade_city_landing', trade=tenant.trade_type, city=cslug) }}">{{ trade_label }} {{ cname }}</a>
+        {% endfor %}
+        <a href="{{ url_for('web.artisan_trade_landing', trade=tenant.trade_type) }}" class="ap-cluster-pillar">{{ trade_label }} — {{ 'toutes les villes' if lang == 'fr' else 'all cities' }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

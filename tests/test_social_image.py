@@ -26,6 +26,51 @@ def test_branded_fallback_creates_png(app, monkeypatch):
         assert path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 
 
+def test_profile_card_renders_branded_png(app):
+    """Per-artisan OG card is a valid, non-trivial 1200×630 PNG."""
+    from app.models.tenant import Tenant
+
+    with app.app_context():
+        from app.services import social_image
+
+        tenant = Tenant(
+            name="Serrurerie Martin",
+            trade_type="serrurier",
+            city="Bordeaux",
+            postal_code="33000",
+            public_slug="serrurerie-martin-bordeaux",
+            service_radius_km=20,
+        )
+        png = social_image._render_profile_card(tenant, "fr")
+        assert png[:8] == b"\x89PNG\r\n\x1a\n"
+        assert len(png) > 5000
+        from PIL import Image
+        import io
+
+        img = Image.open(io.BytesIO(png))
+        assert img.size == (1200, 630)
+
+
+def test_profile_card_url_is_cached(app):
+    """Second call reuses the disk-cached file (same URL, no re-render)."""
+    from app.models.tenant import Tenant
+
+    with app.test_request_context("/"):
+        from app.services import social_image
+
+        tenant = Tenant(
+            name="Plomberie Cache",
+            trade_type="plombier",
+            city="Nantes",
+            postal_code="44000",
+            public_slug="plomberie-cache-nantes",
+        )
+        first = social_image.profile_card_url(tenant, "fr")
+        second = social_image.profile_card_url(tenant, "fr")
+        assert first and first == second
+        assert "/media/social/profile-" in first
+
+
 def test_resolve_image_path_rejects_traversal(app):
     with app.app_context():
         from app.services import social_image

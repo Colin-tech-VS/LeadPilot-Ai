@@ -5,6 +5,7 @@ Pillow composite that matches PilotCore colours (#1B57E0, #06B6D4, #10B981).
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import logging
@@ -352,3 +353,154 @@ def generate_for_post(
         "image_url": image_public_url(relative),
         "image_headline": headline_text,
     }
+
+
+# ── Per-artisan Open Graph / social card ──────────────────────────────────────
+# A branded 1200×630 preview (name + trade + city + trust badges) used as the
+# og:image / twitter:image of each public artisan profile. Local clients mostly
+# discover artisans through shared links (WhatsApp, SMS, Facebook, Google), where
+# a keyword-rich, on-brand preview card lifts click-through far above a generic
+# square logo. Cards are disk-cached; the filename hash busts when content changes.
+PROFILE_CARD_VERSION = 2
+
+
+def _brand_gradient():
+    """PilotCore vertical brand gradient as an RGBA base image."""
+    from PIL import Image
+
+    top = _hex_rgb("#0F2D6E")
+    mid = _hex_rgb("#1B57E0")
+    bottom = _hex_rgb("#2563EB")
+    img = Image.new("RGB", (WIDTH, HEIGHT))
+    pixels = img.load()
+    for y in range(HEIGHT):
+        t = y / max(HEIGHT - 1, 1)
+        if t < 0.55:
+            local = t / 0.55
+            color = (_lerp(top[0], mid[0], local), _lerp(top[1], mid[1], local), _lerp(top[2], mid[2], local))
+        else:
+            local = (t - 0.55) / 0.45
+            color = (_lerp(mid[0], bottom[0], local), _lerp(mid[1], bottom[1], local), _lerp(mid[2], bottom[2], local))
+        for x in range(WIDTH):
+            pixels[x, y] = color
+    return img.convert("RGBA")
+
+
+def _pill(draw, x: int, y: int, text: str, font, *, fill, text_fill, height: int = 52, pad_x: int = 24) -> int:
+    """Draw a rounded 'chip' and return the x just past it."""
+    box_w = int(_text_width(draw, text, font) + 2 * pad_x)
+    draw.rounded_rectangle((x, y, x + box_w, y + height), radius=14, fill=fill)
+    ty = y + (height - getattr(font, "size", 28)) / 2 - 3
+    draw.text((x + pad_x, ty), text, font=font, fill=text_fill)
+    return x + box_w
+
+
+def _render_profile_card(tenant, lang: str = "fr") -> bytes:
+    from PIL import Image, ImageDraw
+
+    from app.constants.trades import trade_label
+
+    is_fr = (lang or "fr") != "en"
+    name = (getattr(tenant, "name", "") or "PilotCore").strip()
+    trade = trade_label(getattr(tenant, "trade_type", None), lang)
+    city = (getattr(tenant, "city", "") or "").strip()
+    postal = (getattr(tenant, "postal_code", "") or "").strip()
+    radius = getattr(tenant, "service_radius_km", None)
+
+    base = _brand_gradient()
+    # Translucent decorative glows need alpha compositing → draw on an overlay.
+    overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+    odraw.ellipse((WIDTH - 300, -110, WIDTH + 90, 220), fill=(6, 182, 212, 42))
+    odraw.ellipse((-150, HEIGHT - 250, 230, HEIGHT + 70), fill=(16, 185, 129, 34))
+    img = Image.alpha_composite(base, overlay)
+    draw = ImageDraw.Draw(img)
+
+    # Solid accent bars along the bottom edge.
+    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=_hex_rgb("#10B981"))
+    draw.rectangle((0, HEIGHT - 16, WIDTH, HEIGHT - 10), fill=_hex_rgb("#06B6D4"))
+
+    _draw_brand_icon(draw, 132, 118)
+
+    PAD = 82
+    white = (255, 255, 255)
+    ink = _hex_rgb("#0F2D6E")
+
+    # Trade chip.
+    _pill(draw, PAD, 196, trade.upper(), _load_font(30, bold=True), fill=_hex_rgb("#06B6D4"), text_fill=white)
+
+    # Business name (up to two lines).
+    name_font = _load_font(74, bold=True)
+    lines = _wrap_text(draw, name, name_font, WIDTH - 2 * PAD)[:2]
+    y = 272
+    for line in lines:
+        draw.text((PAD, y), line, font=name_font, fill=white)
+        y += 86
+
+    # Location subline.
+    loc = city or ("France" if is_fr else "France")
+    if city and postal:
+        loc = f"{city} · {postal}"
+    if radius:
+        loc += f" · {'zone ' + str(radius) + ' km' if is_fr else str(radius) + ' km radius'}"
+    draw.text((PAD, y + 6), loc, font=_load_font(36, bold=False), fill=_hex_rgb("#BBD4FF"))
+
+    # Trust badges.
+    badges = (
+        ["RDV en ligne 24h/24", "Réponse immédiate", "Devis sans engagement"]
+        if is_fr
+        else ["Online booking 24/7", "Instant response", "No-commitment quote"]
+    )
+    badge_font = _load_font(26, bold=True)
+    bx = PAD
+    for label in badges:
+        bx = _pill(draw, bx, HEIGHT - 150, label, badge_font, fill=white, text_fill=ink, height=50, pad_x=22)
+        bx += 16
+
+    # Footer tagline + brand mark.
+    tagline = (
+        "PilotCore · Trouvez le bon artisan près de chez vous"
+        if is_fr
+        else "PilotCore · Find the right tradesperson near you"
+    )
+    draw.text((PAD, HEIGHT - 66), tagline, font=_load_font(24, bold=True), fill=_hex_rgb("#06B6D4"))
+
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+def _profile_card_filename(tenant, lang: str) -> str:
+    key = "|".join(
+        str(part or "")
+        for part in (
+            getattr(tenant, "public_slug", ""),
+            getattr(tenant, "name", ""),
+            getattr(tenant, "trade_type", ""),
+            getattr(tenant, "city", ""),
+            getattr(tenant, "postal_code", ""),
+            getattr(tenant, "service_radius_km", ""),
+            lang or "fr",
+            PROFILE_CARD_VERSION,
+        )
+    )
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
+    slug = (getattr(tenant, "public_slug", None) or "artisan")[:60]
+    return f"profile-{slug}-{digest}.png"
+
+
+def profile_card_url(tenant, lang: str = "fr") -> str | None:
+    """Cached, branded OG card URL for an artisan profile.
+
+    Renders and disk-caches the 1200×630 PNG on first access; returns ``None`` if
+    rendering is unavailable so callers can fall back to the default social image.
+    """
+    try:
+        filename = _profile_card_filename(tenant, lang)
+        target = uploads_dir() / filename
+        if not target.is_file():
+            target.write_bytes(_render_profile_card(tenant, lang))
+        return image_public_url(f"{MEDIA_PREFIX}/{filename}")
+    except Exception:  # noqa: BLE001 — never break profile rendering over an image
+        logger.exception("Profile social card failed for %s", getattr(tenant, "public_slug", "?"))
+        return None

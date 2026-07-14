@@ -50,7 +50,20 @@
         {%- endfor %}
       ]
     }
-    {%- endif %}
+    {%- endif %},
+    {
+      "@type": "FAQPage",
+      "@id": {{ (site_base_url() ~ '/#faq')|tojson }},
+      "mainEntity": [
+        {%- for i in range(1, 7) %}
+        {
+          "@type": "Question",
+          "name": {{ _('client.faq_' ~ i ~ '_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('client.faq_' ~ i ~ '_a')|tojson }} }
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }
   ]
 }
 {% endset %}
@@ -193,6 +206,23 @@
       <p>{{ _('client.book_cta_sub') }}</p>
     </div>
     <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-lg v-strip-cta-btn">{{ _('client.book_cta_btn') }}</a>
+  </div>
+</section>
+
+<section class="v-section landing-faq" id="faq" aria-labelledby="client-faq-title">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('client.faq_kicker') }}</p>
+      <h2 id="client-faq-title">{{ _('client.faq_title') }}</h2>
+    </div>
+    <div class="faq-list">
+      {% for i in range(1, 7) %}
+      <details class="faq-item"{% if i == 1 %} open{% endif %}>
+        <summary>{{ _('client.faq_' ~ i ~ '_q') }}</summary>
+        <p>{{ _('client.faq_' ~ i ~ '_a') }}</p>
+      </details>
+      {% endfor %}
+    </div>
   </div>
 </section>
 

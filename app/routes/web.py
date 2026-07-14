@@ -964,6 +964,9 @@ def register():
                         trade_type=form["trade_type"],
                     )
                     login_user_to_session(user)
+                    # Fire the Google Ads "Page vue" conversion only for this
+                    # brand-new signup — consumed on the first dashboard render.
+                    session["signup_conversion_pending"] = True
                     return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
                     error = translate("register.error.email_taken")
@@ -1116,6 +1119,9 @@ def reset_password(token):
 @web_bp.route("/dashboard", methods=["GET"])
 @web_tenant_required
 def dashboard():
+    # True only on the first dashboard load right after signup, so the Google
+    # Ads conversion fires once per new account and never for returning users.
+    track_signup_conversion = session.pop("signup_conversion_pending", False)
     tenant = db.session.get(Tenant, g.tenant_id)
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow = today_start + timedelta(days=1)
@@ -1190,6 +1196,7 @@ def dashboard():
     return render_template(
         "artisan/dashboard.html",
         tenant=tenant,
+        track_signup_conversion=track_signup_conversion,
         calls_today=calls_today,
         appointments_today=appointments_today,
         pending_quotes=pending_quotes,

@@ -1,11 +1,45 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
-{% block meta %}{{ seo_meta(_('contact.title') ~ ' — ' ~ _('app.name'), _('contact.subtitle'), '/contact', None, 'website', None, 'index, follow', None, lang) }}{% endblock %}
+{% from 'macros/breadcrumb.html' import breadcrumb with context %}
+
+{% block meta %}
+{% set contact_ld %}
+{
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  "@id": {{ (canonical_url('/contact') ~ '#contactpage')|tojson }},
+  "url": {{ canonical_url('/contact')|tojson }},
+  "name": {{ (_('contact.title') ~ ' — ' ~ _('app.name'))|tojson }},
+  "description": {{ _('contact.subtitle')|tojson }},
+  "inLanguage": {{ ('fr-FR' if lang == 'fr' else 'en-GB')|tojson }},
+  "isPartOf": { "@id": {{ (site_base_url() ~ '/#website')|tojson }} },
+  "mainEntity": {
+    "@type": "Organization",
+    "@id": {{ (site_base_url() ~ '/#organization')|tojson }},
+    "name": "PilotCore",
+    "url": {{ site_base_url()|tojson }},
+    "email": "contact@pilotcore.fr",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer support",
+      "email": "contact@pilotcore.fr",
+      "availableLanguage": ["French", "English"],
+      "areaServed": "FR"
+    }
+  }
+}
+{% endset %}
+{{ seo_meta(_('contact.title') ~ ' — ' ~ _('app.name'), _('contact.subtitle'), '/contact', None, 'website', None, 'index, follow', contact_ld, lang) }}
+{% endblock %}
 
 {% block title %}{{ _('contact.title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-contact{% endblock %}
 
 {% block content %}
+{{ breadcrumb([
+  ((_('vitrine.nav_home') if lang == 'fr' else 'Home'), '/'),
+  (_('contact.title'), None)
+]) }}
 <section class="customer-auth">
   <div class="customer-auth-card contact-card">
     <h1>{{ _('contact.title') }}</h1>

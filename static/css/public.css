@@ -1986,3 +1986,29 @@ html {
 .trade-price-grid caption { text-align: left; font-weight: 600; padding: 0 0 10px; color: var(--text); }
 .trade-price-grid th, .trade-price-grid td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; }
 .trade-price-grid th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+
+/* ---- Price reference (/prix-artisans) ---- */
+.pr-hero { padding: 40px 0 8px; }
+.pr-hero h1 { margin: 12px 0 10px; }
+.pr-lead { max-width: 70ch; color: var(--muted); line-height: 1.7; margin: 0; }
+.pr-body { padding: 8px 0 56px; }
+.pr-keyfacts, .pr-provenance { margin: 26px 0; padding: 20px 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); }
+.pr-keyfacts h2, .pr-provenance h2 { margin: 0 0 12px; font-size: 16px; }
+.pr-keyfacts ul { margin: 0; padding-left: 18px; }
+.pr-keyfacts li { margin: 0 0 8px; line-height: 1.65; }
+.pr-provenance p { margin: 0 0 12px; line-height: 1.7; color: var(--muted); max-width: 78ch; }
+.pr-provenance p:last-child { margin-bottom: 0; }
+.pr-cite code { font-size: .92em; }
+.pr-trade { margin: 34px 0; }
+.pr-trade h2 { font-size: 17px; margin: 0 0 12px; }
+.pr-table-wrap { overflow-x: auto; }
+.pr-trade-links { margin: 10px 0 0; font-size: 14px; }
+.pr-empty { color: var(--muted); }
+
+/* ---- Answer-first box (GEO: the span assistants lift) ---- */
+.dl-answer-box { margin: 0 0 28px; padding: 20px 22px; border: 1px solid var(--border); border-left: 3px solid var(--primary, #f97316); border-radius: 0 var(--radius-lg, 18px) var(--radius-lg, 18px) 0; background: var(--card); }
+.dl-answer-box h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.dl-answer-box > p { margin: 0 0 12px; line-height: 1.7; font-size: 16px; }
+.dl-answer-box ul { margin: 0 0 12px; padding-left: 18px; }
+.dl-answer-box li { margin: 0 0 6px; line-height: 1.6; }
+.dl-answer-src { margin: 0; font-size: 13px; color: var(--muted); }

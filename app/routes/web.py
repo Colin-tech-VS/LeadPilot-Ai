@@ -285,6 +285,21 @@ def heatmap_record():
     return ("", 204)
 
 
+def _trade_price_facts(trade_key, lang="fr"):
+    """Answer-first price numbers for a trade landing page, or None.
+
+    Never raises: the price grid is a nice-to-have on these pages, so a parsing
+    problem must degrade to "no box" rather than to a 500.
+    """
+    try:
+        from app.services.price_reference import facts_for
+
+        return facts_for(trade_key, lang)
+    except Exception:  # noqa: BLE001
+        logging.getLogger(__name__).exception("price facts lookup failed")
+        return None
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     from app.utils.llm_discovery import render_robots_txt
@@ -318,6 +333,55 @@ def indexnow_key_file(key):
     return make_response(
         indexnow.key_file_body(), 200, {"Content-Type": "text/plain; charset=utf-8"}
     )
+
+
+@web_bp.route("/prix-artisans", methods=["GET"])
+def price_reference():
+    """Citable price reference — the highest-intent question in this market
+    ("combien ça coûte") answered as structured, attributable data."""
+    from app.services import price_reference as pr
+
+    lang = getattr(g, "lang", "fr")
+    return render_template(
+        "public/price_reference.html",
+        trades=pr.trade_prices(lang),
+        summary=pr.summary(lang),
+    )
+
+
+@web_bp.route("/api/public/prix.json", methods=["GET"])
+def public_prices_json():
+    """Machine-readable twin of /prix-artisans, for agents and reuse.
+
+    Open under CC BY 4.0 — the licence and the honest provenance travel with
+    the payload so anything quoting it can attribute it correctly.
+    """
+    from app.services import price_reference as pr
+    from app.utils.seo import canonical_url
+
+    lang = request.args.get("lang") or getattr(g, "lang", "fr")
+    payload = {
+        "name": "Fourchettes de prix des artisans en France — PilotCore",
+        "source": canonical_url("/prix-artisans"),
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "PilotCore — https://www.pilotcore.fr/prix-artisans",
+        "currency": "EUR",
+        "tax": "TTC",
+        "country": "FR",
+        "provenance": (
+            "Estimations produites par un modèle de langage à partir de la "
+            "connaissance publique du marché français. Fourchettes indicatives, "
+            "non issues de transactions mesurées. Seul un devis engage l'artisan."
+        ),
+        "summary": pr.summary(lang),
+        "trades": pr.trade_prices(lang),
+    }
+    response = jsonify(payload)
+    # Public, cacheable, and explicitly cross-origin readable so an agent or a
+    # third-party page can fetch it directly.
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 @web_bp.route("/sitemap.xml", methods=["GET"])
@@ -639,6 +703,7 @@ def artisan_trade_landing(trade):
         filters={"metier": trade, "ville": "", "q": ""},
         trade_guide=guide,
         local_ctx={"trade_key": trade, "trade_label": label, "city": None},
+        price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )
 
@@ -710,6 +775,7 @@ def artisan_trade_city_landing(trade, city):
             "nearby": nearby_cities(city_slug, limit=12),
         },
         trade_guide=guide,
+        price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )
 
@@ -812,6 +878,7 @@ def artisan_trade_department_landing(trade, dept):
             "postal_prefix": prefix,
         },
         trade_guide=guide,
+        price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )
 

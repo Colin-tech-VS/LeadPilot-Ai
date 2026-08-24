@@ -183,6 +183,30 @@
   <div class="container">
     <div class="dl-local-grid">
       <article class="dl-local-main">
+        {# Answer-first summary. Generative engines lift the shortest span that
+           fully answers the question, so the direct answer — with its numbers —
+           comes before the prose rather than after it. #}
+        {% if price_facts %}
+        <div class="dl-answer-box">
+          <h2>En bref</h2>
+          <p>
+            Un <strong>{{ local_ctx.trade_label|lower }}</strong>{% if local_ctx.city %} à {{ local_ctx.city }}{% endif %}
+            facture généralement entre <strong>{{ price_facts.min_eur }} €</strong> et
+            <strong>{{ price_facts.max_eur }} € TTC</strong> selon l'intervention.
+            {{ price_facts.first.label }} se situe entre {{ price_facts.first.min_eur }} € et
+            {{ price_facts.first.max_eur }} € TTC.
+          </p>
+          <ul>
+            <li>Devis écrit <strong>obligatoire au-delà de 150 € TTC</strong> (arrêté du 24 janvier 2017).</li>
+            <li>Interventions de nuit, dimanche et jours fériés : <strong>majoration de 50 % à 100 %</strong>.</li>
+            <li>Recherche et prise de rendez-vous <strong>gratuites et sans engagement</strong>.</li>
+          </ul>
+          <p class="dl-answer-src">
+            Fourchettes indicatives — <a href="{{ url_for('web.price_reference') }}#prix-{{ local_ctx.trade_key }}">méthode et référentiel complet</a>.
+          </p>
+        </div>
+        {% endif %}
+
         <h2>{{ _('local.why_title', trade=local_ctx.trade_label, city=_lc_city) }}</h2>
         <p>{{ _('local.why_body', trade=local_ctx.trade_label, city=_lc_city) }}</p>
         <ul class="dl-local-points">

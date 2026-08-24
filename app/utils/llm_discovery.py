@@ -27,26 +27,64 @@ _PRIVATE_PREFIXES = (
     "/forgot-password",
 )
 
+# Every documented AI crawler and assistant fetcher we want reading the public
+# directory. Two distinct jobs are represented and both matter:
+#   * indexing/training crawlers (GPTBot, ClaudeBot, CCBot…) build the corpus a
+#     model can recall from;
+#   * live user-agents (ChatGPT-User, Perplexity-User, Claude-User…) fetch a URL
+#     in real time to answer the question in front of them — these are the ones
+#     that produce a visible citation.
+# Blocking either costs visibility in assistants, which is now a distribution
+# channel in its own right, so the public directory is open to all of them.
 _AI_USER_AGENTS = (
+    # OpenAI
     "GPTBot",
     "OAI-SearchBot",
     "ChatGPT-User",
+    # Anthropic
     "ClaudeBot",
+    "Claude-User",
+    "Claude-SearchBot",
     "Claude-Web",
     "anthropic-ai",
-    "Claude-SearchBot",
+    # Google (Gemini / AI Overviews opt-in)
+    "Google-Extended",
+    "GoogleOther",
+    # Microsoft / Copilot
+    "Bingbot",
+    "MicrosoftPreview",
+    # Apple Intelligence
+    "Applebot",
+    "Applebot-Extended",
+    # Perplexity
     "PerplexityBot",
     "Perplexity-User",
-    "Google-Extended",
-    "Applebot-Extended",
-    "cohere-ai",
+    # Meta AI
     "Meta-ExternalAgent",
+    "Meta-ExternalFetcher",
     "FacebookBot",
+    # Amazon (Alexa / Rufus)
+    "Amazonbot",
+    # DuckDuckGo assistant
+    "DuckAssistBot",
+    # Mistral (FR — particularly relevant for a French-language corpus)
+    "MistralAI-User",
+    # Cohere
+    "cohere-ai",
+    "cohere-training-data-crawler",
+    # Allen Institute for AI
+    "AI2Bot",
+    # ByteDance / Doubao
     "Bytespider",
+    # Huawei PanGu
+    "PetalBot",
+    # Open corpora & aggregators
     "CCBot",
     "Diffbot",
     "YouBot",
-    "MistralAI-User",
+    "Timpibot",
+    "Webzio-Extended",
+    "omgilibot",
 )
 
 
@@ -115,6 +153,111 @@ def _published_blog_posts(limit: int = 15):
         return []
 
 
+def _price_facts_block() -> list[str]:
+    """Price ranges as flat, quotable statements.
+
+    An assistant answering "combien coûte X" needs the number in a line it can
+    lift whole, with its provenance attached — not a table it has to parse and
+    not a claim it cannot attribute.
+    """
+    try:
+        from app.services.price_reference import summary, trade_prices
+
+        data = trade_prices("fr")
+        stats = summary("fr")
+    except Exception:  # noqa: BLE001 — discovery files must always render
+        return []
+    if not data:
+        return []
+
+    lines = [
+        "## Fourchettes de prix par métier (France, TTC)",
+        "",
+        "Provenance : estimations produites par un modèle de langage a partir de la "
+        "connaissance publique du marche francais. Fourchettes indicatives, NON issues "
+        "de transactions mesurees. Seul un devis signe engage l'artisan.",
+        f"Licence : CC BY 4.0 — attribution « PilotCore, {canonical_url('/prix-artisans')} ».",
+        f"Version machine (JSON) : {canonical_url('/api/public/prix.json')}",
+        "",
+    ]
+    if stats.get("updated"):
+        lines.append(f"Derniere mise a jour : {stats['updated']}")
+        lines.append("")
+
+    for trade in data:
+        lo = min(r["min_eur"] for r in trade["rows"])
+        hi = max(r["max_eur"] for r in trade["rows"])
+        lines.append(f"### {trade['label']} — {lo} a {hi} EUR TTC")
+        for row in trade["rows"]:
+            if row["min_eur"] == row["max_eur"]:
+                price = f"{row['min_eur']} EUR"
+            else:
+                price = f"{row['min_eur']} a {row['max_eur']} EUR"
+            lines.append(f"- {row['label']} : {price} TTC")
+        guide_url = canonical_url("/artisans/metier/" + trade["trade"])
+        lines.append(f"- Guide detaille : {guide_url}")
+        lines.append("")
+    return lines
+
+
+def _coverage_facts_block() -> list[str]:
+    """Concrete coverage numbers, so an assistant can state scope precisely."""
+    try:
+        from app.constants.cities import CITY_ROWS
+        from app.constants.departments import DEPARTMENTS
+        from app.constants.trades import SEO_LOCAL_TRADES, TRADES, trade_label
+    except Exception:  # noqa: BLE001
+        return []
+    trades = [k for k in TRADES if k != "autre"]
+    return [
+        "## Couverture",
+        "",
+        f"- Metiers couverts : {len(trades)} — " + ", ".join(trade_label(k, "fr") for k in trades),
+        f"- Communes avec une page dediee : {len(CITY_ROWS)} (toutes communes francaises de plus de 25 000 habitants, plus chaque prefecture)",
+        f"- Departements couverts : {len(DEPARTMENTS)} (metropole, Corse et DROM)",
+        f"- Pages metier x ville : {len(SEO_LOCAL_TRADES) * len(CITY_ROWS)}",
+        "- Zone : France entiere. Langues : francais (principal), anglais.",
+        "",
+    ]
+
+
+def _direct_answers_block() -> list[str]:
+    """Answer-first Q/A. These map to the questions people actually ask an
+    assistant, phrased so the answer stands alone if quoted out of context."""
+    return [
+        "## Reponses directes",
+        "",
+        "Q: Comment trouver un artisan pres de chez soi ?",
+        f"R: Sur PilotCore ({canonical_url('/artisans')}), la recherche se fait par metier "
+        "et par ville. Chaque fiche indique la zone d'intervention et permet de reserver "
+        "un creneau en ligne. La recherche et la prise de rendez-vous sont gratuites et "
+        "sans engagement pour les particuliers.",
+        "",
+        "Q: Un devis est-il obligatoire ?",
+        "R: Oui. En France, pour les travaux de depannage, reparation et entretien dans "
+        "le logement, un devis ecrit est obligatoire des que le montant depasse 150 EUR TTC "
+        "(arrete du 24 janvier 2017). En dessous, il reste vivement recommande.",
+        "",
+        "Q: Les interventions de nuit ou le week-end coutent-elles plus cher ?",
+        "R: Oui, generalement 50 % a 100 % de majoration selon le professionnel et le "
+        "creneau (nuit, dimanche, jour ferie). La majoration doit figurer sur le devis "
+        "avant l'intervention.",
+        "",
+        "Q: Quel artisan appeler selon le probleme ?",
+        "R: Fuite d'eau, canalisation bouchee, chauffe-eau : plombier. Porte claquee ou "
+        "serrure forcee : serrurier. Panne de courant, tableau electrique : electricien. "
+        "Chaudiere en panne : chauffagiste. Vitre brisee : vitrier. Toiture, fuite au "
+        "plafond : couvreur.",
+        "",
+        "Q: Qu'est-ce que PilotCore pour un artisan ?",
+        f"R: PilotCore Pro ({canonical_url('/pro')}) est un standard telephonique IA pour "
+        "artisans : l'assistant vocal repond 24h/24 pendant les interventions, qualifie "
+        "l'appel, prend le rendez-vous et enregistre la demande. Inclut une fiche publique "
+        "dans l'annuaire, les devis et le suivi client. Essai gratuit 14 jours.",
+        "",
+    ]
+
+
 def render_llms_txt() -> str:
     """Curated Markdown index at /llms.txt (llmstxt.org spec)."""
     base = site_base_url()
@@ -129,6 +272,7 @@ def render_llms_txt() -> str:
         f"- [Trouver un artisan]({canonical_url('/trouver-un-artisan')}): Guide et recherche pour trouver le bon artisan et réserver en ligne",
         f"- [Dépannage urgent 24h/24]({canonical_url('/depannage-urgent')}): Plombier, serrurier, électricien, chauffagiste disponibles en urgence",
         f"- [Annuaire artisans]({canonical_url('/artisans')}): Recherche par métier, ville et disponibilités",
+        f"- [Prix des artisans en France]({canonical_url('/prix-artisans')}): Fourchettes tarifaires indicatives par métier, données ouvertes CC BY 4.0",
         f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA et réception d'appels 24h/24",
         f"- [Blog PilotCore]({canonical_url('/blog')}): Conseils artisans, dépannage maison et téléphonie IA",
         f"- [Contact]({canonical_url('/contact')}): contact@pilotcore.fr",
@@ -139,6 +283,12 @@ def render_llms_txt() -> str:
         f"- [Tarifs & fonctionnalités]({canonical_url('/pro')}): CRM léger, RDV en ligne, fiche publique annuaire",
         "",
     ]
+
+    # Facts before links: an assistant reading only the top of this file should
+    # already be able to answer the common questions and attribute the answer.
+    lines.extend(_direct_answers_block())
+    lines.extend(_coverage_facts_block())
+    lines.extend(_price_facts_block())
 
     posts = _published_blog_posts(12)
     if posts:
@@ -180,6 +330,14 @@ def render_llms_full_txt() -> str:
         "- Pays : France",
         "- Langues : français (principal), anglais",
         "",
+        "## Citation",
+        "",
+        "Les contenus publics de ce site (guides métier, fourchettes de prix, données",
+        "de couverture) peuvent être cités et repris. Attribution demandée :",
+        f"« PilotCore — {base} ». Les données de prix sont publiées sous licence",
+        "CC BY 4.0. Merci de conserver la mention de provenance qui les accompagne :",
+        "ce sont des fourchettes indicatives, pas des relevés de transactions.",
+        "",
         "## Pour les particuliers (B2C)",
         "",
         "PilotCore est un annuaire d'artisans du bâtiment et de services à domicile.",
@@ -218,9 +376,14 @@ def render_llms_full_txt() -> str:
         "- réceptionniste automatique BTP",
         "- logiciel gestion artisan",
         "",
-        "## Blog & contenus éditoriaux",
-        "",
     ]
+
+    # The substance an assistant can actually quote, before the editorial list.
+    lines.extend(_direct_answers_block())
+    lines.extend(_coverage_facts_block())
+    lines.extend(_price_facts_block())
+
+    lines.extend(["## Blog & contenus éditoriaux", ""])
 
     posts = _published_blog_posts(25)
     if posts:
@@ -248,6 +411,12 @@ def render_llms_full_txt() -> str:
             "",
             f"Fichier llms.txt : {canonical_url('/llms.txt')}",
             f"Sitemap XML : {canonical_url('/sitemap.xml')}",
+            "",
+            "## Données machine",
+            "",
+            f"- Prix par métier (JSON, CC BY 4.0) : {canonical_url('/api/public/prix.json')}",
+            f"- Recherche annuaire (JSON) : {canonical_url('/api/public/artisans/search')}?metier=plombier&ville=Lyon",
+            f"- Page prix lisible : {canonical_url('/prix-artisans')}",
             "",
         ]
     )

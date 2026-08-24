@@ -1,0 +1,153 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'directory' %}
+
+{% set _t = "Prix des artisans en France 2026 — fourchettes tarifaires par métier" %}
+{% set _d = "Fourchettes de prix indicatives pour " ~ summary.trades_covered ~ " métiers artisanaux en France : plomberie, serrurerie, électricité, chauffage, toiture… " ~ summary.price_points ~ " tarifs d'interventions courantes, de " ~ summary.min_eur ~ " € à " ~ summary.max_eur ~ " € TTC. Données ouvertes, réutilisables avec citation." %}
+{% set _k = "prix artisan, tarif plombier, tarif serrurier, prix électricien, combien coûte un artisan, tarif horaire artisan, prix dépannage, devis artisan" %}
+{% set _path = "/prix-artisans" %}
+
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-price-reference{% endblock %}
+
+{% block meta %}
+{% set page_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Dataset",
+      "@id": {{ (canonical_url(_path) ~ '#dataset')|tojson }},
+      "name": "Fourchettes de prix des artisans en France — PilotCore",
+      "description": {{ _d|tojson }},
+      "url": {{ canonical_url(_path)|tojson }},
+      "inLanguage": "fr-FR",
+      "spatialCoverage": { "@type": "Country", "name": "France" },
+      "keywords": ["prix artisan", "tarif plombier", "tarif serrurier", "prix électricien", "BTP", "dépannage"],
+      "creator": { "@id": {{ (site_base_url() ~ '/#organization')|tojson }} },
+      "publisher": { "@id": {{ (site_base_url() ~ '/#organization')|tojson }} },
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "isAccessibleForFree": true,
+      {% if summary.updated %}"dateModified": {{ summary.updated|tojson }},{% endif %}
+      "measurementTechnique": "Estimation par modèle de langage à partir de la connaissance publique du marché français — fourchettes indicatives, non issues de transactions mesurées.",
+      "variableMeasured": [
+        { "@type": "PropertyValue", "name": "Prix minimum d'intervention", "unitText": "EUR" },
+        { "@type": "PropertyValue", "name": "Prix maximum d'intervention", "unitText": "EUR" }
+      ],
+      "distribution": [
+        {
+          "@type": "DataDownload",
+          "encodingFormat": "application/json",
+          "contentUrl": {{ canonical_url('/api/public/prix.json')|tojson }}
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {%- for t in trades %}
+        {
+          "@type": "Question",
+          "name": {{ ("Combien coûte un " ~ t.label|lower ~ " en France ?")|tojson }},
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": {{ (t.label ~ " : les interventions courantes vont de " ~ t.rows|map(attribute='min_eur')|min ~ " € à " ~ t.rows|map(attribute='max_eur')|max ~ " € TTC. " ~ (t.rows|first).label ~ " se situe entre " ~ (t.rows|first).min_eur ~ " € et " ~ (t.rows|first).max_eur ~ " € TTC. Fourchettes indicatives ; seul un devis engage le professionnel.")|tojson }}
+          }
+        }{{ "," if not loop.last }}
+        {%- endfor %}
+      ]
+    }
+  ]
+}
+{% endset %}
+{{ seo_meta(_t, _d, _path, _k, 'website', None, 'index, follow', page_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="pr-hero">
+  <div class="container">
+    <nav class="dl-breadcrumb" aria-label="Fil d'ariane">
+      <a href="{{ url_for('web.client_home') }}">Accueil</a>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">Prix des artisans</span>
+    </nav>
+    <h1>Prix des artisans en France</h1>
+    <p class="pr-lead">
+      Fourchettes tarifaires indicatives pour {{ summary.price_points }} interventions
+      courantes, réparties sur {{ summary.trades_covered }} métiers du bâtiment et du
+      dépannage. Les montants sont exprimés en euros TTC et vont de
+      {{ summary.min_eur }} € à {{ summary.max_eur }} €.
+    </p>
+  </div>
+</section>
+
+<section class="pr-body">
+  <div class="container">
+
+    {# Answer-first summary: the block an assistant lifts to answer directly. #}
+    <div class="pr-keyfacts">
+      <h2>En bref</h2>
+      <ul>
+        <li><strong>{{ summary.trades_covered }} métiers</strong> couverts : {{ trades|map(attribute='label')|join(', ') }}.</li>
+        <li><strong>{{ summary.price_points }} fourchettes de prix</strong> d'interventions courantes, de {{ summary.min_eur }} € à {{ summary.max_eur }} € TTC.</li>
+        <li>Un <strong>devis reste obligatoire</strong> au-delà de 150 € TTC pour les travaux de dépannage, réparation et entretien (arrêté du 24 janvier 2017).</li>
+        <li>Les interventions <strong>de nuit, dimanche et jours fériés</strong> sont généralement majorées de 50 % à 100 %.</li>
+      </ul>
+    </div>
+
+    <div class="pr-provenance">
+      <h2>Méthode et provenance</h2>
+      <p>
+        Ces fourchettes sont des <strong>estimations produites par un modèle de langage</strong>
+        à partir de la connaissance publique du marché français. Elles ne sont
+        <strong>pas issues de transactions mesurées</strong> sur la plateforme et ne constituent
+        ni un barème, ni un engagement de prix. Elles servent d'ordre de grandeur pour
+        situer un devis reçu.
+      </p>
+      <p>
+        Le prix réel dépend de la région, de l'urgence, de l'accessibilité du chantier,
+        de l'état de l'installation et du matériel posé. Seul le devis signé engage
+        l'artisan.
+      </p>
+      <p class="pr-cite">
+        <strong>Réutilisation :</strong> ces données sont librement réutilisables sous licence
+        <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" rel="license noopener" target="_blank">CC BY 4.0</a>,
+        avec attribution à « PilotCore — {{ canonical_url('/prix-artisans') }} ».
+        Version machine : <a href="{{ url_for('web.public_prices_json') }}"><code>/api/public/prix.json</code></a>.
+        {% if summary.updated %}Dernière mise à jour : {{ summary.updated }}.{% endif %}
+      </p>
+    </div>
+
+    {% for t in trades %}
+    <div class="pr-trade" id="prix-{{ t.trade }}">
+      <h2>Prix d'un {{ t.label|lower }} — {{ t.rows|map(attribute='min_eur')|min }} € à {{ t.rows|map(attribute='max_eur')|max }} € TTC</h2>
+      <div class="pr-table-wrap">
+        <table class="trade-price-grid">
+          <caption>{{ t.label }} — fourchettes indicatives TTC{% if t.updated %} (maj. {{ t.updated }}){% endif %}</caption>
+          <thead>
+            <tr><th scope="col">Intervention</th><th scope="col">Fourchette TTC</th></tr>
+          </thead>
+          <tbody>
+            {% for r in t.rows %}
+            <tr>
+              <th scope="row">{{ r.label }}</th>
+              <td>{% if r.min_eur == r.max_eur %}{{ r.min_eur }} €{% else %}{{ r.min_eur }} € – {{ r.max_eur }} €{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="pr-trade-links">
+        <a href="{{ url_for('web.artisan_trade_landing', trade=t.trade) }}">Guide complet {{ t.label|lower }}</a>
+        ·
+        <a href="{{ url_for('web.artisan_directory') }}?metier={{ t.trade }}">Trouver un {{ t.label|lower }}</a>
+      </p>
+    </div>
+    {% endfor %}
+
+    {% if not trades %}
+    <p class="pr-empty">Le référentiel de prix est en cours de constitution.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -15,13 +15,27 @@ from __future__ import annotations
 
 import re
 
-# A price cell: "80 € – 150 €", "80€-150€", "à partir de 90 €", "150 €"
-_MONEY = r"(\d[\d\s ]{0,7}(?:[.,]\d{1,2})?)\s*(?:€|EUR)"
-_RANGE_RE = re.compile(_MONEY + r"\s*(?:–|—|-|à|to)\s*" + _MONEY, re.IGNORECASE)
-_SINGLE_RE = re.compile(_MONEY)
+# Two shapes show up in generated grids and both are legitimate:
+#   "80 € – 150 €"  — the currency repeated in every cell
+#   "80 – 150"      — bare numbers, with "Prix TTC (€)" in the column header
+# Parsing bare numbers unconditionally would happily read a surface area or a
+# year as a price, so that form is only accepted when the table's own caption
+# or header row announces that the column holds euros.
+_NUM = r"(\d[\d\s\u00a0\u202f]{0,9}?(?:[.,]\d{1,2})?)"
+_CUR = r"\s*(?:\u20ac|EUR)"
+_SEP = r"\s*(?:\u2013|\u2014|-|\u00e0|to)\s*"
+_RANGE_CUR_RE = re.compile(_NUM + _CUR + _SEP + _NUM + _CUR, re.IGNORECASE)
+_SINGLE_CUR_RE = re.compile(_NUM + _CUR, re.IGNORECASE)
+_RANGE_BARE_RE = re.compile(r"^\s*" + _NUM + _SEP + _NUM + r"\s*(?:\u20ac|EUR)?\s*$", re.IGNORECASE)
+_SINGLE_BARE_RE = re.compile(
+    r"^\s*(?:\u00e0 partir de\s*|d\u00e8s\s*|env\.?\s*)?" + _NUM + r"\s*(?:\u20ac|EUR)?\s*$",
+    re.IGNORECASE,
+)
+_CURRENCY_HINT_RE = re.compile(r"\u20ac|EUR|\bTTC\b|\bHT\b|\bprix\b|\btarif\b", re.IGNORECASE)
 _TAG_RE = re.compile(r"<[^>]+>")
 _ROW_RE = re.compile(r"<tr[^>]*>(.*?)</tr>", re.IGNORECASE | re.DOTALL)
 _CELL_RE = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.IGNORECASE | re.DOTALL)
+_CAPTION_RE = re.compile(r"<caption[^>]*>(.*?)</caption>", re.IGNORECASE | re.DOTALL)
 
 
 def _text(html: str) -> str:
@@ -39,27 +53,48 @@ def _to_int(raw: str) -> int | None:
 def parse_price_rows(price_html: str | None) -> list[dict]:
     """Rows of ``{label, min_eur, max_eur}`` from a guide's price table.
 
-    Header rows and anything without a euro amount are skipped, so a model that
-    drifts on table shape degrades to fewer rows instead of bogus ones.
+    Rows without a readable amount are skipped rather than guessed at, so a
+    model that drifts on table shape yields fewer rows instead of wrong ones.
     """
     if not price_html:
         return []
+
+    # Does the table itself say the numeric column is money? Caption plus the
+    # header row is enough, and keeps bare-number parsing from running loose.
+    caption = " ".join(_text(c) for c in _CAPTION_RE.findall(price_html))
+    header = ""
+    for row_html in _ROW_RE.findall(price_html):
+        if "<th" in row_html.lower():
+            header = " ".join(_text(c) for c in _CELL_RE.findall(row_html))
+            break
+    allow_bare = bool(_CURRENCY_HINT_RE.search(caption + " " + header))
+
     out: list[dict] = []
     for row_html in _ROW_RE.findall(price_html):
         cells = [_text(c) for c in _CELL_RE.findall(row_html)]
         if len(cells) < 2:
             continue
-        label, value = cells[0], " ".join(cells[1:])
-        if not label or "€" not in value and "EUR" not in value.upper():
+        label, value = cells[0], " ".join(cells[1:]).strip()
+        if not label or not value:
             continue
-        m = _RANGE_RE.search(value)
+
+        lo = hi = None
+        m = _RANGE_CUR_RE.search(value)
         if m:
             lo, hi = _to_int(m.group(1)), _to_int(m.group(2))
         else:
-            s = _SINGLE_RE.search(value)
-            if not s:
-                continue
-            lo = hi = _to_int(s.group(1))
+            m = _SINGLE_CUR_RE.search(value)
+            if m:
+                lo = hi = _to_int(m.group(1))
+            elif allow_bare:
+                m = _RANGE_BARE_RE.match(value)
+                if m:
+                    lo, hi = _to_int(m.group(1)), _to_int(m.group(2))
+                else:
+                    m = _SINGLE_BARE_RE.match(value)
+                    if m:
+                        lo = hi = _to_int(m.group(1))
+
         if lo is None or hi is None:
             continue
         if lo > hi:

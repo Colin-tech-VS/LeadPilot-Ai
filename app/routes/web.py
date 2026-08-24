@@ -741,12 +741,19 @@ def artisan_directory():
         lang=lang,
         result_count=len(artisans),
     )
+    from app.services import registry_import as _ri
+
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
         trades=trades,
         seo=seo,
         filters={"metier": trade or "", "ville": city or "", "q": q or ""},
+        registry_listings=_ri.search_listings(
+            trade_key=trade if trade in TRADES else None, city=city, limit=12
+        ),
+        registry_area=city or None,
+        registry_trade_label=trade_label(trade, lang) if trade in TRADES else None,
     )
 
 
@@ -757,6 +764,7 @@ def artisan_trade_landing(trade):
 
     from app.constants.cities import TOP_CITIES
     from app.constants.trades import TRADES, trade_choices, trade_label
+    from app.services import registry_import as _ri_pillar
     from app.services import trade_guides
     from app.services.artisan_directory import list_public_artisans
     from app.utils.indexability import trade_pillar_robots
@@ -788,6 +796,7 @@ def artisan_trade_landing(trade):
         filters={"metier": trade, "ville": "", "q": ""},
         trade_guide=guide,
         local_ctx={"trade_key": trade, "trade_label": label, "city": None},
+        registry_listings=_ri_pillar.search_listings(trade_key=trade, limit=12),
         price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )
@@ -970,6 +979,9 @@ def artisan_trade_department_landing(trade, dept):
             "postal_prefix": prefix,
         },
         trade_guide=guide,
+        registry_listings=registry_import.search_listings(
+            trade_key=trade, dept_code=code, limit=12
+        ),
         price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )

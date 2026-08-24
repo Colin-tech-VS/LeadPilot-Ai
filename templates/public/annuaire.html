@@ -5,6 +5,8 @@
 {% set nav_active = 'directory' %}
 
 {% set seo = seo|default({}) %}
+{% set registry_trade_label = registry_trade_label|default(none) %}
+{% set registry_area = registry_area|default(none) %}
 {% set _seo_title = seo.title or _('directory.meta_title') %}
 {% set _seo_desc = seo.description or _('directory.meta_description') %}
 {% set _seo_keywords = seo.keywords or _('client.meta_keywords') %}
@@ -83,18 +85,20 @@
 {% endblock %}
 
 {% block content %}
-{% if local_ctx %}
-<nav class="dl-breadcrumb" aria-label="Fil d'ariane">
-  <div class="container">
-    <a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a>
-    <span aria-hidden="true">›</span>
-    <a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a>
-    <span aria-hidden="true">›</span>
-    <span aria-current="page">{{ seo.h1 }}</span>
-  </div>
-</nav>
-{% endif %}
 <section class="dl-hero dl-hero--compact">
+  {% if local_ctx %}
+  {# Inside the tinted hero rather than above it, so the page starts on the
+     coloured band instead of a stray white strip. #}
+  <nav class="dl-breadcrumb dl-breadcrumb--hero" aria-label="Fil d'ariane">
+    <div class="container">
+      <a href="{{ url_for('web.client_home') }}">{{ _('profile.breadcrumb_home') }}</a>
+      <span aria-hidden="true">›</span>
+      <a href="{{ url_for('web.artisan_directory') }}">{{ _('profile.breadcrumb_directory') }}</a>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">{{ seo.h1 }}</span>
+    </div>
+  </nav>
+  {% endif %}
   <div class="container dl-hero-inner">
     <h1 class="dl-hero-title dl-hero-title--sm">{{ seo.h1 or _('directory.hero_title') }}</h1>
     {% if local_ctx %}
@@ -175,17 +179,31 @@
        implied relationship with PilotCore. Each one can be claimed by its owner
        or delisted on request. #}
     <div class="dl-registry">
+      {# The block appears on the main directory as well as on the trade, city
+         and department pages, so the heading is built from whatever context is
+         actually available rather than assuming a town. #}
+      {% set _n = registry_listings|length %}
+      {% set _plural = 's' if _n > 1 else '' %}
+      {# Trade label comes from local_ctx on the landing pages and from the
+         active filter on the main directory. Without one we fall back to
+         "entreprise", which is feminine — hence the separate agreement. #}
+      {% set _trade_label = (local_ctx.trade_label if local_ctx and local_ctx.trade_label
+                             else registry_trade_label) %}
+      {% set _what = (_trade_label|lower ~ _plural) if _trade_label else ('entreprise' ~ _plural) %}
+      {% set _agreed = ('enregistrée' ~ _plural) if not _trade_label else ('enregistré' ~ _plural) %}
+      {% set _where = local_ctx.city if (local_ctx and local_ctx.city)
+                      else (registry_area or none) %}
       <div class="dl-registry-head">
         <h2>
-          {{ registry_listings|length }}
-          {{ local_ctx.trade_label|lower }}{{ 's' if registry_listings|length > 1 }}
-          enregistré{{ 's' if registry_listings|length > 1 }} à {{ local_ctx.city }}
+          {{ _n }} {{ _what }} {{ _agreed }}
+          {%- if _where %} à {{ _where }}{% else %} au registre des entreprises{% endif %}
         </h2>
         <p class="dl-registry-sub">
-          Entreprises inscrites au registre officiel des entreprises pour ce métier
-          et cette commune. Ces fiches ne sont pas encore revendiquées&nbsp;: leurs
-          coordonnées et disponibilités ne sont pas publiées tant que le
-          professionnel ne les a pas renseignées lui-même.
+          Entreprises inscrites au registre officiel des entreprises
+          {%- if local_ctx and local_ctx.trade_label %} pour ce métier{% endif %}
+          {%- if _where %} et cette zone{% endif %}. Ces fiches ne sont pas encore
+          revendiquées&nbsp;: leurs coordonnées et disponibilités ne sont pas publiées
+          tant que le professionnel ne les a pas renseignées lui-même.
         </p>
       </div>
 

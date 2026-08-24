@@ -2052,3 +2052,7 @@ html {
 .cl-form small { font-weight: 400; color: var(--muted); }
 .cl-legal { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
 .cl-error { padding: 12px 14px; border-radius: 10px; background: #fee2e2; color: #991b1b; margin: 0 0 16px; font-size: 14px; }
+
+/* Breadcrumb sitting inside the tinted hero band */
+.dl-breadcrumb--hero { padding: 0 0 14px; }
+.dl-breadcrumb--hero .container { justify-content: flex-start; }

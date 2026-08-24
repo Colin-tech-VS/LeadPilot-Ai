@@ -226,6 +226,43 @@ def listings_for(trade_key: str, city_slug: str, limit: int = 12) -> list[Regist
     )
 
 
+def search_listings(
+    *,
+    trade_key: str | None = None,
+    city: str | None = None,
+    city_slug: str | None = None,
+    dept_code: str | None = None,
+    limit: int = 12,
+) -> list[RegistryListing]:
+    """Public, unclaimed listings matching an optional trade and area.
+
+    Backs the main directory and the trade/department landing pages, where the
+    filters arrive as free text rather than as a resolved slug.
+    """
+    from app.constants.cities import city_slugify
+
+    query = RegistryListing.query.filter_by(status=STATUS_LISTED)
+    if trade_key:
+        query = query.filter(RegistryListing.trade_key == trade_key)
+    if dept_code:
+        query = query.filter(RegistryListing.dept_code == dept_code)
+    if city_slug:
+        query = query.filter(RegistryListing.city_slug == city_slug)
+    elif city:
+        term = city.strip()
+        slug = city_slugify(term)
+        # A postal code typed into the city box is a common shortcut.
+        if term.isdigit():
+            query = query.filter(RegistryListing.postal_code.startswith(term))
+        elif slug:
+            query = query.filter(RegistryListing.city_slug == slug)
+    return (
+        query.order_by(RegistryListing.date_creation.asc().nullslast())
+        .limit(limit)
+        .all()
+    )
+
+
 def count_for(trade_key: str, city_slug: str) -> int:
     return RegistryListing.query.filter_by(
         trade_key=trade_key, city_slug=city_slug, status=STATUS_LISTED

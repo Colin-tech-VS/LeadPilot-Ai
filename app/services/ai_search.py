@@ -173,16 +173,22 @@ def parse_query(query: str) -> dict:
     return _fallback_parse(query)
 
 
-def ai_search(query: str, lang: str = "fr", limit: int = 48) -> dict:
+def ai_search(query: str, lang: str = "fr", limit: int = 48, city: str | None = None) -> dict:
     """Natural-language directory search. Returns filters + matching artisans."""
+    from app.services.address_lookup import city_from_place_query
+
     parsed = parse_query(query)
     trade = parsed.get("trade")
-    city = parsed.get("city")
+    explicit_city = city_from_place_query(city) if city else ""
+    inferred_city = parsed.get("city")
+    city = explicit_city or inferred_city
 
     payload = search_public_artisans(trade=trade, city=city, q=None, limit=limit, lang=lang)
 
-    # If a trade+city combo returns nothing, relax to trade-only (still useful).
-    if payload["count"] == 0 and trade and city:
+    # If a trade+city combo returns nothing, relax to trade-only — but never
+    # drop a city the visitor typed in the « Où » field: that reads as the
+    # search ignoring their location.
+    if payload["count"] == 0 and trade and city and not explicit_city:
         relaxed = search_public_artisans(trade=trade, city=None, q=None, limit=limit, lang=lang)
         if relaxed["count"]:
             relaxed["relaxed"] = True

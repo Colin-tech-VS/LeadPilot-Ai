@@ -187,6 +187,9 @@ def autocomplete(
     }
     if kind == "city":
         payload["includedPrimaryTypes"] = _CITY_TYPES
+    # kind "address" / "where": no type filter, so streets, postcodes and
+    # communes all appear — the directory « Où » field is a place, not a
+    # commune-only box.
     # The session token ties these keystrokes to the Place Details call that
     # follows, so Google bills the whole interaction once.
     if session_token:
@@ -219,6 +222,10 @@ def autocomplete(
                 "id": pred.get("placeId") or "",
                 "value": value,
                 "label": label,
+                "main": main,
+                "secondary": secondary[: -len(", France")].rstrip(", ")
+                if secondary.endswith(", France")
+                else secondary,
                 "postcode": "",
             }
         )

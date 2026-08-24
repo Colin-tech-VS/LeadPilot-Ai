@@ -86,3 +86,43 @@ def test_trade_and_city_filters_still_work(client, listings):
     """The q filter must not disturb the existing trade/town path."""
     payload = client.get("/api/public/artisans/search?metier=serrurier&ville=dax").get_json()
     assert _cities(payload) == ["Dax"]
+
+
+def test_street_address_in_ville_still_matches_the_town(client, listings):
+    """Places fills « Où » with a full street line; search must use the commune."""
+    payload = client.get(
+        "/api/public/artisans/search?ville=" + "12%20Rue%20de%20la%20Paix,%2040100%20Dax"
+    ).get_json()
+    assert _cities(payload) == ["Dax"]
+
+
+def test_ban_style_street_in_ville_still_matches_the_town(client, listings):
+    """BAN labels are space-separated; they must still resolve to the commune."""
+    payload = client.get(
+        "/api/public/artisans/search?ville=" + "12%20Rue%20de%20la%20Paix%2040100%20Dax"
+    ).get_json()
+    assert _cities(payload) == ["Dax"]
+
+
+def test_ai_search_keeps_the_ville_field(client, listings):
+    """A besoin like « fuite » plus an explicit town must not drop the town."""
+    payload = client.post(
+        "/api/public/artisans/ai-search",
+        json={"q": "j'ai une fuite d'eau", "ville": "Chaville"},
+    ).get_json()
+    assert payload["understood"]["city"] == "Chaville"
+    assert payload["understood"]["trade"] == "plombier"
+    assert _cities(payload) == ["Chaville"]
+
+
+def test_ai_search_extracts_city_from_a_ban_address(client, listings):
+    payload = client.post(
+        "/api/public/artisans/ai-search",
+        json={
+            "q": "j'ai une fuite d'eau",
+            "ville": "12 Rue de la Paix 92370 Chaville",
+        },
+    ).get_json()
+    assert payload["understood"]["city"] == "Chaville"
+    assert payload["understood"]["trade"] == "plombier"
+    assert _cities(payload) == ["Chaville"]

@@ -210,6 +210,34 @@ def test_lookup_falls_back_to_ban_when_google_is_down(places_app, monkeypatch):
     assert out["suggestions"][0]["postcode"] == "92370"
 
 
+def test_ban_address_is_formatted_like_places(app, monkeypatch):
+    """Without a Places key the fallback must still look like a place line
+    (street, postcode, commune) so the directory can extract the town."""
+    app.config["GOOGLE_PLACES_API_KEY"] = ""
+    ban = {
+        "features": [
+            {
+                "properties": {
+                    "label": "12 Rue de la Paix 50100 Cherbourg-en-Cotentin",
+                    "name": "12 Rue de la Paix",
+                    "city": "Cherbourg-en-Cotentin",
+                    "postcode": "50100",
+                },
+                "geometry": {"coordinates": [-1.62, 49.64]},
+            }
+        ]
+    }
+    monkeypatch.setattr(address_lookup.requests, "get", lambda *a, **k: _Resp(ban))
+    with app.app_context():
+        out = address_lookup.suggest("12 rue de la paix", kind="address")
+    assert out["provider"] == "ban"
+    sug = out["suggestions"][0]
+    assert sug["value"] == "12 Rue de la Paix, 50100 Cherbourg-en-Cotentin"
+    assert sug["city"] == "Cherbourg-en-Cotentin"
+    assert sug["main"] == "12 Rue de la Paix"
+    assert sug["secondary"] == "50100 Cherbourg-en-Cotentin"
+
+
 def test_lookup_uses_google_when_available(places_app, monkeypatch):
     monkeypatch.setattr(
         google_places.requests, "post", lambda *a, **k: _Resp(AUTOCOMPLETE_OK)
@@ -230,6 +258,24 @@ def test_short_query_never_calls_a_provider(places_app, monkeypatch):
 
 
 # ---------------------------------------------------------------------- routes
+
+
+def test_city_from_place_query_extracts_the_commune():
+    from app.services.address_lookup import city_from_place_query
+
+    assert city_from_place_query("Lyon") == "Lyon"
+    assert city_from_place_query("75015") == "75015"
+    assert city_from_place_query("Chaville (92370)") == "Chaville"
+    assert city_from_place_query("12 Rue de la Paix, 75002 Paris, France") == "Paris"
+    assert city_from_place_query("Rue de la République, Lyon") == "Lyon"
+    # BAN's native label has no commas — that used to be returned as the "city".
+    assert city_from_place_query("12 Rue de la Paix 50100 Cherbourg-en-Cotentin") == (
+        "Cherbourg-en-Cotentin"
+    )
+    assert city_from_place_query("12 Rue de la Paix, 50100 Cherbourg-en-Cotentin") == (
+        "Cherbourg-en-Cotentin"
+    )
+    assert city_from_place_query("12 rue de la paix") == ""
 
 
 def test_autocomplete_endpoint_returns_suggestions(places_app, client, monkeypatch):
@@ -263,7 +309,7 @@ def test_city_search_fields_are_wired_for_places(places_app, client):
     for path in ("/", "/artisans", "/trouver-un-artisan", "/depannage-urgent"):
         html = client.get(path).data.decode()
         assert "address-autocomplete.js" in html, path
-        assert "data-places-city" in html, path
+        assert "data-places-where" in html, path
 
 
 def test_api_key_is_never_rendered_into_a_page(places_app, client):
@@ -286,4 +332,7 @@ def test_autocomplete_js_calls_our_origin_not_google():
     assert "document.body.appendChild" in js
     assert "getBoundingClientRect" in js
     assert "input.places-city" in js
+    assert "data-places-where" in js
     assert "client_address" in js
+    assert "commitOpenSuggestion" in js
+    assert "ac-item-main" in js

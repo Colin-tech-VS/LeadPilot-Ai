@@ -6,13 +6,13 @@
   var lang = document.documentElement.lang === "en" ? "en" : "fr";
   var T = {
     fr: {
-      install: "📲 Installer l'application",
+      install: "Installer l'application",
       iosHint:
         "Pour installer : appuyez sur Partager puis « Sur l'écran d'accueil ».",
       close: "Fermer",
     },
     en: {
-      install: "📲 Install the app",
+      install: "Install the app",
       iosHint: 'To install: tap Share, then "Add to Home Screen".',
       close: "Close",
     },

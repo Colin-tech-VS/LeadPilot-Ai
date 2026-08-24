@@ -20,8 +20,11 @@
 (function () {
   "use strict";
 
+  var WHERE_SEL = [
+    "input[data-places-where]",
+    "input.places-where",
+  ].join(", ");
   var CITY_SEL = [
-    'input[name="ville"]',
     'input[name="city"]',
     "input[data-places-city]",
     "input.places-city",
@@ -101,7 +104,9 @@
     function fill(form, name, value) {
       if (!form || !value) return;
       var f = form.querySelector('input[name="' + name + '"]');
-      if (f && !f.value) f.value = value;
+      if (!f) return;
+      if (f === input) return;
+      if (!f.value) f.value = value;
     }
 
     function applyDetail(form, d) {
@@ -118,6 +123,7 @@
       var it = items[i];
       if (!it) return;
       input.value = it.value;
+      if (it.city) input.dataset.placeCity = it.city;
       var form = input.closest("form");
       applyDetail(form, it);
       if (form && it.id && !it.postcode) {
@@ -155,7 +161,14 @@
       list.innerHTML = "";
       items.forEach(function (it, i) {
         var li = el("li", "ac-item" + (i === active ? " is-active" : ""));
-        li.textContent = it.label;
+        var main = el("span", "ac-item-main");
+        main.textContent = it.main || it.label;
+        li.appendChild(main);
+        if (it.secondary) {
+          var sub = el("span", "ac-item-secondary");
+          sub.textContent = it.secondary;
+          li.appendChild(sub);
+        }
         li.setAttribute("role", "option");
         li.setAttribute("id", listId + "-opt-" + i);
         li.setAttribute("aria-selected", i === active ? "true" : "false");
@@ -217,9 +230,9 @@
         e.preventDefault();
         active = (active - 1 + items.length) % items.length;
         draw();
-      } else if (e.key === "Enter" && active >= 0) {
+      } else if (e.key === "Enter" && !list.hidden && items.length) {
         e.preventDefault();
-        choose(active);
+        choose(active >= 0 ? active : 0);
       } else if (e.key === "Escape") {
         close();
       }
@@ -228,6 +241,25 @@
     input.addEventListener("blur", function () {
       setTimeout(close, 150);
     });
+
+    // Clicking « Rechercher » focuses the button first, which blurs the
+    // field and used to close the list *without* applying a suggestion.
+    // The form then searched the raw street ("12 rue de la paix") and
+    // dropped the town. Commit the highlighted / first prediction, like
+    // Google Places, before the submit handler reads the value.
+    function commitOpenSuggestion() {
+      if (!list.hidden && items.length) {
+        choose(active >= 0 ? active : 0);
+      }
+    }
+    var form = input.closest("form");
+    if (form) {
+      form.addEventListener("submit", commitOpenSuggestion, true);
+      var submitBtn = form.querySelector('[type="submit"]');
+      if (submitBtn) {
+        submitBtn.addEventListener("mousedown", commitOpenSuggestion);
+      }
+    }
 
     window.addEventListener(
       "scroll",
@@ -242,7 +274,11 @@
   }
 
   function init() {
+    document.querySelectorAll(WHERE_SEL).forEach(function (i) {
+      attach(i, "address");
+    });
     document.querySelectorAll(CITY_SEL).forEach(function (i) {
+      if (i.dataset.acBound) return;
       attach(i, "city");
     });
     document.querySelectorAll(ADDR_SEL).forEach(function (i) {

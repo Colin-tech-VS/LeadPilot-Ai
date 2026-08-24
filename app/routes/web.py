@@ -1152,12 +1152,14 @@ def artisan_directory_ai_search():
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         query = (data.get("q") or data.get("query") or "").strip()
+        city = (data.get("ville") or data.get("city") or "").strip() or None
     else:
         query = (request.args.get("q") or "").strip()
+        city = (request.args.get("ville") or "").strip() or None
     if not query:
         return jsonify({"error": "query required"}), 422
     lang = getattr(g, "lang", "fr")
-    return jsonify(ai_search(query, lang=lang))
+    return jsonify(ai_search(query, lang=lang, city=city))
 
 
 @web_bp.route("/artisans/<slug>", methods=["GET"])

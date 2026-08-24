@@ -47,16 +47,16 @@
   padding: clamp(28px, 5vw, 56px);
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(145deg, #0f766e 0%, #0d9488 35%, #1b57e0 100%);
+  background: #1A2332;
 }
 
 .auth-pro__mesh {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.14), transparent 42%),
-    radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.25), transparent 45%);
-  animation: authMeshShift 12s ease-in-out infinite alternate;
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 42%),
+    radial-gradient(circle at 80% 70%, rgba(246, 241, 230, 0.08), transparent 45%);
+  animation: none;
 }
 
 @keyframes authMeshShift {
@@ -65,11 +65,7 @@
 }
 
 .auth-pro__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.55;
-  animation: authOrbFloat 9s ease-in-out infinite;
+  display: none;
 }
 
 .auth-pro__orb--1 {
@@ -83,7 +79,7 @@
 .auth-pro__orb--2 {
   width: 220px;
   height: 220px;
-  background: rgba(6, 182, 212, 0.35);
+  background: rgba(26, 35, 50, 0.35);
   bottom: 10%;
   left: -40px;
   animation-delay: -3s;
@@ -92,7 +88,7 @@
 .auth-pro__orb--3 {
   width: 160px;
   height: 160px;
-  background: rgba(27, 87, 224, 0.4);
+  background: rgba(26, 35, 50, 0.4);
   bottom: -40px;
   right: 20%;
   animation-delay: -5s;
@@ -284,16 +280,16 @@
   padding: 6px 12px;
   font-size: 12.5px;
   font-weight: 700;
-  color: #0f766e;
-  background: rgba(13, 148, 136, 0.08);
-  border: 1px solid rgba(13, 148, 136, 0.2);
+  color: #1A2332;
+  background: rgba(26, 35, 50, 0.08);
+  border: 1px solid rgba(26, 35, 50, 0.2);
   border-radius: 999px;
 }
 
 .auth-pro__trust li::before {
   content: "✓";
   font-weight: 800;
-  color: #0d9488;
+  color: #1A2332;
 }
 
 /* Selected-plan notice (from pricing card) */
@@ -304,8 +300,8 @@
   margin: 0 0 20px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(27, 87, 224, 0.08));
-  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: linear-gradient(135deg, rgba(26, 35, 50, 0.1), rgba(26, 35, 50, 0.08));
+  border: 1px solid rgba(26, 35, 50, 0.25);
   font-size: 13px;
   line-height: 1.5;
   color: #0f172a;
@@ -316,7 +312,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #0d9488;
+  background: #1A2332;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
@@ -337,7 +333,7 @@
   margin: 0 0 16px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #0d9488;
+  color: #1A2332;
 }
 
 /* Reassurance line near submit */
@@ -376,7 +372,7 @@
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #0d9488, #1b57e0);
+  background: linear-gradient(90deg, #1A2332, #1A2332);
   border-radius: inherit;
   transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -398,7 +394,7 @@
 }
 
 .auth-pro__step-labels .is-active {
-  color: #0d9488;
+  color: #1A2332;
 }
 
 /* No-JS / progressive enhancement: every step is visible by default so the
@@ -475,9 +471,9 @@
 
 .auth-field__input:focus {
   outline: none;
-  border-color: #0d9488;
+  border-color: #1A2332;
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+  box-shadow: 0 0 0 4px rgba(26, 35, 50, 0.12);
 }
 
 .auth-field__input--plain {
@@ -541,7 +537,7 @@
 }
 
 .auth-forgot a {
-  color: #0d9488;
+  color: #1A2332;
   font-weight: 600;
 }
 
@@ -554,7 +550,7 @@
 
 .auth-switch a {
   font-weight: 700;
-  color: #1b57e0;
+  color: #1A2332;
 }
 
 .auth-switch--zone {
@@ -631,15 +627,15 @@
 .auth-pro__value {
   margin: 0 0 22px;
   padding: 16px 18px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
+  border: 1px solid rgba(26, 35, 50, 0.18);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(13, 148, 136, 0.06), rgba(13, 148, 136, 0.02));
+  background: linear-gradient(180deg, rgba(26, 35, 50, 0.06), rgba(26, 35, 50, 0.02));
 }
 .auth-pro__value-title {
   display: block;
   font-size: 13px;
   font-weight: 800;
-  color: #0f766e;
+  color: #1A2332;
   margin-bottom: 10px;
 }
 .auth-pro__value-list {
@@ -661,13 +657,13 @@
   position: absolute;
   left: 0;
   top: 0;
-  color: #0d9488;
+  color: #1A2332;
   font-weight: 800;
 }
 .auth-pro__value-price {
   margin: 0;
   padding-top: 10px;
-  border-top: 1px dashed rgba(13, 148, 136, 0.25);
+  border-top: 1px dashed rgba(26, 35, 50, 0.25);
   font-size: 12.5px;
   color: #475569;
   line-height: 1.5;

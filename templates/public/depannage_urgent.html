@@ -12,7 +12,7 @@
 {% block body_class %}fa-page page-depannage-urgent{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=2">
 {% endblock %}
 
 {% block meta %}
@@ -82,7 +82,7 @@
         </div>
         <div class="fa-search-field">
           <label for="du-ville">Ville ou code postal</label>
-          <input type="text" id="du-ville" name="ville" class="places-city" placeholder="Ex. : Marseille, 13006…" autocomplete="off" data-places-city>
+          <input type="text" id="du-ville" name="ville" class="places-where" placeholder="Ex. : Marseille, 13006, 12 rue…" autocomplete="off" data-places-where>
         </div>
         <button type="submit" class="fa-btn fa-btn--danger">Trouver en urgence</button>
       </form>

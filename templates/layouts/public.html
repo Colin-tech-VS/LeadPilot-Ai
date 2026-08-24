@@ -13,11 +13,11 @@
   <title>{% block title %}{{ _('app.name') }}{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   {% block meta %}
   {{ seo_meta(_('client.meta_title'), _('client.meta_description'), '/', _('client.meta_keywords'), 'website', None, 'index, follow', None, lang) }}
   {% endblock %}
-  <meta name="theme-color" content="#0596DE">
+  <meta name="theme-color" content="#1A2332">
   <link rel="manifest" href="{{ url_for('web.public_manifest') }}">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,12 +25,12 @@
   <meta name="apple-mobile-web-app-title" content="PilotCore">
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=17">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=35">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=8">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=21">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=37">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=13">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
   <link rel="alternate" type="text/plain" href="{{ canonical_url('/llms.txt') }}" title="LLM site index">
   <script type="application/ld+json">{{ global_site_json_ld_script() | safe }}</script>
   {% block head_extra %}{% endblock %}
@@ -122,7 +122,7 @@
   <script src="{{ url_for('static', filename='js/public-reveal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/cookie-consent.js') }}"></script>
   <script src="{{ url_for('static', filename='js/vitrine-animate.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

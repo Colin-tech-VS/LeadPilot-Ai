@@ -111,7 +111,7 @@
     </p>
     {% endif %}
 
-    <form class="dl-search" id="directory-search-form" role="search">
+    <form class="dl-search" id="directory-search-form" action="{{ url_for('web.artisan_directory') }}" method="GET" role="search">
       <div class="dl-search-fields">
         <label class="dl-search-field">
           <span class="dl-search-label">{{ _('directory.search_what') }}</span>
@@ -121,7 +121,7 @@
         </label>
         <label class="dl-search-field">
           <span class="dl-search-label">{{ _('directory.search_where') }}</span>
-          <input type="text" name="ville" value="{{ filters.ville }}" class="places-city" data-places-city placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
+          <input type="text" name="ville" value="{{ filters.ville }}" class="places-where" data-places-where placeholder="{{ _('directory.search_where_ph') }}" autocomplete="off">
         </label>
         <button type="submit" class="btn btn-primary dl-search-btn">
           <span class="directory-ai-btn-label">{{ _('directory.search_btn') }}</span>
@@ -440,5 +440,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}?v=7"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=8"></script>
 {% endblock %}

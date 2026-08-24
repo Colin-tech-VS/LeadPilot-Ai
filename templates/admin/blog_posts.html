@@ -22,7 +22,7 @@
         {{ post.title or '(sans titre)' }}
         {% if post.status == 'published' %}<span class="pill pill-published">publié</span>
         {% else %}<span class="pill pill-draft">brouillon</span>{% endif %}
-        {% if post.featured %}<span class="pill" style="background:rgba(6,182,212,.15);color:#0891b2">à la une</span>{% endif %}
+        {% if post.featured %}<span class="pill" style="background:rgba(26,35,50,.15);color:#3D5270">à la une</span>{% endif %}
       </div>
       <div class="studio-item-meta">
         {% if post.category %}{{ post.category.name }} · {% endif %}

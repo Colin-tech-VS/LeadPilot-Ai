@@ -20,6 +20,7 @@ caller (and the tests) can tell which path answered.
 from __future__ import annotations
 
 import logging
+import re
 
 import requests
 
@@ -29,6 +30,50 @@ logger = logging.getLogger(__name__)
 
 _BAN_URL = "https://api-adresse.data.gouv.fr/search/"
 _BAN_TIMEOUT = 5
+_COUNTRY_SUFFIX_RE = re.compile(r",?\s*France$", re.IGNORECASE)
+_BAN_CITY_LABEL_RE = re.compile(r"^(.+?)\s*\((\d{5})\)$")
+_POSTAL_CITY_RE = re.compile(r"^(\d{5})\s+(.+)$")
+# BAN lines have no commas: "12 Rue de la Paix 50100 Cherbourg-en-Cotentin".
+_POSTCODE_THEN_CITY_RE = re.compile(r"\b(\d{5})\s+(.+)$")
+_STREET_HINT_RE = re.compile(
+    r"(?i)^\d+\s|\b(rue|avenue|av\.?|boulevard|bd\.?|impasse|chemin|"
+    r"all[ée]e|place|cours|quai|route|square|passage|villa|cit[ée]|clos|"
+    r"sentier|traverse|rond[- ]point)\b",
+)
+
+
+def city_from_place_query(raw: str | None) -> str:
+    """Bare commune or postcode for directory filters.
+
+    The « Où » field accepts a Google/BAN street line (« 12 Rue de la Paix,
+    75002 Paris ») as well as a town name. Our listings match on ``city`` /
+    ``city_slug``, so a full address would miss every row.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return ""
+    text = _COUNTRY_SUFFIX_RE.sub("", text).strip()
+    if re.fullmatch(r"\d{5}", text):
+        return text
+    labelled = _BAN_CITY_LABEL_RE.fullmatch(text)
+    if labelled and "," not in labelled.group(1):
+        return labelled.group(1).strip()
+    postal_tail = _POSTCODE_THEN_CITY_RE.search(text)
+    if postal_tail:
+        return postal_tail.group(2).strip().rstrip(",")
+    if "," in text:
+        last = [part.strip() for part in text.split(",") if part.strip()][-1]
+        postal_city = _POSTAL_CITY_RE.match(last)
+        if postal_city:
+            return postal_city.group(2).strip()
+        if re.fullmatch(r"\d{5}", last):
+            return last
+        return last
+    # A leftover street without a postcode is not a commune — better empty
+    # than ``ilike %12 rue de la paix%`` matching nothing useful.
+    if _STREET_HINT_RE.search(text):
+        return ""
+    return text
 
 
 def _ban(query: str, kind: str, limit: int) -> list[dict]:
@@ -48,14 +93,25 @@ def _ban(query: str, kind: str, limit: int) -> list[dict]:
     for feat in features:
         props = feat.get("properties") or {}
         postcode = props.get("postcode") or ""
+        city = (props.get("city") or "").strip()
+        name = (props.get("name") or "").strip()
         if kind == "city":
-            value = props.get("city") or props.get("name") or props.get("label") or ""
+            value = city or name or props.get("label") or ""
             label = props.get("label") or value
             if postcode:
                 label = f"{label} ({postcode})"
+            main, secondary = value, (postcode or "")
         else:
-            value = props.get("label") or ""
+            # Same shape as Google Places: street on the first line, postcode
+            # + commune on the second, commas in the value so city extraction
+            # does not have to special-case the BAN's space-separated label.
+            if name and (postcode or city):
+                value = ", ".join(p for p in (name, f"{postcode} {city}".strip()) if p)
+            else:
+                value = props.get("label") or name
             label = value
+            main = name or value
+            secondary = f"{postcode} {city}".strip()
         if not value:
             continue
         coords = ((feat.get("geometry") or {}).get("coordinates")) or []
@@ -66,6 +122,9 @@ def _ban(query: str, kind: str, limit: int) -> list[dict]:
                 "id": "",
                 "value": value,
                 "label": label,
+                "main": main,
+                "secondary": secondary,
+                "city": city,
                 "postcode": postcode,
                 "latitude": coords[1] if len(coords) == 2 else None,
                 "longitude": coords[0] if len(coords) == 2 else None,

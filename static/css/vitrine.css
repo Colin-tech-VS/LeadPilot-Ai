@@ -1,16 +1,16 @@
 /* ═══ PilotCore Vitrine — modern minimal design system ═══ */
 .vitrine {
-  --v-bg: #FAFBFC;
-  --v-surface: #FFFFFF;
-  --v-border: #E8EAED;
-  --v-text: #0F1419;
-  --v-muted: #5F6B7A;
-  --v-accent: #2563EB;
-  --v-accent-soft: rgba(37, 99, 235, 0.08);
-  --v-radius: 16px;
-  --v-radius-sm: 10px;
-  --v-shadow: 0 1px 2px rgba(15, 20, 25, 0.04), 0 8px 24px rgba(15, 20, 25, 0.06);
-  --v-shadow-lg: 0 24px 48px rgba(15, 20, 25, 0.08);
+  --v-bg: #EFE9DC;
+  --v-surface: #FBF7EE;
+  --v-border: #D7CDB8;
+  --v-text: #1C1914;
+  --v-muted: #6B6458;
+  --v-accent: #1A2332;
+  --v-accent-soft: #E8E4D6;
+  --v-radius: 6px;
+  --v-radius-sm: 4px;
+  --v-shadow: none;
+  --v-shadow-lg: 0 12px 28px rgba(26, 35, 50, 0.12);
   background: var(--v-bg);
 }
 
@@ -21,8 +21,8 @@
   position: sticky;
   top: 0;
   z-index: 200;
-  background: rgba(250, 251, 252, 0.88);
-  backdrop-filter: blur(16px);
+  background: var(--v-bg);
+  backdrop-filter: none;
   border-bottom: 1px solid var(--v-border);
 }
 
@@ -67,7 +67,7 @@
   color: var(--v-muted);
   text-decoration: none;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
 
@@ -976,7 +976,7 @@
 /* ── Client homepage: distinct section rhythm ── */
 .vitrine .v-hero--mesh {
   background:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(37, 99, 235, 0.09), transparent),
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(26, 35, 50, 0.09), transparent),
     var(--v-bg);
 }
 .vitrine .v-search-wrap--hero {
@@ -1033,8 +1033,8 @@
   background: #0F1419;
   color: #fff;
 }
-.vitrine .v-kicker--light { color: #93C5FD; }
-.vitrine .v-kicker--light::before { background: #93C5FD; }
+.vitrine .v-kicker--light { color: #C4B79A; }
+.vitrine .v-kicker--light::before { background: #C4B79A; }
 .vitrine .v-section-head--left {
   text-align: left;
   margin-left: 0;
@@ -1063,12 +1063,12 @@
   right: 0;
   height: 3px;
 }
-.vitrine .v-scenario-card--water::before { background: linear-gradient(90deg, #38BDF8, #2563EB); }
+.vitrine .v-scenario-card--water::before { background: linear-gradient(90deg, #5A6D86, #1A2332); }
 .vitrine .v-scenario-card--electric::before { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
-.vitrine .v-scenario-card--lock::before { background: linear-gradient(90deg, #A78BFA, #6366F1); }
+.vitrine .v-scenario-card--lock::before { background: linear-gradient(90deg, #5A6D86, #1A2332); }
 .vitrine .v-scenario-grid--accent .v-scenario-card h3 { color: #fff; }
 .vitrine .v-scenario-grid--accent .v-scenario-card p { color: rgba(255, 255, 255, 0.7); }
-.vitrine .v-scenario-grid--accent .v-scenario-cta { color: #93C5FD; }
+.vitrine .v-scenario-grid--accent .v-scenario-cta { color: #C4B79A; }
 .vitrine .v-scenario-grid--accent .v-scenario-card:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
@@ -1086,7 +1086,7 @@
 
 /* Full-width CTA strip */
 .vitrine .v-strip-cta {
-  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  background: linear-gradient(135deg, #1A2332 0%, #1A2332 100%);
   padding: 48px 0;
 }
 .vitrine .v-strip-cta-inner {
@@ -1112,7 +1112,7 @@
 .vitrine .v-strip-cta-btn {
   flex-shrink: 0;
   background: #fff !important;
-  color: #1D4ED8 !important;
+  color: #1A2332 !important;
   border: none !important;
   font-weight: 700;
 }
@@ -1184,7 +1184,7 @@
   left: 16%;
   right: 16%;
   height: 2px;
-  background: linear-gradient(90deg, var(--v-accent), #93C5FD, var(--v-accent));
+  background: linear-gradient(90deg, var(--v-accent), #C4B79A, var(--v-accent));
   opacity: 0.35;
 }
 .vitrine .v-timeline-step {
@@ -1244,8 +1244,8 @@
   color: #fff;
   padding: 72px 0;
 }
-.vitrine .v-problem-section .v-kicker { color: #93C5FD; }
-.vitrine .v-problem-section .v-kicker::before { background: #93C5FD; }
+.vitrine .v-problem-section .v-kicker { color: #C4B79A; }
+.vitrine .v-problem-section .v-kicker::before { background: #C4B79A; }
 .vitrine .v-problem-section h2 {
   color: #fff;
   margin: 0 0 12px;
@@ -1624,7 +1624,7 @@
 }
 .vitrine .v-compare-card--best {
   border-color: var(--v-accent); background: var(--v-accent-soft);
-  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 10px 30px rgba(26, 35, 50, 0.12);
 }
 .vitrine .v-compare-flag {
   position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
@@ -1661,7 +1661,7 @@
 }
 .vitrine .v-roi-result {
   text-align: center; padding: 26px 22px; border-radius: var(--v-radius);
-  background: linear-gradient(135deg, var(--v-accent), #1D4ED8); color: #fff;
+  background: linear-gradient(135deg, var(--v-accent), #1A2332); color: #fff;
 }
 .vitrine .v-roi-result-label { display: block; font-size: 13px; opacity: 0.9; }
 .vitrine .v-roi-result-value {

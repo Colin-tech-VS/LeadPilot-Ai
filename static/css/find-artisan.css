@@ -56,7 +56,7 @@
 }
 .fa-hero--pillar {
   background:
-    radial-gradient(1200px 460px at 78% -10%, rgba(37, 99, 235, 0.12), transparent),
+    radial-gradient(1200px 460px at 78% -10%, rgba(26, 35, 50, 0.12), transparent),
     linear-gradient(180deg, var(--lp-brand-soft) 0%, var(--lp-bg) 100%);
 }
 .fa-hero-grid {
@@ -131,7 +131,7 @@
 .fa-search-field input:focus {
   outline: none;
   border-color: var(--lp-brand-mid);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(26, 35, 50, 0.15);
 }
 
 .fa-btn {
@@ -152,11 +152,11 @@
 }
 .fa-btn:active { transform: translateY(1px); }
 .fa-btn--primary {
-  background: linear-gradient(180deg, var(--lp-brand-mid), var(--lp-brand));
+  background: #1A2332;
   color: #fff;
-  box-shadow: 0 8px 20px rgba(27, 87, 224, 0.28);
+  box-shadow: 0 8px 20px rgba(26, 35, 50, 0.28);
 }
-.fa-btn--primary:hover { box-shadow: 0 12px 26px rgba(27, 87, 224, 0.36); }
+.fa-btn--primary:hover { box-shadow: 0 12px 26px rgba(26, 35, 50, 0.36); }
 .fa-btn--danger {
   background: linear-gradient(180deg, #F45B50, var(--lp-danger));
   color: #fff;
@@ -332,7 +332,7 @@
   margin: 0 auto;
   max-width: 960px;
   text-align: center;
-  background: linear-gradient(135deg, var(--lp-brand-deep), var(--lp-brand));
+  background: #1A2332;
   color: #fff;
   border-radius: var(--lp-radius-lg);
   padding: 48px 28px;

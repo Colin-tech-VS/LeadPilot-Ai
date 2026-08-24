@@ -255,7 +255,9 @@ def search_listings(
     if city_slug:
         query = query.filter(RegistryListing.city_slug == city_slug)
     elif city:
-        term = city.strip()
+        from app.services.address_lookup import city_from_place_query
+
+        term = city_from_place_query(city) or city.strip()
         slug = city_slugify(term)
         # A postal code typed into the city box is a common shortcut.
         if term.isdigit():

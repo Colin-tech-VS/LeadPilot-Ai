@@ -16,7 +16,9 @@ def public_artisans_query(trade=None, city=None, q=None):
     if trade and trade in TRADES:
         query = query.filter(Tenant.trade_type == trade)
     if city:
-        term = city.strip()
+        from app.services.address_lookup import city_from_place_query
+
+        term = city_from_place_query(city) or city.strip()
         like = f"%{term}%"
         query = query.filter(
             or_(

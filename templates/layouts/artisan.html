@@ -10,18 +10,18 @@
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('web.web_manifest') }}">
-  <meta name="theme-color" content="#1B57E0">
+  <meta name="theme-color" content="#1A2332">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PilotCore Pro">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=17">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=21">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
   {% block head_extra %}{% endblock %}
 </head>
 <body class="zone-artisan {% block body_class %}{% endblock %}">
@@ -122,7 +122,7 @@
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

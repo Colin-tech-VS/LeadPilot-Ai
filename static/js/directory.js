@@ -195,25 +195,39 @@
     }
   }
 
-  let debounce;
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    const aiInput = document.getElementById("directory-ai-input");
-    if (aiInput && aiInput.value.trim()) {
-      runAiSearch();
+  function cityValue() {
+    const el = form.querySelector('[name="ville"]');
+    return el ? el.value.trim() : "";
+  }
+
+  function qValue() {
+    const el = document.getElementById("directory-ai-input") || form.querySelector('[name="q"]');
+    return el ? el.value.trim() : "";
+  }
+
+  function searchNow() {
+    const q = qValue();
+    if (q) {
+      runAiSearch(cityValue());
     } else {
       runSearch();
     }
+  }
+
+  let debounce;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    searchNow();
   });
 
   form.querySelectorAll("input, select").forEach(function (el) {
     el.addEventListener("input", function () {
       clearTimeout(debounce);
-      debounce = setTimeout(runSearch, 380);
+      debounce = setTimeout(searchNow, 380);
     });
     el.addEventListener("change", function () {
       clearTimeout(debounce);
-      debounce = setTimeout(runSearch, 120);
+      debounce = setTimeout(searchNow, 120);
     });
   });
 
@@ -242,31 +256,34 @@
 
   function syncStructuredFrom(understood) {
     // Mirror the AI interpretation into the structured form so the user can refine.
+    // Never wipe a city they typed or picked from Places.
     if (!understood) return;
     const tradeSel = form.querySelector('[name="metier"]');
     const cityInput = form.querySelector('[name="ville"]');
-    const qInput = form.querySelector('[name="q"]');
     if (tradeSel && understood.trade) tradeSel.value = understood.trade;
-    if (cityInput) cityInput.value = understood.city || "";
-    if (qInput) qInput.value = "";
+    if (cityInput && understood.city && !cityInput.value.trim()) {
+      cityInput.value = understood.city;
+    }
   }
 
-  async function runAiSearch() {
+  async function runAiSearch(cityOverride) {
     if (!aiInput) return;
     const query = aiInput.value.trim();
     if (!query) return;
+    const ville = (cityOverride == null ? cityValue() : String(cityOverride)).trim();
     setLoading(true);
     form.classList.add("is-loading");
     try {
       const res = await fetch("/api/public/artisans/ai-search", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ q: query }),
+        body: JSON.stringify({ q: query, ville: ville || undefined }),
       });
       if (!res.ok) throw new Error("ai search failed");
       const data = await res.json();
       syncStructuredFrom(data.understood);
       showUnderstood(data.understood, data.relaxed);
+      syncUrl();
       render(data);
     } catch (e) {
       if (countEl) countEl.textContent = labels.error || "Recherche indisponible";
@@ -278,12 +295,8 @@
     }
   }
 
-  if (aiInput) {
-    // Handoff from the homepage: /artisans?ai=<query> pre-fills the AI input,
-    // so run the AI search automatically on load.
-    if (aiInput.value.trim()) {
-      runAiSearch();
-    }
+  if (qValue() || cityValue()) {
+    searchNow();
   }
 
   document.querySelectorAll(".dl-chip[data-trade], .directory-chip[data-trade]").forEach(function (chip) {

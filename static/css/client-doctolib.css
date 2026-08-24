@@ -1,14 +1,14 @@
 /* Zone particulier — style Doctolib (recherche d'artisan, RDV en ligne) */
 
 .dl-client {
-  --dl-primary: #0596DE;
-  --dl-primary-hover: #0478B2;
-  --dl-primary-soft: #E6F4FB;
-  --dl-text: #2B323B;
-  --dl-muted: #6B757E;
-  --dl-border: #E4E9ED;
-  --dl-bg: #FFFFFF;
-  --dl-surface: #F5F7F9;
+  --dl-primary: #1A2332;
+  --dl-primary-hover: #121820;
+  --dl-primary-soft: #E8E4D6;
+  --dl-text: #1C1914;
+  --dl-muted: #6B6458;
+  --dl-border: #D7CDB8;
+  --dl-bg: #EFE9DC;
+  --dl-surface: #FBF7EE;
 }
 
 .dl-client.zone-public {
@@ -16,9 +16,9 @@
 }
 
 .dl-client .v-header--client {
-  background: #fff;
+  background: var(--dl-bg);
   border-bottom: 1px solid var(--dl-border);
-  box-shadow: 0 1px 0 rgba(43, 50, 59, 0.04);
+  box-shadow: none;
 }
 
 .dl-client .v-header--client .v-brand .brand-text {
@@ -66,7 +66,7 @@
 }
 
 .zone-pro .nav-zone-switch:hover {
-  color: #0F766E !important;
+  color: #1A2332 !important;
 }
 
 .zone-pro .nav-zone-sep {
@@ -76,7 +76,7 @@
 /* Hero recherche */
 .dl-hero {
   padding: 48px 0 40px;
-  background: linear-gradient(180deg, var(--dl-primary-soft) 0%, #fff 72%);
+  background: var(--dl-bg);
 }
 
 .dl-hero--compact {
@@ -120,11 +120,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 0;
-  background: #fff;
-  border: 2px solid var(--dl-primary);
-  border-radius: 12px;
+  background: var(--dl-surface);
+  border: 1px solid var(--dl-primary);
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(5, 150, 222, 0.15);
+  box-shadow: none;
   text-align: left;
 }
 
@@ -304,11 +304,11 @@
   align-items: center;
   justify-content: center;
   min-height: 132px;
-  background: linear-gradient(160deg, #0F2D6E 0%, #1B57E0 58%, #93C5FD 100%);
+  background: linear-gradient(160deg, #121820 0%, #1A2332 58%, #C4B79A 100%);
 }
 
 .dl-card-media--registry {
-  background: linear-gradient(160deg, #334155 0%, #64748B 55%, #E2E8F0 100%);
+  background: #1A2332;
 }
 
 .dl-card-logo {
@@ -333,7 +333,7 @@
   font-weight: 800;
   letter-spacing: 0.01em;
   background: #fff;
-  color: #0F2D6E;
+  color: #121820;
   box-shadow: 0 4px 12px rgba(15, 20, 25, 0.12);
 }
 
@@ -352,15 +352,15 @@
 }
 
 .dl-card:hover {
-  border-color: rgba(5, 150, 222, 0.45);
-  box-shadow: 0 12px 40px rgba(5, 150, 222, 0.14);
+  border-color: rgba(26, 35, 50, 0.45);
+  box-shadow: 0 12px 40px rgba(26, 35, 50, 0.14);
   transform: translateY(-2px);
   text-decoration: none;
 }
 
 .dl-card-accent {
   height: 4px;
-  background: linear-gradient(90deg, var(--dl-primary), #34B3F1);
+  background: var(--dl-primary);
 }
 
 .dl-card-header {
@@ -368,7 +368,7 @@
   align-items: center;
   gap: 14px;
   padding: 18px 20px 12px;
-  background: linear-gradient(180deg, #F8FCFF 0%, #fff 100%);
+  background: linear-gradient(180deg, #FBF7EE 0%, #fff 100%);
 }
 
 .dl-card-main {
@@ -389,13 +389,13 @@
   height: 52px;
   border-radius: 14px;
   background: var(--dl-primary-soft);
-  border: 1px solid rgba(5, 150, 222, 0.12);
+  border: 1px solid rgba(26, 35, 50, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(5, 150, 222, 0.08);
+  box-shadow: 0 2px 8px rgba(26, 35, 50, 0.08);
 }
 
 .dl-card-info {
@@ -503,16 +503,16 @@
 }
 
 .dl-card-badge--ai {
-  color: #0369A1;
-  background: #E0F2FE;
-  border-color: #BAE6FD;
+  color: #1A2332;
+  background: #E8E4D6;
+  border-color: #D7CDB8;
 }
 
 .dl-card-cta {
   pointer-events: none;
   font-size: 13px !important;
   padding: 9px 16px !important;
-  border-radius: 10px !important;
+  border-radius: 4px !important;
   white-space: nowrap;
   font-weight: 700 !important;
   flex-shrink: 0;

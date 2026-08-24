@@ -8,16 +8,16 @@
 }
 
 .v-header--pro .btn-primary {
-  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
+  background: var(--lp-brand);
   border-color: transparent;
 }
 
 .v-footer--pro {
-  background: linear-gradient(180deg, #f0fdfa 0%, var(--lp-bg) 100%);
+  background: var(--lp-bg);
 }
 
 .page-pro .v-hero--split {
-  background: linear-gradient(135deg, #f0fdfa 0%, var(--lp-brand-soft) 55%, #ffffff 100%);
+  background: var(--lp-bg);
 }
 
 .pro-nav a.active {
@@ -76,10 +76,10 @@
   border-radius: 32px;
   background:
     radial-gradient(ellipse 55% 70% at 15% 40%, color-mix(in srgb, var(--lp-zone-pro) 22%, transparent), transparent 70%),
-    radial-gradient(ellipse 50% 60% at 85% 60%, color-mix(in srgb, #14B8A6 18%, transparent), transparent 72%);
+    radial-gradient(ellipse 50% 60% at 85% 60%, color-mix(in srgb, #1A2332 18%, transparent), transparent 72%);
   opacity: 0.85;
   pointer-events: none;
-  animation: proPricingGlow 9s ease-in-out infinite alternate;
+  animation: none;
 }
 
 @keyframes proPricingGlow {
@@ -117,11 +117,11 @@
 }
 
 .page-pro .pro-pricing-tab.is-active {
-  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
+  background: #1A2332;
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--lp-zone-pro) 35%, transparent);
-  transform: translateY(-1px);
+  box-shadow: none;
+  transform: none;
 }
 
 .page-pro .pro-pricing-shell {
@@ -209,10 +209,8 @@
 }
 
 .page-pro .pro-pricing-slide.pricing-card-launch.is-active .pricing-price strong {
-  background: linear-gradient(135deg, var(--lp-zone-pro), #14B8A6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background: none;
+  color: #1A2332;
 }
 
 .page-pro .pro-pricing-footer {
@@ -244,7 +242,7 @@
 .page-pro .pro-pricing-dot.is-active {
   width: 24px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--lp-zone-pro), #14B8A6);
+  background: #1A2332;
 }
 
 .page-pro .pro-pricing-hint {

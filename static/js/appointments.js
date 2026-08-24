@@ -131,10 +131,10 @@
     if (!accuracyCircle) {
       accuracyCircle = L.circle([lat, lng], {
         radius: acc,
-        color: "#2563EB",
+        color: "#1A2332",
         weight: 1,
         opacity: 0.4,
-        fillColor: "#2563EB",
+        fillColor: "#1A2332",
         fillOpacity: 0.08,
       }).addTo(map);
     } else {
@@ -316,7 +316,7 @@
       if (route && route.coordinates) {
         step += 1;
         L.polyline(route.coordinates, {
-          color: "#2563EB",
+          color: "#1A2332",
           weight: 6,
           opacity: 0.9,
           lineCap: "round",

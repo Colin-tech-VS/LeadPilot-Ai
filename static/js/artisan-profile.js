@@ -26,8 +26,8 @@
   if (radiusKm > 0) {
     L.circle([lat, lng], {
       radius: radiusKm * 1000,
-      color: '#1B57E0',
-      fillColor: '#1B57E0',
+      color: '#1A2332',
+      fillColor: '#1A2332',
       fillOpacity: 0.08,
       weight: 2,
     }).addTo(map);

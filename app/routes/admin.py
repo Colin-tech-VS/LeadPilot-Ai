@@ -134,6 +134,14 @@ def inject_admin():
             nova_available = assistant.available()
         except Exception:  # noqa: BLE001 — never break page render over the copilot
             nova_available = False
+    pending_claims = 0
+    if is_admin_logged_in():
+        try:
+            from app.services.listing_claims import pending_count
+
+            pending_claims = pending_count()
+        except Exception:  # noqa: BLE001 — a badge must never break the layout
+            pending_claims = 0
     return {
         "admin_username": g.get("admin_username"),
         "is_admin": is_admin_logged_in(),
@@ -141,6 +149,7 @@ def inject_admin():
         "current_year": datetime.now(timezone.utc).year,
         "nova_available": nova_available,
         "nova_name": "Nova",
+        "pending_claims": pending_claims,
     }
 
 
@@ -2051,3 +2060,79 @@ def seo_trade_guide_regenerate(trade):
             "error",
         )
     return redirect(url_for("admin.seo_trade_guides"))
+
+
+# ------------------------------------------------------------ Revendications de fiches
+@admin_bp.route("/revendications", methods=["GET"], endpoint="listing_claims")
+@admin_required
+def listing_claims_page():
+    from app.models.listing_claim import STATUS_LABELS, STATUS_PENDING, ListingClaim
+    from app.services import registry_import
+
+    status = (request.args.get("status") or STATUS_PENDING).strip()
+    query = ListingClaim.query
+    if status in STATUS_LABELS:
+        query = query.filter(ListingClaim.status == status)
+    claims = query.order_by(ListingClaim.created_at.desc()).limit(200).all()
+
+    counts = {}
+    for key in STATUS_LABELS:
+        counts[key] = ListingClaim.query.filter_by(status=key).count()
+
+    return render_template(
+        "admin/listing_claims.html",
+        claims=claims,
+        status=status,
+        status_labels=STATUS_LABELS,
+        counts=counts,
+        registry_stats=registry_import.stats(),
+    )
+
+
+@admin_bp.route("/revendications/<claim_id>/approve", methods=["POST"])
+@admin_required
+def listing_claim_approve(claim_id):
+    from app.models.listing_claim import ListingClaim
+    from app.services import listing_claims as svc
+
+    claim = db.session.get(ListingClaim, _pk_value(ListingClaim, claim_id))
+    if not claim:
+        abort(404)
+    if not claim.is_pending:
+        flash("Cette demande a déjà été traitée.", "error")
+        return redirect(url_for("admin.listing_claims"))
+
+    ok, message = svc.approve(claim, note=(request.form.get("note") or "").strip())
+    flash(message, "success" if ok else "error")
+    if ok:
+        log_event(
+            CAT_ADMIN,
+            "listing_claim_approved",
+            summary=f"Fiche « {claim.listing.name if claim.listing else claim.siren} » transférée à {claim.email}",
+            level=LEVEL_SUCCESS,
+        )
+    return redirect(url_for("admin.listing_claims"))
+
+
+@admin_bp.route("/revendications/<claim_id>/reject", methods=["POST"])
+@admin_required
+def listing_claim_reject(claim_id):
+    from app.models.listing_claim import ListingClaim
+    from app.services import listing_claims as svc
+
+    claim = db.session.get(ListingClaim, _pk_value(ListingClaim, claim_id))
+    if not claim:
+        abort(404)
+    if not claim.is_pending:
+        flash("Cette demande a déjà été traitée.", "error")
+        return redirect(url_for("admin.listing_claims"))
+
+    svc.reject(claim, note=(request.form.get("note") or "").strip())
+    flash("Demande refusée.", "success")
+    log_event(
+        CAT_ADMIN,
+        "listing_claim_rejected",
+        summary=f"Revendication refusée — {claim.siren} ({claim.email})",
+        level=LEVEL_WARNING,
+    )
+    return redirect(url_for("admin.listing_claims"))

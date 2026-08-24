@@ -1,0 +1,98 @@
+{% extends 'admin/base.html' %}
+{% block title %}Revendications · Admin{% endblock %}
+{% block page_title %}Revendications de fiches{% endblock %}
+
+{% block content %}
+<section class="admin-panel" style="margin-bottom:16px">
+  <div class="admin-kpis">
+    <div class="admin-kpi"><span class="kpi-label">Fiches publiques</span><span class="kpi-value">{{ registry_stats.listed }}</span></div>
+    <div class="admin-kpi"><span class="kpi-label">Revendiquées</span><span class="kpi-value">{{ registry_stats.claimed }}</span></div>
+    <div class="admin-kpi"><span class="kpi-label">Retirées</span><span class="kpi-value">{{ registry_stats.opted_out }}</span></div>
+    <div class="admin-kpi"><span class="kpi-label">Communes</span><span class="kpi-value">{{ registry_stats.cities }}</span></div>
+  </div>
+</section>
+
+<div class="gsc-periods" style="margin-bottom:14px">
+  {% for key, label in status_labels.items() %}
+  <a href="{{ url_for('admin.listing_claims', status=key) }}"
+     class="admin-btn tiny {% if key != status %}ghost{% endif %}">
+    {{ label }} ({{ counts.get(key, 0) }})
+  </a>
+  {% endfor %}
+</div>
+
+{% if not claims %}
+<section class="admin-panel">
+  <p class="admin-hint">Aucune demande dans cet état.</p>
+</section>
+{% else %}
+<section class="admin-panel">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Entreprise</th>
+        <th>Demandeur</th>
+        <th>Reçue le</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in claims %}
+      <tr>
+        <td data-label="Entreprise">
+          <strong>{{ c.listing.name if c.listing else '—' }}</strong>
+          <div class="admin-hint">
+            SIREN {{ c.siren }}
+            {%- if c.listing %} · {{ c.listing.trade_key }} · {{ c.listing.city or '—' }}
+            {%- if c.listing.years_active %} · {{ c.listing.years_active }} ans d'activité{% endif %}
+            {%- endif %}
+          </div>
+          {% if c.listing %}
+          <div class="admin-hint">
+            <a href="https://annuaire-entreprises.data.gouv.fr/entreprise/{{ c.siren }}"
+               target="_blank" rel="noopener noreferrer">Vérifier au registre ↗</a>
+          </div>
+          {% endif %}
+        </td>
+        <td data-label="Demandeur">
+          {{ c.contact_name }}
+          <div class="admin-hint">
+            <a href="mailto:{{ c.email }}">{{ c.email }}</a>
+            {%- if c.phone %} · {{ c.phone }}{% endif %}
+          </div>
+        </td>
+        <td data-label="Reçue le">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td data-label="Actions">
+          {% if c.is_pending %}
+          <form method="POST" action="{{ url_for('admin.listing_claim_approve', claim_id=c.id) }}" style="display:inline">
+            <button type="submit" class="admin-btn small"
+                    onclick="return confirm('Transférer la fiche « {{ c.listing.name if c.listing else c.siren }} » à {{ c.email }} ? Un compte artisan sera créé.');">
+              Valider
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.listing_claim_reject', claim_id=c.id) }}" style="display:inline">
+            <button type="submit" class="admin-btn ghost small"
+                    onclick="return confirm('Refuser cette demande ?');">Refuser</button>
+          </form>
+          {% else %}
+          <span class="admin-badge">{{ c.status_label }}</span>
+          {% if c.decision_note %}<div class="admin-hint">{{ c.decision_note }}</div>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="admin-panel" style="margin-top:16px">
+  <h2 style="font-size:15px;margin:0 0 10px">Avant de valider</h2>
+  <p class="admin-hint" style="line-height:1.7">
+    Une validation crée un compte artisan et lui transfère la fiche. Vérifiez
+    que le demandeur dirige bien l'entreprise : e-mail au domaine de la société,
+    extrait Kbis, ou appel sur le numéro public. Sans vérification, n'importe qui
+    peut prendre le contrôle de la fiche d'une entreprise.
+  </p>
+</section>
+{% endblock %}

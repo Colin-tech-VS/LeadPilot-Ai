@@ -2093,3 +2093,4 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
 
 /* GSC period selector */
 .gsc-periods { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.admin-badge.tiny { font-size: 10px; padding: 1px 6px; margin-left: 6px; }

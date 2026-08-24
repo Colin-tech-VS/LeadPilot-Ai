@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/admin-touch-icon-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=18">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=19">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -53,6 +53,10 @@
         </a>
         <a href="{{ url_for('admin.seo_trade_guides') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.seo_trade') %}active{% endif %}">
           <span class="nav-ico">📚</span> SEO · Guides métier
+        </a>
+        <a href="{{ url_for('admin.listing_claims') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.listing_claim') %}active{% endif %}">
+          <span class="nav-ico">🏷️</span> Revendications
+          {% if pending_claims %}<span class="admin-badge tiny">{{ pending_claims }}</span>{% endif %}
         </a>
         <div class="admin-nav-sep">Contenu</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">

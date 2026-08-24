@@ -3,6 +3,7 @@ from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.heatmap_event import HeatmapEvent
 from app.models.lead import Lead
+from app.models.listing_claim import ListingClaim
 from app.models.notification import Notification
 from app.models.offer import Offer
 from app.models.blog_category import BlogCategory

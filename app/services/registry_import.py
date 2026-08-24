@@ -165,6 +165,13 @@ def import_trade(
         raise RegistryImportError(f"Métier inconnu : {trade_key}")
 
     created = updated = skipped = 0
+    # A company with several establishments comes back more than once in the
+    # same page of results. Until the batch is committed, a second occurrence
+    # would not be found by the existence query and would be inserted again,
+    # tripping the unique constraint at commit time — which fails the whole
+    # batch, not just the duplicate.
+    pending: set[str] = set()
+
     for record in iter_registry(
         naf=naf, dept=dept, postal_code=postal_code, max_records=max_records
     ):
@@ -172,9 +179,14 @@ def import_trade(
         if fields is None:
             skipped += 1
             continue
-        existing = RegistryListing.query.filter_by(siren=fields["siren"]).one_or_none()
+        siren = fields["siren"]
+        if siren in pending:
+            skipped += 1
+            continue
+        existing = RegistryListing.query.filter_by(siren=siren).one_or_none()
         if existing is None:
             db.session.add(RegistryListing(**fields))
+            pending.add(siren)
             created += 1
             continue
         # A delisting request is permanent, and a claimed listing belongs to
@@ -186,7 +198,17 @@ def import_trade(
             setattr(existing, key, value)
         updated += 1
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        # Roll back so the session is usable again: without this, one failed
+        # batch leaves the transaction poisoned and every later trade and
+        # department in the same run fails too.
+        db.session.rollback()
+        logger.exception(
+            "Registry import failed for %s (dept=%s, cp=%s)", trade_key, dept, postal_code
+        )
+        raise
     return {"trade": trade_key, "created": created, "updated": updated, "skipped": skipped}
 
 

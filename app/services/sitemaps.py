@@ -18,7 +18,7 @@ from xml.sax.saxutils import escape
 
 Url = tuple[str, str, str, str | None]  # (path, changefreq, priority, lastmod)
 
-SECTIONS = ("core", "trades", "cities", "departments", "artisans", "blog")
+SECTIONS = ("core", "trades", "cities", "departments", "artisans", "entreprises", "blog")
 
 
 def _today() -> str:
@@ -188,12 +188,47 @@ def blog_urls() -> list[Url]:
     return out
 
 
+def entreprise_urls() -> list[Url]:
+    """Individual registry-listing pages that cleared the indexing gate.
+
+    Deliberately the strictest section: only businesses trading long enough and
+    sitting in a town the directory already covers. Everything else is served
+    noindex and stays out of here.
+    """
+    from app.constants.cities import city_info
+    from app.models.registry_listing import STATUS_LISTED, RegistryListing
+    from app.utils.indexability import is_indexable, listing_page_robots
+    from app.utils.seo import format_lastmod
+
+    out: list[Url] = []
+    rows = (
+        RegistryListing.query.filter_by(status=STATUS_LISTED)
+        .order_by(RegistryListing.date_creation.asc().nullslast())
+        .limit(50000)
+        .all()
+    )
+    for listing in rows:
+        city = city_info(listing.city_slug) if listing.city_slug else None
+        robots = listing_page_robots(listing, city_has_page=city is not None)
+        if is_indexable(robots):
+            out.append(
+                (
+                    f"/artisans/entreprise/{listing.siren}",
+                    "monthly",
+                    "0.5",
+                    format_lastmod(listing.updated_at),
+                )
+            )
+    return out
+
+
 _BUILDERS = {
     "core": core_urls,
     "trades": trade_urls,
     "cities": city_urls,
     "departments": department_urls,
     "artisans": artisan_urls,
+    "entreprises": entreprise_urls,
     "blog": blog_urls,
 }
 

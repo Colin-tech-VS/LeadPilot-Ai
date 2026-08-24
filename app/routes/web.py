@@ -336,6 +336,60 @@ def indexnow_key_file(key):
     )
 
 
+@web_bp.route("/artisans/entreprise/<siren>", methods=["GET"])
+def listing_page(siren):
+    """Public page for one registry-sourced business.
+
+    This is what makes the acquisition loop self-starting: an artisan looking up
+    their own company name can land here and claim the page. Indexing is gated
+    hard (see ``listing_page_robots``) — a page per company is exactly where
+    programmatic SEO turns into doorway pages if left ungated.
+    """
+    from flask import abort
+
+    from app.constants.cities import city_info, nearby_cities
+    from app.constants.departments import department_info
+    from app.constants.trades import trade_label, trade_schema_type
+    from app.models.registry_listing import STATUS_CLAIMED, STATUS_OPTED_OUT, RegistryListing
+    from app.services import registry_import as _ri
+    from app.services import trade_guides as _tg
+    from app.utils.indexability import listing_page_robots
+
+    listing = RegistryListing.query.filter_by(siren=(siren or "").strip()).one_or_none()
+    if listing is None or listing.status == STATUS_OPTED_OUT:
+        abort(404)
+
+    # Once claimed, the artisan's own profile is the canonical page for this
+    # business — send visitors and crawlers there rather than keeping two.
+    if listing.status == STATUS_CLAIMED and listing.claimed_tenant_id:
+        from app.models.tenant import Tenant
+
+        tenant = db.session.get(Tenant, listing.claimed_tenant_id)
+        if tenant and tenant.public_slug:
+            return redirect(url_for("web.artisan_profile", slug=tenant.public_slug), code=301)
+
+    lang = getattr(g, "lang", "fr")
+    city = city_info(listing.city_slug) if listing.city_slug else None
+    dept = department_info(listing.dept_code) if listing.dept_code else None
+    return render_template(
+        "public/listing_page.html",
+        listing=listing,
+        label=trade_label(listing.trade_key, lang),
+        schema_type=trade_schema_type(listing.trade_key),
+        city=city,
+        department={"code": dept[0], "slug": dept[1], "name": dept[2]} if dept else None,
+        nearby=nearby_cities(listing.city_slug, limit=6) if listing.city_slug else [],
+        trade_guide=_tg.get_guide(listing.trade_key, lang),
+        price_facts=_trade_price_facts(listing.trade_key, lang),
+        same_city=[
+            row
+            for row in _ri.listings_for(listing.trade_key, listing.city_slug or "", limit=7)
+            if row.siren != listing.siren
+        ][:6],
+        robots=listing_page_robots(listing, city_has_page=city is not None),
+    )
+
+
 @web_bp.route("/artisans/revendiquer/<siren>", methods=["GET", "POST"])
 @rate_limit(limit=10, window=3600, scope="claim_listing")
 def claim_listing(siren):

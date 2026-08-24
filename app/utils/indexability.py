@@ -78,5 +78,36 @@ def trade_pillar_robots(*, has_trade_guide: bool, artisan_count: int) -> str:
     return NOINDEX
 
 
+# A generated page per registered business is where programmatic SEO most
+# easily tips into doorway territory: hundreds of thousands of near-identical
+# shells built to funnel traffic. So the individual company page is deliberately
+# the *narrowest* gate of all, and it opens in stages.
+#
+# Two conditions, both about the page having a reason to exist:
+#   * the business has been trading long enough that a searcher looking it up is
+#     looking for something real, not a shell registered last month;
+#   * it sits in a town the directory already covers, so the page lands inside
+#     an existing cluster instead of floating alone.
+MIN_LISTING_YEARS = 5
+
+
+def listing_page_robots(listing, *, city_has_page: bool) -> str:
+    """Robots directive for ``/artisans/entreprise/<siren>``.
+
+    A claimed listing has its own artisan page and must never compete with it;
+    an opted-out one must not be served at all.
+    """
+    from app.models.registry_listing import STATUS_LISTED
+
+    if listing is None or listing.status != STATUS_LISTED:
+        return NOINDEX
+    if not city_has_page:
+        return NOINDEX
+    years = listing.years_active
+    if years is None or years < MIN_LISTING_YEARS:
+        return NOINDEX
+    return INDEX
+
+
 def is_indexable(robots: str) -> bool:
     return not robots.lower().startswith("noindex")

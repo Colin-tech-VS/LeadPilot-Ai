@@ -2032,7 +2032,8 @@ html {
 .dl-registry-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .dl-registry-item:last-child { border-bottom: 0; }
 .dl-registry-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.dl-registry-name { font-weight: 600; color: var(--text); }
+.dl-registry-name { font-weight: 600; color: var(--text); text-decoration: none; }
+.dl-registry-name:hover { text-decoration: underline; }
 .dl-registry-meta { font-size: 13px; color: var(--muted); }
 .dl-registry-claim { font-size: 13px; font-weight: 600; white-space: nowrap; padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; }
 .dl-registry-claim:hover { border-color: var(--primary, #f97316); }
@@ -2056,3 +2057,13 @@ html {
 /* Breadcrumb sitting inside the tinted hero band */
 .dl-breadcrumb--hero { padding: 0 0 14px; }
 .dl-breadcrumb--hero .container { justify-content: flex-start; }
+
+/* ---- Individual registry listing page ---- */
+.lp-body { padding: 32px 0 56px; }
+.lp-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .lp-grid { grid-template-columns: 1fr; } }
+.lp-main h2 { font-size: 18px; margin: 30px 0 12px; }
+.lp-main p { line-height: 1.75; max-width: 74ch; }
+.lp-unclaimed { padding: 20px 22px; border: 1px solid var(--border); border-left: 3px solid var(--primary, #f97316); border-radius: 0 var(--radius-lg, 18px) var(--radius-lg, 18px) 0; background: var(--card); }
+.lp-unclaimed strong { display: block; margin: 0 0 8px; }
+.lp-unclaimed p { margin: 0 0 14px; font-size: 14px; color: var(--muted); }

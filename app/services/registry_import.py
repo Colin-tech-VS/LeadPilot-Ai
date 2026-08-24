@@ -232,12 +232,18 @@ def search_listings(
     city: str | None = None,
     city_slug: str | None = None,
     dept_code: str | None = None,
+    q: str | None = None,
     limit: int = 12,
 ) -> list[RegistryListing]:
     """Public, unclaimed listings matching an optional trade and area.
 
     Backs the main directory and the trade/department landing pages, where the
     filters arrive as free text rather than as a resolved slug.
+
+    ``q`` is the free-text box. It must be applied: without it an unmatched
+    search fell through to *no* filter at all and returned the first twelve rows
+    in the table, so typing « chaville » answered with Dax and Pontlevoy — worse
+    than an empty result, because the towns look like real answers.
     """
     from app.constants.cities import city_slugify
 
@@ -256,6 +262,21 @@ def search_listings(
             query = query.filter(RegistryListing.postal_code.startswith(term))
         elif slug:
             query = query.filter(RegistryListing.city_slug == slug)
+    if q:
+        term = q.strip()
+        like = f"%{term}%"
+        # Match the same fields the registered-artisan query matches on, so one
+        # search box behaves the same either side of the results page. The slug
+        # comparison is what makes an unaccented « dunieres » find « Dunières ».
+        conditions = [
+            RegistryListing.name.ilike(like),
+            RegistryListing.city.ilike(like),
+            RegistryListing.postal_code.ilike(like),
+        ]
+        slug = city_slugify(term)
+        if slug:
+            conditions.append(RegistryListing.city_slug == slug)
+        query = query.filter(db.or_(*conditions))
     return (
         query.order_by(RegistryListing.date_creation.asc().nullslast())
         .limit(limit)

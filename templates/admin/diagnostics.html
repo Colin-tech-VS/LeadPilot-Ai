@@ -11,6 +11,9 @@
   <form method="POST" action="{{ url_for('admin.diagnostics_places_test') }}">
     <button type="submit" class="admin-btn ghost">🗺️ Tester Google Places</button>
   </form>
+  <form method="POST" action="{{ url_for('admin.diagnostics_voice_routing_test') }}">
+    <button type="submit" class="admin-btn ghost">📞 Tester routage vocal</button>
+  </form>
 {% endblock %}
 
 {% block content %}

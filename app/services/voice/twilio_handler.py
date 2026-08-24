@@ -77,10 +77,26 @@ class TwilioVoiceHandler:
     def handle_inbound(self, tenant_id: str, call_sid: str, caller_phone: str) -> str:
         tenant = db.session.get(Tenant, uuid.UUID(tenant_id))
 
-        if tenant:
-            blocked, reason = self._inbound_blocked(tenant)
-            if blocked:
-                return self._blocked_twiml(tenant, reason)
+        if tenant is None:
+            # The number is wired to a tenant that no longer exists (deleted
+            # account, or a stale TWILIO_DEFAULT_TENANT_ID). Greeting the caller
+            # anyway was the worst option available: they were invited to
+            # explain their problem, and /process — which treats the same
+            # missing tenant as a hard error — then cut them off with "service
+            # temporarily unavailable". Fail on the first second instead, and
+            # log it as an error, because only an operator can fix this.
+            logger.error(
+                "Inbound call to a number whose tenant no longer exists "
+                "tenant_id=%s call=%s — check the number's voice webhook and "
+                "TWILIO_DEFAULT_TENANT_ID",
+                tenant_id,
+                call_sid,
+            )
+            return self._unassigned_twiml()
+
+        blocked, reason = self._inbound_blocked(tenant)
+        if blocked:
+            return self._blocked_twiml(tenant, reason)
 
         get_call_state(call_sid, tenant_id, caller_phone)
         process_url = self._action_url("voice.process_recording", tenant_id)
@@ -121,6 +137,21 @@ class TwilioVoiceHandler:
 
         allowed, reason = inbound_allowed(tenant)
         return (not allowed, reason)
+
+    def _unassigned_twiml(self) -> str:
+        """No tenant behind this number — say so plainly and end the call.
+
+        Deliberately promises nothing: with no tenant there is nobody to take a
+        message or call the person back, so "your request has been noted" would
+        be a lie told to someone with a burst pipe.
+        """
+        client = TwilioVoiceClient()
+        client.say(
+            "Bonjour, ce numéro n'est pas rattaché à un professionnel actif. "
+            "Merci de vérifier le numéro que vous avez composé. À bientôt."
+        )
+        client.hangup()
+        return client.to_xml()
 
     def _blocked_twiml(self, tenant, reason: str) -> str:
         client = TwilioVoiceClient()

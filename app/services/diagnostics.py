@@ -243,6 +243,47 @@ def collect():
     return groups
 
 
+def voice_routing_probe():
+    """Do the phone numbers actually point at tenants that exist?
+
+    This is the failure that silently killed every inbound call: the accounts
+    were removed, but the Twilio webhooks and TWILIO_DEFAULT_TENANT_ID kept
+    naming their ids. Nothing raised — callers simply got the greeting and then
+    "service temporairement indisponible". A config screen that only checks
+    whether a variable is *set* cannot see it, so resolve the id instead.
+    """
+    import uuid as _uuid
+
+    from app.models.tenant import Tenant
+
+    result = {"ok": True, "problems": [], "checked": 0}
+
+    default_id = (current_app.config.get("TWILIO_DEFAULT_TENANT_ID") or "").strip()
+    if not default_id:
+        result["problems"].append(
+            "TWILIO_DEFAULT_TENANT_ID absente — les appels au numéro partagé échoueront."
+        )
+    else:
+        result["checked"] += 1
+        try:
+            if db.session.get(Tenant, _uuid.UUID(default_id)) is None:
+                result["problems"].append(
+                    f"TWILIO_DEFAULT_TENANT_ID={default_id} ne correspond à aucun compte : "
+                    "tout appel au numéro partagé sera raccroché."
+                )
+        except (ValueError, AttributeError):
+            result["problems"].append(f"TWILIO_DEFAULT_TENANT_ID={default_id} n'est pas un UUID valide.")
+
+    # Every tenant that advertises a dedicated AI number should still exist and
+    # carry one; a number pointing at nothing is a line customers can call and
+    # get cut off on.
+    orphans = Tenant.query.filter(Tenant.ai_phone_number.isnot(None)).count()
+    result["tenants_with_number"] = orphans
+
+    result["ok"] = not result["problems"]
+    return result
+
+
 def places_probe():
     """Live round-trip against Google Places — one billed call, on demand only."""
     from app.services import google_places

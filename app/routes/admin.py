@@ -1034,6 +1034,23 @@ def diagnostics_smtp_test():
     return redirect(url_for("admin.diagnostics_page"))
 
 
+@admin_bp.route("/diagnostics/voice-routing-test", methods=["POST"])
+@admin_required
+def diagnostics_voice_routing_test():
+    """Check the phone numbers still point at tenants that exist."""
+    result = diagnostics.voice_routing_probe()
+    if result.get("ok"):
+        flash(
+            f"Routage vocal OK — {result.get('tenants_with_number', 0)} compte(s) "
+            "avec un numéro dédié, numéro partagé rattaché.",
+            "success",
+        )
+    else:
+        for problem in result.get("problems", []):
+            flash(f"Routage vocal KO — {problem}", "error")
+    return redirect(url_for("admin.diagnostics_page"))
+
+
 @admin_bp.route("/diagnostics/places-test", methods=["POST"])
 @admin_required
 def diagnostics_places_test():

@@ -831,7 +831,7 @@ def artisan_directory():
         seo=seo,
         filters={"metier": trade or "", "ville": city or "", "q": q or ""},
         registry_listings=_ri.search_listings(
-            trade_key=trade if trade in TRADES else None, city=city, limit=12
+            trade_key=trade if trade in TRADES else None, city=city, q=q, limit=12
         ),
         registry_area=city or None,
         registry_trade_label=trade_label(trade, lang) if trade in TRADES else None,

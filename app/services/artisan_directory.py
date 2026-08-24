@@ -129,6 +129,7 @@ def search_public_artisans(trade=None, city=None, q=None, limit=48, lang: str = 
             for row in search_listings(
                 trade_key=trade if trade in TRADES else None,
                 city=city,
+                q=q,
                 limit=12,
             )
         ]

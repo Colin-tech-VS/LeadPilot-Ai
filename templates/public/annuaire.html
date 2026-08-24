@@ -165,7 +165,17 @@
          data-ai-where="{{ _('directory.ai_understood_where', city='{city}') }}"
          data-ai-relaxed="{{ _('directory.ai_relaxed') }}">
   <div class="container">
-    <p class="dl-results-count" id="directory-count">{{ _('directory.results_count', count=artisans|length) }}</p>
+    {# "0 artisan trouvé" above a list of twelve real businesses reads as a
+       broken page. When nobody has signed up yet but the register does know
+       companies here, say that instead — without calling them artisans found,
+       which would promise a booking they cannot yet take. #}
+    <p class="dl-results-count" id="directory-count">
+      {%- if not artisans and registry_listings -%}
+      {{ _('directory.results_registry_only', count=registry_listings|length) }}
+      {%- else -%}
+      {{ _('directory.results_count', count=artisans|length) }}
+      {%- endif -%}
+    </p>
 
     <div class="dl-results-list" id="directory-grid" {% if not artisans %}hidden{% endif %}>
       {% for a in artisans %}
@@ -437,5 +447,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=5"></script>
 {% endblock %}

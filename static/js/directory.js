@@ -9,6 +9,11 @@
   const grid = document.getElementById("directory-grid");
   const countEl = document.getElementById("directory-count");
   const emptyEl = document.getElementById("directory-empty");
+  // Register listings are rendered server-side for the current URL. A
+  // client-side search cannot refresh them, so leaving the block visible would
+  // show companies from the previous filter next to the new results. Hide it
+  // for the duration of a client-side search instead of showing stale data.
+  const registryEl = document.querySelector(".dl-registry");
   const submitBtn = form.querySelector('button[type="submit"]');
   const labels = results.dataset || {};
 
@@ -36,6 +41,7 @@
       grid.innerHTML = skeletonHtml(6);
       grid.hidden = false;
       if (emptyEl) emptyEl.hidden = true;
+      if (registryEl) registryEl.hidden = true;
       if (countEl) countEl.textContent = labels.loading || "Recherche en cours…";
     }
   }

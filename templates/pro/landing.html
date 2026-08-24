@@ -203,6 +203,23 @@
   </div>
 </section>
 
+{# The acquisition path lives here too: many artisans already have a listing in
+   the directory and reaching it is a far shorter route to an account than the
+   full sign-up form. #}
+<section class="v-section v-claim-band">
+  <div class="container v-claim-inner">
+    <div>
+      <h2>Votre entreprise est peut-être déjà référencée</h2>
+      <p>
+        Notre annuaire reprend les entreprises artisanales inscrites au registre
+        officiel. Si la vôtre y figure, reprenez la main sur votre fiche en
+        quelques minutes — c'est gratuit, et plus rapide que de tout saisir.
+      </p>
+    </div>
+    <a href="{{ url_for('web.find_my_listing') }}" class="btn btn-outline btn-lg">Chercher mon entreprise</a>
+  </div>
+</section>
+
 <section class="v-impact-section">
   <div class="container">
     <div class="v-section-head v-section-head--center">

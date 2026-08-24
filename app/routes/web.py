@@ -336,6 +336,26 @@ def indexnow_key_file(key):
     )
 
 
+@web_bp.route("/artisans/ma-fiche", methods=["GET"])
+def find_my_listing():
+    """"Is my company already listed?" — the artisan-facing entry point.
+
+    Closes the loop the acquisition strategy depends on: an artisan who hears
+    about PilotCore, or lands on /pro, can find their own page and claim it
+    without waiting for a search engine to send them there.
+    """
+    from app.services import registry_import as _ri
+
+    query = (request.args.get("q") or "").strip()
+    results = _ri.find_by_name(query, limit=10) if query else []
+    return render_template(
+        "public/find_my_listing.html",
+        query=query,
+        results=results,
+        searched=bool(query),
+    )
+
+
 @web_bp.route("/artisans/entreprise/<siren>", methods=["GET"])
 def listing_page(siren):
     """Public page for one registry-sourced business.

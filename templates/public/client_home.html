@@ -99,6 +99,32 @@
   </div>
 </section>
 
+{# Two-sided marketplace: a visitor must know within seconds which side they are
+   on. The professional entry used to sit last of eight sections, so an artisan
+   landing here had to scroll the whole consumer pitch to find their door. #}
+<section class="v-fork" aria-labelledby="home-fork-title">
+  <div class="container">
+    <h2 class="v-fork-title" id="home-fork-title">{{ _('home.fork_title') }}</h2>
+    <div class="v-fork-grid">
+      <div class="v-fork-card v-fork-card--client">
+        <span class="v-fork-ico" aria-hidden="true">🏠</span>
+        <h3>{{ _('home.fork_client_title') }}</h3>
+        <p>{{ _('home.fork_client_body') }}</p>
+        <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary">{{ _('home.fork_client_cta') }}</a>
+      </div>
+      <div class="v-fork-card v-fork-card--pro">
+        <span class="v-fork-ico" aria-hidden="true">🔧</span>
+        <h3>{{ _('home.fork_pro_title') }}</h3>
+        <p>{{ _('home.fork_pro_body') }}</p>
+        <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline">{{ _('home.fork_pro_cta') }}</a>
+        <p class="v-fork-note">
+          <a href="{{ url_for('web.find_my_listing') }}">{{ _('home.fork_pro_claim') }}</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% if featured_artisans %}
 <section class="dl-results-section">
   <div class="container">

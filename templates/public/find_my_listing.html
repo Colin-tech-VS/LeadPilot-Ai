@@ -1,0 +1,92 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'directory' %}
+
+{% set _t = "Votre entreprise est-elle déjà référencée ? — PilotCore" %}
+{% set _d = "Vérifiez si votre entreprise artisanale figure déjà dans l'annuaire PilotCore et reprenez la main sur votre fiche : coordonnées, zone d'intervention, prise de rendez-vous en ligne." %}
+
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-find-listing{% endblock %}
+{% block meta %}
+{{ seo_meta(_t, _d, '/artisans/ma-fiche', "revendiquer fiche artisan, mon entreprise annuaire, référencement artisan gratuit", 'website', None, 'index, follow', none, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="dl-hero dl-hero--compact">
+  <div class="container dl-hero-inner">
+    <h1 class="dl-hero-title dl-hero-title--sm">Votre entreprise est-elle déjà référencée&nbsp;?</h1>
+    <p class="dl-hero-lead">
+      Notre annuaire reprend les entreprises artisanales inscrites au registre
+      officiel. La vôtre y figure peut-être déjà — cherchez-la et reprenez la main
+      dessus, gratuitement.
+    </p>
+    <form class="dl-search" method="GET" role="search">
+      <div class="dl-search-fields">
+        <label class="dl-search-field" style="flex:2">
+          <span class="dl-search-label">Nom de votre entreprise ou SIREN</span>
+          <input type="search" name="q" value="{{ query }}" required minlength="3"
+                 placeholder="Ex. Plomberie Dupont, ou 123456789" autofocus autocomplete="organization">
+        </label>
+        <button type="submit" class="btn btn-primary dl-search-btn">Rechercher</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="fml-body">
+  <div class="container fml-container">
+    {% if searched %}
+      {% if results %}
+      <p class="fml-count">
+        {{ results|length }} résultat{{ 's' if results|length > 1 }} pour « {{ query }} »
+      </p>
+      <ul class="dl-registry-list">
+        {% for l in results %}
+        <li class="dl-registry-item">
+          <div class="dl-registry-main">
+            <a class="dl-registry-name" href="{{ url_for('web.listing_page', siren=l.siren) }}">{{ l.name | display_name }}</a>
+            <span class="dl-registry-meta">
+              {{ l.city | display_name }}{% if l.postal_code %} ({{ l.postal_code }}){% endif %}
+              · SIREN {{ l.siren }}{% if l.years_active %} · {{ l.years_active }} ans d'activité{% endif %}
+            </span>
+          </div>
+          <a class="dl-registry-claim" href="{{ url_for('web.claim_listing', siren=l.siren) }}">C'est mon entreprise</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="fml-empty">
+        <h2>Aucune fiche trouvée pour « {{ query }} »</h2>
+        <p>
+          Deux raisons possibles&nbsp;: votre entreprise n'est pas encore reprise
+          dans notre annuaire, ou elle y figure sous une autre raison sociale.
+          Essayez avec votre numéro SIREN, il identifie l'entreprise sans
+          ambiguïté.
+        </p>
+        <p>
+          Dans tous les cas, vous pouvez créer directement votre compte&nbsp;:
+          vous renseignez vous-même vos coordonnées et votre zone d'intervention.
+        </p>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">Créer mon compte artisan</a>
+      </div>
+      {% endif %}
+    {% else %}
+    <div class="fml-how">
+      <h2>Comment ça marche</h2>
+      <ol class="bc-steps">
+        <li><strong>Cherchez votre entreprise</strong> par sa raison sociale ou son numéro SIREN.</li>
+        <li><strong>Ouvrez votre fiche</strong> — elle reprend les informations publiques du registre : activité, commune, ancienneté.</li>
+        <li><strong>Revendiquez-la.</strong> Nous vérifions que la demande vient bien de l'entreprise, puis nous vous la transférons.</li>
+        <li><strong>Complétez-la</strong> : coordonnées, zone d'intervention, prise de rendez-vous en ligne.</li>
+      </ol>
+      <p class="cl-legal">
+        Les fiches non revendiquées ne publient ni téléphone, ni e-mail, ni
+        disponibilités — seulement les informations publiques du registre.
+        Vous préférez ne pas y figurer&nbsp;?
+        <a href="{{ url_for('web.listing_optout') }}">Demandez le retrait en un clic</a>.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

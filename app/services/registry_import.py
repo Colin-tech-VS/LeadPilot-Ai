@@ -307,3 +307,40 @@ NAF_LABELS: dict[str, str] = {
 
 def naf_label(code: str | None) -> str | None:
     return NAF_LABELS.get((code or "").strip().upper())
+
+
+def find_by_name(query: str, *, limit: int = 10) -> list[RegistryListing]:
+    """Look up a business the way its owner would: by name, or by SIREN.
+
+    Powers the "is my company already listed?" flow, which is how an artisan
+    reaches their own page without us sending anything.
+    """
+    import re as _re
+
+    q = (query or "").strip()
+    if len(q) < 3:
+        return []
+
+    digits = _re.sub(r"\D", "", q)
+    if len(digits) in (9, 14):
+        # A SIREN (9) or SIRET (14) identifies exactly one business.
+        rows = RegistryListing.query.filter(
+            RegistryListing.status == STATUS_LISTED,
+            db.or_(
+                RegistryListing.siren == digits[:9],
+                RegistryListing.siret == digits,
+            ),
+        ).limit(limit).all()
+        if rows:
+            return rows
+
+    like = f"%{q}%"
+    return (
+        RegistryListing.query.filter(
+            RegistryListing.status == STATUS_LISTED,
+            RegistryListing.name.ilike(like),
+        )
+        .order_by(RegistryListing.date_creation.asc().nullslast())
+        .limit(limit)
+        .all()
+    )

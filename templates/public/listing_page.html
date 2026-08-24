@@ -125,7 +125,12 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
       <img class="lp-seller-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="72" height="72">
     </div>
     <div>
-      <span class="lp-seller-flag">Fiche registre · non inscrite</span>
+      <div class="lp-seller-chips">
+        <span class="lp-seller-flag">Fiche registre · non inscrite</span>
+        <span class="lp-id-chip">SIREN {% if listing.siren|length == 9 %}{{ listing.siren[:3] }} {{ listing.siren[3:6] }} {{ listing.siren[6:] }}{% else %}{{ listing.siren }}{% endif %}</span>
+        {% if listing.naf_code %}<span class="lp-id-chip">APE {{ listing.naf_code }}</span>{% endif %}
+        {% if department %}<span class="lp-id-chip">{{ department.code }} · {{ department.name }}</span>{% endif %}
+      </div>
       <h1 class="dl-hero-title dl-hero-title--sm">{{ name }}</h1>
       <p class="dl-hero-lead">{{ label }}{% if city_name %} à {{ city_name }}{% endif %}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</p>
     </div>
@@ -162,16 +167,46 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
       </p>
 
       <h2>Informations au registre</h2>
-      <dl class="dl-facts-grid">
-        <div><dt>Raison sociale</dt><dd>{{ name }}</dd></div>
-        <div><dt>Activité déclarée</dt><dd>{{ naf_label or label }}{% if listing.naf_code %}<br><span class="dl-registry-meta">code APE {{ listing.naf_code }}</span>{% endif %}</dd></div>
-        <div><dt>SIREN</dt><dd>{{ listing.siren }}</dd></div>
-        {% if listing.siret %}<div><dt>SIRET (siège)</dt><dd>{{ listing.siret }}</dd></div>{% endif %}
-        {% if listing.date_creation %}
-        <div><dt>Immatriculation</dt><dd>{{ listing.date_creation }}{% if listing.years_active %} ({{ listing.years_active }} ans){% endif %}</dd></div>
+      <dl class="lp-id-cards">
+        <div class="lp-id-card lp-id-card--wide">
+          <dt>Raison sociale</dt>
+          <dd>{{ name }}</dd>
+        </div>
+        <div class="lp-id-card lp-id-card--wide">
+          <dt>Activité déclarée</dt>
+          <dd>
+            {{ naf_label or label }}
+            {% if listing.naf_code %}<span class="lp-id-chip">APE {{ listing.naf_code }}</span>{% endif %}
+          </dd>
+        </div>
+        <div class="lp-id-card">
+          <dt>SIREN</dt>
+          <dd class="lp-id-mono">{% if listing.siren|length == 9 %}{{ listing.siren[:3] }} {{ listing.siren[3:6] }} {{ listing.siren[6:] }}{% else %}{{ listing.siren }}{% endif %}</dd>
+        </div>
+        {% if listing.siret %}
+        <div class="lp-id-card">
+          <dt>SIRET (siège)</dt>
+          <dd class="lp-id-mono">{% if listing.siret|length == 14 %}{{ listing.siret[:3] }} {{ listing.siret[3:6] }} {{ listing.siret[6:9] }} {{ listing.siret[9:] }}{% else %}{{ listing.siret }}{% endif %}</dd>
+        </div>
         {% endif %}
-        {% if listing.address %}<div><dt>Adresse</dt><dd>{{ listing.address }}</dd></div>{% endif %}
-        {% if department %}<div><dt>Département</dt><dd>{{ department.name }} ({{ department.code }})</dd></div>{% endif %}
+        {% if listing.date_creation %}
+        <div class="lp-id-card">
+          <dt>Immatriculation</dt>
+          <dd>{{ listing.date_creation }}{% if listing.years_active %} <span class="lp-id-chip">{{ listing.years_active }} ans</span>{% endif %}</dd>
+        </div>
+        {% endif %}
+        {% if department %}
+        <div class="lp-id-card">
+          <dt>Département</dt>
+          <dd>{{ department.name }} <span class="lp-id-chip">{{ department.code }}</span></dd>
+        </div>
+        {% endif %}
+        {% if listing.address %}
+        <div class="lp-id-card lp-id-card--wide">
+          <dt>Adresse</dt>
+          <dd>{{ listing.address }}</dd>
+        </div>
+        {% endif %}
       </dl>
       <p class="dl-registry-legal">
         Source&nbsp;: registre officiel des entreprises

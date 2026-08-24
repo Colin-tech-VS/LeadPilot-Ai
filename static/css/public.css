@@ -2056,16 +2056,42 @@ html {
   box-shadow: 0 10px 28px rgba(15, 20, 25, 0.12);
 }
 .lp-seller-logo { width: 72px; height: 72px; object-fit: contain; }
+.lp-seller-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+}
 .lp-seller-flag {
   display: inline-flex;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  background: #F1F5F9;
-  color: #334155;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--lp-brand, #1A2332);
+  color: var(--lp-text-inverse, #F6F1E6);
 }
+.lp-id-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--lp-border, #D7CDB8);
+  border-radius: 2px;
+  background: var(--lp-brand-soft, #E8E4D6);
+  color: var(--lp-brand, #1A2332);
+  font-family: var(--lp-font, "IBM Plex Sans", sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.lp-seller-chips .lp-id-chip { margin-left: 0; }
 
 /* ---- Claim / opt-out forms ---- */
 .cl-wrap { padding: 40px 0 60px; }
@@ -2092,6 +2118,50 @@ html {
 @media (max-width: 860px) { .lp-grid { grid-template-columns: 1fr; } }
 .lp-main h2 { font-size: 18px; margin: 30px 0 12px; }
 .lp-main p { line-height: 1.75; max-width: 74ch; }
+.lp-id-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.lp-id-card {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--lp-surface, #FBF7EE);
+  border: 1px solid var(--lp-border, #D7CDB8);
+  border-radius: var(--lp-radius, 4px);
+}
+.lp-id-card--wide { grid-column: 1 / -1; }
+.lp-id-card dt {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--lp-text-muted, #6B6458);
+}
+.lp-id-card dd {
+  margin: 0;
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--lp-text, #1C1914);
+  overflow-wrap: anywhere;
+}
+.lp-id-card dd .lp-id-chip { margin-top: 2px; }
+.lp-id-mono {
+  font-family: var(--lp-font, "IBM Plex Sans", sans-serif) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+@media (max-width: 640px) {
+  .lp-id-cards { grid-template-columns: 1fr; }
+  .lp-id-card--wide { grid-column: auto; }
+}
 .lp-unclaimed { padding: 20px 22px; border: 1px solid var(--border); border-left: 3px solid var(--primary, #f97316); border-radius: 0 var(--radius-lg, 18px) var(--radius-lg, 18px) 0; background: var(--card); }
 .lp-unclaimed strong { display: block; margin: 0 0 8px; }
 .lp-unclaimed p { margin: 0 0 14px; font-size: 14px; color: var(--muted); }

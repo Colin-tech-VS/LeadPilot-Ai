@@ -392,6 +392,19 @@ def listing_page(siren):
     city = city_info(listing.city_slug) if listing.city_slug else None
     dept = department_info(listing.dept_code) if listing.dept_code else None
     from app.utils.naming import display_name
+    from app.services.place_map import ensure_listing_coords
+
+    coords = ensure_listing_coords(listing)
+    has_map = bool(coords)
+    map_lat, map_lng = coords if coords else (None, None)
+    map_zoom = 15 if listing.address else 13
+    maps_url = None
+    if coords:
+        maps_url = f"https://www.openstreetmap.org/?mlat={map_lat}&mlon={map_lng}#map={map_zoom}/{map_lat}/{map_lng}"
+    elif listing.address:
+        from urllib.parse import quote
+
+        maps_url = f"https://www.openstreetmap.org/search?query={quote(listing.address)}"
 
     return render_template(
         "public/listing_page.html",
@@ -412,6 +425,11 @@ def listing_page(siren):
             if row.siren != listing.siren
         ][:6],
         robots=listing_page_robots(listing, city_has_page=city is not None),
+        has_map=has_map,
+        map_lat=map_lat,
+        map_lng=map_lng,
+        map_zoom=map_zoom,
+        maps_url=maps_url,
     )
 
 
@@ -1208,14 +1226,21 @@ def artisan_profile(slug):
         and tenant.ai_phone_number.strip() != tenant.phone_number.strip()
         else None
     )
-    has_map = bool(tenant.latitude and tenant.longitude)
+    has_map = False
+    maps_url = None
+    map_zoom = 13
     full_address = tenant.full_address or None
     has_address = bool(tenant.address or tenant.city or tenant.postal_code)
-    maps_url = None
-    if has_map:
-        maps_url = f"https://www.google.com/maps?q={tenant.latitude},{tenant.longitude}"
+    from app.services.place_map import ensure_tenant_coords
+
+    coords = ensure_tenant_coords(tenant)
+    if coords:
+        tenant.latitude, tenant.longitude = coords
+        has_map = True
+        map_zoom = 15 if tenant.address else 13
+        maps_url = f"https://www.openstreetmap.org/?mlat={coords[0]}&mlon={coords[1]}#map={map_zoom}/{coords[0]}/{coords[1]}"
     elif full_address:
-        maps_url = f"https://www.google.com/maps/search/?api=1&query={quote(full_address)}"
+        maps_url = f"https://www.openstreetmap.org/search?query={quote(full_address)}"
 
     # Branded 1200×630 OG card (falls back to the default social image if the
     # renderer is unavailable). Big CTR lever when the profile is shared locally.
@@ -1251,6 +1276,7 @@ def artisan_profile(slug):
         has_address=has_address,
         full_address=full_address,
         maps_url=maps_url,
+        map_zoom=map_zoom,
     )
 
 

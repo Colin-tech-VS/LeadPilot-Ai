@@ -9,14 +9,30 @@ logger = logging.getLogger(__name__)
 _last_request_at = 0.0
 
 
+def _ban_geocode(address: str) -> tuple[float, float] | None:
+    """Base Adresse Nationale — free, accurate for French street addresses."""
+    try:
+        resp = requests.get(
+            "https://api-adresse.data.gouv.fr/search/",
+            params={"q": address.strip(), "limit": 1},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        features = (resp.json() or {}).get("features") or []
+        if not features:
+            return None
+        lon, lat = features[0]["geometry"]["coordinates"]
+        return float(lat), float(lon)
+    except Exception:
+        logger.exception("BAN geocoding failed for address: %s", address[:80])
+        return None
+
+
 def geocode_address(address: str) -> tuple[float, float] | None:
     """Geocode an address. Returns (lat, lng) or None.
 
-    Google Geocoding first when a Places key is configured: it is markedly more
-    accurate on French addresses and carries no hand-rolled throttle. Nominatim
-    stays as the fallback for deployments without a key — its usage policy caps
-    us at one request per second, which the sleep below honours and which is far
-    too slow for anything but incidental lookups.
+    Google Geocoding first when a Places key is configured. Otherwise the free
+    Base Adresse Nationale, then Nominatim.
     """
     if not address or not address.strip():
         return None
@@ -27,6 +43,10 @@ def geocode_address(address: str) -> tuple[float, float] | None:
         hit = google_places.geocode(address)
         if hit is not None:
             return hit
+
+    ban = _ban_geocode(address)
+    if ban is not None:
+        return ban
 
     global _last_request_at
     elapsed = time.time() - _last_request_at

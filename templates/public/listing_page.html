@@ -13,6 +13,13 @@
 {% block title %}{{ _t }}{% endblock %}
 {% block body_class %}fa-page page-listing{% endblock %}
 
+{% block head_extra %}
+{% if has_map %}
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endif %}
+{% endblock %}
+
 {% set _faq_age %}
 {%- if listing.date_creation -%}
 {{ name }} est immatriculée au registre des entreprises depuis le {{ listing.date_creation }}{% if listing.years_active %}, soit {{ listing.years_active }} ans d'activité{% endif %}.
@@ -252,6 +259,27 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
     </article>
 
     <aside class="dl-local-aside">
+      {% if has_map or listing.address or city_name %}
+      <div class="dl-local-box lp-map-box">
+        <h3>Localisation</h3>
+        {% if listing.address %}
+        <p class="lp-map-address">{{ listing.address }}</p>
+        {% elif city_name %}
+        <p class="lp-map-address">{{ city_name }}{% if listing.postal_code %} ({{ listing.postal_code }}){% endif %}</p>
+        {% endif %}
+        {% if has_map %}
+        <div class="lp-map" data-place-map
+             data-lat="{{ map_lat }}"
+             data-lng="{{ map_lng }}"
+             data-zoom="{{ map_zoom|default(13) }}"
+             data-name="{{ name }}"
+             aria-label="Carte de {{ name }}"></div>
+        {% endif %}
+        {% if maps_url %}
+        <a href="{{ maps_url }}" class="lp-map-link" target="_blank" rel="noopener noreferrer">Ouvrir la carte ↗</a>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if same_city %}
       <div class="dl-local-box">
         <h3>Autres {{ label|lower }}s à {{ city_name }}</h3>
@@ -286,4 +314,11 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
     </aside>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% if has_map %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/place-map.js') }}?v=1"></script>
+{% endif %}
 {% endblock %}

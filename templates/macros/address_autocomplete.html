@@ -1,8 +1,8 @@
 {% macro address_autocomplete_scripts() %}
-{# Address autocomplete runs on the French government's Base Adresse
-   Nationale: no API key, no billing account, no quota, and authoritative for
-   the only country this site serves. Kept under the original macro name so
-   every layout that already calls it picks it up unchanged. #}
+{# Suggestions are fetched from our origin, which prefers Google Places and
+   falls back to the Base Adresse Nationale. The Places key never ships in the
+   page. BAN preconnect keeps the fallback snappy when Google is down. #}
 <link rel="preconnect" href="https://api-adresse.data.gouv.fr">
-<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=1" defer></script>
+<link rel="preconnect" href="https://maps.gstatic.com">
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=2" defer></script>
 {% endmacro %}

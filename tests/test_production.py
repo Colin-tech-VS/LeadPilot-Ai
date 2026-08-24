@@ -20,11 +20,11 @@ def _production_app():
 
 
 def test_address_autocomplete_needs_no_api_key(app):
-    """Autocomplete runs on the government's Base Adresse Nationale.
+    """Autocomplete ships on every public page; the Places key never does.
 
-    No key is embedded in the page, which also means no key to leak and no
-    visitor keystrokes sent to a third-party ad network — so the page must load
-    the script whether or not a Places key happens to be configured."""
+    The browser talks to our origin. Google (or BAN as fallback) is called
+    server-side, so the page must load the script whether or not a Places key
+    happens to be configured."""
     app.config["GOOGLE_PLACES_API_KEY"] = "test-places-key"
     with app.test_client() as client:
         response = client.get("/")

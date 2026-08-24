@@ -29,7 +29,7 @@
       </label>
       <label class="field field-wide">
         <span>{{ _('quotes.client_address') }}</span>
-        <input type="text" name="client_address" value="{{ quote.client_address or '' }}">
+        <input type="text" name="client_address" class="places-address" data-places-address value="{{ quote.client_address or '' }}" autocomplete="off" placeholder="12 rue de la Paix, Paris">
       </label>
       <label class="field field-wide">
         <span>{{ _('quotes.doc_title') }}</span>

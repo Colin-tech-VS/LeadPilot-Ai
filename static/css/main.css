@@ -4566,15 +4566,39 @@ html.js-enabled .dash-card-in.is-visible {
 }
 .directory-toggle { align-items: flex-start; gap: 10px; font-weight: 600; }
 
-/* Google Places Autocomplete dropdown */
-.pac-container {
+/* City / address autocomplete — list is portaled onto body so overflow:hidden
+   search bars (the rounded pill) cannot clip it. */
+.ac-list {
+  position: fixed;
   z-index: 12000;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
   border-radius: 12px;
-  border: 1px solid var(--border);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+  box-sizing: border-box;
   font-family: Inter, system-ui, sans-serif;
-  margin-top: 4px;
 }
-.pac-item { padding: 10px 12px; cursor: pointer; font-size: 14px; }
-.pac-item:hover { background: #f1f5f9; }
-.pac-icon { display: none; }
+.ac-list[hidden] { display: none !important; }
+.ac-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text, #111827);
+}
+.ac-item:hover, .ac-item.is-active { background: #f1f5f9; }
+.ac-powered {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 10px 4px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border, #e5e7eb);
+  pointer-events: none;
+}
+.ac-powered img { display: block; height: 14px; width: auto; }

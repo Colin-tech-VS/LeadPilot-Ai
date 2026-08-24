@@ -77,7 +77,7 @@
       <p class="section-hint">{{ _('settings.section.location_hint') }}</p>
 
       <label for="address">{{ _('settings.address') }}</label>
-      <input type="text" id="address" name="address" value="{{ tenant.address or '' }}" placeholder="12 rue de la Paix">
+      <input type="text" id="address" name="address" class="places-address" data-places-address value="{{ tenant.address or '' }}" placeholder="12 rue de la Paix" autocomplete="off">
 
       <div class="form-row">
         <div class="form-row-narrow">
@@ -86,7 +86,7 @@
         </div>
         <div>
           <label for="city">{{ _('settings.city') }}</label>
-          <input type="text" id="city" name="city" class="places-city" value="{{ tenant.city or '' }}" placeholder="Paris" autocomplete="off">
+          <input type="text" id="city" name="city" class="places-city" data-places-city value="{{ tenant.city or '' }}" placeholder="Paris" autocomplete="off">
         </div>
       </div>
 

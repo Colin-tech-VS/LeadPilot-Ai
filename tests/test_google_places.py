@@ -258,6 +258,14 @@ def test_resolve_endpoint_404s_on_unknown_place(places_app, client, monkeypatch)
     assert client.get("/api/public/places/resolve?id=nope").status_code == 404
 
 
+def test_city_search_fields_are_wired_for_places(places_app, client):
+    """Every public search bar must opt into Places so the JS attaches."""
+    for path in ("/", "/artisans", "/trouver-un-artisan", "/depannage-urgent"):
+        html = client.get(path).data.decode()
+        assert "address-autocomplete.js" in html, path
+        assert "data-places-city" in html, path
+
+
 def test_api_key_is_never_rendered_into_a_page(places_app, client):
     """The key is billed per request and ours is not referrer-locked, so a copy
     in the HTML would be a copy anyone can spend."""
@@ -273,3 +281,9 @@ def test_autocomplete_js_calls_our_origin_not_google():
     assert "/api/public/places/autocomplete" in js
     assert "maps.googleapis.com" not in js
     assert "places.googleapis.com" not in js
+    # Dropdown must leave the overflow-hidden search pill, otherwise
+    # suggestions render inside the input and are clipped.
+    assert "document.body.appendChild" in js
+    assert "getBoundingClientRect" in js
+    assert "input.places-city" in js
+    assert "client_address" in js

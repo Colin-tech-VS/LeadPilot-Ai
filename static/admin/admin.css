@@ -2094,8 +2094,30 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
 /* GSC period selector */
 .gsc-periods { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
 .admin-badge.tiny { font-size: 10px; padding: 1px 6px; margin-left: 6px; }
-.ac-wrap { position: relative; }
-.ac-list { position: absolute; z-index: 60; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 4px; list-style: none;
-  background: #fff; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.12); max-height: 260px; overflow-y: auto; }
-.ac-item { padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.ac-list {
+  position: fixed;
+  z-index: 12000;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.ac-list[hidden] { display: none !important; }
+.ac-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .ac-item:hover, .ac-item.is-active { background: #f3f4f6; }
+.ac-powered {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 10px 4px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border, #e5e7eb);
+  pointer-events: none;
+}
+.ac-powered img { display: block; height: 14px; width: auto; }

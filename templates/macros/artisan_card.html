@@ -1,9 +1,13 @@
-{# Carte artisan — garder en sync avec static/js/directory.js cardHtml() #}
+{# Fiches vendeur — garder en sync avec static/js/directory.js #}
+
 {% macro artisan_card(a, trades) %}
 {% set ns = namespace(label='', icon='🛠️') %}
 {% for t in trades if t.key == a.trade_type %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
-<a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="dl-card directory-card">
-  <div class="dl-card-accent" aria-hidden="true"></div>
+<a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="dl-card dl-card--listed directory-card">
+  <div class="dl-card-media">
+    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+    <span class="dl-card-flag dl-card-flag--listed">{{ _('directory.badge_listed') }}</span>
+  </div>
   <div class="dl-card-header">
     <div class="dl-card-avatar" aria-hidden="true">{{ ns.icon }}</div>
     <div class="dl-card-head-text">
@@ -27,12 +31,46 @@
   </div>
   <div class="dl-card-footer">
     <div class="dl-card-badges">
-      <span class="dl-card-badge">✓ {{ _('directory.feature_online') }}</span>
+      <span class="dl-card-badge">{{ _('directory.feature_online') }}</span>
       {% if a.ai_phone_number %}
-      <span class="dl-card-badge dl-card-badge--ai">🤖 IA 24/7</span>
+      <span class="dl-card-badge dl-card-badge--ai">{{ _('directory.feature_247') }}</span>
       {% endif %}
     </div>
     <span class="dl-card-cta btn btn-primary">{{ _('directory.book_cta') }} →</span>
+  </div>
+</a>
+{% endmacro %}
+
+{% macro registry_card(l, trades) %}
+{% set ns = namespace(label='', icon='🛠️') %}
+{% for t in trades if t.key == l.trade_key %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
+<a href="{{ url_for('web.listing_page', siren=l.siren) }}" class="dl-card dl-card--registry directory-card">
+  <div class="dl-card-media dl-card-media--registry">
+    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+    <span class="dl-card-flag dl-card-flag--registry">{{ _('directory.badge_registry') }}</span>
+  </div>
+  <div class="dl-card-header">
+    <div class="dl-card-avatar" aria-hidden="true">{{ ns.icon }}</div>
+    <div class="dl-card-head-text">
+      <h2 class="dl-card-name">{{ l.name | display_name }}</h2>
+      <p class="dl-card-specialty">{{ ns.label }}</p>
+    </div>
+  </div>
+  <div class="dl-card-body">
+    <p class="dl-card-location">
+      <span class="dl-card-pin" aria-hidden="true">📍</span>
+      {{ l.city or _('directory.city_unknown') }}{% if l.postal_code %} · {{ l.postal_code }}{% endif %}
+    </p>
+    {% if l.years_active %}
+    <p class="dl-card-radius">{{ _('directory.registry_years', years=l.years_active) }}</p>
+    {% endif %}
+    <p class="dl-card-blurb dl-card-blurb--muted">{{ _('directory.registry_blurb') }}</p>
+  </div>
+  <div class="dl-card-footer">
+    <div class="dl-card-badges">
+      <span class="dl-card-badge dl-card-badge--registry">{{ _('directory.badge_registry') }}</span>
+    </div>
+    <span class="dl-card-cta btn btn-outline">{{ _('directory.view_listing') }} →</span>
   </div>
 </a>
 {% endmacro %}

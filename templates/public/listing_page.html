@@ -120,9 +120,15 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
       <span aria-current="page">{{ name }}</span>
     </div>
   </nav>
-  <div class="container dl-hero-inner">
-    <h1 class="dl-hero-title dl-hero-title--sm">{{ name }}</h1>
-    <p class="dl-hero-lead">{{ label }}{% if city_name %} à {{ city_name }}{% endif %}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</p>
+  <div class="container dl-hero-inner lp-seller">
+    <div class="lp-seller-media">
+      <img class="lp-seller-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="72" height="72">
+    </div>
+    <div>
+      <span class="lp-seller-flag">Fiche registre · non inscrite</span>
+      <h1 class="dl-hero-title dl-hero-title--sm">{{ name }}</h1>
+      <p class="dl-hero-lead">{{ label }}{% if city_name %} à {{ city_name }}{% endif %}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</p>
+    </div>
   </div>
 </section>
 

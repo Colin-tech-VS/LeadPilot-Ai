@@ -557,12 +557,14 @@ def client_home():
         return redirect(url_for("web.dashboard"))
     from app.constants.trades import trade_choices
     from app.services.artisan_directory import list_public_artisans
+    from app.services.registry_import import search_listings
 
     lang = getattr(g, "lang", "fr")
     return render_template(
         "public/client_home.html",
         trades=trade_choices(lang),
         featured_artisans=list_public_artisans(limit=6),
+        featured_listings=search_listings(limit=8),
     )
 
 

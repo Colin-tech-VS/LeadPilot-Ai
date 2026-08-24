@@ -2028,16 +2028,44 @@ html {
 .dl-registry { margin: 28px 0; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); }
 .dl-registry-head h2 { margin: 0 0 8px; font-size: 17px; }
 .dl-registry-sub { margin: 0 0 18px; font-size: 14px; line-height: 1.65; color: var(--muted); max-width: 76ch; }
-.dl-registry-list { list-style: none; margin: 0 0 16px; padding: 0; }
-.dl-registry-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.dl-registry-item:last-child { border-bottom: 0; }
-.dl-registry-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.dl-registry-name { font-weight: 600; color: var(--text); text-decoration: none; }
-.dl-registry-name:hover { text-decoration: underline; }
-.dl-registry-meta { font-size: 13px; color: var(--muted); }
-.dl-registry-claim { font-size: 13px; font-weight: 600; white-space: nowrap; padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; }
-.dl-registry-claim:hover { border-color: var(--primary, #f97316); }
+.dl-registry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
 .dl-registry-legal { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+
+.lp-seller {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 8px 0 0;
+}
+.lp-seller-media {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 10px 28px rgba(15, 20, 25, 0.12);
+}
+.lp-seller-logo { width: 72px; height: 72px; object-fit: contain; }
+.lp-seller-flag {
+  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #F1F5F9;
+  color: #334155;
+}
 
 /* ---- Claim / opt-out forms ---- */
 .cl-wrap { padding: 40px 0 60px; }
@@ -2070,7 +2098,6 @@ html {
 .lp-more { font-size: 14px; color: var(--muted); }
 
 /* Unclaimed registry entries inside client-side search results */
-.dl-card--registry { border-style: dashed; }
 .dl-card-registry-note { margin: 8px 0 12px; font-size: 13px; color: var(--muted); }
 
 /* ---- Address / city autocomplete (Base Adresse Nationale) ---- */

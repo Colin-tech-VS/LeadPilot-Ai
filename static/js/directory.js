@@ -9,20 +9,18 @@
   const grid = document.getElementById("directory-grid");
   const countEl = document.getElementById("directory-count");
   const emptyEl = document.getElementById("directory-empty");
-  // Register listings are rendered server-side for the current URL. A
-  // client-side search cannot refresh them, so leaving the block visible would
-  // show companies from the previous filter next to the new results. Hide it
-  // for the duration of a client-side search instead of showing stale data.
-  const registryEl = document.querySelector(".dl-registry");
+  const registryEl = document.getElementById("directory-registry") || document.querySelector(".dl-registry");
+  const registryGrid = document.getElementById("directory-registry-grid");
   const submitBtn = form.querySelector('button[type="submit"]');
   const labels = results.dataset || {};
+  const logoUrl = labels.logoUrl || "/static/images/logo.svg";
 
   function skeletonHtml(n) {
     let html = "";
     for (let i = 0; i < n; i += 1) {
       html +=
-        '<div class="directory-card directory-card--skeleton" aria-hidden="true">' +
-        '<div class="sk-line sk-icon"></div>' +
+        '<div class="dl-card directory-card directory-card--skeleton" aria-hidden="true">' +
+        '<div class="dl-card-media"></div>' +
         '<div class="sk-line sk-title"></div>' +
         '<div class="sk-line sk-short"></div>' +
         '<div class="sk-line sk-medium"></div>' +
@@ -41,7 +39,7 @@
       grid.innerHTML = skeletonHtml(6);
       grid.hidden = false;
       if (emptyEl) emptyEl.hidden = true;
-      if (registryEl) registryEl.hidden = true;
+      if (registryGrid) registryGrid.innerHTML = skeletonHtml(3);
       if (countEl) countEl.textContent = labels.loading || "Recherche en cours…";
     }
   }
@@ -59,9 +57,13 @@
     const aiBadge = a.ai_phone_number
       ? '<span class="dl-card-badge dl-card-badge--ai">🤖 IA 24/7</span>'
       : "";
+    const flag = escapeHtml(labels.badgeListed || "Inscrit · RDV en ligne");
     return (
-      '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="dl-card directory-card">' +
-        '<div class="dl-card-accent" aria-hidden="true"></div>' +
+      '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="dl-card dl-card--listed directory-card">' +
+        '<div class="dl-card-media">' +
+          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="" width="80" height="80">' +
+          '<span class="dl-card-flag dl-card-flag--listed">' + flag + "</span>" +
+        "</div>" +
         '<div class="dl-card-header">' +
           '<div class="dl-card-avatar" aria-hidden="true">' + icon + "</div>" +
           '<div class="dl-card-head-text">' +
@@ -76,7 +78,7 @@
         "</div>" +
         '<div class="dl-card-footer">' +
           '<div class="dl-card-badges">' +
-            '<span class="dl-card-badge">✓ ' + escapeHtml(labels.verified || "Vérifié") + "</span>" +
+            '<span class="dl-card-badge">' + escapeHtml(labels.featureOnline || "RDV en ligne") + "</span>" +
             aiBadge +
           "</div>" +
           '<span class="dl-card-cta btn btn-primary">' + escapeHtml(labels.bookCta || "Prendre RDV") + " →</span>" +
@@ -95,26 +97,42 @@
 
   function registryCardHtml(a) {
     const icon = escapeHtml(a.trade_icon || "🛠️");
-    const city = escapeHtml(a.city || labels.cityUnknown || "");
-    const cp = a.postal_code ? " (" + escapeHtml(a.postal_code) + ")" : "";
-    const age = a.years_active ? " · " + a.years_active + " ans d'activité" : "";
+    const city = a.city || labels.cityUnknown || "";
+    const postal = a.postal_code ? " · " + a.postal_code : "";
+    const years = a.years_active || a.years_active;
+    const yearsLine = years
+      ? '<p class="dl-card-radius">' + escapeHtml((labels.registryYears || "En activité depuis {years} ans").replace("{years}", years)) + "</p>"
+      : "";
+    const href = a.profile_url || ("/artisans/entreprise/" + encodeURIComponent(a.id || ""));
+    const flag = escapeHtml(labels.badgeRegistry || "Registre · non inscrit");
     return (
-      '<article class="dl-card dl-card--registry">' +
-      '<div class="dl-card-head"><span class="dl-card-ico">' + icon + "</span>" +
-      '<div class="dl-card-id"><a class="dl-card-name" href="' + escapeHtml(a.profile_url) + '">' +
-      escapeHtml(a.name) + "</a>" +
-      '<span class="dl-card-meta">' + escapeHtml(a.trade_label || "") + " · " + city + cp + age + "</span></div></div>" +
-      '<p class="dl-card-registry-note">Fiche non revendiquée — coordonnées non publiées.</p>' +
-      '<a class="btn btn-outline dl-card-cta" href="' + escapeHtml(a.profile_url) + '">Voir la fiche</a>' +
-      "</article>"
+      '<a href="' + escapeHtml(href) + '" class="dl-card dl-card--registry directory-card">' +
+        '<div class="dl-card-media dl-card-media--registry">' +
+          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="" width="80" height="80">' +
+          '<span class="dl-card-flag dl-card-flag--registry">' + flag + "</span>" +
+        "</div>" +
+        '<div class="dl-card-header">' +
+          '<div class="dl-card-avatar" aria-hidden="true">' + icon + "</div>" +
+          '<div class="dl-card-head-text">' +
+            '<h2 class="dl-card-name">' + escapeHtml(a.name) + "</h2>" +
+            '<p class="dl-card-specialty">' + escapeHtml(a.trade_label || "") + "</p>" +
+          "</div>" +
+        "</div>" +
+        '<div class="dl-card-body">' +
+          '<p class="dl-card-location"><span class="dl-card-pin" aria-hidden="true">📍</span> ' + escapeHtml(city + postal) + "</p>" +
+          yearsLine +
+          '<p class="dl-card-blurb dl-card-blurb--muted">' + escapeHtml(labels.registryBlurb || "Fiche non revendiquée — pas de rendez-vous en ligne.") + "</p>" +
+        "</div>" +
+        '<div class="dl-card-footer">' +
+          '<div class="dl-card-badges"><span class="dl-card-badge dl-card-badge--registry">' + flag + "</span></div>" +
+          '<span class="dl-card-cta btn btn-outline">' + escapeHtml(labels.viewListing || "Voir la fiche") + " →</span>" +
+        "</div>" +
+      "</a>"
     );
   }
 
   function render(data) {
     const items = data.artisans || [];
-    // Businesses the register knows but nobody has claimed. Rendered after the
-    // registered artisans and visibly apart: they cannot take a booking, so
-    // mixing them in would promise an appointment that cannot happen.
     const registry = data.registry || [];
     if (countEl) {
       if (!items.length && registry.length) {
@@ -132,14 +150,20 @@
         grid.innerHTML = "";
         grid.hidden = true;
       }
+      if (registryGrid) registryGrid.innerHTML = "";
+      if (registryEl) registryEl.hidden = true;
       if (emptyEl) emptyEl.hidden = false;
       return;
     }
     if (emptyEl) emptyEl.hidden = true;
     if (grid) {
-      grid.innerHTML = items.map(cardHtml).join("") + registry.map(registryCardHtml).join("");
-      grid.hidden = false;
+      grid.innerHTML = items.map(cardHtml).join("");
+      grid.hidden = !items.length;
     }
+    if (registryGrid) {
+      registryGrid.innerHTML = registry.map(registryCardHtml).join("");
+    }
+    if (registryEl) registryEl.hidden = !registry.length;
   }
 
   function buildUrl() {

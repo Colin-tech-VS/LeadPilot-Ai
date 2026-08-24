@@ -176,7 +176,7 @@
 {% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/artisan-profile.css') }}?v=4">
 {% if has_map %}
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -196,6 +196,9 @@
 {# ── Hero compact centré ── #}
 <header class="ap-hero">
   <div class="ap-hero-inner">
+    <div class="ap-seller-logo-wrap">
+      <img class="ap-seller-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+    </div>
     <div class="ap-badges">
       <span class="ap-badge ap-badge--trade">{{ trade_icon }} {{ trade_label }}</span>
       <span class="ap-badge">{{ _('profile.trust_247') }}</span>

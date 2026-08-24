@@ -159,6 +159,50 @@
   </div>
 </section>
 
+<section class="v-section v-fiche-preview" id="fiche">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.fiche_kicker') }}</p>
+      <h2>{{ _('landing.fiche_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.fiche_lead') }}</p>
+    </div>
+    <div class="v-fiche-grid">
+      <article class="dl-card dl-card--listed">
+        <div class="dl-card-media">
+          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+          <span class="dl-card-flag dl-card-flag--listed">{{ _('landing.fiche_listed_flag') }}</span>
+        </div>
+        <div class="dl-card-header">
+          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
+          <div class="dl-card-head-text">
+            <h3 class="dl-card-name">{{ _('landing.fiche_listed_name') }}</h3>
+            <p class="dl-card-specialty">Plombier</p>
+          </div>
+        </div>
+        <div class="dl-card-body">
+          <p class="dl-card-blurb">{{ _('landing.fiche_listed_note') }}</p>
+        </div>
+      </article>
+      <article class="dl-card dl-card--registry">
+        <div class="dl-card-media dl-card-media--registry">
+          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+          <span class="dl-card-flag dl-card-flag--registry">{{ _('landing.fiche_registry_flag') }}</span>
+        </div>
+        <div class="dl-card-header">
+          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
+          <div class="dl-card-head-text">
+            <h3 class="dl-card-name">{{ _('landing.fiche_registry_name') }}</h3>
+            <p class="dl-card-specialty">Plombier</p>
+          </div>
+        </div>
+        <div class="dl-card-body">
+          <p class="dl-card-blurb dl-card-blurb--muted">{{ _('landing.fiche_registry_note') }}</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section class="v-impact-section">
   <div class="container">
     <div class="v-section-head v-section-head--center">

@@ -1,6 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
-{% from 'macros/artisan_card.html' import artisan_card with context %}
+{% from 'macros/artisan_card.html' import artisan_card, registry_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
 
@@ -163,7 +163,13 @@
          data-default-blurb-tpl="{{ _('directory.profile_default_blurb', name='{name}', trade='{trade}') }}"
          data-ai-understood="{{ _('directory.ai_understood', what='{what}') }}"
          data-ai-where="{{ _('directory.ai_understood_where', city='{city}') }}"
-         data-ai-relaxed="{{ _('directory.ai_relaxed') }}">
+         data-ai-relaxed="{{ _('directory.ai_relaxed') }}"
+         data-logo-url="{{ url_for('static', filename='images/logo.svg') }}"
+         data-badge-listed="{{ _('directory.badge_listed') }}"
+         data-badge-registry="{{ _('directory.badge_registry') }}"
+         data-registry-blurb="{{ _('directory.registry_blurb') }}"
+         data-view-listing="{{ _('directory.view_listing') }}"
+         data-registry-years="{{ _('directory.registry_years', years='{years}') }}">
   <div class="container">
     {# "0 artisan trouvé" above a list of twelve real businesses reads as a
        broken page. When nobody has signed up yet but the register does know
@@ -183,12 +189,10 @@
       {% endfor %}
     </div>
 
-    {% if registry_listings %}
-    {# Businesses of this trade registered at this address in the official
-       company register. Listed, never enriched: no rating, no availability, no
-       implied relationship with PilotCore. Each one can be claimed by its owner
-       or delisted on request. #}
-    <div class="dl-registry">
+    {# Always in the DOM so live search can fill it. Hidden when empty.
+       Listed, never enriched: no rating, no availability, no implied
+       relationship with PilotCore. #}
+    <div class="dl-registry" id="directory-registry" {% if not registry_listings %}hidden{% endif %}>
       {# The block appears on the main directory as well as on the trade, city
          and department pages, so the heading is built from whatever context is
          actually available rather than assuming a town. #}
@@ -217,21 +221,11 @@
         </p>
       </div>
 
-      <ul class="dl-registry-list">
+      <div class="dl-registry-grid" id="directory-registry-grid">
         {% for l in registry_listings %}
-        <li class="dl-registry-item">
-          <div class="dl-registry-main">
-            <a class="dl-registry-name" href="{{ url_for('web.listing_page', siren=l.siren) }}">{{ l.name }}</a>
-            <span class="dl-registry-meta">
-              {{ l.city }}{% if l.postal_code %} ({{ l.postal_code }}){% endif %}
-              {%- if l.years_active %} · en activité depuis {{ l.years_active }} ans{% endif %}
-            </span>
-          </div>
-          <a class="dl-registry-claim"
-             href="{{ url_for('web.claim_listing', siren=l.siren) }}">C'est mon entreprise</a>
-        </li>
+        {{ registry_card(l, trades) }}
         {% endfor %}
-      </ul>
+      </div>
 
       <p class="dl-registry-legal">
         Source&nbsp;: registre officiel des entreprises
@@ -241,7 +235,6 @@
         <a href="{{ url_for('web.listing_optout') }}">Demander le retrait d'une fiche</a>.
       </p>
     </div>
-    {% endif %}
 
     <div class="dl-empty" id="directory-empty" {% if artisans or registry_listings %}hidden{% endif %}>
       <div class="dl-empty-icon" aria-hidden="true">🔍</div>
@@ -447,5 +440,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}?v=6"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=7"></script>
 {% endblock %}

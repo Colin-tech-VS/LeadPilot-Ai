@@ -259,6 +259,13 @@
   color: var(--dl-primary);
 }
 
+.dl-results-lead {
+  margin: -8px 0 18px;
+  font-size: 14px;
+  color: var(--dl-muted);
+  max-width: 62ch;
+}
+
 .dl-results-count {
   margin: 0 0 16px;
   font-size: 14px;
@@ -289,6 +296,59 @@
   min-height: 100%;
   position: relative;
   transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.dl-card-media {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 132px;
+  background: linear-gradient(160deg, #0F2D6E 0%, #1B57E0 58%, #93C5FD 100%);
+}
+
+.dl-card-media--registry {
+  background: linear-gradient(160deg, #334155 0%, #64748B 55%, #E2E8F0 100%);
+}
+
+.dl-card-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 18px;
+  padding: 10px;
+  box-shadow: 0 10px 28px rgba(15, 20, 25, 0.18);
+}
+
+.dl-card-flag {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: #fff;
+  color: #0F2D6E;
+  box-shadow: 0 4px 12px rgba(15, 20, 25, 0.12);
+}
+
+.dl-card-flag--registry {
+  color: #334155;
+}
+
+.dl-card-badge--registry {
+  color: #475569;
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.dl-card--registry .dl-card-cta {
+  background: transparent;
 }
 
 .dl-card:hover {

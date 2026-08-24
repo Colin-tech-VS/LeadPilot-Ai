@@ -1,6 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
-{% from 'macros/artisan_card.html' import artisan_card with context %}
+{% from 'macros/artisan_card.html' import artisan_card, registry_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'home' %}
 
@@ -106,9 +106,27 @@
       <h2>{{ _('client.featured_title') }}</h2>
       <a href="{{ url_for('web.artisan_directory') }}" class="dl-results-more">{{ _('client.browse_all') }} →</a>
     </div>
+    <p class="dl-results-lead">{{ _('client.featured_subtitle') }}</p>
     <div class="dl-results-list">
       {% for a in featured_artisans %}
       {{ artisan_card(a, trades) }}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured_listings %}
+<section class="dl-results-section dl-results-section--registry">
+  <div class="container">
+    <div class="dl-results-head">
+      <h2>{{ _('client.registry_title') }}</h2>
+      <a href="{{ url_for('web.artisan_directory') }}" class="dl-results-more">{{ _('client.browse_all') }} →</a>
+    </div>
+    <p class="dl-results-lead">{{ _('client.registry_subtitle') }}</p>
+    <div class="dl-results-list">
+      {% for l in featured_listings %}
+      {{ registry_card(l, trades) }}
       {% endfor %}
     </div>
   </div>

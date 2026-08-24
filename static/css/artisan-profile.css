@@ -51,6 +51,22 @@
   margin: 0 auto;
 }
 
+.ap-seller-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 14px;
+}
+
+.ap-seller-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 0 10px 28px rgba(15, 20, 25, 0.12);
+}
+
 .ap-badges {
   display: flex;
   flex-wrap: wrap;

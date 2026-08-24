@@ -53,6 +53,15 @@ def get_public_artisan_by_slug(slug: str) -> Tenant | None:
     return Tenant.query.filter_by(public_slug=slug, is_public=True).first()
 
 
+def _placeholder_logo_url() -> str:
+    from flask import url_for
+
+    try:
+        return url_for("static", filename="images/logo.svg")
+    except RuntimeError:
+        return "/static/images/logo.svg"
+
+
 def artisan_card_dict(tenant: Tenant, lang: str = "fr") -> dict:
     return {
         "id": str(tenant.id),
@@ -67,6 +76,8 @@ def artisan_card_dict(tenant: Tenant, lang: str = "fr") -> dict:
         "radius_km": tenant.service_radius_km,
         "ai_phone_number": tenant.ai_phone_number,
         "profile_url": f"/artisans/{tenant.public_slug}",
+        "logo_url": _placeholder_logo_url(),
+        "registry": False,
     }
 
 
@@ -93,6 +104,7 @@ def registry_card_dict(listing, lang: str = "fr") -> dict:
         "radius_km": None,
         "ai_phone_number": None,
         "profile_url": f"/artisans/entreprise/{listing.siren}",
+        "logo_url": _placeholder_logo_url(),
         "registry": True,
         "years_active": listing.years_active,
     }
@@ -109,21 +121,19 @@ def search_public_artisans(trade=None, city=None, q=None, limit=48, lang: str = 
     cards = [artisan_card_dict(t, lang) for t in rows]
 
     listings: list[dict] = []
-    remaining = max(0, limit - len(cards))
-    if remaining:
-        try:
-            from app.services.registry_import import search_listings
+    try:
+        from app.services.registry_import import search_listings
 
-            listings = [
-                registry_card_dict(row, lang)
-                for row in search_listings(
-                    trade_key=trade if trade in TRADES else None,
-                    city=city,
-                    limit=min(remaining, 12),
-                )
-            ]
-        except Exception:  # noqa: BLE001 — search must not fail over the extras
-            listings = []
+        listings = [
+            registry_card_dict(row, lang)
+            for row in search_listings(
+                trade_key=trade if trade in TRADES else None,
+                city=city,
+                limit=12,
+            )
+        ]
+    except Exception:  # noqa: BLE001 — search must not fail over the extras
+        listings = []
 
     return {
         "count": len(cards),

@@ -1,0 +1,57 @@
+{% extends 'admin/base.html' %}
+{% block page_title %}SEO · Guides métier (Mistral){% endblock %}
+{% block admin_content %}
+
+<section class="admin-panel" style="margin-bottom:16px">
+  <h2 style="margin-top:0">Guides SEO par métier</h2>
+  <p class="admin-hint">
+    Chaque guide est un contenu long-form unique (~800 mots + FAQ 12 questions + grille de
+    prix) affiché sur la page pillar <code>/artisans/metier/&lt;metier&gt;</code>. Généré une
+    seule fois via Mistral puis mis en cache 90 jours — régénère quand tu veux.
+  </p>
+</section>
+
+<table class="admin-table">
+  <thead>
+    <tr>
+      <th>Métier</th>
+      <th>Statut</th>
+      <th>Dernière génération</th>
+      <th>Longueur</th>
+      <th>FAQ</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>
+        <strong>{{ row.label }}</strong>
+        <div class="admin-hint">/artisans/metier/{{ row.key }}</div>
+      </td>
+      <td>
+        {% if row.guide and row.fresh %}
+        <span class="admin-badge success">✅ Frais</span>
+        {% elif row.guide %}
+        <span class="admin-badge warn">🕐 Expiré (&gt; 90 j)</span>
+        {% else %}
+        <span class="admin-badge">⚪ Non généré</span>
+        {% endif %}
+      </td>
+      <td>{% if row.generated_at %}{{ row.generated_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</td>
+      <td>{% if row.guide and row.guide.body_html %}{{ row.guide.body_html|length }} chars{% else %}—{% endif %}</td>
+      <td>{% if row.guide %}{{ row.guide.get_faq()|length }} Q{% else %}—{% endif %}</td>
+      <td>
+        <form method="POST" action="{{ url_for('admin.seo_trade_guide_regenerate', trade=row.key) }}" style="display:inline">
+          <button type="submit" class="admin-btn small">
+            {% if row.guide %}Régénérer{% else %}Générer{% endif %}
+          </button>
+        </form>
+        <a href="{{ url_for('web.artisan_trade_landing', trade=row.key) }}" target="_blank" rel="noopener noreferrer" class="admin-btn ghost small">Voir la page ↗</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

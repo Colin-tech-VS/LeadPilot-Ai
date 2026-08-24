@@ -49,7 +49,10 @@
           <span class="nav-ico">🔥</span> Heatmap
         </a>
         <a href="{{ url_for('admin.gsc_page') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.gsc') %}active{% endif %}">
-          <span class="nav-ico">🔍</span> SEO
+          <span class="nav-ico">🔍</span> SEO · GSC
+        </a>
+        <a href="{{ url_for('admin.seo_trade_guides') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.seo_trade') %}active{% endif %}">
+          <span class="nav-ico">📚</span> SEO · Guides métier
         </a>
         <div class="admin-nav-sep">Contenu</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">

@@ -3,6 +3,11 @@
 {% block page_title %}Blog{% endblock %}
 {% block topbar_actions %}
   <a href="{{ url_for('admin.blog_categories') }}" class="admin-btn ghost">Catégories</a>
+  <form method="POST" action="{{ url_for('admin.blog_generate_now') }}" style="display:inline"
+        onsubmit="return confirm('Générer un article maintenant via Mistral ? (~30 s)');">
+    <input type="text" name="topic" placeholder="Sujet (optionnel)" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;min-width:220px">
+    <button type="submit" class="admin-btn ghost">🤖 Générer article IA</button>
+  </form>
   <a href="{{ url_for('admin.blog_new') }}" class="admin-btn">+ Nouvel article</a>
 {% endblock %}
 

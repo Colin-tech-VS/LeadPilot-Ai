@@ -337,13 +337,18 @@ def sitemap_xml():
     from app.constants.cities import TOP_CITIES
     from app.constants.trades import SEO_LOCAL_TRADES, TRADES
 
-    # Every trade gets an indexable pillar page; only high-intent "dépannage"
-    # trades get a page per top city (focused, avoids thin trade × city combos).
+    # Every trade gets an indexable pillar page + a page per top city +
+    # a page per French department. Local search intent is real across all
+    # trades; even empty listings convert on the "book a callback" CTA.
+    from app.constants.departments import DEPARTMENTS
+
     for trade in (k for k in TRADES if k != "autre"):
         urls.append((f"/artisans/metier/{trade}", "weekly", "0.85", today))
     for trade in SEO_LOCAL_TRADES:
         for city_slug, _city_name in TOP_CITIES:
             urls.append((f"/artisans/{trade}/{city_slug}", "weekly", "0.7", today))
+        for _dept_code, dept_slug, _dept_name, _chef in DEPARTMENTS:
+            urls.append((f"/artisans/{trade}/departement/{dept_slug}", "weekly", "0.65", today))
 
     for tenant in list_public_artisans(limit=2000):
         if tenant.public_slug:
@@ -647,6 +652,7 @@ def artisan_trade_landing(trade):
 
     from app.constants.cities import TOP_CITIES
     from app.constants.trades import TRADES, trade_choices, trade_label
+    from app.services import trade_guides
     from app.services.artisan_directory import list_public_artisans
     from app.utils.seo import local_landing_seo
 
@@ -662,12 +668,16 @@ def artisan_trade_landing(trade):
         canonical_path=f"/artisans/metier/{trade}",
         lang=lang,
     )
+    # SEO enrichment: cached long-form guide (~800 words + FAQ) generated once
+    # per trade via Mistral. Never blocks page render — returns None on error.
+    guide = trade_guides.get_guide(trade, lang)
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
         trades=trade_choices(lang),
         seo=seo,
         filters={"metier": trade, "ville": "", "q": ""},
+        trade_guide=guide,
         local_ctx={"trade_key": trade, "trade_label": label, "city": None},
         top_cities=TOP_CITIES[:12],
     )
@@ -708,6 +718,7 @@ def artisan_trade_city_landing(trade, city):
         canonical_path=f"/artisans/{trade}/{city_slug}",
         lang=lang,
     )
+    from app.services import trade_guides as _tg
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
@@ -715,6 +726,82 @@ def artisan_trade_city_landing(trade, city):
         seo=seo,
         filters={"metier": trade, "ville": city_name, "q": ""},
         local_ctx={"trade_key": trade, "trade_label": label, "city": city_name},
+        trade_guide=_tg.get_guide(trade, lang),
+        top_cities=TOP_CITIES[:12],
+    )
+
+
+@web_bp.route("/artisans/<trade>/departement/<dept>", methods=["GET"])
+def artisan_trade_department_landing(trade, dept):
+    """Landing page métier × département (e.g. /artisans/plombier/departement/75).
+
+    Complements trade × city landings by capturing wider search intent
+    ("plombier haute-savoie", "électricien 74"). Self-canonical, always
+    indexable, with cluster links to the department's chef-lieu and top
+    matching cities.
+    """
+    from flask import abort
+
+    from app.constants.cities import TOP_CITIES, city_slugify
+    from app.constants.departments import department_info, is_known_department
+    from app.constants.trades import TRADES, trade_choices, trade_label
+    from app.services import trade_guides
+    from app.services.artisan_directory import list_public_artisans
+    from app.utils.seo import local_landing_seo
+
+    trade = (trade or "").strip().lower()
+    if trade not in TRADES:
+        abort(404)
+    if not is_known_department(dept):
+        abort(404)
+    info = department_info(dept)
+    if info is None:
+        abort(404)
+    code, slug, name, chef = info
+    if dept != slug:
+        # Canonicalize to the slug form (code → slug); the slug is more
+        # keyword-rich in the URL for SEO.
+        return redirect(
+            url_for("web.artisan_trade_department_landing", trade=trade, dept=slug),
+            code=301,
+        )
+
+    lang = getattr(g, "lang", "fr")
+    label = trade_label(trade, lang)
+    artisans = list_public_artisans(trade=trade)
+    # Narrow to the department by postal_code prefix when we have it.
+    prefix_len = 2 if len(code) == 2 else 3
+    dept_prefix = code.upper()
+    artisans = [
+        a for a in artisans
+        if (a.postal_code or "").strip().upper().startswith(dept_prefix)
+        or (a.city or "").strip().lower() == chef.lower()
+    ][:24]
+    canonical_path = f"/artisans/{trade}/departement/{slug}"
+    seo = local_landing_seo(
+        trade_key=trade,
+        trade_label=label,
+        city=name,  # "Haute-Savoie" — reused in title/H1 as the "area"
+        canonical_path=canonical_path,
+        lang=lang,
+    )
+    chef_slug = city_slugify(chef)
+    return render_template(
+        "public/annuaire.html",
+        artisans=artisans,
+        trades=trade_choices(lang),
+        seo=seo,
+        filters={"metier": trade, "ville": name, "q": ""},
+        local_ctx={
+            "trade_key": trade,
+            "trade_label": label,
+            "city": name,
+            "is_department": True,
+            "department_code": code,
+            "department_chef_lieu": chef,
+            "department_chef_lieu_slug": chef_slug,
+        },
+        trade_guide=trade_guides.get_guide(trade, lang),
         top_cities=TOP_CITIES[:12],
     )
 

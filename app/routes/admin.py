@@ -1412,6 +1412,36 @@ def blog():
     return render_template("admin/blog_posts.html", posts=blog_svc.admin_list_posts())
 
 
+@admin_bp.route("/blog/generate-now", methods=["POST"])
+@admin_required
+@rate_limit(limit=6, window=3600, scope="admin_blog_generate")
+def blog_generate_now():
+    """Fire the daily blog auto-generator on demand (bypass cron schedule).
+
+    Uses the same script as the cron so admin previews match production output.
+    Blocks up to ~30 s while Mistral generates + DB writes — acceptable inside
+    an admin form submit.
+    """
+    import subprocess
+    import sys as _sys
+
+    topic = (request.form.get("topic") or "").strip() or None
+    args = [_sys.executable, "scripts/generate_daily_blog.py"]
+    if topic:
+        args.extend(["--topic", topic])
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True, timeout=90)
+    except subprocess.TimeoutExpired:
+        flash("Génération trop lente (>90 s). Ré-essaie ou vérifie le quota Mistral.", "error")
+        return redirect(url_for("admin.blog"))
+    if proc.returncode == 0:
+        flash("Article généré. Regarde la liste ci-dessous.", "success")
+    else:
+        detail = (proc.stderr or proc.stdout or "").strip().splitlines()[-1:] or ["erreur inconnue"]
+        flash(f"Échec génération : {detail[-1][:180]}", "error")
+    return redirect(url_for("admin.blog"))
+
+
 @admin_bp.route("/blog/new")
 @admin_required
 def blog_new():
@@ -1949,3 +1979,51 @@ def prospecting_delete(prospect_id):
     except prospecting.ProspectingError as exc:
         flash(str(exc), "error")
     return redirect(url_for("admin.prospecting"))
+
+
+# ------------------------------------------------------------------ Trade guides (SEO)
+@admin_bp.route("/seo/trade-guides")
+@admin_required
+def seo_trade_guides():
+    """Admin table: 1 row per trade, showing whether a guide exists + regen button."""
+    from app.constants.trades import TRADES, trade_label
+    from app.services import trade_guides
+
+    lang = "fr"
+    rows = []
+    for key in TRADES:
+        if key == "autre":
+            continue
+        guide = trade_guides.get_guide(key, lang)
+        rows.append(
+            {
+                "key": key,
+                "label": trade_label(key, lang),
+                "guide": guide,
+                "fresh": guide.is_fresh() if guide else False,
+                "generated_at": guide.generated_at if guide else None,
+            }
+        )
+    return render_template("admin/trade_guides.html", rows=rows)
+
+
+@admin_bp.route("/seo/trade-guides/<trade>/regenerate", methods=["POST"])
+@admin_required
+@rate_limit(limit=20, window=300, scope="admin_trade_guide_regen")
+def seo_trade_guide_regenerate(trade):
+    from app.constants.trades import TRADES
+    from app.services import trade_guides
+
+    trade = (trade or "").strip().lower()
+    if trade not in TRADES or trade == "autre":
+        flash("Métier inconnu.", "error")
+        return redirect(url_for("admin.seo_trade_guides"))
+    guide = trade_guides.get_or_generate(trade, "fr", force=True)
+    if guide and guide.body_html:
+        flash(f"Guide « {trade} » régénéré ({len(guide.body_html)} caractères).", "success")
+    else:
+        flash(
+            "Génération échouée — vérifie MISTRAL_API_KEY, quota Mistral, ou re-essaie.",
+            "error",
+        )
+    return redirect(url_for("admin.seo_trade_guides"))

@@ -301,6 +301,34 @@ def blog_index_json_ld(posts: list, lang: str = "fr") -> dict[str, Any]:
     return {"@context": "https://schema.org", "@graph": graph}
 
 
+def _extract_howto_steps(body_html: str, min_steps: int = 3, max_steps: int = 12) -> list[dict[str, str]]:
+    """Extract a HowTo step list from the first ordered list of body_html.
+
+    Returns a list of {"name": <first sentence>, "text": <full step>} entries,
+    empty if no usable <ol> was found. Kept lightweight (no BeautifulSoup) — a
+    minimal regex is enough for our editor's output.
+    """
+    if not body_html:
+        return []
+    import re
+
+    ol_match = re.search(r"<ol[^>]*>(.*?)</ol>", body_html, re.IGNORECASE | re.DOTALL)
+    if not ol_match:
+        return []
+    items = re.findall(r"<li[^>]*>(.*?)</li>", ol_match.group(1), re.IGNORECASE | re.DOTALL)
+    steps: list[dict[str, str]] = []
+    for raw in items[:max_steps]:
+        text = re.sub(r"<[^>]+>", " ", raw)
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) < 10:
+            continue
+        # Step name = first sentence (capped) so Google shows a short label.
+        first_period = text.find(".")
+        name = text[: first_period if 0 < first_period < 80 else 80].strip().rstrip(",;:") or text[:80]
+        steps.append({"name": name, "text": text})
+    return steps if len(steps) >= min_steps else []
+
+
 def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
     category_name = post.category.name if post.category else "Blog"
     description = (post.meta_description or post.excerpt or post.title or "")[:300]
@@ -311,11 +339,12 @@ def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
     if post.category:
         crumbs.append((category_name, f"/blog/categorie/{post.category.slug}"))
     crumbs.append((post.title, f"/blog/{post.slug}"))
+    article_url = canonical_url(f"/blog/{post.slug}")
     graph: list[Any] = [
         breadcrumb_json_ld(crumbs),
         {
             "@type": "BlogPosting",
-            "@id": f"{canonical_url(f'/blog/{post.slug}')}#article",
+            "@id": f"{article_url}#article",
             "headline": post.title,
             "description": description,
             "image": logo_url(),
@@ -323,12 +352,37 @@ def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
             "dateModified": _iso_dt(post.updated_at),
             "author": {"@type": "Organization", "name": "PilotCore", "url": site_base_url()},
             "publisher": organization_json_ld(lang, description),
-            "mainEntityOfPage": canonical_url(f"/blog/{post.slug}"),
+            "mainEntityOfPage": article_url,
             "articleSection": category_name,
             "inLanguage": "fr-FR" if lang == "fr" else "en-GB",
             "wordCount": _estimate_words(post.body_html or ""),
+            # Speakable — signals Google Assistant which parts to read aloud.
+            "speakable": {
+                "@type": "SpeakableSpecification",
+                "cssSelector": [".blog-article-title", ".blog-article-lead"],
+            },
         },
     ]
+    # HowTo auto-detection: posts whose title starts with "Comment" (FR) or
+    # "How to" (EN) and whose body carries a numbered ordered list are prime
+    # candidates for the HowTo rich result. We only emit HowTo when we have
+    # ≥3 legitimate steps to avoid triggering a Google structured-data warning.
+    title_l = (post.title or "").strip().lower()
+    if title_l.startswith(("comment ", "how to ")):
+        steps = _extract_howto_steps(post.body_html or "")
+        if steps:
+            graph.append(
+                {
+                    "@type": "HowTo",
+                    "name": post.title,
+                    "description": description,
+                    "totalTime": f"PT{max(post.reading_time_min or 5, 5)}M",
+                    "step": [
+                        {"@type": "HowToStep", "position": i + 1, "name": s["name"], "text": s["text"]}
+                        for i, s in enumerate(steps)
+                    ],
+                }
+            )
     faq = post.get_faq() if hasattr(post, "get_faq") else []
     if faq:
         graph.append(

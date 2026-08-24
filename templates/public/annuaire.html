@@ -68,6 +68,11 @@
           "name": {{ _('local.faq_3_q', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }},
           "acceptedAnswer": { "@type": "Answer", "text": {{ _('local.faq_3_a', trade=local_ctx.trade_label, city=local_ctx.city or _('local.your_area'))|tojson }} }
         }
+        {%- if trade_guide %}
+        {%- for item in trade_guide.get_faq() %}
+        ,{ "@type": "Question", "name": {{ item.question|tojson }}, "acceptedAnswer": { "@type": "Answer", "text": {{ item.answer|tojson }} } }
+        {%- endfor %}
+        {%- endif %}
       ]
     }
     {%- endif %}
@@ -186,6 +191,19 @@
           <li>{{ _('local.point_3') }}</li>
         </ul>
 
+        {# ---- Enriched guide (Mistral-generated, cached ~90d) ---- #}
+        {% if trade_guide %}
+        {% if trade_guide.intro_html %}
+        <div class="dl-guide-intro">{{ trade_guide.intro_html | safe }}</div>
+        {% endif %}
+        {% if trade_guide.body_html %}
+        <div class="dl-guide-body">{{ trade_guide.body_html | safe }}</div>
+        {% endif %}
+        {% if trade_guide.price_hints %}
+        <div class="dl-guide-prices">{{ trade_guide.price_hints | safe }}</div>
+        {% endif %}
+        {% endif %}
+
         <h2>{{ _('local.faq_title') }}</h2>
         <div class="dl-local-faq">
           {% for i in [1, 2, 3] %}
@@ -194,7 +212,26 @@
             <p>{{ _('local.faq_' ~ i ~ '_a', trade=local_ctx.trade_label, city=_lc_city) }}</p>
           </details>
           {% endfor %}
+          {# Extended FAQ from the trade guide — 12 questions targeting long-tail intent #}
+          {% if trade_guide %}
+          {% for item in trade_guide.get_faq() %}
+          <details class="faq-item">
+            <summary>{{ item.question }}</summary>
+            <p>{{ item.answer }}</p>
+          </details>
+          {% endfor %}
+          {% endif %}
         </div>
+
+        {# Department chef-lieu cluster link (only on /artisans/<trade>/departement/<slug>) #}
+        {% if local_ctx.is_department and local_ctx.department_chef_lieu_slug %}
+        <div class="dl-local-cluster-tip">
+          {{ _('local.dept_chef_lieu_hint', chef=local_ctx.department_chef_lieu, trade=local_ctx.trade_label) }}
+          <a href="{{ url_for('web.artisan_trade_city_landing', trade=local_ctx.trade_key, city=local_ctx.department_chef_lieu_slug) }}">
+            {{ local_ctx.trade_label }} à {{ local_ctx.department_chef_lieu }}
+          </a>
+        </div>
+        {% endif %}
       </article>
 
       <aside class="dl-local-aside">

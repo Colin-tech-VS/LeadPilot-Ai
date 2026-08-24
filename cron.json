@@ -3,6 +3,10 @@
     {
       "command": "0 6 1 * * python scripts/bill_overage.py",
       "size": "S"
+    },
+    {
+      "command": "15 6 * * * python scripts/generate_daily_blog.py",
+      "size": "S"
     }
   ]
 }

@@ -274,12 +274,12 @@ a:hover {
 }
 
 .badge-active {
-  background: #D1FAE5;
-  color: #047857;
+  background: var(--lp-brand-soft, #E8E4D6);
+  color: var(--lp-brand, #1A2332);
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 2px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2233,16 +2233,14 @@ code {
    Dashboard — modern animated layout
    ══════════════════════════════════════════ */
 .page-dashboard {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(26, 35, 50, 0.08), transparent),
-    var(--bg);
+  background: var(--bg);
 }
 
 .page-dashboard .main {
   padding-top: 20px;
 }
 
-/* Hero */
+/* Hero — same paper/ink ledger as admin, not a dark SaaS banner */
 .dash-hero {
   display: flex;
   justify-content: space-between;
@@ -2250,51 +2248,49 @@ code {
   gap: 24px;
   flex-wrap: wrap;
   margin-bottom: 28px;
-  padding: 24px 28px;
-  background: linear-gradient(135deg, #1A2332 0%, #1A2332 55%, #3D5270 100%);
-  border-radius: 16px;
-  color: #fff;
-  box-shadow: 0 8px 32px rgba(26, 35, 50, 0.25);
+  padding: 22px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--lp-radius, 4px);
+  color: var(--text);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
 }
 
 .dash-hero::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -10%;
-  width: 300px;
-  height: 300px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 50%;
-  pointer-events: none;
+  display: none;
 }
 
 .dash-greeting {
   margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 500;
-  opacity: 0.85;
-  text-transform: capitalize;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .dash-title {
   margin: 0 0 6px;
-  font-size: 26px;
-  font-weight: 800;
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
+  font-size: 28px;
+  font-weight: 650;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  color: var(--text);
 }
 
 .dash-subtitle {
   margin: 0;
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 1;
+  color: var(--text-muted);
 }
 
 .dash-subtitle strong {
-  color: #FDE68A;
+  color: var(--text);
   font-weight: 700;
 }
 
@@ -2370,26 +2366,26 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--lp-radius, 4px);
+  background: var(--lp-brand-soft, #E8E4D6);
+  border: 1px solid var(--border);
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   position: relative;
   z-index: 1;
-  animation: alertPulse 2s ease-in-out infinite;
+  animation: none;
 }
 
 .dash-hero-alert:hover {
-  background: rgba(255, 255, 255, 0.26);
+  background: var(--card);
   text-decoration: none;
-  color: #fff;
+  color: var(--text);
 }
 
-.dash-hero-alert strong { color: #FECACA; }
+.dash-hero-alert strong { color: var(--lp-danger, #B42318); }
 .dash-hero-alert-icon { font-size: 18px; }
 
 @keyframes alertPulse {
@@ -2408,8 +2404,9 @@ code {
 
 .dash-flow-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
+  font-size: 20px;
+  font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--text);
 }
@@ -2457,17 +2454,17 @@ code {
   padding: 16px 16px 14px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--lp-radius, 4px);
+  box-shadow: none;
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .flow-step-link:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
-  border-color: #E8E4D6;
+  transform: none;
+  box-shadow: none;
+  border-color: var(--lp-brand, #1A2332);
   text-decoration: none;
 }
 
@@ -2491,18 +2488,18 @@ code {
 .flow-step-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--lp-radius, 4px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
 }
 
-.flow-icon-blue { background: #E8E4D6; }
-.flow-icon-indigo { background: #E8E4D6; }
-.flow-icon-amber { background: #FEF3C7; }
-.flow-icon-green { background: #D1FAE5; }
-.flow-icon-teal { background: #CCFBF1; }
+.flow-icon-blue,
+.flow-icon-indigo,
+.flow-icon-amber,
+.flow-icon-green,
+.flow-icon-teal { background: var(--lp-brand-soft, #E8E4D6); }
 
 .flow-step-body {
   display: flex;
@@ -2517,8 +2514,9 @@ code {
 }
 
 .flow-step-metric {
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.1;
   letter-spacing: -0.03em;
   color: var(--text);
@@ -2540,28 +2538,30 @@ code {
 .flow-step-pill {
   align-self: flex-start;
   margin-top: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 2px;
   font-size: 11px;
   font-weight: 700;
-  background: #FEF3C7;
-  color: #92400E;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--lp-brand-soft, #E8E4D6);
+  color: var(--lp-brand, #1A2332);
 }
 
-/* Étape avec du travail en attente : liseré coloré + puce d'appel à l'action. */
+/* Étape avec du travail en attente : liseré encre, pas un dégradé pastel. */
 .flow-step-todo .flow-step-link {
-  border-color: #FDE68A;
-  background: linear-gradient(135deg, #fff 0%, #FFFBEB 100%);
+  border-color: var(--lp-brand, #1A2332);
+  background: var(--card);
 }
 
 .flow-step-urgent .flow-step-link {
-  border-color: #FECACA;
-  background: linear-gradient(135deg, #fff 0%, #FEF2F2 100%);
+  border-color: var(--lp-danger, #B42318);
+  background: var(--card);
 }
 
 .flow-step-urgent .flow-step-pill {
-  background: #FEE2E2;
-  color: #B91C1C;
+  background: var(--lp-brand, #1A2332);
+  color: var(--lp-text-inverse, #F6F1E6);
 }
 
 /* Puce numérotée réutilisée dans les titres de panneaux. */
@@ -2734,9 +2734,9 @@ html.js-enabled .dash-card-in.is-visible {
 .page-dashboard .dashboard-main.dash-panel {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--lp-radius, 4px);
   padding: 20px 22px 22px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .dash-panel-head {
@@ -2767,11 +2767,11 @@ html.js-enabled .dash-card-in.is-visible {
   min-width: 22px;
   height: 22px;
   padding: 0 7px;
-  background: #E8E4D6;
+  background: var(--lp-brand-soft, #E8E4D6);
   color: var(--blue-primary);
   font-size: 12px;
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: 2px;
 }
 
 .dash-see-all {
@@ -2791,14 +2791,14 @@ html.js-enabled .dash-card-in.is-visible {
 
 /* Lead cards — dashboard */
 .page-dashboard .lead-card {
-  border-radius: 12px;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border-radius: var(--lp-radius, 4px);
+  transition: border-color 0.15s;
 }
 
 .page-dashboard .lead-card:hover {
-  transform: translateY(-3px);
-  border-color: #E8E4D6;
-  box-shadow: 0 8px 24px rgba(26, 35, 50, 0.1);
+  transform: none;
+  border-color: var(--lp-brand, #1A2332);
+  box-shadow: none;
 }
 
 .page-dashboard .lead-card-header {
@@ -2808,9 +2808,9 @@ html.js-enabled .dash-card-in.is-visible {
 .lead-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #1A2332, #1A2332);
-  color: #fff;
+  border-radius: var(--lp-radius, 4px);
+  background: var(--lp-brand, #1A2332);
+  color: var(--lp-text-inverse, #F6F1E6);
   font-size: 16px;
   font-weight: 700;
   display: flex;
@@ -2832,17 +2832,17 @@ html.js-enabled .dash-card-in.is-visible {
 
 /* Sidebar */
 .page-dashboard .sidebar-card {
-  border-radius: 14px;
-  transition: box-shadow 0.2s;
+  border-radius: var(--lp-radius, 4px);
+  transition: none;
 }
 
 .page-dashboard .sidebar-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .sidebar-card-highlight {
-  border-color: #E8E4D6;
-  background: linear-gradient(180deg, #fff 0%, #EFE9DC 100%);
+  border-color: var(--border);
+  background: var(--card);
 }
 
 .sidebar-card-head {

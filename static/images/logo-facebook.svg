@@ -1,5 +1,6 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PilotCore">
-  <g transform="translate(51.2 51.2) scale(14.4)">
+  <rect width="1024" height="1024" fill="#EFE9DC"/>
+  <g transform="translate(143.36 143.36) scale(11.52)">
     <rect x="4" y="4" width="56" height="56" rx="6" fill="#1A2332"/>
     <circle cx="32" cy="32" r="16" stroke="#F6F1E6" stroke-opacity="0.22" stroke-width="1.5"/>
     <path d="M32 18 L36.5 38 L32 33.5 L27.5 38 Z" fill="#F6F1E6"/>

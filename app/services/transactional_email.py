@@ -16,8 +16,10 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 BRAND = "PilotCore"
-BRAND_COLOR = "#059CE0"
-BRAND_DARK = "#0B1F33"
+BRAND_COLOR = "#1A2332"
+BRAND_DARK = "#121820"
+PAPER = "#EFE9DC"
+INK_SOFT = "#6B6458"
 
 
 def _base_url() -> str:
@@ -52,7 +54,7 @@ def render_email(
     if cta_label and cta_url:
         body_blocks.append(
             f'''<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
-              <tr><td style="border-radius:12px;background:{BRAND_COLOR};">
+              <tr><td style="border-radius:4px;background:{BRAND_COLOR};">
                 <a href="{cta_url}" style="display:inline-block;padding:14px 28px;font-size:16px;
                    font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;">{cta_label}</a>
               </td></tr>
@@ -68,30 +70,33 @@ def render_email(
     return f'''<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F1F5F9;">
+<body style="margin:0;padding:0;background:{PAPER};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{pre}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:32px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{PAPER};padding:32px 12px;">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-           style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;
-                  box-shadow:0 12px 40px rgba(11,31,51,0.08);">
-      <tr><td style="background:{BRAND_DARK};padding:22px 32px;">
-        <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
-          <span style="color:{BRAND_COLOR};">●</span> {BRAND}
+           style="max-width:560px;background:#FBF7EE;border:1px solid #D7CDB8;border-radius:6px;overflow:hidden;">
+      <tr><td style="background:{BRAND_DARK};padding:20px 32px;">
+        <img src="{base}/static/images/logo-512.png" width="40" height="40" alt=""
+             style="vertical-align:middle;border:0;display:inline-block;">
+        <span style="font-size:20px;font-weight:700;color:#F6F1E6;letter-spacing:-0.02em;
+                     font-family:Georgia,'Times New Roman',serif;vertical-align:middle;margin-left:10px;">
+          {BRAND}
         </span>
       </td></tr>
       <tr><td style="padding:32px;">
-        <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:{BRAND_DARK};font-weight:800;">{title}</h1>
+        <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:{BRAND_DARK};font-weight:700;
+                   font-family:Georgia,'Times New Roman',serif;">{title}</h1>
         {body_html}
       </td></tr>
-      <tr><td style="padding:20px 32px;background:#F8FAFC;border-top:1px solid #E2E8F0;">
-        <p style="margin:0;font-size:12px;line-height:1.6;color:#94A3B8;">
+      <tr><td style="padding:20px 32px;background:{PAPER};border-top:1px solid #D7CDB8;">
+        <p style="margin:0;font-size:12px;line-height:1.6;color:{INK_SOFT};">
           {BRAND} — Réceptionniste IA & prise de RDV pour artisans.<br>
           <a href="{base}" style="color:{BRAND_COLOR};text-decoration:none;">{base.replace('https://','')}</a>
           &nbsp;·&nbsp;
-          <a href="{base}/confidentialite" style="color:#94A3B8;text-decoration:none;">Confidentialité</a>
+          <a href="{base}/confidentialite" style="color:{INK_SOFT};text-decoration:none;">Confidentialité</a>
           &nbsp;·&nbsp;
-          <a href="{base}/mentions-legales" style="color:#94A3B8;text-decoration:none;">Mentions légales</a>
+          <a href="{base}/mentions-legales" style="color:{INK_SOFT};text-decoration:none;">Mentions légales</a>
         </p>
       </td></tr>
     </table>

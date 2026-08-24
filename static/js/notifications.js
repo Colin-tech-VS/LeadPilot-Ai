@@ -127,8 +127,8 @@
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     var options = {
       body: n.body || "",
-      icon: "/static/images/logo.svg",
-      badge: "/static/images/logo.svg",
+      icon: "/static/images/icon-192.png",
+      badge: "/static/images/icon-192.png",
       tag: "lp-" + n.id,
       renotify: true,
       requireInteraction: n.type === "urgent_lead",

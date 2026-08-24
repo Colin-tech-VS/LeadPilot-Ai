@@ -8,24 +8,24 @@
   "scope": "/admin",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#F7F8FA",
-  "theme_color": "#1B57E0",
+  "background_color": "#EFE9DC",
+  "theme_color": "#1A2332",
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/static/images/admin-icon-192.png",
+      "src": "/static/images/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/images/admin-icon-512.png",
+      "src": "/static/images/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/images/admin-icon-maskable-512.png",
+      "src": "/static/images/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -35,17 +35,17 @@
     {
       "name": "Trafic",
       "url": "/admin/traffic",
-      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/static/images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Emails",
       "url": "/admin/emails",
-      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/static/images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Prospection",
       "url": "/admin/prospecting",
-      "icons": [{ "src": "/static/images/admin-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/static/images/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

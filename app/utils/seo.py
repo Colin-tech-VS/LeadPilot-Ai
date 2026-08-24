@@ -164,7 +164,25 @@ def format_lastmod(value: date | datetime | None) -> str | None:
 
 
 def logo_url() -> str:
-    return f"{site_base_url()}/static/images/logo.svg"
+    """Raster logo for Google (Organization.logo) — min 112×112 PNG."""
+    return f"{site_base_url()}/static/images/logo-512.png"
+
+
+def og_image_url() -> str:
+    """Default Open Graph / Twitter card (1200×630)."""
+    return f"{site_base_url()}/static/images/og-image.png"
+
+
+def logo_image_object() -> dict[str, Any]:
+    url = logo_url()
+    return {
+        "@type": "ImageObject",
+        "url": url,
+        "contentUrl": url,
+        "width": 512,
+        "height": 512,
+        "caption": "PilotCore",
+    }
 
 
 def og_locale(lang: str = "fr") -> str:
@@ -202,7 +220,7 @@ def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
         "name": "PilotCore",
         "alternateName": ["PilotCore Pro", "PilotCore Annuaire"],
         "url": site_base_url(),
-        "logo": logo_url(),
+        "logo": logo_image_object(),
         "description": description,
         "email": "contact@pilotcore.fr",
         "slogan": (
@@ -363,7 +381,7 @@ def blog_posting_json_ld(post, *, lang: str = "fr") -> dict[str, Any]:
             "@id": f"{article_url}#article",
             "headline": post.title,
             "description": description,
-            "image": logo_url(),
+            "image": og_image_url(),
             "datePublished": _iso_dt(post.published_at or post.created_at),
             "dateModified": _iso_dt(post.updated_at),
             "author": {"@type": "Organization", "name": "PilotCore", "url": site_base_url()},

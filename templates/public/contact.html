@@ -35,44 +35,94 @@
 {% block title %}{{ _('contact.title') }} — {{ _('app.name') }}{% endblock %}
 {% block body_class %}page-contact{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}?v=1">
+{% endblock %}
+
 {% block content %}
 {{ breadcrumb([
   ((_('vitrine.nav_home') if lang == 'fr' else 'Home'), '/'),
   (_('contact.title'), None)
 ]) }}
-<section class="customer-auth">
-  <div class="customer-auth-card contact-card">
-    <h1>{{ _('contact.title') }}</h1>
-    <p class="customer-auth-sub">{{ _('contact.subtitle') }}</p>
-    <p class="contact-mailbox">{{ _('contact.mailbox') }} <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a></p>
 
-    {% if success %}
-    <div class="alert alert-success">{{ _('contact.success') }}</div>
-    <p class="customer-auth-switch"><a href="{{ url_for('web.client_home') }}">← {{ _('vitrine.nav_home') }}</a></p>
-    {% else %}
-    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
-    <form method="post" class="auth-form contact-form">
-      <div class="form-row">
-        <div>
-          <label for="name">{{ _('contact.name') }}</label>
-          <input type="text" id="name" name="name" required autofocus value="{{ form.name }}" placeholder="{{ _('contact.name_placeholder') }}">
+<section class="ct">
+  <div class="container">
+    <header class="ct-head">
+      <p class="ct-kicker">{{ _('contact.kicker') }}</p>
+      <h1>{{ _('contact.title') }}</h1>
+      <p class="ct-lead">{{ _('contact.subtitle') }}</p>
+    </header>
+
+    <div class="ct-grid">
+      <div class="ct-card">
+        {% if success %}
+        <div class="ct-success" role="status">
+          <span class="ct-success-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg>
+          </span>
+          <h2>{{ _('contact.success_title') }}</h2>
+          <p>{{ _('contact.success') }}</p>
+          <div class="ct-success-actions">
+            <a class="btn btn-primary" href="{{ url_for('web.client_home') }}">{{ _('vitrine.nav_home') }}</a>
+            <a class="btn btn-outline" href="{{ url_for('web.artisan_directory') }}">{{ _('client.nav_directory') }}</a>
+          </div>
         </div>
-        <div>
-          <label for="email">{{ _('contact.email') }}</label>
-          <input type="email" id="email" name="email" required value="{{ form.email }}" placeholder="vous@email.fr">
+        {% else %}
+        {% if error %}<div class="ct-alert" role="alert">{{ error }}</div>{% endif %}
+        <form method="post" class="ct-form" novalidate>
+          <div class="ct-row">
+            <div class="ct-field">
+              <label for="name">{{ _('contact.name') }}</label>
+              <input type="text" id="name" name="name" required autofocus value="{{ form.name }}" placeholder="{{ _('contact.name_placeholder') }}" autocomplete="name">
+            </div>
+            <div class="ct-field">
+              <label for="email">{{ _('contact.email') }}</label>
+              <input type="email" id="email" name="email" required value="{{ form.email }}" placeholder="vous@email.fr" autocomplete="email">
+            </div>
+          </div>
+          <div class="ct-field">
+            <label for="subject">{{ _('contact.subject') }} <span>{{ _('contact.optional') }}</span></label>
+            <input type="text" id="subject" name="subject" value="{{ form.subject }}" placeholder="{{ _('contact.subject_placeholder') }}">
+          </div>
+          <div class="ct-field">
+            <label for="message">{{ _('contact.message') }}</label>
+            <textarea id="message" name="message" rows="7" required placeholder="{{ _('contact.message_placeholder') }}">{{ form.message }}</textarea>
+          </div>
+          <div class="contact-honeypot" aria-hidden="true">
+            <label for="website">Website</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg ct-submit">{{ _('contact.submit') }}</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <aside class="ct-aside">
+        <div class="ct-aside-block">
+          <p class="ct-aside-label">{{ _('contact.email') }}</p>
+          <a class="ct-mail" href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>
+          <p class="ct-aside-copy">{{ _('contact.mailbox') }}</p>
         </div>
-      </div>
-      <label for="subject">{{ _('contact.subject') }}</label>
-      <input type="text" id="subject" name="subject" value="{{ form.subject }}" placeholder="{{ _('contact.subject_placeholder') }}">
-      <label for="message">{{ _('contact.message') }}</label>
-      <textarea id="message" name="message" rows="6" required placeholder="{{ _('contact.message_placeholder') }}">{{ form.message }}</textarea>
-      <div class="contact-honeypot" aria-hidden="true">
-        <label for="website">Website</label>
-        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
-      </div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">{{ _('contact.submit') }}</button>
-    </form>
-    {% endif %}
+        <div class="ct-aside-block">
+          <p class="ct-aside-label">{{ _('contact.reply_label') }}</p>
+          <p class="ct-aside-copy">{{ _('contact.reply') }}</p>
+        </div>
+        <div class="ct-aside-block">
+          <p class="ct-aside-label">{{ _('contact.lang_label') }}</p>
+          <p class="ct-aside-copy">{{ _('contact.languages') }}</p>
+        </div>
+        <nav class="ct-channels" aria-label="{{ _('contact.title') }}">
+          <a href="{{ url_for('web.artisan_directory') }}">
+            <strong>{{ _('contact.for_clients') }}</strong>
+            <span>{{ _('contact.for_clients_hint') }}</span>
+          </a>
+          <a href="{{ url_for('web.pro_landing') }}">
+            <strong>{{ _('contact.for_pros') }}</strong>
+            <span>{{ _('contact.for_pros_hint') }}</span>
+          </a>
+        </nav>
+      </aside>
+    </div>
   </div>
 </section>
 {% endblock %}

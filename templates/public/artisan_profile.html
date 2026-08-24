@@ -12,7 +12,7 @@
 {% set _meta_keywords = _('profile.meta_keywords', trade=trade_label, city=_city) %}
 {% set _faq_area = _('profile.faq_area_a', name=tenant.name, city=_city, km=tenant.service_radius_km) if tenant.service_radius_km else _('profile.faq_area_city', name=tenant.name, city=_city) %}
 {% set _published = tenant.created_at.strftime('%Y-%m-%d') if tenant.created_at else None %}
-{% set _social_image = social_image_url or (site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png')) %}
+{% set _social_image = social_image_url or (site_base_url() ~ url_for('static', filename='images/og-image.png')) %}
 {% set _local_landing_path = ('/artisans/' ~ tenant.trade_type ~ '/' ~ city_slug) if (tenant.city and city_slug and tenant.trade_type) else ('/artisans/metier/' ~ tenant.trade_type if tenant.trade_type else '/artisans') %}
 {% set _local_landing_label = (trade_label ~ ' ' ~ tenant.city) if tenant.city else trade_label %}
 

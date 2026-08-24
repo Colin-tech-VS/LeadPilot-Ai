@@ -13,14 +13,14 @@
 <meta property="og:url" content="{{ canonical_url(path) }}">
 <meta property="og:locale" content="{{ 'fr_FR' if lang == 'fr' else 'en_GB' }}">
 <meta property="og:locale:alternate" content="{{ 'en_GB' if lang == 'fr' else 'fr_FR' }}">
-{% set _social_image = og_image or (site_base_url() ~ url_for('static', filename='images/logo-facebook-1024.png')) %}
+{% set _social_image = og_image or (site_base_url() ~ url_for('static', filename='images/og-image.png')) %}
 <meta property="og:image" content="{{ _social_image }}">
 <meta property="og:image:secure_url" content="{{ _social_image }}">
 <meta property="og:image:alt" content="{{ title }}">
 {% if not og_image %}
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1024">
-<meta property="og:image:height" content="1024">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 {% endif %}
 {% if article_published %}<meta property="article:published_time" content="{{ article_published }}">{% endif %}
 {% if article_modified %}<meta property="article:modified_time" content="{{ article_modified }}">{% endif %}

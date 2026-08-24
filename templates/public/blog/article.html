@@ -9,7 +9,7 @@
   '/blog/' ~ post.slug,
   post.meta_keywords,
   'article',
-  og_image,
+  og_image|default(none),
   'noindex, nofollow' if preview else 'index, follow',
   json_ld,
   lang,

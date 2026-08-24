@@ -61,4 +61,8 @@ def test_contact_honeypot_skips_storage(client, app):
 def test_contact_page_get_ok(client):
     response = client.get("/contact")
     assert response.status_code == 200
-    assert b"contact@pilotcore.fr" in response.data
+    html = response.data.decode()
+    assert "contact@pilotcore.fr" in html
+    assert "ct-form" in html
+    assert "ct-mail" in html
+    assert "contact.css" in html

@@ -15,6 +15,12 @@ def test_client_home_seo(client):
     assert "WebSite" in html
     assert "SearchAction" in html
     assert "<h1" in html
+    assert "logo-512.png" in html
+    assert "og-image.png" in html
+    assert 'property="og:image:width" content="1200"' in html
+    assert 'rel="icon"' in html
+    assert "apple-touch-icon.png" in html
+    assert "favicon-32.png" in html
 
 
 def test_pro_landing_seo(client):
@@ -222,6 +228,18 @@ def test_global_json_ld_on_home(client):
     html = response.data.decode()
     assert '"@id"' in html
     assert "knowsAbout" in html
+    assert '"width":512' in html.replace(" ", "") or '"width": 512' in html
+    assert "logo-512.png" in html
+
+
+def test_favicon_ico(client):
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert response.data[:4] == b"\x00\x00\x01\x00" or response.mimetype in (
+        "image/x-icon",
+        "image/vnd.microsoft.icon",
+        "image/ico",
+    )
 
 
 def test_artisan_profile_seo(client, app):

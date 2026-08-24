@@ -12,7 +12,7 @@
 {% block body_class %}fa-page page-find-artisan{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=3">
 {% endblock %}
 
 {% block meta %}
@@ -28,7 +28,7 @@
       "description": {{ _d|tojson }},
       "inLanguage": "fr-FR",
       "isPartOf": { "@id": {{ (site_base_url() ~ '/#website')|tojson }} },
-      "primaryImageOfPage": { "@type": "ImageObject", "url": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }} }
+      "primaryImageOfPage": { "@type": "ImageObject", "url": {{ (site_base_url() ~ url_for('static', filename='images/og-image.png'))|tojson }}, "width": 1200, "height": 630 }
     },
     {
       "@type": "Service",

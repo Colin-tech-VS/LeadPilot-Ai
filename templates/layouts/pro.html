@@ -22,8 +22,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PilotCore Pro">
-  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
+  {% include 'partials/brand_icons.html' %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=22">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=38">

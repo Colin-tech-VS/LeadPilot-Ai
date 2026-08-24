@@ -91,6 +91,17 @@ def set_language(lang):
     return response
 
 
+@web_bp.route("/favicon.ico", methods=["GET"])
+def favicon():
+    from flask import current_app
+
+    return send_from_directory(
+        Path(current_app.static_folder) / "images",
+        "favicon.ico",
+        mimetype="image/x-icon",
+    )
+
+
 @web_bp.route("/manifest.webmanifest", methods=["GET"])
 def web_manifest():
     """PWA manifest — makes the dashboard installable on mobile and desktop."""
@@ -700,7 +711,7 @@ def blog_article(slug):
         abort(404)
     related = blog_svc.related_posts(post, limit=3)
     body_html, toc = blog_svc.prepare_article_body(post.body_html or "")
-    from app.utils.seo import blog_posting_json_ld, json_ld_script, logo_url
+    from app.utils.seo import blog_posting_json_ld, json_ld_script
 
     return render_template(
         "public/blog/article.html",
@@ -709,7 +720,6 @@ def blog_article(slug):
         body_html=body_html,
         toc=toc,
         related=related,
-        og_image=logo_url(),
         json_ld=json_ld_script(blog_posting_json_ld(post)),
     )
 

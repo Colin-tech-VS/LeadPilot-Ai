@@ -1,7 +1,7 @@
 /* PilotCore — service worker (PWA shell + notifications) */
 /* Bump CACHE on every asset change: the activate handler purges every older
    cache, so returning users can never be stuck on a stale bundle. */
-const CACHE = "PilotCore-v8";
+const CACHE = "PilotCore-v9";
 const ASSETS = [
   "/static/css/main.css",
   "/static/css/logo.css",
@@ -14,10 +14,11 @@ const ASSETS = [
   "/static/admin/admin.css",
   "/static/admin/admin.js",
   "/static/images/logo.svg",
-  "/static/images/admin-icon-192.png",
-  "/static/images/admin-icon-512.png",
-  "/static/images/admin-icon-maskable-512.png",
-  "/static/images/admin-touch-icon-180.png",
+  "/static/images/icon-192.png",
+  "/static/images/icon-512.png",
+  "/static/images/icon-maskable-512.png",
+  "/static/images/apple-touch-icon.png",
+  "/static/images/favicon-32.png",
   "/manifest.webmanifest",
   "/public.webmanifest",
 ];
@@ -96,8 +97,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "PilotCore";
   const options = {
     body: data.body || "Nouveau rendez-vous planifié.",
-    icon: "/static/images/logo.svg",
-    badge: "/static/images/logo.svg",
+    icon: "/static/images/icon-192.png",
+    badge: "/static/images/icon-192.png",
     tag: data.tag || "PilotCore-appointment",
     data: { url: data.url || "/dashboard" },
   };

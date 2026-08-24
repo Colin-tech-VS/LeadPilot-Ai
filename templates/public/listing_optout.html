@@ -1,0 +1,55 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set _t = "Demander le retrait d'une fiche entreprise" %}
+{% block title %}{{ _t }} — PilotCore{% endblock %}
+{% block body_class %}fa-page page-claim{% endblock %}
+{% block meta %}
+{{ seo_meta(_t, "Retirer de l'annuaire PilotCore une fiche d'entreprise issue du registre officiel.", '/artisans/retrait-fiche', none, 'website', None, 'noindex, follow', none, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="cl-wrap">
+  <div class="container cl-container">
+    <h1>Retrait d'une fiche</h1>
+
+    {% if done %}
+    <div class="cl-card">
+      <p><strong>C'est fait.</strong></p>
+      <p>
+        Si ce SIREN figurait dans notre annuaire, la fiche a été retirée
+        immédiatement et ne sera pas recréée lors des prochaines mises à jour
+        du registre.
+      </p>
+    </div>
+    {% else %}
+    <div class="cl-card">
+      <p>
+        Les fiches de notre annuaire non revendiquées proviennent du registre
+        officiel des entreprises (données INSEE publiques). Vous pouvez demander
+        le retrait de la vôtre à tout moment, sans justification et sans créer
+        de compte.
+      </p>
+    </div>
+
+    {% if error %}<div class="cl-error">{{ error }}</div>{% endif %}
+
+    <form method="POST" class="cl-form">
+      <label>
+        <span>Numéro SIREN de l'entreprise * <small>(9 chiffres)</small></span>
+        <input type="text" name="siren" required inputmode="numeric" pattern="[0-9 ]{9,14}"
+               placeholder="123456789">
+      </label>
+      <label>
+        <span>Motif <small>(facultatif)</small></span>
+        <textarea name="reason" rows="3"></textarea>
+      </label>
+      <button type="submit" class="btn btn-primary btn-lg">Retirer la fiche</button>
+      <p class="cl-legal">
+        Le retrait est immédiat et définitif. Pour toute question :
+        <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a>.
+      </p>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

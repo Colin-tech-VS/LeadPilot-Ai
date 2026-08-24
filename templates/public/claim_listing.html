@@ -1,0 +1,54 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set _t = "Revendiquer la fiche " ~ listing.name %}
+{% set _d = "Vous dirigez " ~ listing.name ~ " ? Reprenez la main sur votre fiche PilotCore : coordonnées, zone d'intervention, prise de rendez-vous en ligne." %}
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-claim{% endblock %}
+{% block meta %}
+{{ seo_meta(_t, _d, '/artisans/revendiquer/' ~ listing.siren, none, 'website', None, 'noindex, follow', none, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="cl-wrap">
+  <div class="container cl-container">
+    <h1>C'est votre entreprise&nbsp;?</h1>
+
+    <div class="cl-card">
+      <div class="cl-biz">
+        <strong>{{ listing.name }}</strong>
+        <span>{{ listing.address or listing.city }}</span>
+        <span>SIREN {{ listing.siren }}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</span>
+      </div>
+      <p class="cl-note">
+        Cette fiche a été créée à partir du registre officiel des entreprises.
+        En la revendiquant, vous pourrez publier vos coordonnées, votre zone
+        d'intervention et vos disponibilités — et recevoir les demandes des
+        particuliers qui cherchent un {{ listing.trade_key }} à {{ listing.city }}.
+      </p>
+    </div>
+
+    {% if error %}<div class="cl-error">{{ error }}</div>{% endif %}
+
+    <form method="POST" class="cl-form">
+      <label>
+        <span>Votre nom *</span>
+        <input type="text" name="contact_name" required autocomplete="name">
+      </label>
+      <label>
+        <span>E-mail professionnel *</span>
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label>
+        <span>Téléphone</span>
+        <input type="tel" name="phone" autocomplete="tel">
+      </label>
+      <button type="submit" class="btn btn-primary btn-lg">Revendiquer ma fiche</button>
+      <p class="cl-legal">
+        Nous vérifions que la demande émane bien de l'entreprise avant de vous
+        transférer la fiche. Vous ne dirigez pas cette entreprise&nbsp;?
+        <a href="{{ url_for('web.listing_optout') }}">Demandez le retrait de la fiche</a>.
+      </p>
+    </form>
+  </div>
+</section>
+{% endblock %}

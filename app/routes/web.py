@@ -1,3 +1,4 @@
+import re
 import logging
 import math
 import uuid
@@ -333,6 +334,72 @@ def indexnow_key_file(key):
     return make_response(
         indexnow.key_file_body(), 200, {"Content-Type": "text/plain; charset=utf-8"}
     )
+
+
+@web_bp.route("/artisans/revendiquer/<siren>", methods=["GET", "POST"])
+@rate_limit(limit=10, window=3600, scope="claim_listing")
+def claim_listing(siren):
+    """Claim an unclaimed registry listing.
+
+    This is the acquisition path: an artisan searching for their own business
+    finds their page here and takes it over. The form pre-fills from the
+    registry so the only thing they supply is a contact route we can verify.
+    """
+    from flask import abort
+
+    from app.models.registry_listing import STATUS_LISTED, RegistryListing
+
+    listing = RegistryListing.query.filter_by(siren=(siren or "").strip()).one_or_none()
+    if listing is None or listing.status != STATUS_LISTED:
+        abort(404)
+
+    error = None
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        phone = (request.form.get("phone") or "").strip()
+        contact_name = (request.form.get("contact_name") or "").strip()
+        from app.services.email_validation import is_valid_recipient
+
+        if not is_valid_recipient(email):
+            error = "Merci d'indiquer une adresse e-mail valide."
+        elif not contact_name:
+            error = "Merci d'indiquer votre nom."
+        else:
+            from app.services import listing_claims
+
+            listing_claims.submit(
+                listing, contact_name=contact_name, email=email, phone=phone
+            )
+            return render_template(
+                "public/claim_submitted.html", listing=listing, email=email
+            )
+
+    return render_template("public/claim_listing.html", listing=listing, error=error)
+
+
+@web_bp.route("/artisans/retrait-fiche", methods=["GET", "POST"])
+@rate_limit(limit=10, window=3600, scope="listing_optout")
+def listing_optout():
+    """Delisting request — the counterpart to publishing registry data.
+
+    Kept deliberately frictionless: no account, no justification. A business
+    that asks to be removed is removed, and the record is tombstoned so a later
+    registry import cannot bring it back.
+    """
+    done = False
+    error = None
+    if request.method == "POST":
+        siren = re.sub(r"\D", "", request.form.get("siren") or "")
+        if len(siren) != 9:
+            error = "Le numéro SIREN comporte 9 chiffres."
+        else:
+            from app.services import listing_claims
+
+            listing_claims.opt_out(siren, reason=(request.form.get("reason") or "").strip())
+            # Answered identically whether or not the SIREN was listed, so the
+            # form cannot be used to probe what the directory holds.
+            done = True
+    return render_template("public/listing_optout.html", done=done, error=error)
 
 
 @web_bp.route("/prendre-rdv-artisan-en-ligne", methods=["GET"])
@@ -773,8 +840,14 @@ def artisan_trade_city_landing(trade, city):
 
     guide = _tg.get_guide(trade, lang)
     info = city_info(city_slug)
+    from app.services import registry_import as _ri
+
+    listings = _ri.listings_for(trade, city_slug, limit=12)
     seo["robots"] = city_page_robots(
-        artisan_count=len(artisans), has_trade_guide=guide is not None, city=info
+        artisan_count=len(artisans),
+        has_trade_guide=guide is not None,
+        city=info,
+        listing_count=len(listings),
     )
     dept = department_info(info["dept_code"]) if info else None
     return render_template(
@@ -793,6 +866,7 @@ def artisan_trade_city_landing(trade, city):
             "nearby": nearby_cities(city_slug, limit=12),
         },
         trade_guide=guide,
+        registry_listings=listings,
         price_facts=_trade_price_facts(trade, lang),
         top_cities=TOP_CITIES[:12],
     )

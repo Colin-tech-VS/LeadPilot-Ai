@@ -2023,3 +2023,32 @@ html {
 .bc-steps { max-width: 74ch; padding-left: 20px; }
 .bc-steps li { margin: 0 0 10px; line-height: 1.7; }
 .bc-cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 34px 0 0; }
+
+/* ---- Registry listings (unclaimed directory entries) ---- */
+.dl-registry { margin: 28px 0; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); }
+.dl-registry-head h2 { margin: 0 0 8px; font-size: 17px; }
+.dl-registry-sub { margin: 0 0 18px; font-size: 14px; line-height: 1.65; color: var(--muted); max-width: 76ch; }
+.dl-registry-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.dl-registry-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.dl-registry-item:last-child { border-bottom: 0; }
+.dl-registry-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dl-registry-name { font-weight: 600; color: var(--text); }
+.dl-registry-meta { font-size: 13px; color: var(--muted); }
+.dl-registry-claim { font-size: 13px; font-weight: 600; white-space: nowrap; padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; }
+.dl-registry-claim:hover { border-color: var(--primary, #f97316); }
+.dl-registry-legal { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+
+/* ---- Claim / opt-out forms ---- */
+.cl-wrap { padding: 40px 0 60px; }
+.cl-container { max-width: 620px; }
+.cl-card { padding: 20px 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); margin: 0 0 20px; }
+.cl-biz { display: flex; flex-direction: column; gap: 3px; margin: 0 0 14px; }
+.cl-biz strong { font-size: 17px; }
+.cl-biz span { font-size: 14px; color: var(--muted); }
+.cl-note { margin: 0; font-size: 14px; line-height: 1.65; color: var(--muted); }
+.cl-form { display: flex; flex-direction: column; gap: 16px; }
+.cl-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
+.cl-form input, .cl-form textarea { padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; font: inherit; font-weight: 400; background: var(--bg); color: var(--text); }
+.cl-form small { font-weight: 400; color: var(--muted); }
+.cl-legal { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.cl-error { padding: 12px 14px; border-radius: 10px; background: #fee2e2; color: #991b1b; margin: 0 0 16px; font-size: 14px; }

@@ -169,7 +169,53 @@
       {% endfor %}
     </div>
 
-    <div class="dl-empty" id="directory-empty" {% if artisans %}hidden{% endif %}>
+    {% if registry_listings %}
+    {# Businesses of this trade registered at this address in the official
+       company register. Listed, never enriched: no rating, no availability, no
+       implied relationship with PilotCore. Each one can be claimed by its owner
+       or delisted on request. #}
+    <div class="dl-registry">
+      <div class="dl-registry-head">
+        <h2>
+          {{ registry_listings|length }}
+          {{ local_ctx.trade_label|lower }}{{ 's' if registry_listings|length > 1 }}
+          enregistré{{ 's' if registry_listings|length > 1 }} à {{ local_ctx.city }}
+        </h2>
+        <p class="dl-registry-sub">
+          Entreprises inscrites au registre officiel des entreprises pour ce métier
+          et cette commune. Ces fiches ne sont pas encore revendiquées&nbsp;: leurs
+          coordonnées et disponibilités ne sont pas publiées tant que le
+          professionnel ne les a pas renseignées lui-même.
+        </p>
+      </div>
+
+      <ul class="dl-registry-list">
+        {% for l in registry_listings %}
+        <li class="dl-registry-item">
+          <div class="dl-registry-main">
+            <span class="dl-registry-name">{{ l.name }}</span>
+            <span class="dl-registry-meta">
+              {{ l.city }}{% if l.postal_code %} ({{ l.postal_code }}){% endif %}
+              {%- if l.years_active %} · en activité depuis {{ l.years_active }} ans{% endif %}
+            </span>
+          </div>
+          <a class="dl-registry-claim"
+             href="{{ url_for('web.claim_listing', siren=l.siren) }}">C'est mon entreprise</a>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <p class="dl-registry-legal">
+        Source&nbsp;: registre officiel des entreprises
+        (<a href="https://annuaire-entreprises.data.gouv.fr" rel="noopener nofollow" target="_blank">annuaire-entreprises.data.gouv.fr</a>,
+        données INSEE en licence ouverte). Seules les entreprises actives et
+        diffusibles publiquement sont reprises.
+        <a href="{{ url_for('web.listing_optout') }}">Demander le retrait d'une fiche</a>.
+      </p>
+    </div>
+    {% endif %}
+
+    <div class="dl-empty" id="directory-empty" {% if artisans or registry_listings %}hidden{% endif %}>
       <div class="dl-empty-icon" aria-hidden="true">🔍</div>
       <p>{{ _('directory.empty') }}</p>
       <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline">{{ _('directory.empty_cta') }}</a>

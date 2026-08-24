@@ -35,9 +35,15 @@ def city_page_robots(
     artisan_count: int,
     has_trade_guide: bool,
     city: dict | None,
+    listing_count: int = 0,
 ) -> str:
-    """Robots directive for ``/artisans/<trade>/<city>``."""
-    if artisan_count > 0:
+    """Robots directive for ``/artisans/<trade>/<city>``.
+
+    Registry listings count as substance alongside registered artisans: a page
+    naming the actual businesses of that trade in that town answers the query,
+    whether or not any of them has signed up yet.
+    """
+    if artisan_count > 0 or listing_count > 0:
         return INDEX
     if not has_trade_guide or city is None:
         return NOINDEX

@@ -1,0 +1,28 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% block title %}Demande enregistrée — PilotCore{% endblock %}
+{% block body_class %}fa-page page-claim{% endblock %}
+{% block meta %}
+{{ seo_meta('Demande enregistrée', 'Votre demande de revendication a bien été enregistrée.', '/artisans/revendiquer/' ~ listing.siren, none, 'website', None, 'noindex, nofollow', none, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="cl-wrap">
+  <div class="container cl-container">
+    <h1>Demande enregistrée</h1>
+    <div class="cl-card">
+      <p>
+        Nous avons bien reçu votre demande pour <strong>{{ listing.name }}</strong>
+        (SIREN {{ listing.siren }}). Nous vérifions qu'elle émane bien de
+        l'entreprise, puis nous vous écrivons à <strong>{{ email }}</strong>
+        pour vous transférer la fiche.
+      </p>
+      <p class="cl-note">
+        Cette vérification protège les artisans : sans elle, n'importe qui
+        pourrait prendre le contrôle de la fiche d'une entreprise.
+      </p>
+    </div>
+    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-primary btn-lg">Découvrir PilotCore Pro</a>
+  </div>
+</section>
+{% endblock %}

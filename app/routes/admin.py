@@ -1034,6 +1034,23 @@ def diagnostics_smtp_test():
     return redirect(url_for("admin.diagnostics_page"))
 
 
+@admin_bp.route("/diagnostics/places-test", methods=["POST"])
+@admin_required
+def diagnostics_places_test():
+    """Live Google Places round-trip (costs one billed request)."""
+    result = diagnostics.places_probe()
+    stats = result.get("stats") or {}
+    if result.get("ok"):
+        flash(
+            f"Google Places OK — « {result.get('sample')} » "
+            f"({result.get('count')} suggestions, {stats.get('errors', 0)} erreur(s) cumulée(s))",
+            "success",
+        )
+    else:
+        flash(f"Google Places KO — {result.get('reason')}", "error")
+    return redirect(url_for("admin.diagnostics_page"))
+
+
 @admin_bp.route("/diagnostics/db-test", methods=["POST"])
 @admin_required
 def diagnostics_db_test():

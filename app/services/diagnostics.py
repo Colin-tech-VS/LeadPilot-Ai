@@ -223,7 +223,33 @@ def collect():
         )
     )
 
+    # ------------------------------------------------------------- Google
+    groups.append(
+        _group(
+            "Google (Places & Search Console)",
+            "🗺️",
+            [
+                _check("Places API key", "GOOGLE_PLACES_API_KEY", secret=True,
+                       hint="GOOGLE_PLACES_API_KEY — autocomplétion ville/adresse + géocodage"),
+                _check("GSC client ID", "GOOGLE_GSC_CLIENT_ID", show_value=True,
+                       hint="Optionnel — tableau de bord Search Console"),
+                _check("GSC client secret", "GOOGLE_GSC_CLIENT_SECRET", secret=True),
+            ],
+            note="Sans clé Places, l'autocomplétion bascule sur la Base Adresse "
+                 "Nationale : rien ne casse, la couverture est juste un peu moindre.",
+        )
+    )
+
     return groups
+
+
+def places_probe():
+    """Live round-trip against Google Places — one billed call, on demand only."""
+    from app.services import google_places
+
+    result = google_places.selftest()
+    result["stats"] = google_places.stats()
+    return result
 
 
 def summary(groups):

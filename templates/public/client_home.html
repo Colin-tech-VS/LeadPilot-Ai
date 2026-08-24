@@ -11,31 +11,13 @@
 {% set site_ld %}
 {
   "@context": "https://schema.org",
+  {#- WebSite and Organization are defined once, in layouts/public.html, and
+      that copy is the richer one (knowsAbout, contactPoint, slogan). Repeating
+      them here added a second, thinner definition of the same @id whose
+      inLanguage disagreed with it ("fr" vs "fr-FR"). Only the page-specific
+      nodes belong in this graph. -#}
   "@graph": [
-    {
-      "@type": "WebSite",
-      "@id": {{ (site_base_url() ~ '#website')|tojson }},
-      "name": {{ _('app.name')|tojson }},
-      "url": {{ site_base_url()|tojson }},
-      "description": {{ _('client.meta_description')|tojson }},
-      "inLanguage": {{ lang|tojson }},
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {{ (canonical_url('/artisans') ~ '?q={search_term_string}')|tojson }},
-        "query-input": "required name=search_term_string"
-      }
-    },
-    {
-      "@type": "Organization",
-      "@id": {{ (site_base_url() ~ '#organization')|tojson }},
-      "name": "PilotCore",
-      "url": {{ site_base_url()|tojson }},
-      "logo": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }},
-      "description": {{ _('client.meta_description')|tojson }},
-      "email": "contact@pilotcore.fr",
-      "areaServed": {"@type": "Country", "name": "France"}
-    }
-    {%- if featured_artisans %},
+    {%- if featured_artisans %}
     {
       "@type": "ItemList",
       "name": {{ _('client.featured_title')|tojson }},
@@ -49,8 +31,8 @@
         }{% if not loop.last %},{% endif %}
         {%- endfor %}
       ]
-    }
-    {%- endif %},
+    },
+    {%- endif %}
     {
       "@type": "FAQPage",
       "@id": {{ (site_base_url() ~ '/#faq')|tojson }},

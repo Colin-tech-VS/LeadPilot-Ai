@@ -29,14 +29,9 @@
         "description": {{ _('landing.pricing_launch_kicker')|tojson }}
       }
     },
-    {
-      "@type": "Organization",
-      "name": "PilotCore",
-      "url": {{ site_base_url()|tojson }},
-      "logo": {{ (site_base_url() ~ url_for('static', filename='images/logo.svg'))|tojson }},
-      "description": {{ _('pro.meta_description')|tojson }},
-      "email": "contact@pilotcore.fr"
-    },
+    {#- The Organization is declared once, in the public layout's global graph.
+        A second copy here — it previously carried no @id at all, so Google read
+        it as a *different* company — only splits the brand entity. -#}
     {
       "@type": "FAQPage",
       "mainEntity": [

@@ -72,7 +72,7 @@ def test_blog_category_page(client, app):
 def test_sitemap_includes_blog(client, app):
     with app.app_context():
         ensure_default_categories()
-    response = client.get("/sitemap.xml")
+    response = client.get("/sitemap-blog.xml")
     assert response.status_code == 200
     body = response.data.decode()
     assert "/blog" in body

@@ -74,18 +74,57 @@ def test_directory_empty_filter_is_noindexed(client):
     assert 'name="robots" content="noindex, follow"' in html
 
 
+def _set_guides(app, *trade_keys):
+    """Control guide state explicitly — the shared test DB is not rolled back
+    between tests, so a test that depends on the indexability gate must own
+    what is in the table rather than assume it starts empty."""
+    from app.core.extensions import db
+    from app.models.trade_guide import TradeGuide
+
+    with app.app_context():
+        TradeGuide.query.delete()
+        for key in trade_keys:
+            db.session.add(
+                TradeGuide(trade_key=key, lang="fr", body_html="<p>guide</p>")
+            )
+        db.session.commit()
+
+
 def test_local_trade_city_landing(client):
-    """Clean-URL local landing page is indexable, self-canonical and rich."""
+    """Clean-URL local landing page is self-canonical, rich and cross-linked."""
     response = client.get("/artisans/plombier/lyon")
     assert response.status_code == 200
     html = response.data.decode()
     assert "Plombier" in html and "Lyon" in html
-    assert '<meta name="robots" content="index, follow">' in html
     assert "/artisans/plombier/lyon" in html  # self-referencing canonical
     assert "BreadcrumbList" in html
     assert "FAQPage" in html
-    # cross-links to other cities and trades for internal SEO
-    assert "/artisans/plombier/paris" in html
+    # real INSEE facts make the page distinct from its siblings
+    assert "habitants" in html
+    assert "69001" in html  # Lyon postal code
+    # internal mesh: real geographic neighbours, not an arbitrary fixed list
+    assert "/artisans/plombier/villeurbanne" in html
+
+
+def test_city_landing_is_noindex_until_it_has_substance(client, app):
+    """Thin generated pages must not enter the index — that is the doorway-page
+    pattern Google penalises. They graduate on their own once a trade guide
+    gives them a body."""
+    _set_guides(app)
+    assert 'content="noindex, follow"' in client.get("/artisans/plombier/lyon").data.decode()
+
+    _set_guides(app, "plombier")
+    assert 'content="index, follow"' in client.get("/artisans/plombier/lyon").data.decode()
+
+
+def test_small_city_stays_noindex_even_with_a_guide(client, app):
+    """Population gate: a guide alone does not justify a page for a town where
+    the query barely exists."""
+    _set_guides(app, "plombier")
+
+    # Unknown/tiny slug: no INSEE record, so no population to clear the bar.
+    html = client.get("/artisans/plombier/trifouillis-les-oies").data.decode()
+    assert 'content="noindex, follow"' in html
 
 
 def test_local_trade_pillar_landing(client):
@@ -93,7 +132,6 @@ def test_local_trade_pillar_landing(client):
     assert response.status_code == 200
     html = response.data.decode()
     assert "Serrurier" in html
-    assert '<meta name="robots" content="index, follow">' in html
     assert "/artisans/metier/serrurier" in html
 
 
@@ -109,21 +147,40 @@ def test_local_landing_normalizes_city_slug(client):
     assert response.headers["Location"].endswith("/artisans/plombier/lyon")
 
 
-def test_sitemap_includes_local_pages(client):
-    body = client.get("/sitemap.xml").data.decode()
-    assert "/artisans/metier/plombier</loc>" in body
-    assert "/artisans/plombier/lyon</loc>" in body
-
-
-def test_sitemap_includes_key_pages(client):
+def test_sitemap_index_lists_children(client):
     response = client.get("/sitemap.xml")
     assert response.status_code == 200
     body = response.data.decode()
-    assert "<loc>" in body
-    assert "/pro</loc>" in body or "/pro<" in body
-    assert "/contact</loc>" in body or "/contact<" in body
-    assert "/artisans</loc>" in body or "/artisans<" in body
+    assert "<sitemapindex" in body
+    assert "/sitemap-core.xml" in body
     assert "<lastmod>" in body
+
+
+def test_sitemap_local_pages_gated_until_they_earn_indexing(client, app):
+    """Generated city pages stay out of the sitemap while they are thin, and
+    appear as soon as a trade guide gives them a body worth ranking."""
+    _set_guides(app)
+    body = client.get("/sitemap-cities.xml").data.decode()
+    assert "/artisans/plombier/lyon</loc>" not in body
+
+    _set_guides(app, "plombier")
+    assert "/artisans/plombier/lyon</loc>" in client.get("/sitemap-cities.xml").data.decode()
+    assert "/artisans/metier/plombier</loc>" in client.get("/sitemap-trades.xml").data.decode()
+
+
+def test_sitemap_core_includes_key_pages(client):
+    response = client.get("/sitemap-core.xml")
+    assert response.status_code == 200
+    body = response.data.decode()
+    assert "<loc>" in body
+    assert "/pro</loc>" in body
+    assert "/contact</loc>" in body
+    assert "/artisans</loc>" in body
+    assert "<lastmod>" in body
+
+
+def test_sitemap_rejects_unknown_section(client):
+    assert client.get("/sitemap-nope.xml").status_code == 404
 
 
 def test_robots_allows_public_pages(client):

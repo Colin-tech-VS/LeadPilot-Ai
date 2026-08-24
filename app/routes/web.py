@@ -306,84 +306,40 @@ def llms_full_txt():
     return make_response(render_llms_full_txt(), 200, {"Content-Type": "text/plain; charset=utf-8"})
 
 
+@web_bp.route("/<string(length=32):key>.txt", methods=["GET"])
+def indexnow_key_file(key):
+    """IndexNow ownership proof — serves the key only at its own filename."""
+    from flask import abort
+
+    from app.services import indexnow
+
+    if key != indexnow.get_key():
+        abort(404)
+    return make_response(
+        indexnow.key_file_body(), 200, {"Content-Type": "text/plain; charset=utf-8"}
+    )
+
+
 @web_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap_xml():
-    from datetime import date
+    """Sitemap index — children are served by :func:`sitemap_section`."""
+    from app.services import sitemaps
 
-    from app.models.blog_category import BlogCategory
-    from app.models.blog_post import BlogPost
-    from app.models.site_page import SitePage
-    from app.services.artisan_directory import list_public_artisans
-    from app.utils.seo import format_lastmod, site_base_url
+    return make_response(
+        sitemaps.render_index(), 200, {"Content-Type": "application/xml; charset=utf-8"}
+    )
 
-    base = site_base_url()
-    today = date.today().isoformat()
-    urls: list[tuple[str, str, str, str | None]] = [
-        ("", "daily", "1.0", today),
-        ("/artisans", "daily", "0.95", today),
-        ("/trouver-un-artisan", "weekly", "0.9", today),
-        ("/depannage-urgent", "weekly", "0.9", today),
-        ("/pro", "weekly", "0.9", today),
-        ("/contact", "monthly", "0.5", today),
-        ("/blog", "daily", "0.85", today),
-        ("/mentions-legales", "yearly", "0.3", None),
-        ("/confidentialite", "yearly", "0.3", None),
-        ("/cgu", "yearly", "0.3", None),
-        ("/cookies", "yearly", "0.3", None),
-    ]
 
-    # Programmatic local SEO: one clean-URL landing page per trade and per
-    # trade × top-city so local-intent queries (« plombier lyon ») can rank.
-    from app.constants.cities import TOP_CITIES
-    from app.constants.trades import SEO_LOCAL_TRADES, TRADES
+@web_bp.route("/sitemap-<section>.xml", methods=["GET"])
+def sitemap_section(section):
+    from flask import abort
 
-    # Every trade gets an indexable pillar page + a page per top city +
-    # a page per French department. Local search intent is real across all
-    # trades; even empty listings convert on the "book a callback" CTA.
-    from app.constants.departments import DEPARTMENTS
+    from app.services import sitemaps
 
-    for trade in (k for k in TRADES if k != "autre"):
-        urls.append((f"/artisans/metier/{trade}", "weekly", "0.85", today))
-    for trade in SEO_LOCAL_TRADES:
-        for city_slug, _city_name in TOP_CITIES:
-            urls.append((f"/artisans/{trade}/{city_slug}", "weekly", "0.7", today))
-        for _dept_code, dept_slug, _dept_name, _chef in DEPARTMENTS:
-            urls.append((f"/artisans/{trade}/departement/{dept_slug}", "weekly", "0.65", today))
-
-    for tenant in list_public_artisans(limit=2000):
-        if tenant.public_slug:
-            urls.append(
-                (
-                    f"/artisans/{tenant.public_slug}",
-                    "weekly",
-                    "0.8",
-                    format_lastmod(tenant.created_at),
-                )
-            )
-
-    for page in SitePage.query.filter_by(status="published").order_by(SitePage.updated_at.desc()).limit(100).all():
-        if page.slug:
-            urls.append((f"/p/{page.slug}", "weekly", "0.7", format_lastmod(page.updated_at)))
-
-    for post in BlogPost.query.filter_by(status="published").order_by(BlogPost.published_at.desc()).limit(200).all():
-        if post.slug:
-            urls.append((f"/blog/{post.slug}", "weekly", "0.8", format_lastmod(post.published_at or post.updated_at)))
-
-    for cat in BlogCategory.query.order_by(BlogCategory.sort_order).all():
-        urls.append((f"/blog/categorie/{cat.slug}", "weekly", "0.75", today))
-
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for path, freq, priority, lastmod in urls:
-        loc = base + path
-        lines.append("  <url>")
-        lines.append(f"    <loc>{loc}</loc>")
-        if lastmod:
-            lines.append(f"    <lastmod>{lastmod}</lastmod>")
-        lines.append(f"    <changefreq>{freq}</changefreq>")
-        lines.append(f"    <priority>{priority}</priority>")
-        lines.append("  </url>")
-    lines.append("</urlset>")
-    return make_response("\n".join(lines), 200, {"Content-Type": "application/xml; charset=utf-8"})
+    if section not in sitemaps.SECTIONS:
+        abort(404)
+    body = sitemaps.render_urlset(sitemaps.section_urls(section))
+    return make_response(body, 200, {"Content-Type": "application/xml; charset=utf-8"})
 
 
 @web_bp.route("/", methods=["GET"])
@@ -654,6 +610,7 @@ def artisan_trade_landing(trade):
     from app.constants.trades import TRADES, trade_choices, trade_label
     from app.services import trade_guides
     from app.services.artisan_directory import list_public_artisans
+    from app.utils.indexability import trade_pillar_robots
     from app.utils.seo import local_landing_seo
 
     trade = (trade or "").strip().lower()
@@ -671,6 +628,9 @@ def artisan_trade_landing(trade):
     # SEO enrichment: cached long-form guide (~800 words + FAQ) generated once
     # per trade via Mistral. Never blocks page render — returns None on error.
     guide = trade_guides.get_guide(trade, lang)
+    seo["robots"] = trade_pillar_robots(
+        has_trade_guide=guide is not None, artisan_count=len(artisans)
+    )
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
@@ -692,9 +652,17 @@ def artisan_trade_city_landing(trade, city):
     """
     from flask import abort
 
-    from app.constants.cities import TOP_CITIES, city_display_name, city_slugify
+    from app.constants.cities import (
+        TOP_CITIES,
+        city_display_name,
+        city_info,
+        city_slugify,
+        nearby_cities,
+    )
+    from app.constants.departments import department_info
     from app.constants.trades import TRADES, trade_choices, trade_label
     from app.services.artisan_directory import list_public_artisans
+    from app.utils.indexability import city_page_robots
     from app.utils.seo import local_landing_seo
 
     trade = (trade or "").strip().lower()
@@ -719,14 +687,29 @@ def artisan_trade_city_landing(trade, city):
         lang=lang,
     )
     from app.services import trade_guides as _tg
+
+    guide = _tg.get_guide(trade, lang)
+    info = city_info(city_slug)
+    seo["robots"] = city_page_robots(
+        artisan_count=len(artisans), has_trade_guide=guide is not None, city=info
+    )
+    dept = department_info(info["dept_code"]) if info else None
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
         trades=trade_choices(lang),
         seo=seo,
         filters={"metier": trade, "ville": city_name, "q": ""},
-        local_ctx={"trade_key": trade, "trade_label": label, "city": city_name},
-        trade_guide=_tg.get_guide(trade, lang),
+        local_ctx={
+            "trade_key": trade,
+            "trade_label": label,
+            "city": city_name,
+            "city_slug": city_slug,
+            "city_data": info,
+            "department": {"code": dept[0], "slug": dept[1], "name": dept[2]} if dept else None,
+            "nearby": nearby_cities(city_slug, limit=12),
+        },
+        trade_guide=guide,
         top_cities=TOP_CITIES[:12],
     )
 
@@ -742,11 +725,21 @@ def artisan_trade_department_landing(trade, dept):
     """
     from flask import abort
 
-    from app.constants.cities import TOP_CITIES, city_slugify
-    from app.constants.departments import department_info, is_known_department
+    from app.constants.cities import (
+        TOP_CITIES,
+        cities_in_department,
+        city_slugify,
+        is_known_city,
+    )
+    from app.constants.departments import (
+        department_info,
+        department_postal_prefix,
+        is_known_department,
+    )
     from app.constants.trades import TRADES, trade_choices, trade_label
     from app.services import trade_guides
     from app.services.artisan_directory import list_public_artisans
+    from app.utils.indexability import department_page_robots
     from app.utils.seo import local_landing_seo
 
     trade = (trade or "").strip().lower()
@@ -765,17 +758,26 @@ def artisan_trade_department_landing(trade, dept):
             url_for("web.artisan_trade_department_landing", trade=trade, dept=slug),
             code=301,
         )
+    # Paris is both a city and a department covering the exact same ground, so
+    # the two URLs would compete for the same query. Fold the department page
+    # into the city one rather than cannibalising ourselves.
+    if is_known_city(slug):
+        return redirect(
+            url_for("web.artisan_trade_city_landing", trade=trade, city=slug),
+            code=301,
+        )
 
     lang = getattr(g, "lang", "fr")
     label = trade_label(trade, lang)
-    artisans = list_public_artisans(trade=trade)
-    # Narrow to the department by postal_code prefix when we have it.
-    prefix_len = 2 if len(code) == 2 else 3
-    dept_prefix = code.upper()
+    dept_cities = cities_in_department(code)
+    prefix = department_postal_prefix(code)
+    known_city_names = {c["name"].strip().lower() for c in dept_cities}
+    known_city_names.add(chef.strip().lower())
     artisans = [
-        a for a in artisans
-        if (a.postal_code or "").strip().upper().startswith(dept_prefix)
-        or (a.city or "").strip().lower() == chef.lower()
+        a
+        for a in list_public_artisans(trade=trade)
+        if (a.postal_code or "").strip().startswith(prefix)
+        or (a.city or "").strip().lower() in known_city_names
     ][:24]
     canonical_path = f"/artisans/{trade}/departement/{slug}"
     seo = local_landing_seo(
@@ -784,6 +786,12 @@ def artisan_trade_department_landing(trade, dept):
         city=name,  # "Haute-Savoie" — reused in title/H1 as the "area"
         canonical_path=canonical_path,
         lang=lang,
+    )
+    guide = trade_guides.get_guide(trade, lang)
+    seo["robots"] = department_page_robots(
+        artisan_count=len(artisans),
+        has_trade_guide=guide is not None,
+        city_count=len(dept_cities),
     )
     chef_slug = city_slugify(chef)
     return render_template(
@@ -800,8 +808,10 @@ def artisan_trade_department_landing(trade, dept):
             "department_code": code,
             "department_chef_lieu": chef,
             "department_chef_lieu_slug": chef_slug,
+            "department_cities": dept_cities,
+            "postal_prefix": prefix,
         },
-        trade_guide=trade_guides.get_guide(trade, lang),
+        trade_guide=guide,
         top_cities=TOP_CITIES[:12],
     )
 

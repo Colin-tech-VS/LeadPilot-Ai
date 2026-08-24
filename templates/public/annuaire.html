@@ -191,6 +191,41 @@
           <li>{{ _('local.point_3') }}</li>
         </ul>
 
+        {# ---- Real local facts (INSEE) — the substance that makes each of
+               these generated pages genuinely distinct from its siblings. ---- #}
+        {% if local_ctx.city_data %}
+        {% set _cd = local_ctx.city_data %}
+        <div class="dl-local-facts">
+          <h3>{{ local_ctx.trade_label }} à {{ _cd.name }} : la zone couverte</h3>
+          <dl class="dl-facts-grid">
+            <div><dt>Commune</dt><dd>{{ _cd.name }}{% if local_ctx.department %} ({{ local_ctx.department.code }}){% endif %}</dd></div>
+            <div><dt>Population</dt><dd>{{ '{:,}'.format(_cd.population).replace(',', ' ') }} habitants</dd></div>
+            {% if local_ctx.department %}
+            <div><dt>Département</dt><dd>{{ local_ctx.department.name }}</dd></div>
+            {% endif %}
+            <div><dt>Code{{ 's' if _cd.postal_codes|length > 1 }} postal{{ 'ux' if _cd.postal_codes|length > 1 }}</dt>
+                 <dd>{{ _cd.postal_codes|join(', ') }}</dd></div>
+          </dl>
+          <p class="dl-facts-note">
+            Les artisans référencés interviennent à {{ _cd.name }} et dans les communes
+            limitrophes{% if local_ctx.nearby %},
+            notamment {{ local_ctx.nearby[:4]|map(attribute='name')|join(', ') }}{% endif %}.
+            Indiquez votre adresse exacte lors de la demande : le professionnel confirme
+            immédiatement s'il couvre votre rue et sous quel délai.
+          </p>
+        </div>
+        {% elif local_ctx.is_department and local_ctx.department_cities %}
+        <div class="dl-local-facts">
+          <h3>{{ local_ctx.trade_label }} dans le {{ local_ctx.city }} : villes couvertes</h3>
+          <dl class="dl-facts-grid">
+            <div><dt>Département</dt><dd>{{ local_ctx.city }} ({{ local_ctx.department_code }})</dd></div>
+            <div><dt>Préfecture</dt><dd>{{ local_ctx.department_chef_lieu }}</dd></div>
+            <div><dt>Codes postaux</dt><dd>{{ local_ctx.postal_prefix }}xxx</dd></div>
+            <div><dt>Villes référencées</dt><dd>{{ local_ctx.department_cities|length }}</dd></div>
+          </dl>
+        </div>
+        {% endif %}
+
         {# ---- Enriched guide (Mistral-generated, cached ~90d) ---- #}
         {% if trade_guide %}
         {% if trade_guide.intro_html %}
@@ -235,16 +270,57 @@
       </article>
 
       <aside class="dl-local-aside">
-        {% if local_ctx.city %}
+        {% if local_ctx.city and local_ctx.city_slug %}
         <div class="dl-local-box">
           <h3>{{ _('local.other_trades_title', city=local_ctx.city) }}</h3>
           <div class="dl-local-links">
             {% for t in trades if t.key != local_ctx.trade_key and t.key != 'autre' %}
-            <a href="{{ url_for('web.artisan_trade_city_landing', trade=t.key, city=(local_ctx.city|lower|replace(' ', '-'))) }}">{{ t.icon }} {{ t.label }}</a>
+            <a href="{{ url_for('web.artisan_trade_city_landing', trade=t.key, city=local_ctx.city_slug) }}">{{ t.icon }} {{ t.label }}</a>
             {% endfor %}
           </div>
         </div>
         {% endif %}
+
+        {# Climb the hierarchy: city -> its department page. #}
+        {% if local_ctx.department %}
+        <div class="dl-local-box">
+          <h3>{{ local_ctx.trade_label }} dans le {{ local_ctx.department.name }}</h3>
+          <div class="dl-local-links">
+            <a href="{{ url_for('web.artisan_trade_department_landing', trade=local_ctx.trade_key, dept=local_ctx.department.slug) }}">
+              Tout le département {{ local_ctx.department.name }} ({{ local_ctx.department.code }})
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        {# Real geographic neighbours, nearest first — a visitor in this town
+           would actually consider these, and it gives crawlers a dense local mesh. #}
+        {% if local_ctx.nearby %}
+        <div class="dl-local-box">
+          <h3>{{ local_ctx.trade_label }} autour de {{ local_ctx.city }}</h3>
+          <div class="dl-local-links">
+            {% for c in local_ctx.nearby %}
+            <a href="{{ url_for('web.artisan_trade_city_landing', trade=local_ctx.trade_key, city=c.slug) }}">
+              {{ c.name }} <span class="dl-local-dist">{{ c.distance_km }} km</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# On a department page: every town it covers. #}
+        {% if local_ctx.department_cities %}
+        <div class="dl-local-box">
+          <h3>{{ _('local.other_trades_title', city=local_ctx.city) if false else local_ctx.trade_label ~ ' par ville' }}</h3>
+          <div class="dl-local-links">
+            {% for c in local_ctx.department_cities %}
+            <a href="{{ url_for('web.artisan_trade_city_landing', trade=local_ctx.trade_key, city=c.slug) }}">{{ c.name }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if not local_ctx.nearby and not local_ctx.department_cities %}
         <div class="dl-local-box">
           <h3>{{ _('local.other_cities_title', trade=local_ctx.trade_label) }}</h3>
           <div class="dl-local-links">
@@ -253,6 +329,7 @@
             {% endfor %}
           </div>
         </div>
+        {% endif %}
       </aside>
     </div>
 

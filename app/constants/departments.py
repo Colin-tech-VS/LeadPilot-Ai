@@ -121,6 +121,19 @@ def is_known_department(key: str) -> bool:
     return k in _BY_CODE or k in _BY_SLUG
 
 
+def department_postal_prefix(code: str) -> str:
+    """Postal-code prefix for a department code.
+
+    Corsica is the exception that a naive ``code[:2]`` gets wrong: the
+    department codes are ``2A``/``2B`` but every Corsican postal code starts
+    with ``20``. DROM codes are already three digits and match directly.
+    """
+    c = (code or "").strip().lower()
+    if c in ("2a", "2b"):
+        return "20"
+    return c.upper()
+
+
 def department_info(key: str) -> tuple[str, str, str, str] | None:
     """Resolve either a code (e.g. '75', '2a', '974') or a slug to
     ``(code, slug, display_name, chef_lieu)``. Returns None if unknown."""

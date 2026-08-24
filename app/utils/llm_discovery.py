@@ -89,6 +89,15 @@ def render_robots_txt() -> str:
     lines.extend(_disallow_lines())
     lines.append(f"Sitemap: {base}/sitemap.xml")
     lines.append("")
+    # Advertise the IndexNow key location so participating engines can verify
+    # ownership even if a submission arrives before they fetch the key file.
+    try:
+        from app.services.indexnow import get_key
+
+        lines.append(f"# IndexNow: {base}/{get_key()}.txt")
+        lines.append("")
+    except Exception:  # noqa: BLE001 — robots.txt must always render
+        pass
     return "\n".join(lines)
 
 

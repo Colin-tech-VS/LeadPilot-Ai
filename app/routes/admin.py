@@ -111,6 +111,19 @@ TABLES = {
 }
 
 
+def _ping_indexnow(*paths: str) -> None:
+    """Nudge IndexNow so Bing/Yandex fetch a freshly published URL in minutes
+    rather than on their next organic crawl. Best-effort by design: a search
+    engine being unreachable must never turn a successful publish into an error
+    for the editor."""
+    try:
+        from app.services import indexnow
+
+        indexnow.submit([p for p in paths if p])
+    except Exception:  # noqa: BLE001
+        logging.getLogger(__name__).exception("IndexNow ping failed")
+
+
 @admin_bp.context_processor
 def inject_admin():
     nova_available = False
@@ -1520,6 +1533,8 @@ def blog_save():
     try:
         db.session.commit()
         log_event(CAT_ADMIN, "blog_save", summary=f"Article « {post.title} » ({post.status})", level=LEVEL_SUCCESS)
+        if post.status == "published":
+            _ping_indexnow(f"/blog/{post.slug}")
         flash("Article enregistré.", "success")
     except Exception as exc:
         db.session.rollback()
@@ -1541,6 +1556,8 @@ def blog_status(post_id):
     if publishing:
         blog_svc.touch_published_at(post, publishing=True)
     db.session.commit()
+    if publishing:
+        _ping_indexnow(f"/blog/{post.slug}")
     flash(f"Article {'publié' if post.status == 'published' else 'en brouillon'}.", "success")
     return redirect(request.referrer or url_for("admin.blog"))
 
@@ -2020,6 +2037,9 @@ def seo_trade_guide_regenerate(trade):
         return redirect(url_for("admin.seo_trade_guides"))
     guide = trade_guides.get_or_generate(trade, "fr", force=True)
     if guide and guide.body_html:
+        # Publishing a guide flips this trade's whole page set from noindex to
+        # indexable, so tell the engines about the hub straight away.
+        _ping_indexnow(f"/artisans/metier/{trade}")
         flash(f"Guide « {trade} » régénéré ({len(guide.body_html)} caractères).", "success")
     else:
         flash(

@@ -1968,3 +1968,21 @@ html {
 .v-footer-local-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .v-footer-local-links a { font-size: 12.5px; color: var(--text-muted); text-decoration: none; }
 .v-footer-local-links a:hover { color: var(--blue-primary); text-decoration: underline; }
+
+/* ---- Local SEO: INSEE facts block + neighbour mesh (annuaire) ---- */
+.dl-local-facts { margin: 28px 0; padding: 20px 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); }
+.dl-local-facts h3 { margin: 0 0 14px; font-size: 15px; color: var(--text); }
+.dl-facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin: 0 0 14px; }
+.dl-facts-grid > div { min-width: 0; }
+.dl-facts-grid dt { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 2px; }
+.dl-facts-grid dd { margin: 0; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.dl-facts-note { margin: 0; font-size: 14px; line-height: 1.65; color: var(--muted); }
+.dl-local-dist { color: var(--muted); font-size: .82em; margin-left: 4px; }
+.dl-local-cluster-tip { margin: 22px 0; padding: 14px 16px; border-left: 3px solid var(--primary, #f97316); background: var(--card); border-radius: 0 12px 12px 0; font-size: 14px; }
+.dl-guide-body h3 { margin: 26px 0 10px; font-size: 16px; color: var(--text); }
+.dl-guide-body p, .dl-guide-intro p { line-height: 1.7; margin: 0 0 14px; }
+.dl-guide-prices { margin: 22px 0; overflow-x: auto; }
+.trade-price-grid { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 340px; }
+.trade-price-grid caption { text-align: left; font-weight: 600; padding: 0 0 10px; color: var(--text); }
+.trade-price-grid th, .trade-price-grid td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+.trade-price-grid th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }

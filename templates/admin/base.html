@@ -1,5 +1,6 @@
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/address_autocomplete.html' import address_autocomplete_scripts with context %}
+{% from 'macros/admin_icons.html' import admin_ico %}
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
@@ -9,10 +10,10 @@
   <title>{% block title %}Admin · PilotCore{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('admin.admin_manifest') }}">
-  <meta name="theme-color" content="#1B57E0">
+  <meta name="theme-color" content="#1A2332">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20,7 +21,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/admin-touch-icon-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=21">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=22">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -31,67 +32,66 @@
         {{ brand_logo('sm', 'admin', false) }}
         <div>
           <strong>PilotCore</strong>
-          <span class="admin-brand-sub">Admin Console</span>
-          <span class="zone-badge">{{ _('zone.admin') }}</span>
+          <span class="admin-brand-sub">Console</span>
         </div>
       </div>
       <div class="admin-nav-scroll">
       <nav class="admin-nav">
         <div class="admin-nav-sep">Pilotage</div>
         <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
-          <span class="nav-ico">📈</span> Performance
+          {% call admin_ico() %}<path d="M4 19V6M4 19h16M8 16v-4M12 16V8M16 16v-7"/>{% endcall %} Performance
         </a>
         <a href="{{ url_for('admin.traffic_page') }}" class="{% if request.endpoint == 'admin.traffic_page' %}active{% endif %}">
-          <span class="nav-ico">🌐</span> Trafic
+          {% call admin_ico() %}<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3.2 2.8 14.8 0 18M12 3c-2.8 3.2-2.8 14.8 0 18"/>{% endcall %} Trafic
           <span class="nav-live-dot" id="nav-live-dot"></span>
         </a>
         <a href="{{ url_for('admin.heatmap_page') }}" class="{% if request.endpoint == 'admin.heatmap_page' %}active{% endif %}">
-          <span class="nav-ico">🔥</span> Heatmap
+          {% call admin_ico() %}<path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/>{% endcall %} Heatmap
         </a>
         <a href="{{ url_for('admin.gsc_page') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.gsc') %}active{% endif %}">
-          <span class="nav-ico">🔍</span> SEO · GSC
+          {% call admin_ico() %}<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>{% endcall %} SEO · GSC
         </a>
         <a href="{{ url_for('admin.seo_trade_guides') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.seo_trade') %}active{% endif %}">
-          <span class="nav-ico">📚</span> SEO · Guides métier
+          {% call admin_ico() %}<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4z"/><path d="M5 4v16a3 3 0 0 1 3-3h13"/>{% endcall %} SEO · Guides métier
         </a>
         <a href="{{ url_for('admin.listing_claims') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.listing_claim') %}active{% endif %}">
-          <span class="nav-ico">🏷️</span> Revendications
+          {% call admin_ico() %}<path d="M7 4h10v6l-5 3-5-3V4z"/><path d="M7 20h10"/>{% endcall %} Revendications
           {% if pending_claims %}<span class="admin-badge tiny">{{ pending_claims }}</span>{% endif %}
         </a>
         <div class="admin-nav-sep">Contenu</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">
-          <span class="nav-ico">💶</span> Tarifs
+          {% call admin_ico() %}<path d="M4 8h16v10H4z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/>{% endcall %} Tarifs
         </a>
         <a href="{{ url_for('admin.blog') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.blog') %}active{% endif %}">
-          <span class="nav-ico">📝</span> Blog
+          {% call admin_ico() %}<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>{% endcall %} Blog
         </a>
         <a href="{{ url_for('admin.pages') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.page') %}active{% endif %}">
-          <span class="nav-ico">📄</span> Pages
+          {% call admin_ico() %}<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>{% endcall %} Pages
         </a>
         <a href="{{ url_for('admin.social') }}" class="{% if request.endpoint and 'social' in request.endpoint %}active{% endif %}">
-          <span class="nav-ico">📣</span> Social
+          {% call admin_ico() %}<path d="M4 12h7l2-7 3 14 2-7h2"/>{% endcall %} Social
         </a>
         <div class="admin-nav-sep">Système</div>
         <a href="{{ url_for('admin.clients') }}" class="{% if request.endpoint == 'admin.clients' %}active{% endif %}">
-          <span class="nav-ico">👥</span> Comptes
+          {% call admin_ico() %}<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.2"/><path d="M16 19a4.2 4.2 0 0 1 5-4"/>{% endcall %} Comptes
         </a>
         <a href="{{ url_for('admin.database_home') }}" class="{% if request.endpoint and 'database' in request.endpoint %}active{% endif %}">
-          <span class="nav-ico">🗄️</span> Données
+          {% call admin_ico() %}<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>{% endcall %} Données
         </a>
         <a href="{{ url_for('admin.emails') }}" class="{% if request.endpoint == 'admin.emails' %}active{% endif %}">
-          <span class="nav-ico">✉️</span> Emails
+          {% call admin_ico() %}<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>{% endcall %} Emails
         </a>
         <a href="{{ url_for('admin.prospecting') }}" class="{% if request.endpoint and 'prospect' in request.endpoint %}active{% endif %}">
-          <span class="nav-ico">🎯</span> Prospection
+          {% call admin_ico() %}<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>{% endcall %} Prospection
         </a>
         <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
-          <span class="nav-ico">📜</span> Journal
+          {% call admin_ico() %}<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>{% endcall %} Journal
         </a>
         <a href="{{ url_for('admin.twilio_page') }}" class="{% if request.endpoint == 'admin.twilio_page' %}active{% endif %}">
-          <span class="nav-ico">📞</span> Twilio
+          {% call admin_ico() %}<path d="M7 3h4l1.5 4-2 1.5a12 12 0 0 0 5 5L17 12l4 1.5v4A16 16 0 0 1 7 3z"/>{% endcall %} Twilio
         </a>
         <a href="{{ url_for('admin.diagnostics_page') }}" class="{% if request.endpoint == 'admin.diagnostics_page' %}active{% endif %}">
-          <span class="nav-ico">🩺</span> Diagnostics
+          {% call admin_ico() %}<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>{% endcall %} Diagnostics
         </a>
       </nav>
       </div>

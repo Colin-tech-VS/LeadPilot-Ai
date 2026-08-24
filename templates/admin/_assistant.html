@@ -1,9 +1,6 @@
 {# Nova — AI copilot: floating launcher + slide-in chat panel. Injected on every
    admin page from base.html when the copilot is available. #}
-<button type="button" class="nova-fab" id="nova-fab" aria-label="Ouvrir {{ nova_name }}, le copilote IA">
-  <span class="nova-fab-orb" aria-hidden="true">
-    <span class="nova-fab-spark"></span>
-  </span>
+<button type="button" class="nova-fab" id="nova-fab" aria-label="Ouvrir {{ nova_name }}">
   <span class="nova-fab-label">{{ nova_name }}</span>
 </button>
 
@@ -15,7 +12,7 @@
       <span class="nova-avatar" aria-hidden="true"><span class="nova-avatar-core"></span></span>
       <div>
         <strong>{{ nova_name }}</strong>
-        <span class="nova-head-sub">Copilote IA · connaît tout le site</span>
+        <span class="nova-head-sub">Assistant de la console</span>
       </div>
     </div>
     <div class="nova-head-actions">

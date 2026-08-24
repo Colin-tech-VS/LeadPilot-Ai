@@ -8,8 +8,8 @@
   <div class="admin-login-bg"></div>
   <form class="admin-login-card" method="POST" action="{{ url_for('admin.login') }}">
     <div class="admin-login-logo">{{ brand_logo('lg', 'admin-login', false) }}</div>
-    <h1>PilotCore <span>Admin</span></h1>
-    <p class="admin-login-sub">Console d'administration sécurisée</p>
+    <h1>PilotCore <span>Console</span></h1>
+    <p class="admin-login-sub">Accès réservé à l’équipe</p>
 
     {% if error %}<div class="admin-login-error">{{ error }}</div>{% endif %}
 

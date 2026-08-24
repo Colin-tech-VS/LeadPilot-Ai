@@ -18,8 +18,8 @@
   <!-- ── Header ─────────────────────────────────────────────────────── -->
   <header class="nvx-head">
     <div>
-      <h2 class="nvx-head-title">Vue d'ensemble</h2>
-      <p class="nvx-head-sub"><span id="nvx-date">—</span> · entonnoir commercial des artisans</p>
+      <h2 class="nvx-head-title">Le bureau</h2>
+      <p class="nvx-head-sub"><span id="nvx-date">—</span> · activité des artisans</p>
     </div>
     <span class="nvx-status">
       <span class="nvx-status-dot" id="nav-live-dot"></span> Données en direct
@@ -29,25 +29,30 @@
   <!-- ── KPI band ───────────────────────────────────────────────────── -->
   <div class="nvx-stats">
     <article class="nvx-stat nvx-stat--primary" data-kpi="revenue_estimate_cents">
+      <span class="nvx-stat-idx">01</span>
       <span class="nvx-stat-label">MRR estimé</span>
       <span class="nvx-stat-value" data-count="0" data-money="1">0 €</span>
       <span class="nvx-stat-foot"><span data-kpi-inline="paid_tenants">0</span> abonnés payants</span>
     </article>
     <article class="nvx-stat" data-kpi="leads_total">
+      <span class="nvx-stat-idx">02</span>
       <span class="nvx-stat-label">Prospects</span>
       <span class="nvx-stat-value" data-count="0">0</span>
       <span class="kpi-trend" data-trend="leads_trend"></span>
     </article>
     <article class="nvx-stat" data-kpi="conversion_rate">
-      <span class="nvx-stat-label">Taux de conversion</span>
+      <span class="nvx-stat-idx">03</span>
+      <span class="nvx-stat-label">Conversion</span>
       <span class="nvx-stat-value" data-count="0" data-suffix="%">0</span>
       <span class="nvx-stat-foot">prospects → RDV</span>
     </article>
     <article class="nvx-stat" data-kpi="booked_total">
+      <span class="nvx-stat-idx">04</span>
       <span class="nvx-stat-label">RDV confirmés</span>
       <span class="nvx-stat-value" data-count="0">0</span>
     </article>
     <article class="nvx-stat" data-kpi="quote_acceptance_rate">
+      <span class="nvx-stat-idx">05</span>
       <span class="nvx-stat-label">Devis acceptés</span>
       <span class="nvx-stat-value" data-count="0" data-suffix="%">0</span>
     </article>
@@ -58,10 +63,10 @@
   <section class="nvx-panel nvx-ai" id="nova-insights" aria-live="polite">
     <div class="nvx-panel-head nvx-ai-head">
       <div class="nvx-ai-id">
-        <span class="nvx-ai-badge">IA</span>
+        <span class="nvx-ai-badge" aria-hidden="true">N</span>
         <div>
-          <h3 class="nvx-panel-title">Recommandations de {{ nova_name }}</h3>
-          <p class="nvx-ai-sub" id="nova-insights-headline">Analyse en cours…</p>
+          <h3 class="nvx-panel-title">Notes de {{ nova_name }}</h3>
+          <p class="nvx-ai-sub" id="nova-insights-headline">Lecture du tableau de bord…</p>
         </div>
       </div>
       <div class="nvx-ai-actions">

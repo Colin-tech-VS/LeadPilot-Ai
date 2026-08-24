@@ -1640,12 +1640,12 @@ body.admin.sidebar-open { overflow: hidden; }
 /* v14 — Modern refresh + Nova AI copilot                          */
 /* ================================================================ */
 :root {
-  --nova-1: #7c3aed;
-  --nova-2: #1b57e0;
-  --nova-3: #06b6d4;
-  --nova-grad: linear-gradient(135deg, #7c3aed 0%, #1b57e0 52%, #06b6d4 100%);
-  --shadow-lg: 0 18px 48px rgba(15, 27, 45, .14);
-  --shadow-glow: 0 10px 30px rgba(27, 87, 224, .28);
+  --nova-1: #1B57E0;
+  --nova-2: #1B57E0;
+  --nova-3: #1A2332;
+  --nova-grad: #1A2332;
+  --shadow-lg: 0 12px 28px rgba(26, 35, 50, .12);
+  --shadow-glow: none;
 }
 
 /* subtle animated ambience behind the app */
@@ -2121,3 +2121,321 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
   pointer-events: none;
 }
 .ac-powered img { display: block; height: 14px; width: auto; }
+
+/* ================================================================ */
+/* v22 — Workshop ledger: paper, ink, numbered cards. No AI chrome. */
+/* ================================================================ */
+body.admin {
+  --bg: #efe9dc;
+  --bg-2: #e4dccb;
+  --panel: #fbf7ee;
+  --panel-2: #f3eee3;
+  --border: #d7cdb8;
+  --border-strong: #c4b79a;
+  --text: #1c1914;
+  --muted: #6b6458;
+  --brand: #1B57E0;
+  --brand-strong: #14275a;
+  --brand-2: #1B57E0;
+  --brand-soft: #e8e4d6;
+  --shadow: 0 1px 0 rgba(28, 25, 20, .06);
+  --shadow-sm: none;
+  --radius: 4px;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  letter-spacing: 0;
+}
+
+body.admin {
+  background: var(--bg);
+}
+
+.admin-sidebar {
+  width: 236px;
+  background: #1a2332;
+  border-right: 0;
+  color: #c9c3b6;
+  backdrop-filter: none;
+  padding: 18px 12px;
+}
+.admin-brand strong { color: #f6f1e6; font-weight: 600; letter-spacing: 0; }
+.admin-brand-sub {
+  color: #8b8578;
+  letter-spacing: .18em;
+  font-size: 10px;
+}
+.admin-nav-sep {
+  color: #7a7468;
+  opacity: 1;
+  letter-spacing: .16em;
+  font-size: 9px;
+  font-weight: 600;
+}
+.admin-nav a {
+  color: #b7b0a2;
+  font-weight: 500;
+  font-size: 13.5px;
+  border-radius: 3px;
+  padding: 8px 10px;
+  gap: 10px;
+}
+.admin-nav a:hover { background: rgba(255,255,255,.05); color: #f6f1e6; }
+.admin-nav a.active {
+  background: #f6f1e6;
+  color: #1a2332;
+  box-shadow: none;
+}
+.admin-nav a.active::before { display: none; }
+.admin-nav a .nav-ico,
+.admin-nav a.active .nav-ico {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border-radius: 0;
+  color: inherit;
+  box-shadow: none;
+  transform: none;
+  font-size: 0;
+}
+.admin-nav a:hover .nav-ico { transform: none; }
+.nav-ico svg { width: 16px; height: 16px; display: block; }
+.admin-sidebar-foot {
+  border-top-color: rgba(255,255,255,.08);
+  color: #8b8578;
+}
+.admin-logout { color: #f6f1e6; }
+.admin-dot { animation: none; box-shadow: none; background: #3d9a6a; }
+
+.admin-topbar {
+  background: var(--bg);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+}
+.admin-page-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 650;
+  font-size: 26px;
+  letter-spacing: -.02em;
+}
+.admin-content { animation: none; padding: 22px 28px 72px; }
+
+.admin-btn {
+  border-radius: 3px;
+  box-shadow: none;
+  font-weight: 600;
+}
+.admin-btn:hover,
+.admin-btn:not(.ghost):not(.danger):hover {
+  transform: none;
+  box-shadow: none;
+}
+.admin-btn:not(.ghost):not(.danger) {
+  background: #1a2332;
+  background-size: auto;
+  box-shadow: none;
+}
+.admin-btn.ghost { border-radius: 3px; }
+.admin-select, .db-form input, .db-form textarea {
+  border-radius: 3px;
+  background: var(--panel);
+}
+
+.kpi-card,
+.admin-panel,
+.db-card,
+.nvx-panel,
+.nvx-stat,
+.mail-item,
+.conv-pill,
+.seo-pages-group,
+.admin-dash .admin-panel,
+.admin-dash .dash-panel,
+.admin-dash .db-card,
+.admin-dash .mail-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: none;
+  backdrop-filter: none;
+  animation: none;
+}
+.kpi-card:hover,
+.db-card:hover,
+.nvx-stat:hover,
+.mail-item:hover,
+.nova-insight:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+.kpi-card::before { display: none; }
+.kpi-card--hero,
+.kpi-card--hero::after {
+  animation: none;
+  background: var(--panel);
+}
+.kpi-card--hero {
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: inset 4px 0 0 #1a2332;
+}
+.kpi-card--hero .kpi-label { color: var(--muted); }
+.kpi-card--hero .kpi-value {
+  color: var(--text);
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 650;
+}
+.kpi-card--hero .kpi-sub { color: var(--muted); }
+.kpi-value,
+.nvx-stat-value,
+.db-card-count,
+.nvx-vol-value,
+.conv-pill strong,
+.traffic-rt-count strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+}
+
+/* Numbered ledger cards */
+.nvx-stats { gap: 12px; }
+.nvx-stat {
+  position: relative;
+  padding: 22px 20px 18px;
+  min-height: 132px;
+}
+.nvx-stat--primary {
+  box-shadow: none;
+  background: #1a2332;
+  border-color: #1a2332;
+  color: #f6f1e6;
+}
+.nvx-stat--primary .nvx-stat-label,
+.nvx-stat--primary .nvx-stat-foot { color: #b7b0a2; }
+.nvx-stat--primary .nvx-stat-value { color: #f6f1e6; font-size: 40px; }
+.nvx-stat--primary .nvx-stat-foot span { color: #f6f1e6; }
+.nvx-stat--primary .nvx-stat-idx { color: #8b8578; }
+.nvx-stat-idx {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: #a39a88;
+  font-variant-numeric: tabular-nums;
+}
+.nvx-stat-label {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: 11px;
+  font-weight: 600;
+}
+.nvx-stat-value { font-size: 30px; margin-top: 10px; }
+.nvx-head-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 650;
+  font-size: 28px;
+}
+.nvx-panel { border-radius: 3px; }
+.nvx-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nvx-status { border-radius: 3px; background: var(--panel-2); }
+.nvx-status-dot.on { box-shadow: none; animation: none; }
+.nvx .funnel-bar,
+.funnel-bar,
+.funnel--traffic .funnel-bar--0,
+.funnel--traffic .funnel-bar--1,
+.funnel--traffic .funnel-bar--2,
+.bar-fill {
+  background: #1a2332;
+  border-radius: 2px;
+}
+.funnel--traffic .funnel-bar--1 { background: #3d5270; }
+.funnel--traffic .funnel-bar--2 { background: #5a6d86; }
+
+.nvx-ai-badge {
+  width: 28px; height: 28px; border-radius: 2px;
+  background: #1a2332; color: #f6f1e6; border: 0;
+  font-family: "Fraunces", Georgia, serif; font-weight: 650; font-size: 14px;
+}
+.nvx-ai .nova-insight,
+.nova-insight {
+  border-radius: 3px;
+  transform: none;
+}
+.nvx-ai .nova-insight-act:hover,
+.nova-insight-act:hover {
+  background: #1a2332;
+  transform: none;
+}
+
+.nova-fab {
+  background: #1a2332;
+  background-size: auto;
+  border-radius: 3px;
+  padding: 10px 16px;
+  box-shadow: none;
+  animation: none;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.nova-fab:hover { transform: none; box-shadow: none; }
+.nova-panel { border-radius: 6px; }
+.nova-head {
+  background: #1a2332;
+  background-size: auto;
+  animation: none;
+  color: #f6f1e6;
+}
+.nova-avatar-core { animation: none; box-shadow: none; }
+.nova-msg--user .nova-bubble {
+  background: #1a2332;
+  box-shadow: none;
+  border-radius: 6px 6px 2px 6px;
+}
+.nova-send {
+  background: #1a2332;
+  background-size: auto;
+  border-radius: 3px;
+  box-shadow: none;
+}
+.nova-send:hover { transform: none; }
+.nova-insights::before { display: none; }
+
+.admin-login-body { background: #efe9dc; }
+.admin-login-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.admin-login-card h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 650;
+}
+.admin-login-card button {
+  background: #1a2332;
+  border-radius: 3px;
+  transform: none;
+  box-shadow: none;
+}
+.admin-login-card button:hover {
+  background: #14202e;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .admin-sidebar { background: #1a2332; }
+}

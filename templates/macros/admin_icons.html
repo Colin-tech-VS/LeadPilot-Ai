@@ -1,0 +1,4 @@
+{# Stroke icons — square caps, no emoji. #}
+{% macro admin_ico() -%}
+<span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter">{{ caller() }}</svg></span>
+{%- endmacro %}

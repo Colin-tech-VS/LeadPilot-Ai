@@ -10,9 +10,23 @@ _last_request_at = 0.0
 
 
 def geocode_address(address: str) -> tuple[float, float] | None:
-    """Geocode an address via Nominatim (OpenStreetMap). Returns (lat, lng) or None."""
+    """Geocode an address. Returns (lat, lng) or None.
+
+    Google Geocoding first when a Places key is configured: it is markedly more
+    accurate on French addresses and carries no hand-rolled throttle. Nominatim
+    stays as the fallback for deployments without a key — its usage policy caps
+    us at one request per second, which the sleep below honours and which is far
+    too slow for anything but incidental lookups.
+    """
     if not address or not address.strip():
         return None
+
+    from app.services import google_places
+
+    if google_places.is_enabled():
+        hit = google_places.geocode(address)
+        if hit is not None:
+            return hit
 
     global _last_request_at
     elapsed = time.time() - _last_request_at

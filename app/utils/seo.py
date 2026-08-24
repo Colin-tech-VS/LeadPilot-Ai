@@ -298,9 +298,11 @@ def blog_index_json_ld(posts: list, lang: str = "fr") -> dict[str, Any]:
             "name": "Blog PilotCore",
             "description": desc,
             "url": canonical_url("/blog"),
+            # Referenced by @id — the Organization itself is defined once, in
+            # the public layout's global graph, and repeating it here only adds
+            # a thinner copy of the same node.
             "publisher": {"@id": f"{site_base_url()}/#organization"},
         },
-        {**organization_json_ld(lang, desc), "@id": f"{site_base_url()}/#organization"},
     ]
     for post in posts[:12]:
         graph.append(

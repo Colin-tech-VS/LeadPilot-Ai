@@ -162,8 +162,10 @@ class Config:
     )
     SERVER_NAME = None
 
-    # Google Places Autocomplete (city fields). Restrict the key by HTTP referrer
-    # in Google Cloud Console (Maps JavaScript API + Places API).
+    # Google Places (New) + Geocoding, called server-side only — the key is
+    # never rendered into a page. Restrict it in Google Cloud Console by API
+    # (Places API (New) + Geocoding API) rather than by HTTP referrer, since
+    # the caller is our backend and not the visitor's browser.
     GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 
     # Google Search Console (OAuth admin dashboard at /admin/gsc)

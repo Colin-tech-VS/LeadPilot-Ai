@@ -1,21 +1,25 @@
 /**
- * City and address autocomplete backed by the French government address API
- * (api-adresse.data.gouv.fr / Base Adresse Nationale).
+ * City and address autocomplete.
  *
- * Chosen over Google Places because it needs no key, no billing account and no
- * quota, and it is authoritative for French addresses — which is all this site
- * deals with. It also keeps visitors' keystrokes out of a third-party ad
- * network.
+ * Suggestions come from our own origin (/api/public/places/autocomplete), which
+ * proxies Google Places and falls back to the French Base Adresse Nationale.
+ * The Places key is deliberately never shipped to the browser: a key in the
+ * page is a public key, and ours is billed per request.
  *
- * Progressive enhancement: without JS, or if the API is unreachable, the field
- * stays an ordinary text input and the form still submits.
+ * Picking a Google suggestion triggers one follow-up call to /resolve, which is
+ * what fills the postal-code field and any hidden lat/lng inputs. BAN
+ * suggestions already carry their postcode, so they skip that round trip.
+ *
+ * Progressive enhancement: without JS, or if the endpoint is unreachable, the
+ * field stays an ordinary text input and the form still submits.
  */
 (function () {
   "use strict";
 
   var CITY_SEL = 'input[name="ville"], input[name="city"], input[data-places-city]';
   var ADDR_SEL = 'input[name="address"], input[name="adresse"], input[data-places-address]';
-  var ENDPOINT = "https://api-adresse.data.gouv.fr/search/";
+  var ENDPOINT = "/api/public/places/autocomplete";
+  var RESOLVE = "/api/public/places/resolve";
   var MIN_CHARS = 2;
   var DEBOUNCE_MS = 220;
 
@@ -35,6 +39,11 @@
     wrap.appendChild(input);
     var list = el("ul", "ac-list");
     list.hidden = true;
+    // Screen readers need to be told this plain input now behaves as a combobox.
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-expanded", "false");
+    list.setAttribute("role", "listbox");
     wrap.appendChild(list);
 
     var timer = null;
@@ -47,17 +56,44 @@
       list.innerHTML = "";
       items = [];
       active = -1;
+      input.setAttribute("aria-expanded", "false");
+    }
+
+    function fill(form, name, value) {
+      if (!form || !value) return;
+      var f = form.querySelector('input[name="' + name + '"]');
+      if (f && !f.value) f.value = value;
+    }
+
+    function applyDetail(form, d) {
+      if (!d) return;
+      fill(form, "postal_code", d.postcode);
+      fill(form, "code_postal", d.postcode);
+      // Hidden coordinate fields, when the form collects them.
+      fill(form, "latitude", d.latitude);
+      fill(form, "longitude", d.longitude);
+      // A city field on an address form gets filled in too, when it is empty.
+      if (d.city) fill(form, "ville", d.city);
     }
 
     function choose(i) {
       var it = items[i];
       if (!it) return;
       input.value = it.value;
-      // Fill a sibling postcode field when the form has one.
       var form = input.closest("form");
-      if (form && it.postcode) {
-        var cp = form.querySelector('input[name="postal_code"], input[name="code_postal"]');
-        if (cp && !cp.value) cp.value = it.postcode;
+      applyDetail(form, it);
+      // Google suggestions carry no postcode until Place Details is called.
+      if (form && it.id && !it.postcode) {
+        fetch(RESOLVE + "?id=" + encodeURIComponent(it.id))
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
+          .then(function (d) {
+            applyDetail(form, d);
+          })
+          .catch(function () {
+            /* the typed address still stands on its own */
+          });
       }
       close();
       input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -68,6 +104,8 @@
       items.forEach(function (it, i) {
         var li = el("li", "ac-item" + (i === active ? " is-active" : ""));
         li.textContent = it.label;
+        li.setAttribute("role", "option");
+        li.setAttribute("aria-selected", i === active ? "true" : "false");
         li.addEventListener("mousedown", function (e) {
           e.preventDefault();
           choose(i);
@@ -75,33 +113,20 @@
         list.appendChild(li);
       });
       list.hidden = items.length === 0;
+      input.setAttribute("aria-expanded", items.length ? "true" : "false");
     }
 
     function search(q) {
       if (controller) controller.abort();
       controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      var url =
-        ENDPOINT +
-        "?q=" +
-        encodeURIComponent(q) +
-        "&limit=6&autocomplete=1" +
-        (kind === "city" ? "&type=municipality" : "");
+      var url = ENDPOINT + "?q=" + encodeURIComponent(q) + "&kind=" + kind;
       fetch(url, controller ? { signal: controller.signal } : undefined)
         .then(function (r) {
           return r.ok ? r.json() : null;
         })
         .then(function (data) {
-          if (!data || !data.features) return close();
-          items = data.features.map(function (f) {
-            var p = f.properties || {};
-            return {
-              // The city field gets the bare commune name so it still matches
-              // our own city lookups; the address field keeps the full label.
-              value: kind === "city" ? p.city || p.name || p.label : p.label,
-              label: kind === "city" ? (p.label || p.name) + (p.postcode ? " (" + p.postcode + ")" : "") : p.label,
-              postcode: p.postcode || ""
-            };
-          });
+          if (!data || !data.suggestions) return close();
+          items = data.suggestions;
           active = -1;
           draw();
         })

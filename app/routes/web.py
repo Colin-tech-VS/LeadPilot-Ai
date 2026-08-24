@@ -1022,6 +1022,8 @@ def artisan_trade_department_landing(trade, dept):
         city_count=len(dept_cities),
     )
     chef_slug = city_slugify(chef)
+    from app.services import registry_import as _ri_dept
+
     return render_template(
         "public/annuaire.html",
         artisans=artisans,
@@ -1040,7 +1042,7 @@ def artisan_trade_department_landing(trade, dept):
             "postal_prefix": prefix,
         },
         trade_guide=guide,
-        registry_listings=registry_import.search_listings(
+        registry_listings=_ri_dept.search_listings(
             trade_key=trade, dept_code=code, limit=12
         ),
         price_facts=_trade_price_facts(trade, lang),
@@ -1060,6 +1062,65 @@ def artisan_directory_search():
     payload = search_public_artisans(trade=trade, city=city, q=q, lang=lang)
     payload["trades"] = trade_choices(lang)
     return jsonify(payload)
+
+
+@web_bp.route("/api/public/places/autocomplete", methods=["GET"])
+@rate_limit(limit=60, window=60, scope="places_autocomplete")
+def places_autocomplete():
+    """City / address suggestions, proxied so the Places key stays server-side.
+
+    A browser-delivered key is a public key; this endpoint keeps ours out of the
+    page, adds a per-IP limit on a paid API, and falls back to the Base Adresse
+    Nationale so address entry survives a Google outage or an exhausted quota.
+    """
+    from app.services import address_lookup
+
+    query = (request.args.get("q") or "").strip()
+    kind = (request.args.get("kind") or "address").strip()
+    lang = getattr(g, "lang", "fr")
+    payload = address_lookup.suggest(
+        query, kind=kind, lang=lang, session_token=_places_session_token()
+    )
+    response = jsonify(payload)
+    # Private, never public: this response can carry a Set-Cookie (the session
+    # that holds the Places billing token), and its language comes from the
+    # visitor's cookie / Accept-Language. A shared cache holding it would serve
+    # one visitor's session and language to the next. The browser's own cache is
+    # enough to spare the repeat calls that matter — a visitor backspacing over
+    # the same prefix.
+    response.headers["Cache-Control"] = "private, max-age=600"
+    response.headers["Vary"] = "Accept-Language, Cookie"
+    return response
+
+
+@web_bp.route("/api/public/places/resolve", methods=["GET"])
+@rate_limit(limit=30, window=60, scope="places_resolve")
+def places_resolve():
+    """Postcode + coordinates for a chosen Google suggestion."""
+    from app.services import address_lookup
+
+    place_id = (request.args.get("id") or "").strip()
+    if not place_id:
+        return jsonify({"error": "id required"}), 422
+    lang = getattr(g, "lang", "fr")
+    detail = address_lookup.resolve(place_id, lang=lang, session_token=_places_session_token())
+    if detail is None:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(detail)
+
+
+def _places_session_token() -> str:
+    """One token per visitor session.
+
+    Google bills an autocomplete session — every keystroke plus the Place
+    Details call that closes it — as a single unit when they share a token, so
+    this is a direct cost control, not bookkeeping.
+    """
+    token = session.get("places_session_token")
+    if not token:
+        token = uuid.uuid4().hex
+        session["places_session_token"] = token
+    return token
 
 
 @web_bp.route("/api/public/artisans/ai-search", methods=["GET", "POST"])

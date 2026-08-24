@@ -285,3 +285,128 @@ def test_artisan_profile_local_seo_wiring(client, app):
     assert '"position": 4' in html or '"position":4' in html
     # OG image is the branded per-artisan card, not the generic square logo.
     assert "/media/social/profile-" in html
+
+
+def test_department_landing_pages_render(client):
+    """Every /artisans/<trade>/departement/<slug> URL is in the sitemap, so a
+    500 here is ~1 000 submitted URLs serving an error page to Googlebot.
+
+    Regression: the view referenced ``registry_import`` without importing it,
+    which made the whole family raise NameError.
+    """
+    for path in (
+        "/artisans/plombier/departement/hauts-de-seine",
+        "/artisans/electricien/departement/haute-savoie",
+        "/artisans/serrurier/departement/gironde",
+    ):
+        resp = client.get(path)
+        assert resp.status_code == 200, f"{path} → {resp.status_code}"
+        html = resp.data.decode()
+        assert "<title>" in html
+        assert 'rel="canonical"' in html
+
+
+def test_every_department_page_is_reachable(client):
+    """Sweep the whole family rather than a sample — these are generated URLs
+    and a single bad slug is a silently broken page nobody visits by hand."""
+    from app.constants.departments import DEPARTMENTS
+
+    broken = []
+    for _code, slug, _name, _chef in DEPARTMENTS:
+        resp = client.get(f"/artisans/plombier/departement/{slug}")
+        if resp.status_code not in (200, 301, 302):
+            broken.append((slug, resp.status_code))
+    assert not broken, f"department pages failing: {broken[:10]}"
+
+
+# --------------------------------------------------------------------------
+# Structural invariants — cheap to break silently, so they are asserted rather
+# than left to a manual pass over Search Console.
+# --------------------------------------------------------------------------
+
+_PUBLIC_PAGES = [
+    "/",
+    "/artisans",
+    "/artisans/plombier/paris",
+    "/artisans/metier/plombier",
+    "/artisans/plombier/departement/hauts-de-seine",
+    "/blog",
+    "/contact",
+    "/depannage-urgent",
+    "/prix-artisans",
+    "/pro",
+    "/trouver-un-artisan",
+    "/prendre-rdv-artisan-en-ligne",
+]
+
+
+def _ld_blocks(html):
+    import json
+    import re
+
+    out = []
+    for raw in re.findall(
+        r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html, re.S
+    ):
+        out.append(json.loads(raw))  # a parse error here IS the failure
+    return out
+
+
+def test_all_json_ld_parses(client):
+    """A single malformed block makes Google discard the whole page's markup."""
+    for path in _PUBLIC_PAGES:
+        html = client.get(path).data.decode()
+        assert _ld_blocks(html), f"{path} ships no structured data"
+
+
+def test_brand_entity_is_declared_exactly_once_per_page(client):
+    """Organization and WebSite are declared in the layout's global graph.
+
+    A page repeating them repeats the entity: without a matching @id Google
+    reads it as a *second* company, and with one it just ships a thinner
+    duplicate whose fields can disagree with the canonical node.
+    """
+    for path in _PUBLIC_PAGES:
+        html = client.get(path).data.decode()
+        counts = {"Organization": 0, "WebSite": 0}
+        for block in _ld_blocks(html):
+            for node in block.get("@graph") or [block]:
+                if not isinstance(node, dict):
+                    continue
+                if node.get("@type") in counts:
+                    counts[node["@type"]] += 1
+                    assert node.get("@id"), f"{path}: {node['@type']} without @id"
+        assert counts["Organization"] == 1, f"{path}: {counts['Organization']} Organization nodes"
+        assert counts["WebSite"] == 1, f"{path}: {counts['WebSite']} WebSite nodes"
+
+
+def test_titles_fit_in_a_search_result(client):
+    """Google truncates around 60 characters; anything past that is spent ink.
+
+    The cap is generous — it only catches titles long enough that the tail is
+    guaranteed invisible.
+    """
+    import re
+
+    too_long = []
+    for path in _PUBLIC_PAGES:
+        html = client.get(path).data.decode()
+        title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S)
+        assert title, f"{path} has no <title>"
+        text = title.group(1).strip()
+        if len(text) > 70:
+            too_long.append((path, len(text), text))
+    assert not too_long, f"titles past the truncation point: {too_long}"
+
+
+def test_every_public_page_is_self_canonical(client):
+    """A canonical pointing anywhere but the page itself de-indexes it."""
+    import re
+
+    for path in _PUBLIC_PAGES:
+        html = client.get(path).data.decode()
+        canon = re.search(r'<link[^>]+rel="canonical"[^>]+href="([^"]+)"', html)
+        assert canon, f"{path} has no canonical"
+        assert canon.group(1).endswith(path.rstrip("/") or "/"), (
+            f"{path} canonicalises to {canon.group(1)}"
+        )

@@ -8,6 +8,9 @@
   <form method="POST" action="{{ url_for('admin.diagnostics_db_test') }}">
     <button type="submit" class="admin-btn ghost">🗄️ Tester BDD</button>
   </form>
+  <form method="POST" action="{{ url_for('admin.diagnostics_places_test') }}">
+    <button type="submit" class="admin-btn ghost">🗺️ Tester Google Places</button>
+  </form>
 {% endblock %}
 
 {% block content %}

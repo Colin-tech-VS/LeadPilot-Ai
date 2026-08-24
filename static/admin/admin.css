@@ -2090,3 +2090,6 @@ body.nova-open .nova-fab { opacity: 0; pointer-events: none; transform: scale(.6
 .seo-pages-cities { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 6px 14px 22px; }
 .seo-pages-cities a { font-size: 12.5px; color: var(--muted); text-decoration: none; }
 .seo-pages-cities a:hover { color: var(--brand); text-decoration: underline; }
+
+/* GSC period selector */
+.gsc-periods { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }

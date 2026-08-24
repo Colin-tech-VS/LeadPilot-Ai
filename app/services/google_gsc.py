@@ -271,19 +271,50 @@ def search_analytics(
     end_date: str | None = None,
     dimensions: list[str] | None = None,
     row_limit: int = 25,
+    data_state: str = "all",
+    search_type: str = "web",
 ) -> dict:
+    """Query Search Analytics with the same defaults as the Search Console UI.
+
+    Two parameters decide whether these numbers match what the user sees in
+    Search Console, and both default the *other* way in the API:
+
+    * ``dataState`` — the API returns only finalised data unless asked; the UI
+      shows fresh (still partial) data for the most recent days. Left at the
+      API default, our totals sit permanently below Search Console's.
+    * ``type`` — the UI's default tab is Web; making it explicit keeps the two
+      aligned if the API default ever moves.
+    """
     if not start_date or not end_date:
         start_date, end_date = _date_range(28)
     body = {
         "startDate": start_date,
         "endDate": end_date,
         "rowLimit": row_limit,
+        "dataState": data_state,
+        "type": search_type,
     }
     if dimensions:
         body["dimensions"] = dimensions
     encoded = quote(site_url, safe="")
     url = f"https://www.googleapis.com/webmasters/v3/sites/{encoded}/searchAnalytics/query"
     return _api_request("POST", url, json=body)
+
+
+def _row_metrics(row: dict) -> dict:
+    """Metrics straight off a Search Analytics row, formatted for display.
+
+    CTR and position come from the API rather than being recomputed, so the
+    figures are the ones Search Console itself would show.
+    """
+    clicks = int(row.get("clicks") or 0)
+    impressions = int(row.get("impressions") or 0)
+    return {
+        "clicks": clicks,
+        "impressions": impressions,
+        "ctr": round(float(row.get("ctr") or 0.0) * 100, 2),
+        "position": round(float(row.get("position") or 0.0), 1),
+    }
 
 
 def _sum_metrics(rows: list[dict]) -> dict:
@@ -304,13 +335,23 @@ def _sum_metrics(rows: list[dict]) -> dict:
     }
 
 
+ALLOWED_PERIODS = (7, 28, 90, 180)
+
+
 def dashboard_payload(days: int = 28) -> dict:
+    if days not in ALLOWED_PERIODS:
+        days = 28
     sites = list_sites()
     site_url = selected_site_url(sites)
+    base = {
+        "sites": sites,
+        "site_url": site_url,
+        "days": days,
+        "periods": ALLOWED_PERIODS,
+    }
     if not site_url:
         return {
-            "sites": sites,
-            "site_url": None,
+            **base,
             "summary": None,
             "queries": [],
             "pages": [],
@@ -319,17 +360,21 @@ def dashboard_payload(days: int = 28) -> dict:
 
     start_date, end_date = _date_range(days)
     try:
-        totals = search_analytics(site_url, start_date=start_date, end_date=end_date, dimensions=["date"], row_limit=1000)
-        summary = _sum_metrics(totals.get("rows") or [])
+        # Totals with no dimension: Search Console aggregates at property level
+        # and returns the CTR and average position it would display itself.
+        # Summing per-date rows and re-averaging position drifts from that.
+        totals = search_analytics(
+            site_url, start_date=start_date, end_date=end_date, row_limit=1
+        ).get("rows") or []
+        summary = _row_metrics(totals[0]) if totals else _row_metrics({})
         queries = search_analytics(
-            site_url, start_date=start_date, end_date=end_date, dimensions=["query"], row_limit=15
+            site_url, start_date=start_date, end_date=end_date, dimensions=["query"], row_limit=50
         ).get("rows") or []
         pages = search_analytics(
-            site_url, start_date=start_date, end_date=end_date, dimensions=["page"], row_limit=15
+            site_url, start_date=start_date, end_date=end_date, dimensions=["page"], row_limit=50
         ).get("rows") or []
         return {
-            "sites": sites,
-            "site_url": site_url,
+            **base,
             "start_date": start_date,
             "end_date": end_date,
             "summary": summary,
@@ -338,14 +383,7 @@ def dashboard_payload(days: int = 28) -> dict:
             "error": None,
         }
     except GscError as exc:
-        return {
-            "sites": sites,
-            "site_url": site_url,
-            "summary": None,
-            "queries": [],
-            "pages": [],
-            "error": str(exc),
-        }
+        return {**base, "summary": None, "queries": [], "pages": [], "error": str(exc)}
 
 
 def status() -> dict:

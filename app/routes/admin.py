@@ -339,7 +339,11 @@ def gsc_page():
     }
     if google_gsc.is_connected():
         try:
-            dashboard = google_gsc.dashboard_payload()
+            days = int(request.args.get("days") or 28)
+        except (TypeError, ValueError):
+            days = 28
+        try:
+            dashboard = google_gsc.dashboard_payload(days)
         except google_gsc.GscError as exc:
             dashboard["error"] = str(exc)
     return render_template("admin/gsc.html", gsc=gsc_status, dashboard=dashboard)

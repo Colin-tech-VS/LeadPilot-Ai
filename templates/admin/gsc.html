@@ -116,8 +116,26 @@
         <button type="submit" class="admin-btn">Enregistrer</button>
       </div>
     </div>
+    {% if dashboard.periods %}
+    <div class="gsc-periods">
+      <span class="admin-hint">Période :</span>
+      {% for p in dashboard.periods %}
+      <a href="{{ url_for('admin.gsc_page', days=p) }}"
+         class="admin-btn tiny {% if p != dashboard.days %}ghost{% endif %}">{{ p }} j</a>
+      {% endfor %}
+    </div>
+    {% endif %}
     {% if dashboard.start_date and dashboard.end_date %}
-    <p class="admin-hint">Période : {{ dashboard.start_date }} → {{ dashboard.end_date }} (données GSC avec ~3 jours de délai).</p>
+    <p class="admin-hint">
+      {{ dashboard.start_date }} → {{ dashboard.end_date }} ·
+      propriété <code>{{ dashboard.site_url }}</code> ·
+      type <code>web</code> · données fraîches incluses.
+      <br>
+      Pour retrouver exactement ces chiffres dans Search Console : mêmes dates,
+      onglet « Résultats de recherche », type <em>Web</em>. Un écart de quelques
+      pourcents sur les 2-3 derniers jours est normal — Google consolide ses
+      données en différé.
+    </p>
     {% endif %}
   </form>
   {% endif %}

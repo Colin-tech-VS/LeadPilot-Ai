@@ -1,0 +1,179 @@
+{% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = 'directory' %}
+
+{% set _t = "Prendre rendez-vous avec un artisan en ligne — comment ça marche" %}
+{% set _d = "Réserver un créneau avec un plombier, un serrurier ou un électricien en ligne, 24h/24, comme on prend un rendez-vous médical. Fonctionnement, délais, devis et tarifs indicatifs pour " ~ trade_count ~ " métiers du bâtiment." %}
+{% set _k = "prendre rdv artisan en ligne, réserver artisan, rendez-vous plombier en ligne, doctolib des artisans, doctolib du btp, réservation créneau artisan, planning artisan en ligne" %}
+{% set _path = "/prendre-rdv-artisan-en-ligne" %}
+
+{% block title %}{{ _t }}{% endblock %}
+{% block body_class %}fa-page page-booking-concept{% endblock %}
+
+{% block meta %}
+{% set page_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": {{ (canonical_url(_path) ~ '#webpage')|tojson }},
+      "url": {{ canonical_url(_path)|tojson }},
+      "name": {{ _t|tojson }},
+      "description": {{ _d|tojson }},
+      "inLanguage": "fr-FR",
+      "isPartOf": { "@id": {{ (site_base_url() ~ '/#website')|tojson }} },
+      "about": { "@id": {{ (site_base_url() ~ '/#organization')|tojson }} }
+    },
+    {
+      "@type": "HowTo",
+      "name": "Prendre rendez-vous avec un artisan en ligne",
+      "description": "Réserver un créneau avec un artisan du bâtiment sans passer par le téléphone.",
+      "totalTime": "PT3M",
+      "step": [
+        { "@type": "HowToStep", "position": 1, "name": "Choisir le métier", "text": "Identifiez le métier correspondant à votre problème : plombier pour une fuite, serrurier pour une porte claquée, électricien pour une panne de courant, chauffagiste pour une chaudière." },
+        { "@type": "HowToStep", "position": 2, "name": "Indiquer la ville", "text": "Renseignez votre commune. L'annuaire affiche les artisans dont la zone d'intervention couvre votre adresse." },
+        { "@type": "HowToStep", "position": 3, "name": "Comparer les fiches", "text": "Chaque fiche publique précise le métier, la zone couverte, les moyens de contact et les créneaux disponibles." },
+        { "@type": "HowToStep", "position": 4, "name": "Réserver un créneau", "text": "Sélectionnez un créneau et validez la demande en ligne, à toute heure. L'artisan confirme le rendez-vous." },
+        { "@type": "HowToStep", "position": 5, "name": "Valider le devis", "text": "L'artisan transmet un devis avant l'intervention. Au-delà de 150 € TTC, le devis écrit est obligatoire pour les travaux de dépannage, réparation et entretien." }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "PilotCore, c'est le Doctolib des artisans ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "C'est le même modèle appliqué au bâtiment : un annuaire public, une fiche par professionnel, des créneaux réservables en ligne 24h/24 et une confirmation sans passer par le téléphone. PilotCore n'a aucun lien avec Doctolib, qui opère dans la santé. La différence principale tient au métier : un artisan est en intervention et ne peut pas décrocher, donc PilotCore ajoute un standard téléphonique IA qui répond, qualifie la demande et pose le rendez-vous à sa place."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Peut-on vraiment prendre rendez-vous avec un artisan en ligne ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui. Sur PilotCore, la réservation d'un créneau se fait directement depuis la fiche de l'artisan, à toute heure, sans appel. L'artisan reçoit la demande qualifiée et confirme. La recherche et la prise de rendez-vous sont gratuites et sans engagement pour les particuliers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Combien de temps faut-il pour obtenir une intervention ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Cela dépend du métier et de l'urgence. Une urgence (fuite, porte claquée, panne de courant) se traite généralement dans la journée, souvent en quelques heures. Une intervention planifiée (pose, rénovation, entretien) se réserve sur un créneau à venir selon les disponibilités affichées."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Le rendez-vous en ligne coûte-t-il plus cher ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Non. La prise de rendez-vous est gratuite pour le particulier ; le prix reste celui du devis de l'artisan. Les interventions de nuit, le dimanche et les jours fériés sont majorées de 50 % à 100 % selon le professionnel, que le rendez-vous ait été pris en ligne ou par téléphone."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endset %}
+{{ seo_meta(_t, _d, _path, _k, 'website', None, 'index, follow', page_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="bc-hero">
+  <div class="container">
+    <nav class="dl-breadcrumb" aria-label="Fil d'ariane">
+      <a href="{{ url_for('web.client_home') }}">Accueil</a>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">Prendre rendez-vous en ligne</span>
+    </nav>
+    <h1>Prendre rendez-vous avec un artisan en ligne</h1>
+    <p class="bc-lead">
+      Réserver un créneau avec un plombier, un serrurier ou un électricien
+      comme on prend un rendez-vous médical : on choisit le métier, la ville,
+      un horaire, et c'est confirmé. Sans appel, à toute heure.
+    </p>
+    <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">Trouver un artisan</a>
+  </div>
+</section>
+
+<section class="bc-body">
+  <div class="container">
+
+    <div class="dl-answer-box">
+      <h2>En bref</h2>
+      <p>
+        PilotCore applique au bâtiment le modèle de la prise de rendez-vous en
+        ligne : <strong>annuaire public, fiche par professionnel, créneaux
+        réservables 24h/24</strong>. Couverture&nbsp;: {{ trade_count }} métiers,
+        {{ city_count }} communes.
+      </p>
+      <ul>
+        <li>Recherche et réservation <strong>gratuites et sans engagement</strong> pour les particuliers.</li>
+        <li>Un <strong>standard téléphonique IA</strong> répond pour l'artisan quand il est en intervention.</li>
+        <li>Devis écrit <strong>obligatoire au-delà de 150 € TTC</strong> en dépannage, réparation et entretien.</li>
+        <li>Nuit, dimanche et jours fériés&nbsp;: <strong>majoration de 50 % à 100 %</strong>.</li>
+      </ul>
+    </div>
+
+    <h2>Comment ça marche</h2>
+    <ol class="bc-steps">
+      <li><strong>Choisir le métier.</strong> Une fuite relève du plombier, une porte claquée du serrurier, une panne de courant de l'électricien, une chaudière du chauffagiste.</li>
+      <li><strong>Indiquer la ville.</strong> L'annuaire n'affiche que les artisans dont la zone d'intervention couvre votre adresse.</li>
+      <li><strong>Comparer les fiches.</strong> Métier, zone couverte, moyens de contact et disponibilités figurent sur chaque fiche publique.</li>
+      <li><strong>Réserver un créneau.</strong> À toute heure, sans appel. L'artisan confirme le rendez-vous.</li>
+      <li><strong>Valider le devis.</strong> Le devis arrive avant l'intervention ; rien n'est engagé tant qu'il n'est pas accepté.</li>
+    </ol>
+
+    <h2>Pourquoi le bâtiment a mis plus de temps que la santé</h2>
+    <p>
+      La prise de rendez-vous médicale en ligne s'est imposée parce qu'un
+      cabinet a un secrétariat, un agenda structuré et des créneaux de durée
+      prévisible. Le bâtiment réunit rarement ces trois conditions : l'artisan
+      est seul, il est sur un chantier les mains prises, et la durée d'une
+      intervention dépend de ce qu'il trouve sur place.
+    </p>
+    <p>
+      C'est ce qui explique le taux d'appels manqués du secteur, et pourquoi un
+      simple agenda en ligne ne suffit pas. PilotCore ajoute donc un
+      <strong>standard téléphonique IA</strong> : il décroche à la place de
+      l'artisan, comprend la demande, la qualifie et pose le rendez-vous dans
+      l'agenda — y compris le soir et le week-end.
+      <a href="{{ url_for('web.pro_landing') }}">Voir l'offre professionnels</a>.
+    </p>
+
+    <h2>« Le Doctolib du BTP » — la comparaison en clair</h2>
+    <p>
+      L'expression revient souvent pour décrire ce type de plateforme, et elle
+      est juste sur le principe : même logique d'annuaire, de fiche
+      professionnelle et de créneau réservable en ligne.
+      <strong>PilotCore n'a aucun lien avec Doctolib</strong>, qui opère dans la
+      santé — c'est une analogie de modèle, pas une affiliation.
+    </p>
+    <p>
+      La différence de fond tient au métier. En santé, le praticien est à son
+      cabinet et son agenda est la contrainte. Dans le bâtiment, le
+      professionnel est en déplacement et la contrainte est
+      <em>l'appel auquel personne ne répond</em>. C'est ce problème-là que
+      PilotCore traite en premier.
+    </p>
+
+    <h2>Combien ça coûte</h2>
+    <p>
+      La prise de rendez-vous est gratuite pour le particulier. Le prix de
+      l'intervention reste celui du devis de l'artisan.
+      Les fourchettes indicatives par métier — {{ trade_count }} métiers,
+      {{ price_points }} tarifs d'interventions courantes — sont publiées sur la
+      page <a href="{{ url_for('web.price_reference') }}">prix des artisans</a>,
+      avec leur méthode et leurs limites.
+    </p>
+
+    <div class="bc-cta">
+      <a href="{{ url_for('web.artisan_directory') }}" class="btn btn-primary btn-lg">Trouver un artisan près de chez moi</a>
+      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline btn-lg">Je suis artisan</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

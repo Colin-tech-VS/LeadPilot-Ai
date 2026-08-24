@@ -335,6 +335,24 @@ def indexnow_key_file(key):
     )
 
 
+@web_bp.route("/prendre-rdv-artisan-en-ligne", methods=["GET"])
+def booking_concept():
+    """Owns the category query — "prendre rdv artisan en ligne", and the
+    "Doctolib du BTP" analogy people actually type — with a page that explains
+    the model rather than asserting a market position."""
+    from app.constants.cities import CITY_ROWS
+    from app.constants.trades import TRADES
+    from app.services import price_reference as pr
+
+    lang = getattr(g, "lang", "fr")
+    return render_template(
+        "public/booking_concept.html",
+        trade_count=len([k for k in TRADES if k != "autre"]),
+        city_count=len(CITY_ROWS),
+        price_points=pr.summary(lang).get("price_points") or 0,
+    )
+
+
 @web_bp.route("/prix-artisans", methods=["GET"])
 def price_reference():
     """Citable price reference — the highest-intent question in this market

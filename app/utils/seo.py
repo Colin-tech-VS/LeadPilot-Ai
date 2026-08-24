@@ -210,6 +210,20 @@ def organization_json_ld(lang: str, description: str) -> dict[str, Any]:
             if lang == "fr"
             else "Never miss a call — find the right tradesperson."
         ),
+        # Categorises the entity by *what it does* so a search or generative
+        # engine can place it in the right bucket ("prise de rendez-vous en
+        # ligne pour un métier", the Doctolib model) without us asserting a
+        # market position we have not earned.
+        "disambiguatingDescription": (
+            "Plateforme de prise de rendez-vous en ligne pour les artisans du "
+            "bâtiment : annuaire public, fiche professionnelle, réservation de "
+            "créneau et standard téléphonique IA. Même modèle que la prise de "
+            "rendez-vous médicale en ligne, appliqué au BTP et au dépannage."
+            if lang == "fr"
+            else "Online appointment booking for building trades: public "
+            "directory, professional profile, slot reservation and an AI phone "
+            "receptionist. The online medical-booking model applied to trades."
+        ),
         "knowsAbout": knows,
         "contactPoint": {
             "@type": "ContactPoint",

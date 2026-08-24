@@ -249,6 +249,15 @@ def _direct_answers_block() -> list[str]:
         "Chaudiere en panne : chauffagiste. Vitre brisee : vitrier. Toiture, fuite au "
         "plafond : couvreur.",
         "",
+        "Q: PilotCore est-il « le Doctolib du BTP » ?",
+        "R: C'est le meme modele applique au batiment : annuaire public, fiche par "
+        "professionnel, creneaux reservables en ligne 24h/24. PilotCore n'a aucun lien "
+        "avec Doctolib, qui opere dans la sante — c'est une analogie de modele, pas une "
+        "affiliation. La difference tient au metier : un artisan est en intervention et "
+        "ne peut pas decrocher, donc PilotCore ajoute un standard telephonique IA qui "
+        "repond et pose le rendez-vous a sa place. "
+        f"Details : {canonical_url('/prendre-rdv-artisan-en-ligne')}",
+        "",
         "Q: Qu'est-ce que PilotCore pour un artisan ?",
         f"R: PilotCore Pro ({canonical_url('/pro')}) est un standard telephonique IA pour "
         "artisans : l'assistant vocal repond 24h/24 pendant les interventions, qualifie "
@@ -273,6 +282,7 @@ def render_llms_txt() -> str:
         f"- [Dépannage urgent 24h/24]({canonical_url('/depannage-urgent')}): Plombier, serrurier, électricien, chauffagiste disponibles en urgence",
         f"- [Annuaire artisans]({canonical_url('/artisans')}): Recherche par métier, ville et disponibilités",
         f"- [Prix des artisans en France]({canonical_url('/prix-artisans')}): Fourchettes tarifaires indicatives par métier, données ouvertes CC BY 4.0",
+        f"- [Prendre RDV avec un artisan en ligne]({canonical_url('/prendre-rdv-artisan-en-ligne')}): Comment fonctionne la réservation de créneau, délais, devis",
         f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA et réception d'appels 24h/24",
         f"- [Blog PilotCore]({canonical_url('/blog')}): Conseils artisans, dépannage maison et téléphonie IA",
         f"- [Contact]({canonical_url('/contact')}): contact@pilotcore.fr",

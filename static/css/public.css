@@ -2012,3 +2012,14 @@ html {
 .dl-answer-box ul { margin: 0 0 12px; padding-left: 18px; }
 .dl-answer-box li { margin: 0 0 6px; line-height: 1.6; }
 .dl-answer-src { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* ---- Booking concept page ---- */
+.bc-hero { padding: 40px 0 8px; }
+.bc-hero h1 { margin: 12px 0 10px; }
+.bc-lead { max-width: 66ch; color: var(--muted); line-height: 1.7; margin: 0 0 18px; }
+.bc-body { padding: 8px 0 56px; }
+.bc-body h2 { margin: 34px 0 12px; font-size: 18px; }
+.bc-body p { max-width: 74ch; line-height: 1.75; margin: 0 0 14px; }
+.bc-steps { max-width: 74ch; padding-left: 20px; }
+.bc-steps li { margin: 0 0 10px; line-height: 1.7; }
+.bc-cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 34px 0 0; }

@@ -30,11 +30,11 @@ def process_inbound_call(
 
     from app.services.plan_features import inbound_allowed
 
-    allowed, block_reason = inbound_allowed(tenant)
+    allowed, _block_reason = inbound_allowed(tenant)
     if not allowed:
-        raise NotFoundError(
-            "Subscription inactive" if block_reason == "expired" else "Monthly call quota reached"
-        )
+        # Only an inactive subscription blocks a call now; passing the monthly
+        # allowance bills overage instead of refusing the caller.
+        raise NotFoundError("Subscription inactive")
 
     extractor = LeadExtractor()
     extracted = extractor.extract(transcript=transcript, phone=phone)

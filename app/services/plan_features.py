@@ -92,15 +92,35 @@ def calls_remaining(tenant) -> int | None:
     return max(0, quota - calls_used(tenant))
 
 
-def inbound_allowed(tenant) -> tuple[bool, str | None]:
-    """Whether a new inbound call / lead capture is allowed."""
-    if not tenant or not tenant.subscription_active:
-        return False, "expired"
+def over_quota(tenant) -> bool:
+    """True once this month's calls have passed the plan's included allowance.
+
+    Calls keep being answered past this point — see :func:`inbound_allowed` —
+    and the excess is invoiced by ``scripts/bill_overage.py``.
+    """
     quota = call_quota(tenant)
     if quota is None:
-        return True, None
-    if calls_used(tenant) >= quota:
-        return False, "quota"
+        return False
+    return calls_used(tenant) >= quota
+
+
+def inbound_allowed(tenant) -> tuple[bool, str | None]:
+    """Whether a new inbound call / lead capture is allowed.
+
+    Only an inactive subscription stops a call. Exhausting the monthly
+    allowance does not: the included calls are what the plan *covers*, not a
+    hard ceiling, and the excess is billed per call (``CALL_OVERAGE_PRICE_CENTS``)
+    on the next invoice.
+
+    This used to refuse the call at the allowance, which made the overage
+    unreachable in practice: a refused call creates no lead, usage could
+    therefore never exceed the quota, ``overage_calls`` was always zero and the
+    monthly billing job invoiced nothing, for anyone, ever. It also meant an
+    artisan's line went dead mid-month — the failure mode a missed-call product
+    exists to prevent.
+    """
+    if not tenant or not tenant.subscription_active:
+        return False, "expired"
     return True, None
 
 
@@ -111,8 +131,11 @@ def upgrade_label(feature: str) -> str:
 
 def plan_summary(tenant) -> dict:
     """Snapshot for templates / API."""
+    from app.services.billing import overage_price_cents
+
     quota = call_quota(tenant)
     used = calls_used(tenant)
+    extra = max(0, used - quota) if quota is not None else 0
     return {
         "plan": getattr(tenant, "plan", "trial"),
         "trial_all_features": trial_has_all_features(tenant),
@@ -120,6 +143,10 @@ def plan_summary(tenant) -> dict:
         "call_quota": quota,
         "calls_used": used,
         "calls_remaining": (max(0, quota - used) if quota is not None else None),
+        # Calls past the allowance are answered and billed; showing the running
+        # total is the difference between a known cost and a surprise invoice.
+        "overage_calls": extra,
+        "overage_amount_cents": extra * overage_price_cents(),
         "features": {
             "auto_booking": has_feature(tenant, "auto_booking"),
             "google_calendar": has_feature(tenant, "google_calendar"),

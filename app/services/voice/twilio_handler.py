@@ -154,16 +154,15 @@ class TwilioVoiceHandler:
         return client.to_xml()
 
     def _blocked_twiml(self, tenant, reason: str) -> str:
+        """Only an inactive subscription reaches here.
+
+        Running out of included calls no longer silences the line — those calls
+        are answered and billed as overage (see ``plan_features.inbound_allowed``).
+        """
         client = TwilioVoiceClient()
         direct = (tenant.phone_number or "").strip()
         company = (tenant.name or "").strip()
-        if reason == "quota":
-            message = (
-                "Bonjour, nous avons atteint le nombre d'appels inclus ce mois-ci "
-                "pour notre assistant vocal. "
-            )
-        else:
-            message = "Bonjour, notre assistant vocal n'est pas disponible pour le moment. "
+        message = "Bonjour, notre assistant vocal n'est pas disponible pour le moment. "
         if direct:
             digits = " ".join(direct)
             who = f"directement {company}" if company else "directement votre plombier"

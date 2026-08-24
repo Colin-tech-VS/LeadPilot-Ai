@@ -1,0 +1,8 @@
+{% macro address_autocomplete_scripts() %}
+{# Address autocomplete runs on the French government's Base Adresse
+   Nationale: no API key, no billing account, no quota, and authoritative for
+   the only country this site serves. Kept under the original macro name so
+   every layout that already calls it picks it up unchanged. #}
+<link rel="preconnect" href="https://api-adresse.data.gouv.fr">
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=1" defer></script>
+{% endmacro %}

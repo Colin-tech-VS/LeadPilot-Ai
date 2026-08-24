@@ -1,5 +1,5 @@
 {% from 'macros/brand.html' import brand_logo with context %}
-{% from 'macros/google_places.html' import google_places_scripts with context %}
+{% from 'macros/address_autocomplete.html' import address_autocomplete_scripts with context %}
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/admin-touch-icon-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=19">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=20">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -130,7 +130,7 @@
   {% block auth_content %}{% endblock %}
 {% endif %}
   {% block scripts %}{% endblock %}
-  {{ google_places_scripts() }}
+  {{ address_autocomplete_scripts() }}
   <script src="{{ url_for('static', filename='admin/admin.js') }}?v=8"></script>
   {% if nova_available %}<script src="{{ url_for('static', filename='admin/assistant.js') }}?v=2"></script>{% endif %}
   <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=2"></script>

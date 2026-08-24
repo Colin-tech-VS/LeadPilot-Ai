@@ -93,13 +93,41 @@
       .replace(/"/g, "&quot;");
   }
 
+  function registryCardHtml(a) {
+    const icon = escapeHtml(a.trade_icon || "🛠️");
+    const city = escapeHtml(a.city || labels.cityUnknown || "");
+    const cp = a.postal_code ? " (" + escapeHtml(a.postal_code) + ")" : "";
+    const age = a.years_active ? " · " + a.years_active + " ans d'activité" : "";
+    return (
+      '<article class="dl-card dl-card--registry">' +
+      '<div class="dl-card-head"><span class="dl-card-ico">' + icon + "</span>" +
+      '<div class="dl-card-id"><a class="dl-card-name" href="' + escapeHtml(a.profile_url) + '">' +
+      escapeHtml(a.name) + "</a>" +
+      '<span class="dl-card-meta">' + escapeHtml(a.trade_label || "") + " · " + city + cp + age + "</span></div></div>" +
+      '<p class="dl-card-registry-note">Fiche non revendiquée — coordonnées non publiées.</p>' +
+      '<a class="btn btn-outline dl-card-cta" href="' + escapeHtml(a.profile_url) + '">Voir la fiche</a>' +
+      "</article>"
+    );
+  }
+
   function render(data) {
     const items = data.artisans || [];
+    // Businesses the register knows but nobody has claimed. Rendered after the
+    // registered artisans and visibly apart: they cannot take a booking, so
+    // mixing them in would promise an appointment that cannot happen.
+    const registry = data.registry || [];
     if (countEl) {
-      const tpl = labels.countTpl || "{count} artisan(s)";
-      countEl.textContent = tpl.replace("{count}", String(data.count || items.length));
+      if (!items.length && registry.length) {
+        countEl.textContent =
+          "Aucun artisan inscrit sur cette recherche — " +
+          registry.length +
+          " entreprise(s) identifiée(s) au registre officiel.";
+      } else {
+        const tpl = labels.countTpl || "{count} artisan(s)";
+        countEl.textContent = tpl.replace("{count}", String(data.count || items.length));
+      }
     }
-    if (!items.length) {
+    if (!items.length && !registry.length) {
       if (grid) {
         grid.innerHTML = "";
         grid.hidden = true;
@@ -109,7 +137,7 @@
     }
     if (emptyEl) emptyEl.hidden = true;
     if (grid) {
-      grid.innerHTML = items.map(cardHtml).join("");
+      grid.innerHTML = items.map(cardHtml).join("") + registry.map(registryCardHtml).join("");
       grid.hidden = false;
     }
   }

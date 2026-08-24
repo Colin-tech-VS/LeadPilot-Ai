@@ -1,7 +1,7 @@
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% from 'macros/zone_nav.html' import public_zone_nav with context %}
-{% from 'macros/google_places.html' import google_places_scripts with context %}
+{% from 'macros/address_autocomplete.html' import address_autocomplete_scripts with context %}
 <!DOCTYPE html>
 <html lang="{{ lang }}">
 <head>
@@ -27,7 +27,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=1">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=15">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=29">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=31">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=7">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=2">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=3">
@@ -130,7 +130,7 @@
       });
     }
   </script>
-  {{ google_places_scripts() }}
+  {{ address_autocomplete_scripts() }}
   {% block scripts %}{% endblock %}
 </body>
 </html>

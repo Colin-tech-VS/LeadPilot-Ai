@@ -70,11 +70,66 @@ def artisan_card_dict(tenant: Tenant, lang: str = "fr") -> dict:
     }
 
 
-def search_public_artisans(trade=None, city=None, q=None, limit=48, lang: str = "fr") -> dict:
-    rows = list_public_artisans(trade=trade, city=city, q=q, limit=limit)
+def registry_card_dict(listing, lang: str = "fr") -> dict:
+    """Card payload for an unclaimed registry listing.
+
+    Shaped like an artisan card so the front end can render both in one list,
+    but flagged ``registry`` and carrying no phone, no radius and no booking
+    URL — because we hold none of that. Presenting it as bookable would promise
+    an appointment nobody can honour.
+    """
+    from app.utils.naming import display_city, display_name
+
     return {
-        "count": len(rows),
-        "artisans": [artisan_card_dict(t, lang) for t in rows],
+        "id": listing.siren,
+        "slug": None,
+        "name": display_name(listing.name),
+        "trade": listing.trade_key,
+        "trade_label": trade_label(listing.trade_key, lang),
+        "trade_icon": trade_icon(listing.trade_key),
+        "city": display_city(listing.city),
+        "postal_code": listing.postal_code,
+        "blurb": None,
+        "radius_km": None,
+        "ai_phone_number": None,
+        "profile_url": f"/artisans/entreprise/{listing.siren}",
+        "registry": True,
+        "years_active": listing.years_active,
+    }
+
+
+def search_public_artisans(trade=None, city=None, q=None, limit=48, lang: str = "fr") -> dict:
+    """Registered artisans first, then businesses known only to the register.
+
+    The directory page already shows registry listings server-side; leaving
+    them out of the search endpoint meant typing the very same trade and town
+    into the search box returned "0 artisan" over a page listing twelve of them.
+    """
+    rows = list_public_artisans(trade=trade, city=city, q=q, limit=limit)
+    cards = [artisan_card_dict(t, lang) for t in rows]
+
+    listings: list[dict] = []
+    remaining = max(0, limit - len(cards))
+    if remaining:
+        try:
+            from app.services.registry_import import search_listings
+
+            listings = [
+                registry_card_dict(row, lang)
+                for row in search_listings(
+                    trade_key=trade if trade in TRADES else None,
+                    city=city,
+                    limit=min(remaining, 12),
+                )
+            ]
+        except Exception:  # noqa: BLE001 — search must not fail over the extras
+            listings = []
+
+    return {
+        "count": len(cards),
+        "registry_count": len(listings),
+        "artisans": cards,
+        "registry": listings,
     }
 
 

@@ -19,13 +19,19 @@ def _production_app():
     return app
 
 
-def test_google_places_key_in_template_context(app):
+def test_address_autocomplete_needs_no_api_key(app):
+    """Autocomplete runs on the government's Base Adresse Nationale.
+
+    No key is embedded in the page, which also means no key to leak and no
+    visitor keystrokes sent to a third-party ad network — so the page must load
+    the script whether or not a Places key happens to be configured."""
     app.config["GOOGLE_PLACES_API_KEY"] = "test-places-key"
     with app.test_client() as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert b"test-places-key" in response.data
-        assert b"google-places.js" in response.data
+        assert b"address-autocomplete.js" in response.data
+        assert b"api-adresse.data.gouv.fr" in response.data
+        assert b"test-places-key" not in response.data
 
 
 def test_production_config_ok_when_complete():

@@ -1,5 +1,4 @@
 {% extends "layouts/public.html" %}
-{% from 'macros/trade_picker.html' import trade_select %}
 {% from 'macros/artisan_card.html' import artisan_card, registry_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
@@ -128,25 +127,29 @@
           <span class="directory-search-spinner" aria-hidden="true"></span>
         </button>
       </div>
+      <input type="hidden" name="metier" value="{{ filters.metier }}">
     </form>
     <p class="directory-ai-understood" id="directory-ai-understood" hidden></p>
 
-    <details class="dl-search-classic">
-      <summary>{{ _('vitrine.classic_search') }}</summary>
-      <div class="dl-search-fields dl-search-fields--classic">
-        <label class="dl-search-field">
-          <span class="dl-search-label">{{ _('directory.search_trade') }}</span>
-          {{ trade_select('metier', trades, filters.metier, id='directory-trade', placeholder=_('directory.all_trades'), chips=false, chips_aria=_('directory.search_trade')) }}
-        </label>
-      </div>
-    </details>
-
-    <div class="dl-chips">
-      {% for t in trades[:10] %}
-      <a href="?metier={{ t.key }}" class="dl-chip" data-trade="{{ t.key }}">{{ t.icon }} {{ t.label }}</a>
-      {% endfor %}
-      <a href="?metier=" class="dl-chip">{{ _('directory.all_trades') }}</a>
-    </div>
+    <nav class="dl-trades" aria-label="{{ _('vitrine.classic_search') }}">
+      <h2 class="dl-trades-kicker">{{ _('vitrine.classic_search') }}</h2>
+      <ul class="dl-trades-grid">
+        {% for t in trades[:10] %}
+        <li>
+          <a href="?metier={{ t.key }}" class="dl-trade{% if filters.metier == t.key %} is-active{% endif %}" data-trade="{{ t.key }}"{% if filters.metier == t.key %} aria-current="true"{% endif %}>
+            <span class="dl-trade-ico" aria-hidden="true">{{ t.icon }}</span>
+            <span class="dl-trade-name">{{ t.label }}</span>
+          </a>
+        </li>
+        {% endfor %}
+        <li class="dl-trades-all">
+          <a href="?metier=" class="dl-trade dl-trade--all{% if not filters.metier %} is-active{% endif %}" data-trade=""{% if not filters.metier %} aria-current="true"{% endif %}>
+            <span class="dl-trade-ico" aria-hidden="true">✦</span>
+            <span class="dl-trade-name">{{ _('directory.all_trades') }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
   </div>
 </section>
 
@@ -439,6 +442,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
-<script src="{{ url_for('static', filename='js/directory.js') }}?v=8"></script>
+<script src="{{ url_for('static', filename='js/directory.js') }}?v=10"></script>
 {% endblock %}

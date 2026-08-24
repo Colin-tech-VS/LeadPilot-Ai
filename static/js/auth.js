@@ -84,21 +84,23 @@ document.documentElement.classList.add("js-enabled");
   var registerForm = document.getElementById("register-form");
   if (registerForm) {
     var steps = registerForm.querySelectorAll("[data-register-step]");
+    var track = registerForm.querySelector("[data-register-track]");
     var stepIndicators = document.querySelectorAll("[data-step-indicator]");
     var stepLabels = document.querySelectorAll("[data-step-label]");
     var btnNext = document.getElementById("register-next");
     var btnBack = document.getElementById("register-back");
     var current = 0;
 
-    // Enable step-by-step display only now that the wizard is really running.
-    // Until this class is set, CSS keeps every step visible so the form stays
-    // submittable even if this script is blocked or errors out.
     document.documentElement.classList.add("js-wizard");
 
     function showStep(n, animate) {
       current = n;
+      if (track) {
+        track.style.transform = "translateX(-" + n * 100 + "%)";
+      }
       steps.forEach(function (el, i) {
         el.classList.toggle("is-active", i === n);
+        el.setAttribute("aria-hidden", i === n ? "false" : "true");
       });
       stepIndicators.forEach(function (el, i) {
         el.classList.toggle("is-active", i === n);
@@ -113,17 +115,12 @@ document.documentElement.classList.add("js-enabled");
         btnNext.type = n === steps.length - 1 ? "submit" : "button";
       }
 
-      // When the user moves between steps, bring the form back into view and
-      // focus the first field of the new step. Without this, advancing past the
-      // trade picker can look like a dead-end on small screens: step 1 collapses
-      // and step 2's fields appear off-screen, so people never reach the end.
       if (animate) {
         var active = steps[n];
-        if (registerForm.scrollIntoView) {
-          registerForm.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
         if (active) {
-          var firstField = active.querySelector("input, select, textarea");
+          var firstField = active.querySelector(
+            "input:not([type='hidden']):not([type='checkbox']), select, textarea, button.trade-picker-chip"
+          );
           if (firstField) {
             try { firstField.focus({ preventScroll: true }); } catch (err) { firstField.focus(); }
           }
@@ -159,6 +156,12 @@ document.documentElement.classList.add("js-enabled");
       });
     }
 
+    stepIndicators.forEach(function (el, i) {
+      el.addEventListener("click", function () {
+        if (i <= current) showStep(i, true);
+      });
+    });
+
     var password = document.getElementById("password");
     var confirm = document.getElementById("confirm_password");
 
@@ -187,6 +190,7 @@ document.documentElement.classList.add("js-enabled");
       }
     });
 
-    showStep(0);
+    var start = document.querySelector(".auth-pro__panel .alert-error") ? steps.length - 1 : 0;
+    showStep(start);
   }
 })();

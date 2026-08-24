@@ -8,7 +8,7 @@
 {% block body_class %}page-customer-register{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=7">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=9">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-customer.css') }}?v=3">
 {% endblock %}
 
@@ -40,6 +40,8 @@
       <form method="post" class="auth-form" id="register-form">
         {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
+        <div class="auth-pro__viewport">
+          <div class="auth-pro__wizard-track" data-register-track>
         <div class="auth-pro__form-step is-active" data-register-step>
           <div class="auth-form-row">
             <label class="auth-field">
@@ -96,6 +98,8 @@
               <input type="password" class="auth-field__input" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
             </span>
           </label>
+          </div>
+        </div>
         </div>
 
         <div class="auth-pro__actions">
@@ -122,5 +126,5 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=5"></script>
 {% endblock %}

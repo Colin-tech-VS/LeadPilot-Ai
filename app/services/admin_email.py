@@ -75,6 +75,21 @@ def send_email(
     """Send (or simulate) an email and record it. Returns the EmailMessage."""
     header_from = smtp_from_addr(from_addr)
     from_addr = header_from
+
+    if html_body:
+        html_out = html_body
+        plain_out = body or ""
+    elif is_html:
+        html_out = body or ""
+        plain_out = body or ""
+    else:
+        plain_out = body or ""
+        html_out = None
+        if plain_out.strip():
+            from app.services.transactional_email import wrap_plain_as_html
+
+            html_out = wrap_plain_as_html(subject, plain_out)
+
     msg_row = EmailMessage(
         direction=DIRECTION_OUTBOUND,
         status="queued",
@@ -82,9 +97,9 @@ def send_email(
         to_addr=to_addr,
         cc_addrs=cc_addrs,
         subject=subject,
-        body=body if not is_html else (body or ""),
-        html_body=html_body if is_html else (html_body or None),
-        is_html=is_html or bool(html_body),
+        body=plain_out,
+        html_body=html_out,
+        is_html=bool(html_out),
         tenant_id=tenant_id,
     )
     if in_reply_to_row:
@@ -94,8 +109,20 @@ def send_email(
         parent_id = in_reply_to_row.provider_id or ""
         msg_row.references_header = f"{refs} {parent_id}".strip() if parent_id else refs
 
+    from app.services import email_tracking
+
+    if email_tracking.should_track_recipients(to_addr, cc_addrs):
+        msg_row.track_token = email_tracking.new_track_token()
+
     db.session.add(msg_row)
     db.session.commit()
+
+    mime_html, mime_body = email_tracking.instrument_bodies(
+        msg_row.track_token,
+        html_out,
+        plain_out,
+        is_html=bool(html_out),
+    )
 
     if not is_configured():
         msg_row.status = STATUS_SIMULATED
@@ -109,9 +136,9 @@ def send_email(
             from_addr=from_addr,
             to_addr=to_addr,
             subject=subject,
-            body=body,
-            is_html=is_html,
-            html_body=html_body,
+            body=mime_body,
+            is_html=bool(html_out),
+            html_body=mime_html,
             cc_addrs=cc_addrs,
             in_reply_to=msg_row.rfc_in_reply_to,
             references=msg_row.references_header,

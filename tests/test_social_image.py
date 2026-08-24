@@ -24,6 +24,12 @@ def test_branded_fallback_creates_png(app, monkeypatch):
         assert path is not None
         assert path.stat().st_size > 1000
         assert path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+        from PIL import Image
+
+        img = Image.open(path)
+        assert img.size == (1200, 630)
+        assert img.getpixel((10, 10))[:3] == (0x1A, 0x23, 0x32)
+        assert img.getpixel((400, 80))[:3] == (0xFB, 0xF7, 0xEE)
 
 
 def test_profile_card_renders_branded_png(app):

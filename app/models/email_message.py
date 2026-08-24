@@ -47,6 +47,14 @@ class EmailMessage(db.Model):
     imap_uid = db.Column(db.String(64), nullable=True, index=True)
     imap_folder = db.Column(db.String(64), nullable=True)
     attachments_json = db.Column(db.Text, nullable=True)
+    track_token = db.Column(db.String(64), nullable=True, index=True)
+    open_count = db.Column(db.Integer, nullable=False, default=0)
+    click_count = db.Column(db.Integer, nullable=False, default=0)
+    first_opened_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_opened_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    first_clicked_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_clicked_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    click_urls_json = db.Column(db.Text, nullable=True)
     created_at = db.Column(
         db.DateTime(timezone=True), default=utcnow, nullable=False, index=True
     )
@@ -61,6 +69,44 @@ class EmailMessage(db.Model):
     @property
     def is_unread(self) -> bool:
         return self.direction == DIRECTION_INBOUND and self.read_at is None
+
+    @property
+    def opens(self) -> int:
+        return int(self.open_count or 0)
+
+    @property
+    def clicks(self) -> int:
+        return int(self.click_count or 0)
+
+    @property
+    def was_opened(self) -> bool:
+        return self.first_opened_at is not None
+
+    @property
+    def was_clicked(self) -> bool:
+        return self.first_clicked_at is not None
+
+    def clicked_links(self) -> list[dict]:
+        if not self.click_urls_json:
+            return []
+        try:
+            raw = json.loads(self.click_urls_json)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(raw, dict):
+            return []
+        rows = []
+        for url, meta in raw.items():
+            info = meta if isinstance(meta, dict) else {"count": meta}
+            rows.append(
+                {
+                    "url": url,
+                    "count": int(info.get("count") or 0),
+                    "first_at": info.get("first_at"),
+                }
+            )
+        rows.sort(key=lambda r: (-r["count"], r["url"]))
+        return rows
 
     @property
     def preview(self):

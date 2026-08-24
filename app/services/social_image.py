@@ -1,7 +1,7 @@
 """Branded social post images for Facebook — generated alongside AI copy.
 
 Uses OpenAI DALL·E when ``OPENAI_API_KEY`` is set; otherwise falls back to a
-Pillow composite that matches PilotCore colours (#1B57E0, #06B6D4, #10B981).
+Pillow composite that matches PilotCore colours (paper #EFE9DC, ink #1A2332).
 """
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ MEDIA_PREFIX = "media/social"
 
 _BRAND = (
     "PilotCore — plateforme française artisans & particuliers. "
-    "Couleurs : bleu #1B57E0, cyan #06B6D4, vert #10B981, fond bleu foncé #0F2D6E. "
-    "Style : moderne, flat, pro, rassurant."
+    "Couleurs : papier #EFE9DC / #FBF7EE, encre #1A2332, pas de bleu. "
+    "Style : atelier, ledger, éditorial, Fraunces + IBM Plex, coins 4px."
 )
 
 _IMAGE_BRIEF_SYSTEM = (
@@ -106,10 +106,11 @@ def _image_brief(subject: str, tone: str) -> dict:
 
 def _dalle_prompt(visual_brief: str) -> str:
     return (
-        f"Professional social media marketing illustration for a French home-services tech brand. "
+        f"Professional social media marketing illustration for a French home-services brand. "
         f"{visual_brief}. "
-        f"Style: modern flat design, blue #1B57E0 and cyan #06B6D4 accents, clean minimalist, "
-        f"soft gradients, no text, no logos, no watermarks. Landscape composition."
+        f"Style: editorial workshop, warm cream paper #EFE9DC, dark ink #1A2332, "
+        f"no blue, no cyan, clean typography space, no text, no logos, no watermarks. "
+        f"Landscape 1.91:1 composition."
     )
 
 
@@ -195,69 +196,49 @@ def _wrap_text(draw, text: str, font, max_width: int) -> list[str]:
 
 
 def _draw_brand_icon(draw, cx: int, cy: int) -> None:
-    draw.ellipse((cx - 52, cy - 52, cx + 52, cy + 52), outline=(255, 255, 255, 70), width=2)
-    draw.ellipse((cx - 36, cy - 36, cx + 36, cy + 36), outline=(255, 255, 255, 45), width=1)
+    paper = _hex_rgb("#F6F1E6")
+    ink = _hex_rgb("#1A2332")
+    draw.rounded_rectangle((cx - 48, cy - 48, cx + 48, cy + 48), radius=4, fill=ink)
+    draw.ellipse((cx - 30, cy - 30, cx + 30, cy + 30), outline=paper, width=3)
     draw.polygon(
-        [(cx, cy - 28), (cx + 10, cy + 14), (cx, cy + 8), (cx - 10, cy + 14)],
-        fill=(255, 255, 255, 240),
+        [(cx, cy - 22), (cx + 8, cy + 12), (cx, cy + 6), (cx - 8, cy + 12)],
+        fill=paper,
     )
-    draw.ellipse((cx - 8, cy - 8, cx + 8, cy + 8), fill=_hex_rgb("#1B57E0"))
-    draw.line((cx - 40, cy + 36, cx + 40, cy + 36), fill=_hex_rgb("#06B6D4"), width=3)
-    draw.line((cx, cy + 36, cx, cy + 52), fill=_hex_rgb("#10B981"), width=3)
+    draw.ellipse((cx - 6, cy - 6, cx + 6, cy + 6), fill=ink)
+    draw.rectangle((cx - 28, cy + 34, cx + 28, cy + 38), fill=paper)
 
 
 def _branded_fallback(headline: str, subject: str) -> bytes:
     from PIL import Image, ImageDraw
 
-    top = _hex_rgb("#0F2D6E")
-    mid = _hex_rgb("#1B57E0")
-    bottom = _hex_rgb("#2563EB")
-    img = Image.new("RGB", (WIDTH, HEIGHT))
-    pixels = img.load()
-    for y in range(HEIGHT):
-        t = y / max(HEIGHT - 1, 1)
-        if t < 0.55:
-            local = t / 0.55
-            color = (
-                _lerp(top[0], mid[0], local),
-                _lerp(top[1], mid[1], local),
-                _lerp(top[2], mid[2], local),
-            )
-        else:
-            local = (t - 0.55) / 0.45
-            color = (
-                _lerp(mid[0], bottom[0], local),
-                _lerp(mid[1], bottom[1], local),
-                _lerp(mid[2], bottom[2], local),
-            )
-        for x in range(WIDTH):
-            pixels[x, y] = color
-
-    overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-    draw.rectangle((0, HEIGHT - 8, WIDTH, HEIGHT), fill=_hex_rgb("#10B981"))
-    draw.rectangle((0, HEIGHT - 12, WIDTH, HEIGHT - 8), fill=_hex_rgb("#06B6D4"))
-    draw.ellipse((WIDTH - 280, -80, WIDTH + 80, 200), fill=(6, 182, 212, 35))
-    draw.ellipse((-120, HEIGHT - 220, 200, HEIGHT + 40), fill=(16, 185, 129, 30))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay)
+    paper = _hex_rgb("#EFE9DC")
+    cream = _hex_rgb("#FBF7EE")
+    ink = _hex_rgb("#1A2332")
+    rule = _hex_rgb("#D7CDB8")
+    img = Image.new("RGB", (WIDTH, HEIGHT), paper)
     draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, 280, HEIGHT), fill=ink)
+    draw.rectangle((280, 0, WIDTH, HEIGHT), fill=cream)
+    draw.rectangle((280, 0, 284, HEIGHT), fill=rule)
+    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=ink)
 
-    _draw_brand_icon(draw, 140, HEIGHT // 2 - 20)
+    _draw_brand_icon(draw, 140, HEIGHT // 2 - 24)
+    mark_font = _load_font(22, bold=True)
+    draw.text((72, HEIGHT // 2 + 36), "PilotCore", font=mark_font, fill=_hex_rgb("#F6F1E6"))
 
-    title_font = _load_font(58, bold=True)
-    sub_font = _load_font(24, bold=True)
-    lines = _wrap_text(draw, headline or subject[:60], title_font, WIDTH - 320)
-    y = HEIGHT // 2 - 30 - (len(lines) - 1) * 34
+    title_font = _load_font(54, bold=True)
+    lines = _wrap_text(draw, headline or subject[:60], title_font, WIDTH - 380)
+    y = HEIGHT // 2 - 20 - (len(lines) - 1) * 32
     for line in lines:
-        draw.text((300, y), line, font=title_font, fill=(255, 255, 255))
-        y += 68
+        draw.text((332, y), line, font=title_font, fill=ink)
+        y += 64
 
-    badge_w = 148
-    draw.rounded_rectangle((300, y + 8, 300 + badge_w, y + 48), radius=10, fill=_hex_rgb("#06B6D4"))
-    draw.text((318, y + 14), "PilotCore", font=sub_font, fill=(255, 255, 255))
+    sub_font = _load_font(22, bold=True)
+    draw.rounded_rectangle((332, y + 10, 332 + 168, y + 48), radius=4, fill=ink)
+    draw.text((348, y + 16), "RDV en ligne", font=sub_font, fill=_hex_rgb("#F6F1E6"))
 
     buf = io.BytesIO()
-    img.convert("RGB").save(buf, format="PNG", optimize=True)
+    img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()
 
 
@@ -280,19 +261,18 @@ def _apply_brand_overlay(image_bytes: bytes, headline: str) -> bytes:
 
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    for y in range(HEIGHT - 160, HEIGHT):
-        alpha = int(200 * (y - (HEIGHT - 160)) / 160)
-        draw.line([(0, y), (WIDTH, y)], fill=(15, 45, 110, alpha))
-    draw.rectangle((0, HEIGHT - 6, WIDTH, HEIGHT), fill=_hex_rgb("#10B981"))
-    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT - 6), fill=_hex_rgb("#06B6D4"))
+    for y in range(HEIGHT - 170, HEIGHT):
+        alpha = int(220 * (y - (HEIGHT - 170)) / 170)
+        draw.line([(0, y), (WIDTH, y)], fill=(26, 35, 50, alpha))
+    draw.rectangle((0, HEIGHT - 8, WIDTH, HEIGHT), fill=_hex_rgb("#1A2332"))
 
-    font = _load_font(42, bold=True)
+    font = _load_font(40, bold=True)
     lines = _wrap_text(draw, headline, font, WIDTH - 80)
-    y = HEIGHT - 24 - len(lines) * 46
+    y = HEIGHT - 28 - len(lines) * 44
     for line in lines:
-        draw.text((40, y), line, font=font, fill=(255, 255, 255))
-        y += 46
-    draw.text((40, HEIGHT - 52), "PilotCore", font=_load_font(20, bold=True), fill=_hex_rgb("#06B6D4"))
+        draw.text((40, y), line, font=font, fill=_hex_rgb("#F6F1E6"))
+        y += 44
+    draw.text((40, HEIGHT - 50), "PilotCore", font=_load_font(18, bold=True), fill=_hex_rgb("#E8E4D6"))
 
     result = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     buf = io.BytesIO()
@@ -361,35 +341,25 @@ def generate_for_post(
 # discover artisans through shared links (WhatsApp, SMS, Facebook, Google), where
 # a keyword-rich, on-brand preview card lifts click-through far above a generic
 # square logo. Cards are disk-cached; the filename hash busts when content changes.
-PROFILE_CARD_VERSION = 2
+PROFILE_CARD_VERSION = 3
 
 
 def _brand_gradient():
-    """PilotCore vertical brand gradient as an RGBA base image."""
-    from PIL import Image
+    """PilotCore paper field as an RGBA base image."""
+    from PIL import Image, ImageDraw
 
-    top = _hex_rgb("#0F2D6E")
-    mid = _hex_rgb("#1B57E0")
-    bottom = _hex_rgb("#2563EB")
-    img = Image.new("RGB", (WIDTH, HEIGHT))
-    pixels = img.load()
-    for y in range(HEIGHT):
-        t = y / max(HEIGHT - 1, 1)
-        if t < 0.55:
-            local = t / 0.55
-            color = (_lerp(top[0], mid[0], local), _lerp(top[1], mid[1], local), _lerp(top[2], mid[2], local))
-        else:
-            local = (t - 0.55) / 0.45
-            color = (_lerp(mid[0], bottom[0], local), _lerp(mid[1], bottom[1], local), _lerp(mid[2], bottom[2], local))
-        for x in range(WIDTH):
-            pixels[x, y] = color
+    img = Image.new("RGB", (WIDTH, HEIGHT), _hex_rgb("#EFE9DC"))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, WIDTH, HEIGHT), fill=_hex_rgb("#EFE9DC"))
+    draw.rectangle((0, 0, 18, HEIGHT), fill=_hex_rgb("#1A2332"))
+    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=_hex_rgb("#1A2332"))
     return img.convert("RGBA")
 
 
 def _pill(draw, x: int, y: int, text: str, font, *, fill, text_fill, height: int = 52, pad_x: int = 24) -> int:
     """Draw a rounded 'chip' and return the x just past it."""
     box_w = int(_text_width(draw, text, font) + 2 * pad_x)
-    draw.rounded_rectangle((x, y, x + box_w, y + height), radius=14, fill=fill)
+    draw.rounded_rectangle((x, y, x + box_w, y + height), radius=4, fill=fill)
     ty = y + (height - getattr(font, "size", 28)) / 2 - 3
     draw.text((x + pad_x, ty), text, font=font, fill=text_fill)
     return x + box_w
@@ -411,30 +381,30 @@ def _render_profile_card(tenant, lang: str = "fr") -> bytes:
     # Translucent decorative glows need alpha compositing → draw on an overlay.
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
-    odraw.ellipse((WIDTH - 300, -110, WIDTH + 90, 220), fill=(6, 182, 212, 42))
-    odraw.ellipse((-150, HEIGHT - 250, 230, HEIGHT + 70), fill=(16, 185, 129, 34))
+    odraw.ellipse((WIDTH - 300, -110, WIDTH + 90, 220), fill=(246, 241, 230, 80))
+    odraw.ellipse((-150, HEIGHT - 250, 230, HEIGHT + 70), fill=(26, 35, 50, 18))
     img = Image.alpha_composite(base, overlay)
     draw = ImageDraw.Draw(img)
 
     # Solid accent bars along the bottom edge.
-    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=_hex_rgb("#10B981"))
-    draw.rectangle((0, HEIGHT - 16, WIDTH, HEIGHT - 10), fill=_hex_rgb("#06B6D4"))
+    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=_hex_rgb("#1A2332"))
 
     _draw_brand_icon(draw, 132, 118)
 
     PAD = 82
-    white = (255, 255, 255)
-    ink = _hex_rgb("#0F2D6E")
+    white = _hex_rgb("#F6F1E6")
+    ink = _hex_rgb("#1A2332")
+    muted = _hex_rgb("#6B6458")
 
     # Trade chip.
-    _pill(draw, PAD, 196, trade.upper(), _load_font(30, bold=True), fill=_hex_rgb("#06B6D4"), text_fill=white)
+    _pill(draw, PAD, 196, trade.upper(), _load_font(30, bold=True), fill=ink, text_fill=white)
 
     # Business name (up to two lines).
     name_font = _load_font(74, bold=True)
     lines = _wrap_text(draw, name, name_font, WIDTH - 2 * PAD)[:2]
     y = 272
     for line in lines:
-        draw.text((PAD, y), line, font=name_font, fill=white)
+        draw.text((PAD, y), line, font=name_font, fill=ink)
         y += 86
 
     # Location subline.
@@ -443,7 +413,7 @@ def _render_profile_card(tenant, lang: str = "fr") -> bytes:
         loc = f"{city} · {postal}"
     if radius:
         loc += f" · {'zone ' + str(radius) + ' km' if is_fr else str(radius) + ' km radius'}"
-    draw.text((PAD, y + 6), loc, font=_load_font(36, bold=False), fill=_hex_rgb("#BBD4FF"))
+    draw.text((PAD, y + 6), loc, font=_load_font(36, bold=False), fill=muted)
 
     # Trust badges.
     badges = (
@@ -454,7 +424,7 @@ def _render_profile_card(tenant, lang: str = "fr") -> bytes:
     badge_font = _load_font(26, bold=True)
     bx = PAD
     for label in badges:
-        bx = _pill(draw, bx, HEIGHT - 150, label, badge_font, fill=white, text_fill=ink, height=50, pad_x=22)
+        bx = _pill(draw, bx, HEIGHT - 150, label, badge_font, fill=ink, text_fill=white, height=50, pad_x=22)
         bx += 16
 
     # Footer tagline + brand mark.
@@ -463,7 +433,7 @@ def _render_profile_card(tenant, lang: str = "fr") -> bytes:
         if is_fr
         else "PilotCore · Find the right tradesperson near you"
     )
-    draw.text((PAD, HEIGHT - 66), tagline, font=_load_font(24, bold=True), fill=_hex_rgb("#06B6D4"))
+    draw.text((PAD, HEIGHT - 66), tagline, font=_load_font(24, bold=True), fill=ink)
 
     buf = io.BytesIO()
     img.convert("RGB").save(buf, format="PNG", optimize=True)

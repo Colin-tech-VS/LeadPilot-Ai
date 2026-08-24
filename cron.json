@@ -7,6 +7,10 @@
     {
       "command": "15 6 * * * python scripts/generate_daily_blog.py",
       "size": "S"
+    },
+    {
+      "command": "*/15 * * * * python scripts/publish_queued_social.py",
+      "size": "S"
     }
   ]
 }

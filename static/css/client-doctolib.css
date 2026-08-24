@@ -191,45 +191,174 @@
   white-space: nowrap;
 }
 
-.dl-search-classic {
-  margin-top: 12px;
+.dl-trades {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--dl-border);
   text-align: left;
 }
 
-.dl-search-classic summary {
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--dl-muted);
-  font-weight: 600;
+.dl-trades-kicker {
+  margin: 0 0 16px;
+  font-family: var(--lp-font-display), Fraunces, Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 650;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--dl-text);
 }
 
-/* Chips métiers */
-.dl-chips {
-  display: flex;
-  flex-wrap: wrap;
+.dl-trades-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
-  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.dl-chip {
-  display: inline-flex;
+.dl-trades-all {
+  grid-column: span 2;
+}
+
+.dl-trade {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #fff;
+  justify-content: flex-start;
+  gap: 10px;
+  height: 100%;
+  min-height: 108px;
+  padding: 16px 8px 14px;
+  background: var(--dl-surface);
   border: 1px solid var(--dl-border);
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 4px;
   color: var(--dl-text);
   text-decoration: none;
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.8);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.dl-chip:hover {
+.dl-trade:hover {
+  border-color: var(--dl-primary);
+  background: #F6F1E6;
+  text-decoration: none;
+  color: var(--dl-text);
+}
+
+.dl-trade:focus-visible {
+  outline: 2px solid var(--dl-primary);
+  outline-offset: 2px;
+}
+
+.dl-trade-ico {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: #F3EDE0;
+  border: 1px solid var(--dl-border);
+  border-radius: 4px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.dl-trade:hover .dl-trade-ico {
   border-color: var(--dl-primary);
   background: var(--dl-primary-soft);
-  text-decoration: none;
+}
+
+.dl-trade-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.dl-trade.is-active {
+  background: var(--dl-primary);
+  border-color: var(--dl-primary);
+  color: #F6F1E6;
+  box-shadow: none;
+}
+
+.dl-trade.is-active .dl-trade-ico {
+  background: rgba(246, 241, 230, 0.1);
+  border-color: rgba(246, 241, 230, 0.22);
+}
+
+.dl-trade--all {
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 18px;
+}
+
+.dl-trade--all .dl-trade-name {
+  font-size: 14px;
+  text-align: left;
+}
+
+.dl-trade--all .dl-trade-ico {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+  color: var(--dl-primary);
+  font-weight: 700;
+}
+
+.dl-trade--all.is-active {
+  background: var(--dl-surface);
+  border-color: var(--dl-primary);
+  color: var(--dl-text);
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.8);
+}
+
+.dl-trade--all.is-active .dl-trade-ico {
+  background: var(--dl-primary);
+  border-color: var(--dl-primary);
+  color: #F6F1E6;
+}
+
+button.dl-trade {
+  width: 100%;
+  margin: 0;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dl-trade-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dl-muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
+.dl-trades--compact .dl-trades-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dl-trades--compact .dl-trades-all {
+  grid-column: span 3;
+}
+
+.dl-trades--mesh {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.dl-trades--mesh .dl-trades-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dl-trades--mesh .dl-trade {
+  min-height: 132px;
 }
 
 /* Résultats */
@@ -602,6 +731,24 @@
   .dl-card-cta {
     width: 100%;
     text-align: center;
+  }
+
+  .dl-trades-grid,
+  .dl-trades--mesh .dl-trades-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dl-trades-all {
+    grid-column: span 3;
+  }
+
+  .dl-trade {
+    min-height: 96px;
+    padding: 12px 6px 10px;
+  }
+
+  .dl-trades--mesh .dl-trade {
+    min-height: 118px;
   }
 }
 

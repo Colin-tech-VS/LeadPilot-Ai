@@ -174,12 +174,10 @@ def send_campaign(tenant_id, segment_key, channel, subject, message):
         email = getattr(lead, "resolved_email", None) or lead.email
         if want_email and email:
             result["email_attempted"] += 1
-            html = "<p>" + _personalize(message, lead, company).replace("\n", "<br>") + "</p>"
             row = send_email(
                 email,
                 _personalize(subject, lead, company),
-                html,
-                is_html=True,
+                body,
                 tenant_id=tenant_id,
             )
             if row and row.status in ("sent", "simulated"):

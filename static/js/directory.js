@@ -254,13 +254,26 @@
     aiUnderstood.hidden = false;
   }
 
+  function markTradeActive(key) {
+    const value = key || "";
+    document.querySelectorAll(".dl-trade[data-trade]").forEach(function (c) {
+      const on = (c.dataset.trade || "") === value;
+      c.classList.toggle("is-active", on);
+      if (on) c.setAttribute("aria-current", "true");
+      else c.removeAttribute("aria-current");
+    });
+  }
+
   function syncStructuredFrom(understood) {
     // Mirror the AI interpretation into the structured form so the user can refine.
     // Never wipe a city they typed or picked from Places.
     if (!understood) return;
     const tradeSel = form.querySelector('[name="metier"]');
     const cityInput = form.querySelector('[name="ville"]');
-    if (tradeSel && understood.trade) tradeSel.value = understood.trade;
+    if (tradeSel && understood.trade) {
+      tradeSel.value = understood.trade;
+      markTradeActive(understood.trade);
+    }
     if (cityInput && understood.city && !cityInput.value.trim()) {
       cityInput.value = understood.city;
     }
@@ -299,14 +312,14 @@
     searchNow();
   }
 
-  document.querySelectorAll(".dl-chip[data-trade], .directory-chip[data-trade]").forEach(function (chip) {
+  document.querySelectorAll(".dl-trade[data-trade], .dl-chip[data-trade], .directory-chip[data-trade]").forEach(function (chip) {
     chip.addEventListener("click", function (e) {
       e.preventDefault();
       const sel = form.querySelector('[name="metier"]');
-      if (sel) {
-        sel.value = chip.dataset.trade || "";
-        runSearch();
-      }
+      if (!sel) return;
+      sel.value = chip.dataset.trade || "";
+      markTradeActive(sel.value);
+      runSearch();
     });
   });
 })();

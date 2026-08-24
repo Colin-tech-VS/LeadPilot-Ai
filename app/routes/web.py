@@ -91,6 +91,33 @@ def set_language(lang):
     return response
 
 
+@web_bp.route("/t/o/<token>", methods=["GET", "HEAD"])
+@web_bp.route("/t/o/<token>.gif", methods=["GET", "HEAD"])
+def email_open_pixel(token):
+    """1×1 GIF — records a real recipient open, never an admin preview."""
+    from flask import Response
+
+    from app.services import email_tracking
+
+    if request.method == "GET":
+        email_tracking.record_open(token)
+    resp = Response(email_tracking.PIXEL_GIF, mimetype="image/gif")
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
+@web_bp.route("/t/c/<token>", methods=["GET"])
+def email_click_redirect(token):
+    """Redirect through a tracked click. Admin sessions are not counted."""
+    from app.services import email_tracking
+    from app.utils.seo import site_base_url
+
+    dest = email_tracking.record_click(token, request.args.get("u") or "")
+    return redirect(dest or site_base_url(), code=302)
+
+
 @web_bp.route("/favicon.ico", methods=["GET"])
 def favicon():
     from flask import current_app

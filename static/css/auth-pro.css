@@ -398,24 +398,37 @@
 }
 
 /* No-JS / progressive enhancement: every step is visible by default so the
-   form is always submittable. The wizard (which hides inactive steps) only
-   kicks in once auth.js has actually initialised it (adds .js-wizard). */
+   form is always submittable. The wizard (which slides inactive steps off
+   canvas) only kicks in once auth.js has actually initialised it. */
 .auth-pro__form-step {
   display: block;
 }
 
-.js-wizard .auth-pro__form-step {
-  display: none;
+.auth-pro__viewport {
+  overflow: visible;
 }
 
-.js-wizard .auth-pro__form-step.is-active {
+.auth-pro__wizard-track {
   display: block;
-  animation: authStepIn 0.35s ease;
 }
 
-@keyframes authStepIn {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
+.js-wizard .auth-pro__viewport {
+  overflow: hidden;
+}
+
+.js-wizard .auth-pro__wizard-track {
+  display: flex;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.js-wizard .auth-pro__form-step {
+  display: block;
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding-right: 2px;
 }
 
 /* Fields */
@@ -567,6 +580,280 @@
   border-radius: 12px;
 }
 
+/* ── Artisan signup: viewport-fit slider, paper card ── */
+.page-register {
+  overflow: hidden;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-register main {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-register .auth-pro--signup {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--lp-bg, #EFE9DC);
+}
+
+.page-register .auth-pro__panel {
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+  padding: 20px 16px;
+}
+
+.page-register .auth-pro__card {
+  width: min(100%, 520px);
+  max-height: 100%;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 22px 22px 18px;
+  border-radius: 4px;
+  background: #FBF7EE;
+  border: 1px solid #D7CDB8;
+  box-shadow: none;
+  animation: none;
+}
+
+.page-register .auth-pro__kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lp-text-muted, #6B6458);
+}
+
+.page-register .auth-pro__card-head h2 {
+  font-family: var(--lp-font-display), Fraunces, Georgia, serif;
+  font-weight: 650;
+  font-style: italic;
+  letter-spacing: -0.03em;
+}
+
+.page-register .auth-pro__card-sub {
+  margin-bottom: 16px;
+}
+
+.auth-pro__progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-pro__progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 7px 8px;
+  border: 1px solid #D7CDB8;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--lp-text-muted, #6B6458);
+  cursor: default;
+}
+
+.js-wizard .auth-pro__progress li {
+  cursor: pointer;
+}
+
+.auth-pro__progress-num {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+  background: #E8E4D6;
+  color: #1A2332;
+  font-size: 11px;
+}
+
+.auth-pro__progress li.is-active {
+  border-color: #1A2332;
+  color: #1A2332;
+  background: #F6F1E6;
+}
+
+.auth-pro__progress li.is-active .auth-pro__progress-num,
+.auth-pro__progress li.is-done .auth-pro__progress-num {
+  background: #1A2332;
+  color: #F6F1E6;
+}
+
+.auth-pro__progress li.is-done {
+  color: #1A2332;
+}
+
+.page-register .auth-pro__step-hint {
+  margin: 0 0 14px;
+  font-family: var(--lp-font-display), Fraunces, Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 650;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: #1A2332;
+}
+
+.page-register .auth-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.page-register .js-wizard .auth-pro__viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.page-register .js-wizard .auth-pro__wizard-track {
+  height: 100%;
+}
+
+.page-register .js-wizard .auth-pro__form-step {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  height: 100%;
+}
+
+.page-register .auth-field__input,
+.page-register .auth-pro__actions .btn {
+  border-radius: 4px;
+}
+
+.page-register .auth-pro__actions {
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+
+.page-register .auth-switch {
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+
+.page-register .trade-picker {
+  position: relative;
+  margin: 0;
+}
+
+.page-register .auth-field--trade > .auth-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.page-register .trade-picker-chips {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.page-register .trade-picker-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 66px;
+  padding: 8px 4px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid #D7CDB8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.page-register .trade-picker-chip[data-trade-key="autre"] {
+  display: none;
+}
+
+.page-register .trade-picker-chip-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.page-register .trade-picker-chip-label {
+  text-align: center;
+  line-height: 1.2;
+}
+
+.page-register .trade-picker-chip.is-active {
+  background: #1A2332;
+  border-color: #1A2332;
+  color: #F6F1E6;
+}
+
+.page-register .trade-select-wrap {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.auth-pro--signup .auth-pro__slide-inner--card,
+.auth-pro--signup .auth-pro__stat {
+  border-radius: 4px;
+}
+
+@media (max-width: 960px) {
+  .page-register .auth-pro__showcase {
+    display: none;
+  }
+
+  .page-register .auth-pro--signup {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-pro__progress li > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .auth-pro__progress li {
+    justify-content: center;
+    position: relative;
+  }
+
+  .page-register .trade-picker-chips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .page-register .trade-picker-chip {
+    min-height: 64px;
+  }
+
+  .page-register .auth-pro__card {
+    padding: 16px 14px 14px;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 960px) {
   .auth-pro {
@@ -617,7 +904,7 @@
   .auth-pro__orb,
   .auth-pro__mesh,
   .auth-pro__card,
-  .auth-pro__form-step {
+  .auth-pro__wizard-track {
     animation: none !important;
     transition: none !important;
   }

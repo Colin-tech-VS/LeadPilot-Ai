@@ -30,6 +30,44 @@
       <span>{{ message.created_at.strftime('%d/%m/%Y à %H:%M') if message.created_at else '—' }}</span>
       <span class="mail-status status-{{ message.status }}">{{ message.status }}</span>
     </div>
+    {% if message.direction == 'outbound' %}
+    <div class="mail-eng-panel">
+      {% if message.track_token %}
+      <div class="mail-eng-grid">
+        <div>
+          <span class="kpi-label">Ouvertures</span>
+          <span class="kpi-value">{{ message.opens }}</span>
+          <span class="kpi-sub">{% if message.was_opened %}Taux {{ open_rate }}{% else %}Non ouvert{% endif %}</span>
+        </div>
+        <div>
+          <span class="kpi-label">Clics</span>
+          <span class="kpi-value">{{ message.clicks }}</span>
+          <span class="kpi-sub">{% if message.was_clicked %}Taux {{ click_rate }}{% else %}Aucun clic{% endif %}</span>
+        </div>
+        <div>
+          <span class="kpi-label">Première ouverture</span>
+          <span class="mail-eng-when">{{ message.first_opened_at.strftime('%d/%m/%Y %H:%M') if message.first_opened_at else '—' }}</span>
+          <span class="kpi-sub">Dernière {{ message.last_opened_at.strftime('%d/%m %H:%M') if message.last_opened_at else '—' }}</span>
+        </div>
+        <div>
+          <span class="kpi-label">Premier clic</span>
+          <span class="mail-eng-when">{{ message.first_clicked_at.strftime('%d/%m/%Y %H:%M') if message.first_clicked_at else '—' }}</span>
+          <span class="kpi-sub">Dernier {{ message.last_clicked_at.strftime('%d/%m %H:%M') if message.last_clicked_at else '—' }}</span>
+        </div>
+      </div>
+      {% if message.clicked_links() %}
+      <ul class="mail-eng-links">
+        {% for link in message.clicked_links() %}
+        <li><span class="mail-eng-count">{{ link.count }}</span> <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }}</a></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <p class="mail-eng-note">Les ouvertures et clics depuis /admin ou une session admin ne sont pas comptés.</p>
+      {% else %}
+      <p class="mail-eng-note">Pas de suivi : destinataire interne (PilotCore / admin) ou message envoyé avant l’activation du tracking.</p>
+      {% endif %}
+    </div>
+    {% endif %}
   </header>
 
   {% if attachments %}

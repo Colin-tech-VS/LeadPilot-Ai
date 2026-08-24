@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone
 
 import requests
+from flask import current_app
 
 from app.core.extensions import db
 from app.models.social_post import SocialPost
@@ -24,6 +25,12 @@ GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_VERSION}"
 SETTING_PAGE_ID = "facebook_page_id"
 SETTING_TOKEN = "facebook_page_token"
 SETTING_PAGE_NAME = "facebook_page_name"
+SETTING_USER_TOKEN = "facebook_user_token"
+SETTING_TOKEN_EXPIRES = "facebook_token_expires"
+SETTING_AUTOPOST = "facebook_autopost_enabled"
+SETTING_INTERVAL = "facebook_autopost_interval"
+SETTING_SHARE_GROUPS = "facebook_share_groups"
+SETTING_GROUP_IDS = "facebook_group_ids"
 
 REQUIRED_PAGE_PERMISSIONS = (
     "pages_manage_posts",
@@ -63,6 +70,8 @@ def disconnect():
     content.set_setting(SETTING_PAGE_ID, "")
     content.set_setting(SETTING_TOKEN, "")
     content.set_setting(SETTING_PAGE_NAME, "")
+    content.set_setting(SETTING_USER_TOKEN, "")
+    content.set_setting(SETTING_TOKEN_EXPIRES, "")
 
 
 def token_identity(token: str) -> tuple[str | None, str | None]:
@@ -292,6 +301,9 @@ def connection_status() -> dict:
             "can_read": False,
             "can_publish": False,
             "message": "Aucune page connectée.",
+            "token_health": {"is_valid": False, "never_expires": False, "expires_at": None, "error": "Aucune page connectée."},
+            "app_ready": bool(_app_credentials()[0] and _app_credentials()[1]),
+            "has_user_token": False,
         }
 
     identity_id, identity_name = token_identity(cfg["token"])
@@ -334,6 +346,9 @@ def connection_status() -> dict:
         "can_read": can_read,
         "can_publish": can_publish,
         "message": message[:500],
+        "token_health": inspect_stored_token(),
+        "app_ready": bool(_app_credentials()[0] and _app_credentials()[1]),
+        "has_user_token": bool((content.get_setting(SETTING_USER_TOKEN, "") or "").strip()),
     }
 
 
@@ -450,6 +465,11 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
                 ),
                 level=LEVEL_SUCCESS,
             )
+            if (content.get_setting(SETTING_SHARE_GROUPS, "") or "") == "1":
+                group_notes = share_to_selected_groups(message, link or post.permalink)
+                if group_notes:
+                    extra = " · groupes : " + " ; ".join(group_notes)
+                    post.error = ((post.error or "") + extra)[:500]
         else:
             post.status = "failed"
             post.error = _permission_error_message(data) if _is_permission_error(data) else (
@@ -473,5 +493,240 @@ def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> 
 
 def recent_posts(limit=30):
     return (
-        SocialPost.query.order_by(SocialPost.created_at.desc()).limit(limit).all()
+        SocialPost.query.filter(SocialPost.status != "queued")
+        .order_by(SocialPost.created_at.desc())
+        .limit(limit)
+        .all()
     )
+
+
+def _app_credentials() -> tuple[str, str]:
+    try:
+        return (
+            (current_app.config.get("FACEBOOK_APP_ID") or "").strip(),
+            (current_app.config.get("FACEBOOK_APP_SECRET") or "").strip(),
+        )
+    except RuntimeError:
+        return "", ""
+
+
+def inspect_token(token: str) -> dict:
+    """Inspect a Graph token. expires_at == 0 means it never expires."""
+    token = (token or "").strip()
+    empty = {
+        "is_valid": False,
+        "type": "",
+        "expires_at": None,
+        "never_expires": False,
+        "scopes": [],
+        "error": "Token vide.",
+    }
+    if not token:
+        return empty
+    app_id, app_secret = _app_credentials()
+    access = f"{app_id}|{app_secret}" if app_id and app_secret else token
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/debug_token",
+            params={"input_token": token, "access_token": access},
+            timeout=12,
+        )
+        payload = resp.json() or {}
+        data = payload.get("data") or {}
+        if not resp.ok and not data:
+            err = _graph_error(payload).get("message") or payload.get("error", {}).get("message")
+            empty["error"] = err or "Inspection du token impossible."
+            return empty
+        expires_at = int(data.get("expires_at") or 0)
+        never = bool(data.get("is_valid")) and expires_at == 0
+        return {
+            "is_valid": bool(data.get("is_valid")),
+            "type": str(data.get("type") or "").upper(),
+            "expires_at": expires_at,
+            "never_expires": never,
+            "scopes": data.get("scopes") or [],
+            "error": None if data.get("is_valid") else (
+                (data.get("error") or {}).get("message") or "Token invalide."
+            ),
+        }
+    except requests.RequestException as exc:
+        empty["error"] = str(exc)
+        return empty
+
+
+def inspect_stored_token() -> dict:
+    cfg = get_config()
+    info = inspect_token(cfg.get("token") or "")
+    stored = (content.get_setting(SETTING_TOKEN_EXPIRES, "") or "").strip()
+    if info.get("expires_at") is not None:
+        content.set_setting(SETTING_TOKEN_EXPIRES, str(info.get("expires_at") or 0))
+    elif stored.isdigit():
+        info["expires_at"] = int(stored)
+        info["never_expires"] = info.get("is_valid") and int(stored) == 0
+    return info
+
+
+def refresh_never_expiring_token() -> dict:
+    """If a user token is stored, re-derive a never-expiring page token."""
+    health = inspect_stored_token()
+    if health.get("is_valid") and health.get("never_expires"):
+        return health
+    user_token = (content.get_setting(SETTING_USER_TOKEN, "") or "").strip()
+    cfg = get_config()
+    if not user_token or not cfg.get("page_id") or not _app_credentials()[0]:
+        return health
+    long_lived = exchange_long_lived_user_token(user_token) or user_token
+    if long_lived != user_token:
+        content.set_setting(SETTING_USER_TOKEN, long_lived)
+    resolved, page_name = resolve_page_access_token(long_lived, cfg["page_id"])
+    if resolved:
+        save_connection(cfg["page_id"], resolved, page_name or cfg.get("page_name") or "")
+        return inspect_stored_token()
+    return health
+
+
+def exchange_long_lived_user_token(short_token: str) -> str | None:
+    """Exchange a short-lived user token for a ~60-day token (needs app secret)."""
+    short_token = (short_token or "").strip()
+    app_id, app_secret = _app_credentials()
+    if not short_token or not app_id or not app_secret:
+        return None
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/oauth/access_token",
+            params={
+                "grant_type": "fb_exchange_token",
+                "client_id": app_id,
+                "client_secret": app_secret,
+                "fb_exchange_token": short_token,
+            },
+            timeout=12,
+        )
+        data = resp.json() or {}
+        if resp.ok and data.get("access_token"):
+            return data["access_token"]
+        logger.warning("Facebook long-lived exchange failed: %s", data)
+    except requests.RequestException:
+        logger.exception("Facebook long-lived exchange failed")
+    return None
+
+
+def connect_page(page_id: str, pasted_token: str) -> dict:
+    """Store a never-expiring page token whenever Graph allows it.
+
+    Flow: user token → long-lived user token → /me/accounts page token
+    (page tokens derived from a long-lived user token do not expire).
+    """
+    page_id = str(page_id or "").strip()
+    pasted = (pasted_token or "").strip()
+    if not page_id or not pasted:
+        return {"ok": False, "message": "Identifiant de page et token requis."}
+
+    working = pasted
+    if not is_page_access_token(pasted, page_id):
+        long_lived = exchange_long_lived_user_token(pasted)
+        if long_lived:
+            working = long_lived
+        content.set_setting(SETTING_USER_TOKEN, working)
+        resolved, page_name = resolve_page_access_token(working, page_id)
+        if resolved:
+            save_connection(page_id, resolved, page_name or "")
+        else:
+            save_connection(page_id, pasted, "")
+    else:
+        identity_id, identity_name = token_identity(pasted)
+        save_connection(page_id, pasted, identity_name or "")
+        if identity_id == page_id:
+            # Keep a previously stored user token for groups.
+            pass
+
+    ok, message = verify_connection(check_publish=False)
+    health = inspect_stored_token()
+    if health.get("never_expires"):
+        detail = "Token page sans expiration."
+    elif health.get("expires_at"):
+        detail = "Le token expire encore — collez un token utilisateur et renseignez FACEBOOK_APP_ID / FACEBOOK_APP_SECRET pour le convertir en token illimité."
+    elif not _app_credentials()[0]:
+        detail = "Ajoutez FACEBOOK_APP_ID et FACEBOOK_APP_SECRET pour échanger vers un token page illimité."
+    else:
+        detail = health.get("error") or ""
+    return {
+        "ok": ok,
+        "message": message,
+        "detail": detail,
+        "health": health,
+    }
+
+
+def list_member_groups() -> tuple[list[dict], str | None]:
+    """Groups the admin user belongs to (needed to share a page post).
+
+    Facebook Pages cannot follow groups; Graph only lists groups the *user*
+    token is a member of (``groups_show_list`` + ``publish_to_groups``).
+    """
+    user_token = (content.get_setting(SETTING_USER_TOKEN, "") or "").strip()
+    if not user_token:
+        return [], (
+            "Reconnectez la page avec un token utilisateur (pas seulement le token de page) "
+            "pour lister les groupes. Permissions Graph : groups_show_list et publish_to_groups."
+        )
+    token = user_token
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/me/groups",
+            params={"fields": "id,name,administrator", "limit": 50, "access_token": token},
+            timeout=15,
+        )
+        data = resp.json() or {}
+        if not resp.ok:
+            return [], _graph_error(data).get("message") or "Impossible de lister les groupes."
+        groups = [
+            {
+                "id": str(g.get("id")),
+                "name": g.get("name") or str(g.get("id")),
+                "administrator": bool(g.get("administrator")),
+            }
+            for g in data.get("data") or []
+            if g.get("id")
+        ]
+        return groups, None
+    except requests.RequestException as exc:
+        return [], str(exc)
+
+
+def selected_group_ids() -> list[str]:
+    raw = content.get_setting(SETTING_GROUP_IDS, "") or ""
+    try:
+        data = json.loads(raw) if raw else []
+    except json.JSONDecodeError:
+        data = [x.strip() for x in raw.split(",") if x.strip()]
+    return [str(x) for x in data if x]
+
+
+def save_group_ids(ids: list[str]):
+    content.set_setting(SETTING_GROUP_IDS, json.dumps(ids))
+
+
+def share_to_selected_groups(message: str, link: str | None) -> list[str]:
+    """Share the published post into selected groups. Returns notes (errors or ok)."""
+    ids = selected_group_ids()
+    if not ids:
+        return []
+    user_token = (content.get_setting(SETTING_USER_TOKEN, "") or "").strip()
+    if not user_token:
+        return ["Token utilisateur manquant pour poster dans les groupes."]
+    notes = []
+    for gid in ids:
+        try:
+            payload = {"message": message, "access_token": user_token}
+            if link:
+                payload["link"] = link
+            resp = requests.post(f"{GRAPH_BASE}/{gid}/feed", data=payload, timeout=20)
+            data = resp.json() or {}
+            if resp.ok and data.get("id"):
+                notes.append(f"{gid} ok")
+            else:
+                notes.append(f"{gid}: {_graph_error(data).get('message', 'échec')[:160]}")
+        except requests.RequestException as exc:
+            notes.append(f"{gid}: {exc}")
+    return notes

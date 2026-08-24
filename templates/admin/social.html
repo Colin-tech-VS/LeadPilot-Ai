@@ -2,20 +2,52 @@
 {% block title %}Social · Admin{% endblock %}
 {% block page_title %}Social{% endblock %}
 
+{% macro fb_card(page_name, body_id, image_wrap_id, image_id, image_link_id, body_text, image_url, sub_text, show_image) %}
+<div class="fb-preview">
+  <div class="fb-preview-head">
+    <div class="fb-avatar fb-avatar--brand" aria-hidden="true"></div>
+    <div>
+      <div class="fb-preview-name">{{ page_name }}</div>
+      <div class="fb-preview-sub">{{ sub_text }}</div>
+    </div>
+  </div>
+  <div class="fb-preview-body" id="{{ body_id }}">{{ body_text }}</div>
+  <div class="fb-preview-image-wrap" id="{{ image_wrap_id }}" {% if not show_image %}style="display:none"{% endif %}>
+    <a id="{{ image_link_id }}" href="#" target="_blank" rel="noopener" class="fb-preview-image-link">
+      <img id="{{ image_id }}" class="fb-preview-image" alt="Visuel du post" {% if image_url %}src="{{ image_url }}"{% endif %}>
+    </a>
+  </div>
+  <div class="fb-preview-foot"><span>J’aime</span><span>Commenter</span><span>Partager</span></div>
+</div>
+{% endmacro %}
+
 {% block content %}
-<p class="dash-intro">Publication Facebook, génération de visuels et liens trackés UTM.</p>
-<!-- Connexion Facebook -->
+<p class="dash-intro">Publications Facebook à la charte PilotCore — papier, encre, visuel 1200×630. L’aperçu est toujours visible avant l’envoi.</p>
+
+{% set health = facebook_status.token_health if facebook_status else {} %}
 {% if facebook_connected %}
-<div class="connect-banner ok">
-  <span style="font-size:22px">✅</span>
+<div class="connect-banner ok social-token-banner">
+  <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:0">
     <strong>Page Facebook connectée</strong>
     <div class="studio-item-meta">{{ facebook_config.page_name or facebook_config.page_id }}</div>
-    {% if facebook_status %}
-    <div class="studio-item-meta" style="margin-top:6px">
-      Token : <strong>{{ 'page' if facebook_status.token_kind == 'page' else 'utilisateur' }}</strong>
-      · {{ facebook_status.message }}
+    <div class="social-token-meta">
+      <span class="pill {% if health.never_expires %}pill-published{% elif health.is_valid %}pill-draft{% else %}pill-failed{% endif %}">
+        {% if health.never_expires %}token illimité{% elif health.is_valid %}token à durée limitée{% else %}token à vérifier{% endif %}
+      </span>
+      <span>Expiration : <strong>{{ token_expires_label }}</strong></span>
+      {% if facebook_status %}
+      <span>· {{ 'page' if facebook_status.token_kind == 'page' else 'utilisateur' }} · {{ facebook_status.message }}</span>
+      {% endif %}
     </div>
+    {% if not health.never_expires %}
+    <p class="admin-hint" style="margin-top:8px">
+      {% if not facebook_status.app_ready %}
+      Ajoutez <code>FACEBOOK_APP_ID</code> et <code>FACEBOOK_APP_SECRET</code> (app Meta), puis recoller un <strong>token utilisateur</strong> : il sera échangé en token de page qui n’expire pas.
+      {% else %}
+      Recollez un token utilisateur (Graph Explorer → permissions page + <code>pages_show_list</code>) pour obtenir un token de page illimité.
+      {% endif %}
+    </p>
     {% endif %}
   </div>
   <details style="width:100%">
@@ -23,7 +55,7 @@
     <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="margin-top:12px">
       <div class="db-form-grid">
         <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ facebook_config.page_id }}" required></label>
-        <label>Token d'accès<input type="text" name="token" required placeholder="Collez le nouveau token ici"></label>
+        <label>Token d'accès<input type="text" name="token" required placeholder="Token utilisateur (recommandé) ou token de page"></label>
       </div>
       <button type="submit" class="admin-btn">Enregistrer le token</button>
     </form>
@@ -34,27 +66,137 @@
 </div>
 {% else %}
 <div class="connect-banner">
-  <span style="font-size:22px">📘</span>
+  <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:260px">
     <strong>Connectez votre page Facebook</strong>
-    <div class="studio-item-meta">Renseignez l'identifiant de votre page et un token d'accès de page (Graph API) pour publier.</div>
+    <div class="studio-item-meta">Un token utilisateur + l’app Meta donne un token de page illimité. Un token de page déjà sans expiration est conservé tel quel.</div>
   </div>
   <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="width:100%">
     <div class="db-form-grid">
       <label>Identifiant de la page (Page ID)<input type="text" name="page_id" required></label>
-      <label>Token d'accès de page<input type="text" name="token" required></label>
+      <label>Token d'accès<input type="text" name="token" required></label>
     </div>
     <button type="submit" class="admin-btn">Connecter Facebook</button>
-    <p class="admin-hint" style="margin-top:10px">Collez le <strong>token de page</strong> ou un token utilisateur — un token de page valide est conservé tel quel.</p>
     <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
       <li>Ouvrez <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> (app PilotCore).</li>
-      <li>Permissions : <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
-      <li>Exécutez <code>GET /me/accounts?fields=id,name,access_token</code>.</li>
-      <li>Copiez le <code>access_token</code> de la page PilotCore (ID <code>1246135508572421</code>).</li>
+      <li>Permissions : <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>. Pour les groupes : <code>groups_show_list</code>, <code>publish_to_groups</code>.</li>
+      <li>Copiez le token utilisateur, ou exécutez <code>GET /me/accounts?fields=id,name,access_token</code> et copiez le token de la page (ID <code>1246135508572421</code>).</li>
     </ol>
   </form>
 </div>
 {% endif %}
+
+<section class="social-autopost-card">
+  <form method="POST" action="{{ url_for('admin.social_autopost_save') }}" class="social-autopost-form">
+    <div class="social-autopost-head">
+      <div>
+        <h2>Autopublication</h2>
+        <p class="admin-hint" style="margin:4px 0 0">Les envois sont calés sur les heures où les artisans regardent Facebook (pause midi, fin de chantier, samedi matin) — jamais au milieu de la nuit. Le prochain post est composé tout de suite, affiché ici, puis envoyé seulement à l’heure indiquée.</p>
+      </div>
+      <label class="switch social-autopost-switch">
+        <input type="checkbox" name="enabled" value="1" {% if autopost.enabled %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <span class="switch-track"></span>
+        <span>{{ 'Activée' if autopost.enabled else 'Désactivée' }}</span>
+      </label>
+    </div>
+    {% if not facebook_connected %}
+    <p class="admin-hint">Connectez d’abord la page Facebook pour activer l’envoi automatique.</p>
+    {% endif %}
+
+    <p class="social-interval-label">Fréquence</p>
+    <div class="social-interval" role="radiogroup">
+      <label class="social-interval-opt">
+        <input type="radio" name="interval" value="6" {% if autopost.interval == 6 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <span>6 h <small>pauses du jour</small></span>
+      </label>
+      <label class="social-interval-opt">
+        <input type="radio" name="interval" value="12" {% if autopost.interval == 12 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <span>12 h <small>midi + soir</small></span>
+      </label>
+      <label class="social-interval-opt">
+        <input type="radio" name="interval" value="24" {% if autopost.interval == 24 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <span>24 h <small>meilleur créneau</small></span>
+      </label>
+    </div>
+    <p class="admin-hint">Horaires Paris : pause déjeuner, fin de chantier, soirée, samedi matin admin. Les posts « Pro » (essai 14 jours) partent plutôt le soir et le week-end, quand un artisan a 10 minutes pour s’inscrire.</p>
+
+    <label class="switch" style="margin-top:16px">
+      <input type="checkbox" name="share_groups" value="1" {% if autopost.share_groups %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+      <span class="switch-track"></span>
+      <span>Partager aussi dans les groupes sélectionnés (après la page)</span>
+    </label>
+    <p class="admin-hint">Facebook n’expose pas les groupes « suivis » par une Page. On liste les groupes dont <strong>votre compte</strong> est membre. La permission <code>publish_to_groups</code> est souvent soumise à App Review.</p>
+
+    {% if fb_groups %}
+    <div class="social-groups">
+      {% for g in fb_groups %}
+      <label class="social-group">
+        <input type="checkbox" name="group_id" value="{{ g.id }}" {% if g.id in selected_group_ids %}checked{% endif %}>
+        <span>{{ g.name }}{% if g.administrator %} · admin{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% elif facebook_connected and fb_groups_error %}
+    <p class="admin-hint">{{ fb_groups_error }}</p>
+    {% elif facebook_connected %}
+    <p class="admin-hint">Aucun groupe listé pour ce token. Recollez un token utilisateur avec <code>groups_show_list</code>.</p>
+    {% endif %}
+
+    <div class="form-actions" style="margin-top:16px">
+      <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled{% endif %}>Enregistrer l’autopublication</button>
+    </div>
+  </form>
+
+  {% if facebook_connected and autopost.enabled %}
+  <div class="social-queue-panel">
+    <div class="social-queue-head">
+      <h3>Prochain post — aperçu en attente</h3>
+      {% if queued and queued_iso %}
+      <span class="pill pill-draft">envoi {{ queued_when }}</span>
+      {% if queued_reason %}<span class="social-slot-reason">{{ queued_reason }}</span>{% endif %}
+      <span class="social-countdown" data-due="{{ queued_iso }}" id="queue-countdown"></span>
+      {% endif %}
+    </div>
+    {% if queued %}
+    <div class="social-compose-grid">
+      <form method="POST" action="{{ url_for('admin.social_queue_save') }}" class="studio-editor">
+        <label class="field"><span>Page à promouvoir</span>
+          <select name="target_key" class="social-target-select">
+            {% for t in link_targets %}
+            <option value="{{ t.key }}" {% if queued.target_key == t.key %}selected{% endif %}>{{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field"><span>Message</span>
+          <textarea name="message" rows="8" required>{{ queued.message or '' }}</textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="admin-btn">Enregistrer l’aperçu</button>
+        </div>
+      </form>
+      <div class="studio-preview">
+        <div class="studio-preview-head">
+          <h2>Aperçu Facebook</h2>
+          <span class="studio-preview-dot">en attente d’envoi</span>
+        </div>
+        {{ fb_card(facebook_config.page_name or 'PilotCore', 'q-body', 'q-img-wrap', 'q-img', 'q-img-link', queued.message or '', queued_image, 'Programmé · ' ~ (queued_when or ''), queued_image) }}
+      </div>
+    </div>
+    <div class="social-queue-actions">
+      <form method="POST" action="{{ url_for('admin.social_queue_regenerate') }}">
+        <button type="submit" class="admin-btn ghost">Régénérer le visuel et le texte</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin.social_queue_publish_now') }}" id="queue-publish-form">
+        <input type="hidden" name="confirmed" value="0" id="queue-confirmed">
+        <button type="submit" class="admin-btn">Publier maintenant (après confirmation)</button>
+      </form>
+    </div>
+    {% else %}
+    <p class="admin-hint">Aucun aperçu en file — enregistrez l’autopublication pour en générer un. Rien ne sera envoyé tant qu’il n’est pas affiché ici.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
 
 <!-- Composer -->
 <form method="POST" action="{{ url_for('admin.social_publish') }}" id="social-form">
@@ -62,8 +204,10 @@
   <input type="hidden" name="target_key" id="f-target-key" value="home">
   <input type="hidden" name="link" id="f-link-tracked" value="">
   <input type="hidden" name="image_path" id="f-image-path" value="">
+  <input type="hidden" name="confirmed" id="f-confirmed" value="0">
   <div class="social-compose-grid">
     <div class="studio-editor">
+      <h2 class="social-manual-title">Publication manuelle</h2>
       <label class="field"><span>Page PilotCore à promouvoir</span>
         <select id="f-target" class="social-target-select">
           {% for t in link_targets %}
@@ -73,13 +217,13 @@
       </label>
       <p class="admin-hint social-utm-hint">Le visuel est cliquable vers la page choisie (sans URL dans le texte). Les paramètres <code>utm_*</code> sont ajoutés en arrière-plan pour Google Analytics.</p>
       {% if facebook_connected %}
-      <p class="admin-hint">Pour le visuel IA cliquable, vérifiez <strong>pilotcore.fr</strong> dans <a href="https://business.facebook.com/settings/owned-domains" target="_blank" rel="noopener" style="color:var(--brand)">Meta Business → Domaines</a>. Sinon la publication utilise un repli (photo + bouton ou aperçu Open Graph).</p>
+      <p class="admin-hint">Pour le visuel IA cliquable, vérifiez <strong>pilotcore.fr</strong> dans <a href="https://business.facebook.com/settings/owned-domains" target="_blank" rel="noopener" style="color:var(--brand)">Meta Business → Domaines</a>.</p>
       {% endif %}
 
       {% if ai_available %}
       <div class="ai-box social-ai-box">
-        <h3>🤖 Générer un post avec l'IA (Mistral)</h3>
-        <p class="admin-hint">Ton, vocabulaire et visuel alignés sur la charte PilotCore (bleu #1A2332, cyan #1A2332).</p>
+        <h3>Générer un post (Mistral + visuel charte)</h3>
+        <p class="admin-hint">Papier #EFE9DC, encre #1A2332 — même direction artistique que le site. Jamais de bleu.</p>
         <label class="field"><span>De quoi parle le post ?</span>
           <textarea id="ai-prompt" rows="2" placeholder="Ex : annoncer l'annuaire artisans — RDV en ligne 24h/24 pour les particuliers."></textarea>
         </label>
@@ -94,7 +238,7 @@
             </select>
           </label>
           <div class="field" style="justify-content:flex-end">
-            <button type="button" class="admin-btn" id="ai-generate">Générer post + visuel ✨</button>
+            <button type="button" class="admin-btn" id="ai-generate">Générer post + visuel</button>
           </div>
         </div>
         <span class="ai-spinner" id="ai-spinner">Génération texte + visuel en cours…</span>
@@ -103,7 +247,7 @@
       {% endif %}
 
       <label class="field"><span>Message</span>
-        <textarea name="message" id="f-message" rows="7" placeholder="Écrivez votre publication…" required>{{ '' }}</textarea>
+        <textarea name="message" id="f-message" rows="7" placeholder="Écrivez votre publication…" required></textarea>
       </label>
       <div class="char-count"><span id="char-count">0</span> caractères</div>
 
@@ -116,12 +260,12 @@
       </details>
 
       <div class="social-image-status" id="image-status">
-        <span class="admin-hint" id="image-hint">Visuel charte PilotCore — cliquable vers la page cible (généré avec l'IA ou à la publication).</span>
+        <span class="admin-hint" id="image-hint">Générez le visuel — il doit apparaître dans l’aperçu avant toute publication.</span>
         <img id="social-image-preview" class="social-image-thumb" alt="" style="display:none">
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>📣 Publier sur Facebook</button>
+        <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>Publier sur Facebook</button>
         {% if not facebook_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
       </div>
     </div>
@@ -131,47 +275,24 @@
         <h2>Aperçu Facebook</h2>
         <span class="studio-preview-dot">charte PilotCore</span>
       </div>
-      <div class="fb-preview">
-        <div class="fb-preview-head">
-          <div class="fb-avatar fb-avatar--brand" aria-hidden="true"></div>
-          <div>
-            <div class="fb-preview-name">{{ facebook_config.page_name or 'PilotCore' }}</div>
-            <div class="fb-preview-sub">À l'instant · 🌐</div>
-          </div>
-        </div>
-        <div class="fb-preview-body" id="fb-body">Votre message apparaîtra ici…</div>
-        <div class="fb-preview-image-wrap" id="fb-image-wrap" style="display:none">
-          <a id="fb-image-link" href="#" target="_blank" rel="noopener" class="fb-preview-image-link">
-            <img id="fb-image" class="fb-preview-image" alt="Visuel du post">
-          </a>
-        </div>
-        <div class="fb-preview-link-card" id="fb-link-card" style="display:none">
-          <div class="fb-link-card-bar"></div>
-          <div class="fb-link-card-body">
-            <div class="fb-link-card-domain" id="fb-link-domain">pilotcore.fr</div>
-            <div class="fb-link-card-title" id="fb-link-title">PilotCore</div>
-            <div class="fb-link-card-url" id="fb-link-clean"></div>
-          </div>
-        </div>
-        <div class="fb-preview-foot"><span>👍 J'aime</span><span>💬 Commenter</span><span>↗ Partager</span></div>
-      </div>
+      {{ fb_card(facebook_config.page_name or 'PilotCore', 'fb-body', 'fb-image-wrap', 'fb-image', 'fb-image-link', 'Votre message apparaîtra ici…', '', "À l'instant · public", false) }}
     </div>
   </div>
 </form>
 
-<!-- Historique -->
 <h2 style="margin:34px 0 14px;font-size:16px">Historique des publications</h2>
 <div class="studio-list">
   {% for post in posts %}
   <div class="studio-item">
-    <div class="mail-dir">📘</div>
+    <div class="mail-dir">FB</div>
     <div class="studio-item-main">
       <div class="studio-item-title">
         {{ post.preview(80) or '(vide)' }}
         {% if post.status == 'published' %}<span class="pill pill-published">publié</span>
         {% elif post.status == 'failed' %}<span class="pill pill-failed">échec</span>
-        {% else %}<span class="pill pill-draft">brouillon</span>{% endif %}
-        {% if post.generated_by_ai %}<span class="pill" style="background:rgba(109,139,255,.18);color:var(--brand)">IA</span>{% endif %}
+        {% elif post.status == 'skipped' %}<span class="pill pill-draft">ignoré</span>
+        {% else %}<span class="pill pill-draft">{{ post.status }}</span>{% endif %}
+        {% if post.generated_by_ai %}<span class="pill" style="background:var(--brand-soft);color:var(--brand)">IA</span>{% endif %}
       </div>
       <div class="studio-item-meta">
         {{ post.created_at.strftime('%d/%m/%Y %H:%M') if post.created_at else '' }}
@@ -201,10 +322,6 @@
   var linkDisplay = document.getElementById("f-link-display");
   var utmPreview = document.getElementById("f-link-utm-preview");
   var body = document.getElementById("fb-body");
-  var linkCard = document.getElementById("fb-link-card");
-  var linkDomain = document.getElementById("fb-link-domain");
-  var linkTitle = document.getElementById("fb-link-title");
-  var linkClean = document.getElementById("fb-link-clean");
   var count = document.getElementById("char-count");
   var aiFlag = document.getElementById("gen-ai-flag");
   var imagePath = document.getElementById("f-image-path");
@@ -213,6 +330,8 @@
   var fbImageWrap = document.getElementById("fb-image-wrap");
   var fbImage = document.getElementById("fb-image");
   var fbImageLink = document.getElementById("fb-image-link");
+  var confirmed = document.getElementById("f-confirmed");
+  var form = document.getElementById("social-form");
 
   function setImage(url, path) {
     imagePath.value = path || "";
@@ -221,17 +340,15 @@
       imagePreview.style.display = "block";
       fbImage.src = url;
       fbImageWrap.style.display = "block";
-      if (fbImageLink) {
-        fbImageLink.href = linkDisplay.value || "#";
-      }
-      imageHint.textContent = "Visuel prêt — cliquable vers la page cible.";
+      if (fbImageLink) fbImageLink.href = linkDisplay.value || "#";
+      imageHint.textContent = "Visuel prêt — vérifiez l’aperçu à droite avant d’envoyer.";
       imageHint.style.color = "var(--green, #059669)";
     } else {
       imagePreview.removeAttribute("src");
       imagePreview.style.display = "none";
       fbImage.removeAttribute("src");
       fbImageWrap.style.display = "none";
-      imageHint.textContent = "Visuel charte PilotCore — cliquable vers la page cible (généré avec l'IA ou à la publication).";
+      imageHint.textContent = "Générez le visuel — il doit apparaître dans l’aperçu avant toute publication.";
       imageHint.style.color = "";
     }
   }
@@ -240,31 +357,15 @@
     setImage("", "");
   }
 
-  function titleFromTarget(label) {
-    return label || "PilotCore";
-  }
-
   function applyTarget() {
     var opt = targetSelect.options[targetSelect.selectedIndex];
     var display = opt.getAttribute("data-display") || "";
     var tracked = opt.getAttribute("data-tracked") || "";
-    var label = opt.getAttribute("data-label") || "PilotCore";
     targetKey.value = targetSelect.value;
     linkDisplay.value = display;
     linkTracked.value = tracked;
     utmPreview.textContent = tracked;
-    try {
-      var u = new URL(display);
-      linkDomain.textContent = u.hostname.replace(/^www\./, "");
-      linkTitle.textContent = titleFromTarget(label);
-      linkClean.textContent = u.pathname === "/" ? u.hostname : (u.hostname + u.pathname);
-      linkCard.style.display = display ? "block" : "none";
-    } catch (e) {
-      linkCard.style.display = "none";
-    }
-    if (fbImageLink && linkDisplay.value) {
-      fbImageLink.href = linkDisplay.value;
-    }
+    if (fbImageLink && linkDisplay.value) fbImageLink.href = linkDisplay.value;
     render();
   }
 
@@ -276,6 +377,57 @@
 
   targetSelect.addEventListener("change", applyTarget);
   msg.addEventListener("input", function () { aiFlag.value = "0"; clearImage(); render(); });
+
+  form.addEventListener("submit", function (e) {
+    confirmed.value = "0";
+    if (!imagePath.value) {
+      e.preventDefault();
+      alert("Générez d’abord le visuel. L’aperçu Facebook doit l’afficher avant l’envoi.");
+      return;
+    }
+    if (!msg.value.trim()) {
+      e.preventDefault();
+      return;
+    }
+    var ok = window.confirm("Publier ce post tel qu’affiché dans l’aperçu Facebook ?");
+    if (!ok) {
+      e.preventDefault();
+      return;
+    }
+    confirmed.value = "1";
+  });
+
+  var queueForm = document.getElementById("queue-publish-form");
+  if (queueForm) {
+    queueForm.addEventListener("submit", function (e) {
+      var field = document.getElementById("queue-confirmed");
+      field.value = "0";
+      var ok = window.confirm("Envoyer maintenant le post en aperçu (celui affiché ci-dessus) ?");
+      if (!ok) {
+        e.preventDefault();
+        return;
+      }
+      field.value = "1";
+    });
+  }
+
+  var countdown = document.getElementById("queue-countdown");
+  if (countdown && countdown.getAttribute("data-due")) {
+    function tickClock() {
+      var due = Date.parse(countdown.getAttribute("data-due"));
+      if (!due) return;
+      var ms = due - Date.now();
+      if (ms <= 0) {
+        countdown.textContent = "Envoi imminent (cron)";
+        return;
+      }
+      var h = Math.floor(ms / 3600000);
+      var m = Math.floor((ms % 3600000) / 60000);
+      countdown.textContent = "dans " + h + " h " + m + " min";
+    }
+    tickClock();
+    setInterval(tickClock, 30000);
+  }
 
   var genBtn = document.getElementById("ai-generate");
   if (genBtn) {

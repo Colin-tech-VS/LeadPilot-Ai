@@ -9,22 +9,47 @@ Sending never raises: a transactional email must never break the user action
 that triggered it (signup, booking…). Failures are logged and swallowed.
 """
 
+import html as html_lib
 import logging
+import re
 
 from flask import current_app
 
 logger = logging.getLogger(__name__)
 
 BRAND = "PilotCore"
+INK = "#1C1914"
+INK_MUTED = "#6B6458"
+INK_DEEP = "#121820"
 BRAND_COLOR = "#1A2332"
-BRAND_DARK = "#121820"
 PAPER = "#EFE9DC"
-INK_SOFT = "#6B6458"
+SURFACE = "#FBF7EE"
+CREAM = "#F6F1E6"
+BORDER = "#D7CDB8"
+BORDER_STRONG = "#C4B79A"
+SUCCESS = "#3D9A6A"
+FONT_DISPLAY = "Georgia,'Times New Roman',Times,serif"
+FONT_BODY = "'Segoe UI',Tahoma,Geneva,Verdana,sans-serif"
 
 
 def _base_url() -> str:
     cfg = current_app.config
     return str(cfg.get("PUBLIC_BASE_URL") or "https://www.pilotcore.fr").rstrip("/")
+
+
+def _looks_like_html(value: str) -> bool:
+    return (value or "").lstrip().startswith("<")
+
+
+def _block(html: str, *, size: str = "16px", color: str = INK, mb: str = "16px") -> str:
+    if not html:
+        return ""
+    if _looks_like_html(html):
+        return html
+    return (
+        f'<p style="margin:0 0 {mb};font-size:{size};line-height:1.65;color:{color};'
+        f'font-family:{FONT_BODY};">{html}</p>'
+    )
 
 
 def render_email(
@@ -37,66 +62,73 @@ def render_email(
     outro: str | None = None,
     preheader: str | None = None,
     summary_html: str | None = None,
+    kicker: str | None = None,
 ) -> str:
     """Return the full branded HTML for a transactional email.
 
-    ``lines`` are rendered as paragraphs (already-escaped/plain text). Keep the
-    markup table-based and inline-styled for broad email-client support.
+    Ledger layout (paper / ink), table-based and inline-styled for clients.
+    ``lines`` may contain light HTML (``<strong>``, ``<br>``).
     """
     base = _base_url()
-    body_blocks = [f'<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#334155;">{intro}</p>']
+    body_blocks = [_block(intro)]
     if summary_html:
         body_blocks.append(summary_html)
     for ln in lines or []:
-        body_blocks.append(
-            f'<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155;">{ln}</p>'
-        )
+        body_blocks.append(_block(ln, size="15px", mb="12px"))
     if cta_label and cta_url:
         body_blocks.append(
-            f'''<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
-              <tr><td style="border-radius:4px;background:{BRAND_COLOR};">
-                <a href="{cta_url}" style="display:inline-block;padding:14px 28px;font-size:16px;
-                   font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;">{cta_label}</a>
+            f'''<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px;">
+              <tr><td style="background:{INK_DEEP};border-radius:4px;">
+                <a href="{cta_url}" style="display:inline-block;padding:13px 26px;font-size:15px;
+                   font-weight:700;letter-spacing:.02em;color:{CREAM};text-decoration:none;
+                   border-radius:4px;font-family:{FONT_BODY};">{html_lib.escape(cta_label)}</a>
               </td></tr>
             </table>'''
         )
     if outro:
-        body_blocks.append(
-            f'<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#64748B;">{outro}</p>'
+        body_blocks.append(_block(outro, size="13px", color=INK_MUTED, mb="0"))
+    body_html = "\n".join(b for b in body_blocks if b)
+    pre = re.sub(r"<[^>]+>", " ", preheader or intro).strip()
+    kicker_html = ""
+    if kicker:
+        kicker_html = (
+            f'<p style="margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.16em;'
+            f'text-transform:uppercase;color:{INK_MUTED};font-family:{FONT_BODY};">{html_lib.escape(kicker)}</p>'
         )
-    body_html = "\n".join(body_blocks)
-    pre = preheader or intro
 
     return f'''<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{html_lib.escape(title)}</title></head>
 <body style="margin:0;padding:0;background:{PAPER};">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{pre}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{PAPER};padding:32px 12px;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{html_lib.escape(pre)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{PAPER};padding:36px 12px;">
   <tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-           style="max-width:560px;background:#FBF7EE;border:1px solid #D7CDB8;border-radius:6px;overflow:hidden;">
-      <tr><td style="background:{BRAND_DARK};padding:20px 32px;">
-        <img src="{base}/static/images/logo-512.png" width="40" height="40" alt=""
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0"
+           style="width:100%;max-width:560px;background:{SURFACE};border:1px solid {BORDER_STRONG};border-radius:4px;">
+      <tr><td style="height:4px;background:{INK_DEEP};font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td style="padding:22px 32px 8px;">
+        <img src="{base}/static/images/logo-512.png" width="36" height="36" alt="PilotCore"
              style="vertical-align:middle;border:0;display:inline-block;">
-        <span style="font-size:20px;font-weight:700;color:#F6F1E6;letter-spacing:-0.02em;
-                     font-family:Georgia,'Times New Roman',serif;vertical-align:middle;margin-left:10px;">
-          {BRAND}
-        </span>
+        <span style="font-size:22px;font-weight:650;color:{INK};letter-spacing:-0.03em;
+                     font-family:{FONT_DISPLAY};vertical-align:middle;margin-left:10px;">{BRAND}</span>
       </td></tr>
-      <tr><td style="padding:32px;">
-        <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:{BRAND_DARK};font-weight:700;
-                   font-family:Georgia,'Times New Roman',serif;">{title}</h1>
+      <tr><td style="padding:8px 32px 32px;">
+        {kicker_html}
+        <h1 style="margin:0 0 18px;font-size:26px;line-height:1.2;color:{INK};font-weight:650;
+                   letter-spacing:-0.03em;font-family:{FONT_DISPLAY};">{html_lib.escape(title)}</h1>
         {body_html}
       </td></tr>
-      <tr><td style="padding:20px 32px;background:{PAPER};border-top:1px solid #D7CDB8;">
-        <p style="margin:0;font-size:12px;line-height:1.6;color:{INK_SOFT};">
-          {BRAND} — Réceptionniste IA & prise de RDV pour artisans.<br>
-          <a href="{base}" style="color:{BRAND_COLOR};text-decoration:none;">{base.replace('https://','')}</a>
+      <tr><td style="padding:18px 32px 22px;background:{PAPER};border-top:1px solid {BORDER};">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+                  color:{INK_MUTED};font-family:{FONT_BODY};">Réceptionniste IA · Prise de RDV</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;color:{INK_MUTED};font-family:{FONT_BODY};">
+          <a href="{base}" style="color:{BRAND_COLOR};text-decoration:none;">{base.replace("https://", "")}</a>
           &nbsp;·&nbsp;
-          <a href="{base}/confidentialite" style="color:{INK_SOFT};text-decoration:none;">Confidentialité</a>
+          <a href="{base}/confidentialite" style="color:{INK_MUTED};text-decoration:none;">Confidentialité</a>
           &nbsp;·&nbsp;
-          <a href="{base}/mentions-legales" style="color:{INK_SOFT};text-decoration:none;">Mentions légales</a>
+          <a href="{base}/mentions-legales" style="color:{INK_MUTED};text-decoration:none;">Mentions légales</a>
         </p>
       </td></tr>
     </table>
@@ -105,24 +137,41 @@ def render_email(
 </body></html>'''
 
 
+def wrap_plain_as_html(subject: str, body: str, *, kicker: str | None = None) -> str:
+    """Turn a plain-text outbound body into the shared ledger template."""
+    text = (body or "").strip()
+    parts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    intro = html_lib.escape(parts[0]).replace("\n", "<br>") if parts else ""
+    rest = [html_lib.escape(p).replace("\n", "<br>") for p in parts[1:]]
+    title = (subject or "Message").strip()
+    for prefix in ("[Contact] ", "[PilotCore] "):
+        if title.startswith(prefix):
+            title = title[len(prefix):].strip() or title
+            kicker = kicker or prefix.strip("[] ").title()
+            break
+    return render_email(title, intro, lines=rest, kicker=kicker or "Message")
+
+
 def _quote_summary_box(*, quote_number: str | None, total_ttc: float, artisan_name: str) -> str:
     number = (quote_number or "—").strip()
+    amount = f"{total_ttc:.2f}".replace(".", ",")
     return f'''<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-      style="margin:0 0 20px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;">
+      style="margin:0 0 20px;background:{PAPER};border:1px solid {BORDER};border-radius:4px;">
   <tr><td style="padding:16px 18px;">
-    <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748B;">Récapitulatif</p>
+    <p style="margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+              color:{INK_MUTED};font-family:{FONT_BODY};">Récapitulatif</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="padding:6px 0;font-size:14px;color:#64748B;">Devis</td>
-        <td style="padding:6px 0;font-size:14px;font-weight:700;color:#0F172A;text-align:right;">{number}</td>
+        <td style="padding:6px 0;font-size:14px;color:{INK_MUTED};font-family:{FONT_BODY};">Devis</td>
+        <td style="padding:6px 0;font-size:14px;font-weight:700;color:{INK};text-align:right;font-family:{FONT_BODY};">{number}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;font-size:14px;color:#64748B;">Montant TTC</td>
-        <td style="padding:6px 0;font-size:18px;font-weight:800;color:{BRAND_COLOR};text-align:right;">{total_ttc:.2f} €</td>
+        <td style="padding:6px 0;font-size:14px;color:{INK_MUTED};font-family:{FONT_BODY};">Montant TTC</td>
+        <td style="padding:6px 0;font-size:18px;font-weight:700;color:{INK};text-align:right;font-family:{FONT_DISPLAY};">{amount} €</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;font-size:14px;color:#64748B;">Artisan</td>
-        <td style="padding:6px 0;font-size:14px;font-weight:600;color:#0F172A;text-align:right;">{artisan_name}</td>
+        <td style="padding:6px 0;font-size:14px;color:{INK_MUTED};font-family:{FONT_BODY};">Artisan</td>
+        <td style="padding:6px 0;font-size:14px;font-weight:600;color:{INK};text-align:right;font-family:{FONT_BODY};">{artisan_name}</td>
       </tr>
     </table>
   </td></tr>
@@ -133,11 +182,11 @@ def _rib_box(rib_lines: list[str] | None) -> str:
     if not rib_lines:
         return ""
     items = "".join(
-        f'<p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:#334155;">{line}</p>'
+        f'<p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:{INK};font-family:{FONT_BODY};">{line}</p>'
         for line in rib_lines
     )
     return f'''<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-      style="margin:0 0 16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;">
+      style="margin:0 0 16px;background:{PAPER};border:1px solid {BORDER};border-left:4px solid {SUCCESS};border-radius:4px;">
   <tr><td style="padding:14px 16px;">{items}</td></tr>
 </table>'''
 
@@ -171,8 +220,9 @@ def send_artisan_welcome(user, tenant):
     name = (getattr(tenant, "first_name", None) or getattr(tenant, "name", None) or "").strip()
     hello = f"Bienvenue {name}," if name else "Bienvenue,"
     html = render_email(
-        "Votre compte PilotCore est prêt 🎉",
+        "Votre compte PilotCore est prêt",
         hello,
+        kicker="Espace artisan",
         lines=[
             "Votre espace artisan est créé. Votre assistant vocal IA et votre fiche "
             "publique sur l'annuaire sont désormais actifs.",
@@ -193,8 +243,9 @@ def send_customer_welcome(user):
     base = _base_url()
     hello = f"Bienvenue {user.first_name}," if user.first_name else "Bienvenue,"
     html = render_email(
-        "Votre compte est créé ✅",
+        "Votre compte est créé",
         hello,
+        kicker="Espace client",
         lines=[
             "Vous pouvez désormais réserver un artisan en ligne en quelques clics et "
             "suivre vos rendez-vous depuis votre espace.",
@@ -218,6 +269,7 @@ def send_voice_customer_credentials(user, password: str):
     html = render_email(
         "Votre compte PilotCore est prêt",
         hello,
+        kicker="Espace client",
         lines=[
             "Votre compte client a été créé lors de votre appel.",
             f"<strong>Identifiant :</strong> {user.email}",
@@ -246,6 +298,7 @@ def send_password_reset(user, reset_url):
     html = render_email(
         "Réinitialisation de votre mot de passe",
         "Bonjour,",
+        kicker="Sécurité",
         lines=[
             "Vous avez demandé à réinitialiser votre mot de passe PilotCore. "
             "Cliquez sur le bouton ci-dessous pour en choisir un nouveau.",
@@ -268,6 +321,7 @@ def send_password_changed(user):
     html = render_email(
         "Votre mot de passe a été modifié",
         "Bonjour,",
+        kicker="Sécurité",
         lines=[
             "Nous vous confirmons que le mot de passe de votre compte PilotCore vient "
             "d'être modifié.",
@@ -297,8 +351,9 @@ def send_appointment_confirmation(to_addr, when_label, artisan_name, *, customer
         lines.append(f"Adresse : {address}")
     lines.append("Vous recevrez un rappel avant l'intervention. À bientôt !")
     html = render_email(
-        "Rendez-vous confirmé 📅",
+        "Rendez-vous confirmé",
         hello,
+        kicker="Agenda",
         lines=lines,
         cta_label="Voir mes rendez-vous",
         cta_url=f"{base}/client/account",
@@ -321,8 +376,9 @@ def send_new_booking_to_artisan(to_addr, when_label, customer_name, *, tenant_id
     if issue:
         lines.append(f"Demande : {issue}")
     html = render_email(
-        "Nouvelle demande de RDV 🔔",
+        "Nouvelle demande de rendez-vous",
         "Bonjour,",
+        kicker="Agenda",
         lines=lines,
         cta_label="Voir dans mon agenda",
         cta_url=f"{base}/appointments",
@@ -372,6 +428,7 @@ def send_devis_to_client(
     html = render_email(
         title,
         hello,
+        kicker="Devis",
         lines=lines,
         summary_html=summary,
         cta_label="Voir et signer le devis",
@@ -416,6 +473,7 @@ def send_booking_quote_for_signature(
     html = render_email(
         "Signez votre devis pour confirmer le rendez-vous",
         hello,
+        kicker="Devis",
         lines=[
             f"Vous avez demandé un créneau le <strong>{when_label}</strong>.",
             "Un devis pré-rempli vous attend. L'artisan ne se déplace qu'après "
@@ -455,6 +513,7 @@ def send_booking_quote_pending_to_artisan(
     html = render_email(
         "Devis envoyé — en attente de signature",
         "Bonjour,",
+        kicker="Devis",
         lines=[
             f"<strong>{customer_name or 'Un client'}</strong> a demandé le créneau "
             f"du <strong>{when_label}</strong>.",

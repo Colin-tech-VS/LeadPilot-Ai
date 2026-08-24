@@ -25,7 +25,8 @@ SESSION_MAX_AGE = 60 * 30  # 30 min sliding window ≈ one session
 
 # Paths we never count as "traffic".
 _SKIP_PREFIXES = ("/admin", "/static", "/voice", "/webhook", "/api", "/health",
-                  "/sw.js", "/manifest", "/robots", "/sitemap", "/llms", "/favicon")
+                  "/sw.js", "/manifest", "/robots", "/sitemap", "/llms", "/favicon",
+                  "/t/")
 
 # Broad bot / non-human client detection. Covers crawlers, SEO & monitoring
 # tools, HTTP libraries, headless browsers and link-preview fetchers — anything

@@ -100,7 +100,7 @@ TABLES = {
         Event, "Journal d'évènements", ["category", "action", "level", "summary"]),
     "email_messages": TableSpec(
         EmailMessage, "Emails", ["direction", "status", "from_addr", "to_addr",
-                                 "subject", "body"]),
+                                 "subject", "open_count", "click_count", "body"]),
     "page_views": TableSpec(
         PageView, "Pages vues", ["path", "referrer_host", "device", "geo_city",
                                  "geo_postal_code", "utm_source", "utm_campaign"]),
@@ -893,12 +893,15 @@ def emails():
         EmailMessage.direction == "inbound",
         EmailMessage.read_at.is_(None),
     ).count()
+    from app.services.email_tracking import outbound_stats
+
     return render_template(
         "admin/emails.html",
         messages=messages,
         box=box,
         q=q,
         unread=unread,
+        mail_stats=outbound_stats() if box in ("outbox", "all") else None,
         smtp_configured=admin_email.is_configured(),
         imap_configured=imap_mailbox.is_configured(),
         default_from=admin_email.default_from_addr(),
@@ -924,12 +927,18 @@ def email_detail(message_id):
         .order_by(EmailMessage.created_at.asc())
         .all()
     )
+    from app.services.email_tracking import format_rate
+
+    unique_open = 1 if msg.was_opened else 0
+    unique_click = 1 if msg.was_clicked else 0
     return render_template(
         "admin/email_detail.html",
         message=msg,
         thread=thread,
         attachments=msg.attachments(),
         smtp_configured=admin_email.is_configured(),
+        open_rate=format_rate(unique_open, 1) if msg.track_token else None,
+        click_rate=format_rate(unique_click, 1) if msg.track_token else None,
     )
 
 
@@ -1092,8 +1101,9 @@ def diagnostics_test_email():
     from app.services.transactional_email import render_email
 
     html = render_email(
-        "Test d'envoi PilotCore ✅",
+        "Test d'envoi PilotCore",
         "Ceci est un e-mail de test.",
+        kicker="Diagnostics",
         lines=[
             "Si vous recevez ce message, la configuration SMTP de PilotCore "
             "fonctionne : les e-mails transactionnels seront bien délivrés.",
@@ -1627,7 +1637,7 @@ def blog_delete(post_id):
 @admin_required
 def blog_preview(post_id):
     from app.services import blog as blog_svc
-    from app.utils.seo import blog_posting_json_ld, json_ld_script, logo_url
+    from app.utils.seo import blog_posting_json_ld, json_ld_script
 
     post = db.session.get(BlogPost, _pk_value(BlogPost, post_id))
     if not post:
@@ -1641,7 +1651,6 @@ def blog_preview(post_id):
         related=[],
         preview=True,
         nav_active="blog",
-        og_image=logo_url(),
         json_ld=json_ld_script(blog_posting_json_ld(post)),
     )
 
@@ -1740,18 +1749,57 @@ def api_blog_generate():
 @admin_bp.route("/social", endpoint="social")
 @admin_required
 def social_page():
+    from app.services import social_autopost
+    from app.services.social_image import image_public_url
     from app.services.social_links import targets_for_admin
+    from app.services.social_schedule import slot_reason
 
     cfg = social.get_config()
+    if social.is_configured():
+        social.refresh_never_expiring_token()
     fb_status = social.connection_status()
+    groups, groups_error = social.list_member_groups() if social.is_configured() else ([], None)
+    queued = social_autopost.queued_preview()
+    queued_image = image_public_url(queued.image_path) if queued and queued.image_path else ""
+    health = fb_status.get("token_health") or {}
+    expires_label = "inconnu"
+    queued_when = ""
+    queued_iso = ""
+    queued_reason = ""
+    if health.get("never_expires"):
+        expires_label = "illimité (n'expire pas)"
+    elif health.get("expires_at"):
+        from datetime import datetime, timezone
+
+        expires_label = datetime.fromtimestamp(int(health["expires_at"]), tz=timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
+    if queued and queued.scheduled_for:
+        from datetime import timezone
+        from zoneinfo import ZoneInfo
+
+        due = queued.scheduled_for
+        if due.tzinfo is None:
+            due = due.replace(tzinfo=timezone.utc)
+        queued_iso = due.isoformat()
+        queued_when = due.astimezone(ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
+        queued_reason = slot_reason(due)
     return render_template(
         "admin/social.html",
         posts=social.recent_posts(),
         facebook_connected=social.is_configured(),
         facebook_config=cfg,
         facebook_status=fb_status,
+        token_expires_label=expires_label,
         ai_available=content_ai.is_available(),
         link_targets=targets_for_admin(),
+        autopost=social_autopost.get_settings(),
+        queued=queued,
+        queued_image=queued_image,
+        queued_when=queued_when,
+        queued_iso=queued_iso,
+        queued_reason=queued_reason,
+        fb_groups=groups,
+        fb_groups_error=groups_error,
+        selected_group_ids=set(social.selected_group_ids()),
     )
 
 
@@ -1763,21 +1811,12 @@ def social_connect():
     if not page_id or not token:
         flash("Identifiant de page et token requis.", "error")
         return redirect(url_for("admin.social"))
-    pasted_page_token = social.is_page_access_token(token, page_id)
-    stored_token, page_name = social.prepare_page_token(page_id, token)
-    social.save_connection(page_id, stored_token, page_name or "")
-    ok, message = social.verify_connection(check_publish=False)
-    if ok:
-        if pasted_page_token:
-            detail = "Token de page enregistré tel quel."
-        elif stored_token != token:
-            detail = "Token utilisateur converti en token de page."
-        else:
-            detail = "Token enregistré."
-        flash(f"Page Facebook « {message} » connectée. {detail}", "success")
-        log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {message}", level=LEVEL_SUCCESS)
+    result = social.connect_page(page_id, token)
+    if result.get("ok"):
+        flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
+        log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {result['message']}", level=LEVEL_SUCCESS)
     else:
-        flash(f"Connexion impossible : {message}", "error")
+        flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
     return redirect(url_for("admin.social"))
 
 
@@ -1803,15 +1842,12 @@ def social_publish():
     if not message:
         flash("Le message ne peut pas être vide.", "error")
         return redirect(url_for("admin.social"))
+    if request.form.get("confirmed") != "1":
+        flash("Confirmez l'aperçu avant d'envoyer le post.", "error")
+        return redirect(url_for("admin.social"))
     if not image_path:
-        try:
-            from app.services import social_image
-
-            generated = social_image.generate_for_post(message[:500], tone="engageant")
-            image_path = generated["image_path"]
-        except content_ai.ContentAIError as exc:
-            flash(f"Impossible de créer le visuel : {exc}", "error")
-            return redirect(url_for("admin.social"))
+        flash("Générez d'abord le visuel — l'aperçu doit être visible avant l'envoi.", "error")
+        return redirect(url_for("admin.social"))
     tracked_link = ensure_tracked(link, target_key=target_key, content=content_tag)
     post = social.publish_post(
         message,
@@ -1864,6 +1900,81 @@ def api_social_generate():
     except Exception as exc:  # noqa: BLE001 — never 500 on IA generate
         current_app.logger.exception("social_ai_generate failed")
         return jsonify({"error": f"Génération impossible : {exc}"}), 502
+
+
+@admin_bp.route("/social/autopost", methods=["POST"])
+@admin_required
+def social_autopost_save():
+    from app.services import social_autopost
+
+    enabled = request.form.get("enabled") == "1"
+    try:
+        interval = int(request.form.get("interval") or 24)
+    except ValueError:
+        interval = 24
+    share_groups = request.form.get("share_groups") == "1"
+    group_ids = request.form.getlist("group_id")
+    social.save_group_ids(group_ids)
+    social_autopost.save_settings(interval=interval, share_groups=share_groups)
+    if enabled and not social.is_configured():
+        flash("Connectez d'abord une page Facebook pour activer l'autopublication.", "error")
+        return redirect(url_for("admin.social"))
+    try:
+        if enabled:
+            social_autopost.enable_autopost(interval)
+            flash("Autopublication activée. L'aperçu du prochain post reste visible jusqu'à l'envoi.", "success")
+        else:
+            social_autopost.disable_autopost()
+            flash("Autopublication désactivée. Rien ne partira automatiquement.", "success")
+    except content_ai.ContentAIError as exc:
+        flash(f"Impossible de préparer l'aperçu : {exc}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/queue/regenerate", methods=["POST"])
+@admin_required
+def social_queue_regenerate():
+    from app.services import social_autopost
+
+    current = social_autopost.queued_preview()
+    keep = current.scheduled_for if current else None
+    try:
+        social_autopost.generate_preview(keep_schedule=keep)
+        flash("Nouvel aperçu généré — l'heure d'envoi ne change pas.", "success")
+    except content_ai.ContentAIError as exc:
+        flash(f"Génération impossible : {exc}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/queue/save", methods=["POST"])
+@admin_required
+def social_queue_save():
+    from app.services import social_autopost
+
+    social_autopost.update_queued(
+        message=request.form.get("message"),
+        target_key=request.form.get("target_key"),
+    )
+    flash("Aperçu mis à jour. Il restera affiché jusqu'à l'envoi.", "success")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/queue/publish-now", methods=["POST"])
+@admin_required
+def social_queue_publish_now():
+    from app.services import social_autopost
+
+    if request.form.get("confirmed") != "1":
+        flash("Confirmez l'aperçu avant d'envoyer le post.", "error")
+        return redirect(url_for("admin.social"))
+    post = social_autopost.publish_queued_now()
+    if not post:
+        flash("Aucun aperçu en attente.", "error")
+    elif post.status == "published":
+        flash("Aperçu publié. Le prochain post est déjà visible ci-dessus.", "success")
+    else:
+        flash(f"Échec de la publication : {post.error}", "error")
+    return redirect(url_for("admin.social"))
 
 
 # ------------------------------------------------------------------ prospection B2B

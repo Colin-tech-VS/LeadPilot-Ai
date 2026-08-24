@@ -380,6 +380,7 @@ def send_outreach_email(prospect_id) -> dict:
     html = render_email(
         prospect.outreach_subject,
         intro_html,
+        kicker="Invitation",
         cta_label="Essayer PilotCore gratuitement",
         cta_url=f"{base_url}/register",
         outro=(

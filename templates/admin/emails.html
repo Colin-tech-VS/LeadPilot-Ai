@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<p class="dash-intro">Boîte de réception, envois SMTP et composition de messages.</p>
+<p class="dash-intro">Boîte de réception, envois SMTP et composition de messages. Les ouvertures et clics sont mesurés sur les destinataires réels — pas depuis /admin ni les adresses PilotCore.</p>
 {% if not smtp_configured %}
 <div class="admin-notice">SMTP non configuré — les envois sont <strong>simulés</strong>. Renseignez <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code>.</div>
 {% endif %}
@@ -38,6 +38,36 @@
   <button type="submit" class="admin-btn ghost">Chercher</button>
 </form>
 
+{% if mail_stats %}
+<div class="kpi-grid mail-kpi-grid">
+  <div class="kpi-card kpi-card--sm">
+    <span class="kpi-label">Envoyés</span>
+    <span class="kpi-value">{{ mail_stats.sent }}</span>
+    <span class="kpi-sub">avec suivi (hors internes)</span>
+  </div>
+  <div class="kpi-card kpi-card--sm">
+    <span class="kpi-label">Ouvertures</span>
+    <span class="kpi-value">{{ mail_stats.unique_opens }}</span>
+    <span class="kpi-sub">{{ mail_stats.total_opens }} au total</span>
+  </div>
+  <div class="kpi-card kpi-card--sm">
+    <span class="kpi-label">Taux d’ouverture</span>
+    <span class="kpi-value">{{ mail_stats.open_rate }}</span>
+    <span class="kpi-sub">uniques / envoyés</span>
+  </div>
+  <div class="kpi-card kpi-card--sm">
+    <span class="kpi-label">Clics</span>
+    <span class="kpi-value">{{ mail_stats.unique_clicks }}</span>
+    <span class="kpi-sub">{{ mail_stats.total_clicks }} au total</span>
+  </div>
+  <div class="kpi-card kpi-card--sm">
+    <span class="kpi-label">Taux de clic</span>
+    <span class="kpi-value">{{ mail_stats.click_rate }}</span>
+    <span class="kpi-sub">CTOR {{ mail_stats.ctor }}</span>
+  </div>
+</div>
+{% endif %}
+
 <div class="admin-tabs">
   <a href="?box=inbox{% if q %}&q={{ q|urlencode }}{% endif %}" class="admin-tab {% if box == 'inbox' %}active{% endif %}">📥 Reçus{% if unread %} ({{ unread }}){% endif %}</a>
   <a href="?box=outbox{% if q %}&q={{ q|urlencode }}{% endif %}" class="admin-tab {% if box == 'outbox' %}active{% endif %}">📤 Envoyés</a>
@@ -53,6 +83,14 @@
         <strong>{{ m.subject or '(sans objet)' }}</strong>
         <span class="mail-status status-{{ m.status }}">{{ m.status }}</span>
         {% if m.attachments() %}<span class="mail-attach-icon" title="Pièces jointes">📎</span>{% endif %}
+        {% if m.direction == 'outbound' and m.track_token %}
+        <span class="mail-eng {% if m.was_opened %}is-on{% endif %}" title="Ouvertures uniques / totales">
+          {{ 'Ouvert' if m.was_opened else 'Non ouvert' }}{% if m.opens > 1 %} · {{ m.opens }}{% endif %}
+        </span>
+        <span class="mail-eng {% if m.was_clicked %}is-on{% endif %}" title="Clics uniques / totaux">
+          {{ m.clicks }} clic{{ 's' if m.clicks != 1 else '' }}
+        </span>
+        {% endif %}
       </div>
       <div class="mail-meta">
         {{ m.from_addr or '—' }} → {{ m.to_addr or '—' }}

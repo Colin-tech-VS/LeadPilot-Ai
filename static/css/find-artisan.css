@@ -172,6 +172,11 @@
 .fa-btn--lg { padding: 15px 28px; font-size: 16px; }
 .fa-search .fa-btn { flex: 0 0 auto; align-self: stretch; }
 
+.fa-hero .dl-trades {
+  margin-top: 22px;
+  padding-top: 20px;
+}
+
 .fa-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 
 /* ---- Trust row (CRO) ---- */

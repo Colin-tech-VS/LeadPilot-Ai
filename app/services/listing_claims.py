@@ -239,8 +239,6 @@ def reject(claim, *, note: str = "") -> None:
 
 def _send_welcome(claim, tenant) -> bool:
     """Mail the artisan a link to set their password. Best-effort."""
-    from app.services import admin_email
-
     try:
         from flask import url_for
 
@@ -250,31 +248,42 @@ def _send_welcome(claim, tenant) -> bool:
     except Exception:  # noqa: BLE001
         link = "https://www.pilotcore.fr/forgot-password"
 
-    body = "\n".join(
-        [
-            f"Bonjour {claim.contact_name},",
-            "",
-            f"Votre fiche « {tenant.name} » vous a été transférée sur PilotCore.",
-            "",
-            "Pour y accéder, définissez votre mot de passe ici :",
-            link,
-            "",
-            f"Identifiant : {claim.email}",
-            "",
-            "Vous pourrez alors publier vos coordonnées, votre zone d'intervention",
-            "et activer la prise de rendez-vous en ligne.",
-            "",
-            "— L'équipe PilotCore",
-        ]
-    )
     try:
-        admin_email.send_email(
+        from app.services import admin_email
+        from app.services.transactional_email import render_email
+
+        hello = f"Bonjour {claim.contact_name}," if claim.contact_name else "Bonjour,"
+        html = render_email(
+            f"Votre fiche {tenant.name} vous a été transférée",
+            hello,
+            kicker="Annuaire",
+            lines=[
+                f"Votre fiche « {tenant.name} » vous a été transférée sur PilotCore.",
+                f"<strong>Identifiant :</strong> {claim.email}",
+                "Définissez votre mot de passe pour publier vos coordonnées, "
+                "votre zone d'intervention et activer la prise de rendez-vous en ligne.",
+            ],
+            cta_label="Définir mon mot de passe",
+            cta_url=link,
+        )
+        text = "\n".join(
+            [
+                hello,
+                "",
+                f"Votre fiche « {tenant.name} » vous a été transférée sur PilotCore.",
+                f"Définissez votre mot de passe : {link}",
+                f"Identifiant : {claim.email}",
+            ]
+        )
+        row = admin_email.send_email(
             claim.email,
             f"Votre fiche {tenant.name} vous a été transférée",
-            body,
+            text,
+            is_html=True,
+            html_body=html,
             tenant_id=tenant.id,
         )
-        return True
+        return bool(row)
     except Exception:  # noqa: BLE001
         logger.exception("Welcome email failed for claim %s", claim.id)
         return False

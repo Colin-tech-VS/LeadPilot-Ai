@@ -143,6 +143,8 @@ class Config:
     SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "0") not in ("0", "false", "False", "")
     EMAIL_FROM = os.environ.get("EMAIL_FROM", "contact@pilotcore.fr")
     EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
+    # Comma-separated addresses that never get open/click tracking (operator mailbox).
+    EMAIL_TRACKING_EXCLUDE = os.environ.get("EMAIL_TRACKING_EXCLUDE", "")
 
     # IMAP — réception boîte LWS (mail.pilotcore.fr:993)
     IMAP_HOST = os.environ.get("IMAP_HOST", "")
@@ -171,6 +173,11 @@ class Config:
     # Google Search Console (OAuth admin dashboard at /admin/gsc)
     GOOGLE_GSC_CLIENT_ID = os.environ.get("GOOGLE_GSC_CLIENT_ID", "")
     GOOGLE_GSC_CLIENT_SECRET = os.environ.get("GOOGLE_GSC_CLIENT_SECRET", "")
+
+    # Facebook Graph (admin /admin/social). App credentials let us exchange a
+    # short-lived user token for a never-expiring Page token.
+    FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "")
+    FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "")
 
     # Prospection B2B — recherche web d'artisans (admin /admin/prospecting).
     # SerpAPI (recommandé) ou Google Custom Search JSON API.

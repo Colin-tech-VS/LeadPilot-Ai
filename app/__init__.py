@@ -252,6 +252,19 @@ def _ensure_schema_updates():
     except Exception:
         logging.getLogger(__name__).debug("tenant directory defaults patch skipped", exc_info=True)
 
+    # Independent of quotes/users tables — do not skip behind later early returns.
+    if "social_posts" in inspector.get_table_names():
+        sp_columns = {col["name"] for col in inspector.get_columns("social_posts")}
+        if "image_path" not in sp_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE social_posts ADD COLUMN image_path VARCHAR(300)"))
+        if "target_key" not in sp_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE social_posts ADD COLUMN target_key VARCHAR(40)"))
+        if "scheduled_for" not in sp_columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE social_posts ADD COLUMN scheduled_for {ts_type}"))
+
     if "quotes" not in inspector.get_table_names():
         return
     quote_columns = {col["name"] for col in inspector.get_columns("quotes")}
@@ -280,6 +293,14 @@ def _ensure_schema_updates():
         "imap_uid": "VARCHAR(64)",
         "imap_folder": "VARCHAR(64)",
         "attachments_json": "TEXT",
+        "track_token": "VARCHAR(64)",
+        "open_count": "INTEGER DEFAULT 0",
+        "click_count": "INTEGER DEFAULT 0",
+        "first_opened_at": ts_type,
+        "last_opened_at": ts_type,
+        "first_clicked_at": ts_type,
+        "last_clicked_at": ts_type,
+        "click_urls_json": "TEXT",
     }
     for col_name, col_type in email_patches.items():
         if col_name not in email_columns:
@@ -334,12 +355,6 @@ def _ensure_schema_updates():
             if col_name not in pv_columns:
                 with db.engine.begin() as conn:
                     conn.execute(text(f"ALTER TABLE page_views ADD COLUMN {col_name} {col_type}"))
-
-    if "social_posts" in inspector.get_table_names():
-        sp_columns = {col["name"] for col in inspector.get_columns("social_posts")}
-        if "image_path" not in sp_columns:
-            with db.engine.begin() as conn:
-                conn.execute(text("ALTER TABLE social_posts ADD COLUMN image_path VARCHAR(300)"))
 
     table_names = set(inspector.get_table_names())
 

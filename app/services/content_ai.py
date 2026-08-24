@@ -225,7 +225,7 @@ def generate_blog_post(prompt: str, tone: str = "expert", *, category_hint: str 
 
 _SOCIAL_BRAND = (
     "Charte PilotCore (direction artistique du site) :\n"
-    "- Couleurs : bleu #1B57E0, cyan #06B6D4, vert #10B981, fond clair moderne.\n"
+        "- Couleurs : papier #EFE9DC, crème #FBF7EE, encre #1A2332 — jamais de bleu.\n"
     "- Ton : humain, rassurant, pro mais accessible — jamais corporate froid.\n"
     "- Vocabulaire site : artisan, RDV en ligne, assistant vocal IA, dépannage, "
     "standard téléphonique, ne ratez plus aucun appel, essai gratuit 14 jours.\n"

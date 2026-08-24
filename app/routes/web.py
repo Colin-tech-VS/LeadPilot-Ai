@@ -371,9 +371,14 @@ def listing_page(siren):
     lang = getattr(g, "lang", "fr")
     city = city_info(listing.city_slug) if listing.city_slug else None
     dept = department_info(listing.dept_code) if listing.dept_code else None
+    from app.utils.naming import display_name
+
     return render_template(
         "public/listing_page.html",
         listing=listing,
+        name=display_name(listing.name),
+        city_name=(city["name"] if city else display_name(listing.city)),
+        naf_label=_ri.naf_label(listing.naf_code),
         label=trade_label(listing.trade_key, lang),
         schema_type=trade_schema_type(listing.trade_key),
         city=city,

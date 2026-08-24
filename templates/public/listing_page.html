@@ -2,9 +2,9 @@
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
 
-{% set _place = listing.city or (department.name if department else 'France') %}
-{% set _t = listing.name ~ ' — ' ~ label ~ ' à ' ~ _place %}
-{% set _d = listing.name ~ ', ' ~ label|lower ~ ' à ' ~ _place
+{% set _place = city_name or (department.name if department else 'France') %}
+{% set _t = name ~ ' — ' ~ label ~ ' à ' ~ _place ~ (' (' ~ listing.postal_code ~ ')' if listing.postal_code else '') %}
+{% set _d = name ~ ', ' ~ label|lower ~ ' à ' ~ _place
             ~ (' (' ~ listing.postal_code ~ ')' if listing.postal_code else '')
             ~ (', en activité depuis ' ~ listing.years_active ~ ' ans' if listing.years_active else '')
             ~ '. Fiche issue du registre officiel des entreprises — SIREN ' ~ listing.siren ~ '.' %}
@@ -12,6 +12,25 @@
 
 {% block title %}{{ _t }}{% endblock %}
 {% block body_class %}fa-page page-listing{% endblock %}
+
+{% set _faq_age %}
+{%- if listing.date_creation -%}
+{{ name }} est immatriculée au registre des entreprises depuis le {{ listing.date_creation }}{% if listing.years_active %}, soit {{ listing.years_active }} ans d'activité{% endif %}.
+{%- else -%}
+La date d'immatriculation de {{ name }} n'est pas renseignée au registre.
+{%- endif -%}
+{% endset %}
+{% set _faq_where %}
+{%- if listing.address -%}
+Le siège de {{ name }} est situé {{ listing.address }}{% if department %}, dans le département {{ department.name }} ({{ department.code }}){% endif %}.
+{%- elif city_name -%}
+{{ name }} est domiciliée à {{ city_name }}{% if listing.postal_code %} ({{ listing.postal_code }}){% endif %}.
+{%- else -%}
+L'adresse de {{ name }} n'est pas renseignée au registre.
+{%- endif -%}
+{% endset %}
+{% set _faq_siren %}Le SIREN de {{ name }} est {{ listing.siren }}{% if listing.siret %}, et le SIRET de son siège {{ listing.siret }}{% endif %}{% if naf_label %}. Son activité principale déclarée est « {{ naf_label }} »{% if listing.naf_code %} (code APE {{ listing.naf_code }}){% endif %}{% endif %}.{% endset %}
+{% set _faq_booking %}Pas encore. Cette fiche est issue du registre officiel et n'a pas été revendiquée par {{ name }} : ni ses coordonnées, ni ses disponibilités ne sont publiées. La prise de rendez-vous en ligne devient possible une fois que l'entreprise a repris sa fiche.{% endset %}
 
 {% block meta %}
 {% set page_ld %}
@@ -25,13 +44,13 @@
         { "@type": "ListItem", "position": 2, "name": "Annuaire", "item": {{ canonical_url('/artisans')|tojson }} },
         { "@type": "ListItem", "position": 3, "name": {{ (label ~ ' à ' ~ _place)|tojson }},
           "item": {{ canonical_url('/artisans/' ~ listing.trade_key ~ '/' ~ (listing.city_slug or ''))|tojson }} },
-        { "@type": "ListItem", "position": 4, "name": {{ listing.name|tojson }}, "item": {{ canonical_url(_path)|tojson }} }
+        { "@type": "ListItem", "position": 4, "name": {{ name|tojson }}, "item": {{ canonical_url(_path)|tojson }} }
       ]
     },
     {
       "@type": ["Organization", {{ schema_type|tojson }}],
       "@id": {{ (canonical_url(_path) ~ '#business')|tojson }},
-      "name": {{ listing.name|tojson }},
+      "name": {{ name|tojson }},
       "description": {{ _d|tojson }},
       "url": {{ canonical_url(_path)|tojson }},
       "identifier": [
@@ -46,7 +65,7 @@
       "address": {
         "@type": "PostalAddress"
         {%- if listing.address %}, "streetAddress": {{ listing.address|tojson }}{% endif %}
-        {%- if listing.city %}, "addressLocality": {{ listing.city|tojson }}{% endif %}
+        {%- if city_name %}, "addressLocality": {{ city_name|tojson }}{% endif %}
         {%- if listing.postal_code %}, "postalCode": {{ listing.postal_code|tojson }}{% endif %},
         "addressCountry": "FR"
       }
@@ -54,11 +73,36 @@
       {%- if listing.latitude and listing.longitude %},
       "geo": { "@type": "GeoCoordinates", "latitude": {{ listing.latitude|tojson }}, "longitude": {{ listing.longitude|tojson }} }
       {%- endif %}
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": {{ ("Depuis quand " ~ name ~ " est-elle en activité ?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _faq_age|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ ("Où se trouve " ~ name ~ " ?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _faq_where|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ ("Quel est le numéro SIREN de " ~ name ~ " ?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _faq_siren|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ ("Peut-on prendre rendez-vous avec " ~ name ~ " sur PilotCore ?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _faq_booking|tojson }} }
+        }
+      ]
     }
   ]
 }
 {% endset %}
-{{ seo_meta(_t, _d, _path, label ~ ', ' ~ _place ~ ', ' ~ listing.name, 'website', None, robots, page_ld, lang) }}
+{{ seo_meta(_t, _d, _path, label ~ ', ' ~ _place ~ ', ' ~ name, 'website', None, robots, page_ld, lang) }}
 {% endblock %}
 
 {% block content %}
@@ -70,15 +114,15 @@
       <a href="{{ url_for('web.artisan_directory') }}">Annuaire</a>
       {% if listing.city_slug %}
       <span aria-hidden="true">›</span>
-      <a href="{{ url_for('web.artisan_trade_city_landing', trade=listing.trade_key, city=listing.city_slug) }}">{{ label }} à {{ listing.city }}</a>
+      <a href="{{ url_for('web.artisan_trade_city_landing', trade=listing.trade_key, city=listing.city_slug) }}">{{ label }} à {{ city_name }}</a>
       {% endif %}
       <span aria-hidden="true">›</span>
-      <span aria-current="page">{{ listing.name }}</span>
+      <span aria-current="page">{{ name }}</span>
     </div>
   </nav>
   <div class="container dl-hero-inner">
-    <h1 class="dl-hero-title dl-hero-title--sm">{{ listing.name }}</h1>
-    <p class="dl-hero-lead">{{ label }}{% if listing.city %} à {{ listing.city }}{% endif %}</p>
+    <h1 class="dl-hero-title dl-hero-title--sm">{{ name }}</h1>
+    <p class="dl-hero-lead">{{ label }}{% if city_name %} à {{ city_name }}{% endif %}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</p>
   </div>
 </section>
 
@@ -90,7 +134,7 @@
         <strong>Fiche non revendiquée</strong>
         <p>
           Cette fiche a été créée à partir du registre officiel des entreprises.
-          {{ listing.name }} n'a pas encore renseigné ses coordonnées, sa zone
+          {{ name }} n'a pas encore renseigné ses coordonnées, sa zone
           d'intervention ni ses disponibilités sur PilotCore — nous ne les
           publions donc pas.
         </p>
@@ -99,10 +143,22 @@
         </a>
       </div>
 
+      <h2>{{ name }} en quelques faits</h2>
+      <p>
+        {{ name }} est {% if listing.years_active %}une entreprise en activité depuis
+        {{ listing.years_active }} ans{% else %}une entreprise{% endif %} du secteur
+        {{ label|lower }}{% if city_name %}, domiciliée à {{ city_name }}{% if listing.postal_code %} ({{ listing.postal_code }}){% endif %}{% endif %}{% if department %},
+        dans le département {{ department.name }}{% endif %}.
+        {% if naf_label %}Son activité principale déclarée au registre est
+        « {{ naf_label }} »{% if listing.naf_code %}, code APE {{ listing.naf_code }}{% endif %}.{% endif %}
+        {% if listing.date_creation %}Elle est immatriculée depuis le {{ listing.date_creation }}
+        sous le numéro SIREN {{ listing.siren }}.{% endif %}
+      </p>
+
       <h2>Informations au registre</h2>
       <dl class="dl-facts-grid">
-        <div><dt>Raison sociale</dt><dd>{{ listing.name }}</dd></div>
-        <div><dt>Activité</dt><dd>{{ label }}{% if listing.naf_code %} (APE {{ listing.naf_code }}){% endif %}</dd></div>
+        <div><dt>Raison sociale</dt><dd>{{ name }}</dd></div>
+        <div><dt>Activité déclarée</dt><dd>{{ naf_label or label }}{% if listing.naf_code %}<br><span class="dl-registry-meta">code APE {{ listing.naf_code }}</span>{% endif %}</dd></div>
         <div><dt>SIREN</dt><dd>{{ listing.siren }}</dd></div>
         {% if listing.siret %}<div><dt>SIRET (siège)</dt><dd>{{ listing.siret }}</dd></div>{% endif %}
         {% if listing.date_creation %}
@@ -119,30 +175,48 @@
       </p>
 
       {% if price_facts %}
-      <h2>Tarifs indicatifs — {{ label|lower }}</h2>
-      <p>
-        Un {{ label|lower }} facture généralement entre <strong>{{ price_facts.min_eur }} €</strong>
-        et <strong>{{ price_facts.max_eur }} € TTC</strong> selon l'intervention.
-        Ces montants sont des ordres de grandeur du marché, pas les tarifs de
-        {{ listing.name }} — seul un devis engage l'entreprise.
-        <a href="{{ url_for('web.price_reference') }}#prix-{{ listing.trade_key }}">Voir le détail</a>.
+      <p class="lp-more">
+        Ordres de grandeur du marché pour ce métier&nbsp;: {{ price_facts.min_eur }} à
+        {{ price_facts.max_eur }} € TTC selon l'intervention — ce ne sont pas les tarifs de
+        {{ name }}, seul un devis engage l'entreprise.
+        <a href="{{ url_for('web.price_reference') }}#prix-{{ listing.trade_key }}">Voir le référentiel</a>.
       </p>
       {% endif %}
 
-      {% if trade_guide and trade_guide.intro_html %}
-      <h2>Le métier de {{ label|lower }}</h2>
-      <div class="dl-guide-intro">{{ trade_guide.intro_html | safe }}</div>
-      <p><a href="{{ url_for('web.artisan_trade_landing', trade=listing.trade_key) }}">Guide complet {{ label|lower }}</a></p>
-      {% endif %}
+      <h2>Questions fréquentes sur {{ name }}</h2>
+      <div class="dl-local-faq">
+        <details class="faq-item" open>
+          <summary>Depuis quand {{ name }} est-elle en activité&nbsp;?</summary>
+          <p>{{ _faq_age }}</p>
+        </details>
+        <details class="faq-item">
+          <summary>Où se trouve {{ name }}&nbsp;?</summary>
+          <p>{{ _faq_where }}</p>
+        </details>
+        <details class="faq-item">
+          <summary>Quel est le numéro SIREN de {{ name }}&nbsp;?</summary>
+          <p>{{ _faq_siren }}</p>
+        </details>
+        <details class="faq-item">
+          <summary>Peut-on prendre rendez-vous avec {{ name }} sur PilotCore&nbsp;?</summary>
+          <p>{{ _faq_booking }}</p>
+        </details>
+      </div>
+
+      <p class="lp-more">
+        Pour en savoir plus sur ce métier&nbsp;:
+        <a href="{{ url_for('web.artisan_trade_landing', trade=listing.trade_key) }}">guide {{ label|lower }}</a>{% if listing.city_slug %},
+        <a href="{{ url_for('web.artisan_trade_city_landing', trade=listing.trade_key, city=listing.city_slug) }}">{{ label|lower }}s à {{ city_name }}</a>{% endif %}.
+      </p>
     </article>
 
     <aside class="dl-local-aside">
       {% if same_city %}
       <div class="dl-local-box">
-        <h3>Autres {{ label|lower }}s à {{ listing.city }}</h3>
+        <h3>Autres {{ label|lower }}s à {{ city_name }}</h3>
         <div class="dl-local-links">
           {% for o in same_city %}
-          <a href="{{ url_for('web.listing_page', siren=o.siren) }}">{{ o.name }}</a>
+          <a href="{{ url_for('web.listing_page', siren=o.siren) }}">{{ o.name | display_name }}</a>
           {% endfor %}
         </div>
       </div>
@@ -151,7 +225,7 @@
       <div class="dl-local-box">
         <h3>Voir aussi</h3>
         <div class="dl-local-links">
-          <a href="{{ url_for('web.artisan_trade_city_landing', trade=listing.trade_key, city=listing.city_slug) }}">Tous les {{ label|lower }}s à {{ listing.city }}</a>
+          <a href="{{ url_for('web.artisan_trade_city_landing', trade=listing.trade_key, city=listing.city_slug) }}">Tous les {{ label|lower }}s à {{ city_name }}</a>
           {% if department %}
           <a href="{{ url_for('web.artisan_trade_department_landing', trade=listing.trade_key, dept=department.slug) }}">{{ label }} — {{ department.name }}</a>
           {% endif %}

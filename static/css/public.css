@@ -2067,3 +2067,4 @@ html {
 .lp-unclaimed { padding: 20px 22px; border: 1px solid var(--border); border-left: 3px solid var(--primary, #f97316); border-radius: 0 var(--radius-lg, 18px) var(--radius-lg, 18px) 0; background: var(--card); }
 .lp-unclaimed strong { display: block; margin: 0 0 8px; }
 .lp-unclaimed p { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+.lp-more { font-size: 14px; color: var(--muted); }

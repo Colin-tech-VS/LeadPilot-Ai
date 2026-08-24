@@ -83,6 +83,12 @@ def create_app(config_object=None):
 def _register_plan_context(app):
     """Inject plan capabilities for logged-in artisans."""
 
+    # The register stores names in uppercase; templates that surface them need a
+    # cased form without each one re-implementing the rules.
+    from app.utils.naming import display_name as _display_name
+
+    app.jinja_env.filters["display_name"] = _display_name
+
     @app.context_processor
     def inject_plan_caps():
         from flask import g

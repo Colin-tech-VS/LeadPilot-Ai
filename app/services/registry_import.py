@@ -285,3 +285,25 @@ def stats() -> dict:
         "opted_out": by_status.get(STATUS_OPTED_OUT, 0),
         "cities": db.session.query(func.count(func.distinct(RegistryListing.city_slug))).scalar() or 0,
     }
+
+
+# Official NAF (APE) wording, quoted verbatim from the nomenclature. Stating the
+# declared activity in the register's own words is both accurate and a genuine
+# entity signal on a company page.
+NAF_LABELS: dict[str, str] = {
+    "43.22A": "Travaux d'installation d'eau et de gaz en tous locaux",
+    "43.22B": "Travaux d'installation d'équipements thermiques et de climatisation",
+    "43.21A": "Travaux d'installation électrique dans tous locaux",
+    "43.32A": "Travaux de menuiserie bois et PVC",
+    "43.32B": "Travaux de menuiserie métallique et serrurerie",
+    "43.34Z": "Travaux de peinture et vitrerie",
+    "43.33Z": "Travaux de revêtement des sols et des murs",
+    "43.91A": "Travaux de charpente",
+    "43.91B": "Travaux de couverture par éléments",
+    "43.99C": "Travaux de maçonnerie générale et gros œuvre de bâtiment",
+    "81.30Z": "Services d'aménagement paysager",
+}
+
+
+def naf_label(code: str | None) -> str | None:
+    return NAF_LABELS.get((code or "").strip().upper())

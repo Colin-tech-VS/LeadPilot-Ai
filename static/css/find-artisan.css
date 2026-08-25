@@ -49,11 +49,6 @@
 .fa-hero {
   padding: 34px 0 40px;
 }
-.fa-hero--urgent {
-  background:
-    radial-gradient(1200px 400px at 80% -10%, rgba(240, 68, 56, 0.10), transparent),
-    linear-gradient(180deg, #FFF6F5 0%, var(--lp-bg) 100%);
-}
 .fa-hero--pillar {
   background:
     radial-gradient(1200px 460px at 78% -10%, rgba(26, 35, 50, 0.12), transparent),
@@ -79,7 +74,6 @@
   color: var(--lp-brand-deep);
   margin-bottom: 18px;
 }
-.fa-hero--urgent .fa-kicker { color: var(--lp-danger); }
 .fa-hero h1 {
   font-size: clamp(2rem, 4.4vw, 3.05rem);
   line-height: 1.08;
@@ -88,7 +82,6 @@
   font-weight: 800;
 }
 .fa-hero h1 em { color: var(--lp-brand); font-style: normal; }
-.fa-hero--urgent h1 em { color: var(--lp-danger); }
 .fa-hero-lead {
   font-size: 1.14rem;
   line-height: 1.6;
@@ -125,7 +118,7 @@
   font-size: 15px;
   font-family: inherit;
   color: var(--lp-text);
-  background: #fff;
+  background: var(--lp-surface);
 }
 .fa-search-field select:focus,
 .fa-search-field input:focus {
@@ -152,17 +145,11 @@
 }
 .fa-btn:active { transform: translateY(1px); }
 .fa-btn--primary {
-  background: #1A2332;
-  color: #fff;
+  background: var(--lp-brand);
+  color: var(--lp-text-inverse);
   box-shadow: 0 8px 20px rgba(26, 35, 50, 0.28);
 }
 .fa-btn--primary:hover { box-shadow: 0 12px 26px rgba(26, 35, 50, 0.36); }
-.fa-btn--danger {
-  background: linear-gradient(180deg, #F45B50, var(--lp-danger));
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(240, 68, 56, 0.28);
-}
-.fa-btn--danger:hover { box-shadow: 0 12px 26px rgba(240, 68, 56, 0.36); }
 .fa-btn--ghost {
   background: var(--lp-surface);
   color: var(--lp-brand-deep);
@@ -222,7 +209,6 @@
   background: var(--lp-brand); color: #fff;
   display: grid; place-items: center; font-size: 13px; font-weight: 700;
 }
-.fa-hero--urgent .fa-mini-num { background: var(--lp-danger); }
 .fa-mini-list strong { display: block; font-size: 14px; }
 .fa-mini-list span { font-size: 13px; color: var(--lp-text-muted); }
 
@@ -242,9 +228,6 @@
   font-size: 12px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
   color: var(--lp-brand-mid); margin-bottom: 10px;
 }
-.fa-hero--urgent ~ .fa-section .fa-eyebrow,
-.fa-section .fa-eyebrow--danger { color: var(--lp-danger); }
-
 /* ---- Steps ---- */
 .fa-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .fa-step {
@@ -268,6 +251,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   gap: 14px;
+}
+.page-depannage-urgent .fa-trades {
+  grid-template-columns: repeat(3, 1fr);
 }
 .fa-trade-card {
   display: flex; align-items: center; gap: 13px;
@@ -306,9 +292,9 @@
 .fa-prose { max-width: 780px; margin: 0 auto; }
 .fa-prose h2 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); margin: 0 0 14px; letter-spacing: -0.01em; }
 .fa-prose h3 { font-size: 1.2rem; margin: 28px 0 10px; }
-.fa-prose p { font-size: 1.02rem; line-height: 1.72; color: #33405a; margin: 0 0 16px; }
+.fa-prose p { font-size: 1.02rem; line-height: 1.72; color: var(--lp-text-muted); margin: 0 0 16px; }
 .fa-prose ul { margin: 0 0 18px; padding-left: 22px; }
-.fa-prose li { font-size: 1.02rem; line-height: 1.7; color: #33405a; margin-bottom: 8px; }
+.fa-prose li { font-size: 1.02rem; line-height: 1.7; color: var(--lp-text-muted); margin-bottom: 8px; }
 .fa-prose a { color: var(--lp-brand-mid); font-weight: 600; }
 
 /* ---- FAQ ---- */
@@ -337,20 +323,17 @@
   margin: 0 auto;
   max-width: 960px;
   text-align: center;
-  background: #1A2332;
-  color: #fff;
+  background: var(--lp-brand);
+  color: var(--lp-text-inverse);
   border-radius: var(--lp-radius-lg);
   padding: 48px 28px;
   box-shadow: var(--lp-shadow-lg);
 }
-.fa-cta--urgent { background: linear-gradient(135deg, #8A1B14, var(--lp-danger)); }
 .fa-cta h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0 0 10px; font-weight: 800; }
 .fa-cta p { font-size: 1.08rem; opacity: 0.92; margin: 0 0 24px; }
-.fa-cta .fa-btn--primary,
-.fa-cta .fa-btn--danger { background: #fff; color: var(--lp-brand-deep); box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
-.fa-cta--urgent .fa-btn--danger { color: #8A1B14; }
+.fa-cta .fa-btn--primary { background: var(--lp-surface); color: var(--lp-brand-deep); box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
 .fa-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-.fa-cta .fa-btn--ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.55); }
+.fa-cta .fa-btn--ghost { background: transparent; color: var(--lp-text-inverse); border-color: rgba(246, 241, 230, 0.55); }
 
 /* ---- Internal links footer strip ---- */
 .fa-links { display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center; margin-top: 8px; }
@@ -366,9 +349,11 @@
   .fa-hero-grid { grid-template-columns: 1fr; gap: 30px; }
   .fa-steps { grid-template-columns: 1fr; }
   .fa-values { grid-template-columns: 1fr; gap: 26px; }
+  .page-depannage-urgent .fa-trades { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {
   .fa-search { flex-direction: column; align-items: stretch; }
   .fa-search .fa-btn { width: 100%; }
   .fa-hero-actions .fa-btn, .fa-cta-actions .fa-btn { width: 100%; }
+  .page-depannage-urgent .fa-trades { grid-template-columns: 1fr; }
 }

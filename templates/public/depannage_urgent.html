@@ -12,7 +12,7 @@
 {% block body_class %}fa-page page-depannage-urgent{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=4">
 {% endblock %}
 
 {% block meta %}
@@ -65,10 +65,10 @@
 {% macro _check_icon() %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endmacro %}
 {{ breadcrumb([('Accueil', url_for('web.client_home')), ('Trouver un artisan', url_for('web.find_artisan')), ('Dépannage urgent', None)]) }}
 
-<section class="fa-hero fa-hero--urgent">
+<section class="fa-hero fa-hero--pillar">
   <div class="container fa-hero-grid">
     <div>
-      <span class="fa-kicker">⚡ Urgence · disponible 24h/24 · 7j/7</span>
+      <span class="fa-kicker">Urgence · 24h/24 · 7j/7</span>
       <h1>Un <em>dépannage urgent</em> ? Trouvez un artisan disponible maintenant</h1>
       <p class="fa-hero-lead">
         Fuite d'eau, porte claquée, panne de courant, chauffage en rade… Trouvez un plombier,
@@ -76,35 +76,24 @@
         Devis avant déplacement, réservation immédiate.
       </p>
 
-      <form id="du-search" class="fa-search" action="{{ url_for('web.artisan_directory') }}" method="get" role="search" aria-label="Rechercher un artisan en urgence">
+      <form class="fa-search" action="{{ url_for('web.artisan_directory') }}" method="get" role="search" aria-label="Rechercher un artisan en urgence">
+        <div class="fa-search-field">
+          <label for="du-metier">Métier</label>
+          <select id="du-metier" name="metier">
+            <option value="">Tous les métiers</option>
+            {% for t in trades %}
+            {% if t.key in urgent_hints %}
+            <option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
         <div class="fa-search-field">
           <label for="du-ville">Ville ou code postal</label>
           <input type="text" id="du-ville" name="ville" class="places-where" placeholder="Ex. : Marseille, 13006, 12 rue…" autocomplete="off" data-places-where>
         </div>
-        <button type="submit" class="fa-btn fa-btn--danger">Trouver en urgence</button>
+        <button type="submit" class="fa-btn fa-btn--primary">Trouver un artisan</button>
       </form>
-
-      <nav class="dl-trades dl-trades--compact" aria-label="{{ _('vitrine.classic_search') }}">
-        <h2 class="dl-trades-kicker">{{ _('vitrine.classic_search') }}</h2>
-        <ul class="dl-trades-grid">
-          {% for t in trades %}
-          {% if t.key in urgent_hints %}
-          <li>
-            <button type="submit" form="du-search" name="metier" value="{{ t.key }}" class="dl-trade">
-              <span class="dl-trade-ico" aria-hidden="true">{{ t.icon }}</span>
-              <span class="dl-trade-name">{{ t.label }}</span>
-            </button>
-          </li>
-          {% endif %}
-          {% endfor %}
-          <li class="dl-trades-all">
-            <button type="submit" form="du-search" name="metier" value="" class="dl-trade dl-trade--all">
-              <span class="dl-trade-ico" aria-hidden="true">✦</span>
-              <span class="dl-trade-name">{{ _('directory.all_trades') }}</span>
-            </button>
-          </li>
-        </ul>
-      </nav>
 
       <ul class="fa-trust">
         <li>{{ _check_icon() }} Disponible 24h/24 &amp; 7j/7</li>
@@ -118,9 +107,9 @@
       <h2>Les bons réflexes</h2>
       <p>Avant l'arrivée de l'artisan, limitez les dégâts.</p>
       <ul class="fa-mini-list">
-        <li><span class="fa-mini-num">💧</span><span><strong>Fuite d'eau</strong><span>Coupez l'arrivée d'eau au compteur.</span></span></li>
-        <li><span class="fa-mini-num">⚡</span><span><strong>Panne électrique</strong><span>Coupez le disjoncteur général, ne touchez rien d'humide.</span></span></li>
-        <li><span class="fa-mini-num">🔑</span><span><strong>Porte claquée</strong><span>Ne forcez pas la serrure, contactez un serrurier.</span></span></li>
+        <li><span class="fa-mini-num">1</span><span><strong>Fuite d'eau</strong><span>Coupez l'arrivée d'eau au compteur.</span></span></li>
+        <li><span class="fa-mini-num">2</span><span><strong>Panne électrique</strong><span>Coupez le disjoncteur général, ne touchez rien d'humide.</span></span></li>
+        <li><span class="fa-mini-num">3</span><span><strong>Porte claquée</strong><span>Ne forcez pas la serrure, contactez un serrurier.</span></span></li>
       </ul>
     </aside>
   </div>
@@ -129,25 +118,24 @@
 <section class="fa-section">
   <div class="container">
     <div class="fa-section-head">
-      <span class="fa-eyebrow fa-eyebrow--danger">Interventions d'urgence</span>
+      <span class="fa-eyebrow">Interventions d'urgence</span>
       <h2>Quel dépannage vous faut-il ?</h2>
       <p>Sélectionnez votre urgence pour voir les artisans disponibles autour de vous, tout de suite.</p>
     </div>
-    <nav class="dl-trades dl-trades--mesh" aria-label="Interventions d'urgence">
-      <ul class="dl-trades-grid">
-        {% for t in trades %}
-        {% if t.key in urgent_hints %}
-        <li>
-          <a class="dl-trade" href="{{ url_for('web.artisan_directory', metier=t.key) }}">
-            <span class="dl-trade-ico" aria-hidden="true">{{ t.icon }}</span>
-            <span class="dl-trade-name">{{ t.label }}</span>
-            <span class="dl-trade-hint">{{ urgent_hints[t.key] }}</span>
-          </a>
-        </li>
-        {% endif %}
-        {% endfor %}
-      </ul>
-    </nav>
+    <div class="fa-trades">
+      {% for t in trades %}
+      {% if t.key in urgent_hints %}
+      <a class="fa-trade-card" href="{{ url_for('web.artisan_directory') }}?metier={{ t.key }}">
+        <span class="fa-trade-emoji" aria-hidden="true">{{ t.icon }}</span>
+        <span>
+          <strong>{{ t.label }}</strong>
+          <span>{{ urgent_hints[t.key] }}</span>
+        </span>
+        <span class="fa-trade-arrow" aria-hidden="true">→</span>
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
     <div class="fa-links" style="margin-top:22px;">
       <a href="{{ url_for('web.artisan_directory') }}">Tout l'annuaire des artisans</a>
       <a href="{{ url_for('web.find_artisan') }}">Comment trouver un artisan</a>
@@ -159,7 +147,7 @@
 <section class="fa-section fa-section--tint">
   <div class="container">
     <div class="fa-section-head">
-      <span class="fa-eyebrow fa-eyebrow--danger">Rapide &amp; sûr</span>
+      <span class="fa-eyebrow">Rapide &amp; sûr</span>
       <h2>Comment obtenir un dépannage en urgence ?</h2>
       <p>Trois étapes pour être dépanné vite, sans mauvaise surprise sur le prix.</p>
     </div>
@@ -234,7 +222,7 @@
 <section class="fa-section">
   <div class="container">
     <div class="fa-section-head">
-      <span class="fa-eyebrow fa-eyebrow--danger">FAQ urgence</span>
+      <span class="fa-eyebrow">FAQ</span>
       <h2>Questions fréquentes</h2>
     </div>
     <div class="fa-faq">
@@ -260,11 +248,11 @@
 
 <section class="fa-section">
   <div class="container">
-    <div class="fa-cta fa-cta--urgent">
+    <div class="fa-cta">
       <h2>Besoin d'un dépannage maintenant ?</h2>
       <p>Trouvez un artisan disponible près de chez vous et réglez votre urgence sans attendre.</p>
       <div class="fa-cta-actions">
-        <a href="{{ url_for('web.artisan_directory') }}" class="fa-btn fa-btn--danger fa-btn--lg">Trouver un artisan en urgence</a>
+        <a href="{{ url_for('web.artisan_directory') }}" class="fa-btn fa-btn--primary fa-btn--lg">Trouver un artisan</a>
         <a href="{{ url_for('web.find_artisan') }}" class="fa-btn fa-btn--ghost fa-btn--lg">Comment ça marche</a>
       </div>
     </div>

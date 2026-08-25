@@ -763,9 +763,10 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
         return {
             "ok": False,
             "message": (
-                "Ce jeton est un token de PAGE qui expire encore. Collez un "
-                "TOKEN UTILISATEUR (Graph Explorer → User Token, pas Page Token), "
-                "généré avec l'app PilotCore. On l'échange ensuite en token de page illimité."
+                "Ce jeton est un token de PAGE (il expire). Dans Graph Explorer, "
+                "le menu à droite du token doit indiquer « User Token », pas le nom "
+                "de la page. Copiez la longue chaîne en haut de l'écran — jamais "
+                "l'access_token dans le JSON de /me/accounts."
             ),
             "detail": "",
             "health": health,
@@ -776,8 +777,9 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
         return {
             "ok": False,
             "message": (
-                f"Ce token appartient à la page « {identity_name or identity_id} », "
-                f"pas à {page_id}. Collez un token utilisateur, ou le token de la bonne page."
+                f"Ce jeton est un token de PAGE (« {identity_name or identity_id} »), "
+                f"pas un token utilisateur. Graph Explorer → menu du token → "
+                "« User Token » (pas le nom de la page), puis copiez la barre du haut."
             ),
             "detail": "",
             "health": pasted_health,

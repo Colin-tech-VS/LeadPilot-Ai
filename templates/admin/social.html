@@ -38,7 +38,7 @@
       </span>
       <span>Expiration : <strong>{{ token_expires_label }}</strong></span>
       {% if facebook_status %}
-      <span>· {{ 'page' if facebook_status.token_kind == 'page' else 'utilisateur' }} · {{ facebook_status.message }}</span>
+      <span>· {{ facebook_status.message }}</span>
       {% if facebook_status.has_user_token %}<span>· token utilisateur conservé (renouvelé auto.)</span>{% endif %}
       {% endif %}
     </div>
@@ -101,8 +101,8 @@
       <button type="submit" class="admin-btn">Échanger en token illimité</button>
       <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
         <li>Ouvrez <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> et sélectionnez l’app PilotCore (même ID que <code>FACEBOOK_APP_ID</code>).</li>
-        <li>Générez un <strong>User Token</strong> (pas Page Token) avec <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
-        <li>Collez-le ici. On l’échange en jeton 60 jours, puis en token de page qui n’expire pas. Page ID : <code>{{ facebook_default_page_id }}</code>.</li>
+        <li>Le menu à droite du token doit afficher <strong>User Token</strong> — pas le nom de la page. Permissions : <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
+        <li>Copiez la longue chaîne <em>en haut</em> (Access Token). Ne copiez pas l’<code>access_token</code> du JSON <code>/me/accounts</code> : c’est un token de page, il expire.</li>
       </ol>
     </form>
   </details>

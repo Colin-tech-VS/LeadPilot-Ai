@@ -368,7 +368,8 @@ def test_connect_page_rejects_expiring_page_token(app, monkeypatch):
         )
         result = social.connect_page("page-1", "expiring-page")
         assert result["ok"] is False
-        assert "utilisateur" in result["message"].lower()
+        assert "token de page" in result["message"].lower()
+        assert "user token" in result["message"].lower()
         assert not (content_studio.get_setting(social.SETTING_TOKEN) or "").strip()
 
 

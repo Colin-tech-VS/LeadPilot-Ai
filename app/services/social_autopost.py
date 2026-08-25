@@ -195,11 +195,13 @@ def publish_queued_now() -> SocialPost | None:
         theme=post.target_key,
         use_dalle=False,
     )
+    social_image.materialize_post_image(post)
     published = social.publish_post(
         post.message,
         link=post.link,
         generated_by_ai=post.generated_by_ai,
         image_path=post.image_path,
+        image_blob=post.image_blob,
     )
     post.status = published.status
     post.external_id = published.external_id
@@ -211,8 +213,11 @@ def publish_queued_now() -> SocialPost | None:
     if published.id != post.id:
         db.session.delete(published)
         db.session.commit()
-    if post.status == "published" and is_enabled():
-        generate_preview()
+    if is_enabled() and post.status in ("published", "failed"):
+        try:
+            generate_preview()
+        except Exception:
+            logger.exception("Could not compose the next Facebook preview")
     return post
 
 

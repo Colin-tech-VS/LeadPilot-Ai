@@ -418,19 +418,23 @@ def _external_id_from_response(data) -> str | None:
     return data.get("post_id") or data.get("id")
 
 
-def publish_post(message, link=None, generated_by_ai=False, image_path=None) -> SocialPost:
+def publish_post(message, link=None, generated_by_ai=False, image_path=None, image_blob=None) -> SocialPost:
     """Publish a link post with custom thumbnail — image opens the tracked landing URL."""
-    from app.services.social_image import resolve_image_path
+    from app.services.social_image import resolve_image_path, write_image_bytes
 
     message = (message or "").strip()
     link = (link or "").strip() or None
     image_path = (image_path or "").strip() or None
+    blob = bytes(image_blob) if image_blob else None
     resolved = resolve_image_path(image_path)
+    if resolved is None and blob:
+        resolved = write_image_bytes(image_path, blob)
     post = SocialPost(
         platform="facebook",
         message=message,
         link=link,
         image_path=image_path,
+        image_blob=blob,
         generated_by_ai=generated_by_ai,
         status="draft",
     )

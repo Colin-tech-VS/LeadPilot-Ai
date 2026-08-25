@@ -154,6 +154,57 @@ def test_tick_publishes_due_then_creates_next_preview(app, monkeypatch):
         assert waiting.message == "Prochain aperçu"
 
 
+def test_publish_queued_now_uses_blob_when_disk_file_is_gone(app, monkeypatch, tmp_path):
+    png = b"\x89PNG\r\n\x1a\n" + b"queued-visual" * 40
+    with app.app_context():
+        _wipe_posts()
+        _connect_page()
+        content_studio.set_setting(social.SETTING_AUTOPOST, "1")
+        content_studio.set_setting(social.SETTING_INTERVAL, "12")
+        app.config["SOCIAL_UPLOAD_DIR"] = str(tmp_path)
+        queued = SocialPost(
+            platform="facebook",
+            message="Un client appelle en urgence pour un dépannage",
+            link="https://www.pilotcore.fr/pro",
+            image_path="uploads/social/missing-on-disk.png",
+            image_blob=png,
+            generated_by_ai=True,
+            status="queued",
+            target_key="pro",
+            scheduled_for=datetime.now(timezone.utc) - timedelta(minutes=2),
+        )
+        db.session.add(queued)
+        db.session.commit()
+        queued_id = queued.id
+
+        monkeypatch.setattr(
+            "app.services.social.get_config",
+            lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+        )
+        monkeypatch.setattr(
+            "app.services.social.ensure_publish_config",
+            lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+        )
+
+        def fake_post(url, data=None, files=None, timeout=None):
+            mock_resp = MagicMock()
+            mock_resp.ok = True
+            mock_resp.json.return_value = {"id": "page1_auto"}
+            return mock_resp
+
+        monkeypatch.setattr("app.services.social.requests.post", fake_post)
+        monkeypatch.setattr(
+            "app.services.social_autopost.generate_preview",
+            lambda **k: queued,
+        )
+
+        published = social_autopost.publish_queued_now()
+        assert published is not None
+        assert published.id == queued_id
+        assert published.status == "published", published.error
+        assert "Image requise" not in (published.error or "")
+
+
 def test_enable_autopost_does_not_publish(app, monkeypatch):
     with app.app_context():
         _wipe_posts()

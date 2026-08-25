@@ -71,25 +71,54 @@ def image_public_url(relative_path: str) -> str:
     return f"{site_base_url()}/static/{rel}"
 
 
-def resolve_image_path(relative: str | None) -> Path | None:
-    """Return an absolute path only for files under the social upload directory."""
+def _safe_image_name(relative: str | None) -> str | None:
     rel = (relative or "").strip().lstrip("/").replace("\\", "/")
     if not rel or ".." in rel:
         return None
     if rel.startswith(f"{MEDIA_PREFIX}/"):
         name = rel.split("/", 2)[-1]
-        path = uploads_dir() / name
-        return path if path.is_file() else None
-    if not rel.startswith(f"{UPLOAD_PREFIX}/"):
+    elif rel.startswith(f"{UPLOAD_PREFIX}/"):
+        name = Path(rel).name
+    else:
+        return None
+    if not name or name != Path(name).name or not name.endswith(".png"):
+        return None
+    return name
+
+
+def destination_for_relative(relative: str | None) -> Path | None:
+    """Where a stored ``image_path`` should live on this host (file may be absent)."""
+    name = _safe_image_name(relative)
+    return uploads_dir() / name if name else None
+
+
+def write_image_bytes(relative: str | None, data: bytes) -> Path | None:
+    """Write PNG bytes to the path Graph publish expects, even after an ephemeral disk wipe."""
+    if not data:
+        return None
+    dest = destination_for_relative(relative)
+    if dest is None:
+        name = f"{uuid.uuid4().hex}.png"
+        dest = uploads_dir() / name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(bytes(data))
+    return dest if dest.is_file() else None
+
+
+def resolve_image_path(relative: str | None) -> Path | None:
+    """Return an absolute path only for files under the social upload directory."""
+    dest = destination_for_relative(relative)
+    if dest is not None and dest.is_file():
+        return dest
+    rel = (relative or "").strip().lstrip("/").replace("\\", "/")
+    if not rel or ".." in rel or not rel.startswith(f"{UPLOAD_PREFIX}/"):
         return None
     path = (_static_root() / rel).resolve()
     root = uploads_dir().resolve()
     try:
         path.relative_to(root)
     except ValueError:
-        # File may live in temp upload dir while path key stays uploads/social/…
-        alt = root / Path(rel).name
-        return alt if alt.is_file() else None
+        return None
     return path if path.is_file() else None
 
 
@@ -441,11 +470,11 @@ def materialize_post_image(post) -> Path | None:
     blob = getattr(post, "image_blob", None)
     if not blob:
         return None
-    name = f"{getattr(post, 'id', uuid.uuid4()).hex}.png"
-    path = uploads_dir() / name
-    path.write_bytes(bytes(blob))
+    path = write_image_bytes(getattr(post, "image_path", None), bytes(blob))
+    if path is None:
+        return None
     if not getattr(post, "image_path", None):
-        post.image_path = f"{MEDIA_PREFIX}/{name}"
+        post.image_path = f"{MEDIA_PREFIX}/{path.name}"
     return path
 
 

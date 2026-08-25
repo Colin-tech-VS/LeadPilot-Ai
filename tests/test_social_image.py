@@ -49,6 +49,66 @@ def test_ensure_post_visual_stores_blob(app, monkeypatch):
         assert path is not None and path.is_file()
 
 
+def test_materialize_restores_blob_to_original_filename(app, tmp_path, monkeypatch):
+    """After a Scalingo recycle the file is gone; the DB blob must land on the stored path."""
+    monkeypatch.setattr("app.services.social_image._try_dalle", lambda brief: None)
+    png = b"\x89PNG\r\n\x1a\n" + b"restored-visual" * 80
+    with app.app_context():
+        from app.models.social_post import SocialPost
+        from app.services import social_image
+        from app.core.extensions import db
+
+        app.config["SOCIAL_UPLOAD_DIR"] = str(tmp_path)
+        rel = "uploads/social/queued-pro.png"
+        post = SocialPost(
+            platform="facebook",
+            message="Un client appelle en urgence",
+            status="queued",
+            image_path=rel,
+            image_blob=png,
+        )
+        db.session.add(post)
+        db.session.commit()
+
+        assert social_image.resolve_image_path(rel) is None
+        path = social_image.materialize_post_image(post)
+        assert path is not None and path.is_file()
+        assert path.name == "queued-pro.png"
+        assert path.read_bytes() == png
+        assert social_image.resolve_image_path(rel) == path
+
+
+def test_publish_post_uses_blob_when_file_missing(app, monkeypatch, tmp_path):
+    png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+    monkeypatch.setattr(
+        "app.services.social.get_config",
+        lambda: {"page_id": "page1", "page_name": "PilotCore", "token": "tok"},
+    )
+    captured = {}
+
+    def fake_post(url, data=None, files=None, timeout=None):
+        captured["files"] = files or {}
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.json.return_value = {"id": "page1_blob"}
+        return mock_resp
+
+    monkeypatch.setattr("app.services.social.requests.post", fake_post)
+
+    with app.app_context():
+        app.config["SOCIAL_UPLOAD_DIR"] = str(tmp_path)
+        from app.services import social
+
+        post = social.publish_post(
+            "Bonjour",
+            link="https://www.pilotcore.fr/pro",
+            image_path="uploads/social/ghost.png",
+            image_blob=png,
+        )
+        assert post.status == "published", post.error
+        assert "thumbnail" in captured["files"]
+
+
 def test_profile_card_renders_branded_png(app):
     """Per-artisan OG card is a valid, non-trivial 1200×630 PNG."""
     from app.models.tenant import Tenant

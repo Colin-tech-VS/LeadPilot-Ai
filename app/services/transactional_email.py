@@ -540,19 +540,23 @@ def send_founding_welcome(user, tenant, participant):
         hello,
         kicker="Programme des 50",
         lines=[
-            "Votre compte artisan est créé. Même espace, même connexion, même fiche "
-            "dans l'annuaire qu'un essai classique.",
+            "Votre compte artisan est créé. Vous avez l'offre Starter pendant "
+            "30 jours, sans carte bancaire.",
             slot,
+            "L'offre Starter, c'est la réponse aux appels, la qualification des "
+            "demandes, la fiche et le tableau de bord. Pas de prise de rendez-vous "
+            "automatique. Pendant ce mois, les appels passent par la ligne PilotCore "
+            "partagée — une ligne à votre nom n'est achetée que si vous prenez ensuite "
+            "un abonnement payant.",
             "Prochaine étape : ouvrez votre tableau de bord et vérifiez votre fiche "
-            "(adresse, métier, téléphone). Le standard ne peut décrocher que si la "
-            "ligne est configurée.",
+            "(adresse, métier, téléphone).",
             "Dites-nous si quelque chose bloque — répondez simplement à cet e-mail.",
         ],
         cta_label="Ouvrir mon tableau de bord",
         cta_url=f"{base}/dashboard",
     )
     text = (
-        f"{hello}\n{slot}\nTableau de bord : {base}/dashboard\n"
+        f"{hello}\n{slot}\nStarter offert 30 jours. Tableau de bord : {base}/dashboard\n"
         "Complétez votre fiche, puis dites-nous si un point bloque."
     )
     return _send(
@@ -615,7 +619,7 @@ def send_founding_nudge_inactive(user, tenant, participant):
             "Ouvrez votre fiche, vérifiez téléphone et adresse, puis revenez au "
             "tableau de bord. Rien n'est obligatoire : c'est simplement la suite utile.",
         ],
-        "PilotCore — prochaine étape de votre essai",
+        "PilotCore — prochaine étape de votre mois Starter",
     )
 
 
@@ -669,11 +673,11 @@ def send_founding_expiry_7(user, tenant, participant):
         tenant,
         "Votre période de test arrive bientôt à son terme",
         [
-            "Il reste environ 7 jours sur votre accès du programme. Ensuite, "
+            "Il reste environ 7 jours sur votre mois Starter offert. Ensuite, "
             "vous pourrez continuer avec une offre payante, ou vous arrêter — "
             "sans engagement caché.",
         ],
-        "PilotCore — J-7 avant la fin de votre essai",
+        "PilotCore — J-7 avant la fin de votre Starter offert",
     )
 
 
@@ -686,7 +690,7 @@ def send_founding_expiry_3(user, tenant, participant):
             "Il reste environ 3 jours. Vous pourrez choisir une offre depuis "
             "votre espace, ou ne pas continuer.",
         ],
-        "PilotCore — J-3 avant la fin de votre essai",
+        "PilotCore — J-3 avant la fin de votre Starter offert",
     )
 
 
@@ -696,11 +700,11 @@ def send_founding_expiry_1(user, tenant, participant):
         tenant,
         "Votre accès gratuit se termine demain",
         [
-            "Demain, la période du programme se termine. Si vous voulez garder "
+            "Demain, le mois Starter offert se termine. Si vous voulez garder "
             "la ligne et l'espace, choisissez une offre. Sinon, vous n'avez "
             "rien à faire.",
         ],
-        "PilotCore — votre essai se termine demain",
+        "PilotCore — votre Starter offert se termine demain",
     )
 
 
@@ -715,7 +719,7 @@ def send_founding_expiry_0(user, tenant, participant):
         hello,
         kicker="Programme des 50",
         lines=[
-            "La période prévue est terminée. Vous pouvez continuer avec une offre "
+            "Le mois Starter offert est terminé. Vous pouvez continuer avec une offre "
             "PilotCore, ou vous arrêter.",
             "Aucun prélèvement n'a lieu tant que vous n'avez pas choisi d'offre.",
         ],
@@ -725,7 +729,7 @@ def send_founding_expiry_0(user, tenant, participant):
     text = f"{hello}\nFin de période. Offres : {base}/programme/continuer"
     return _send(
         user.email,
-        "PilotCore — fin de votre période de test",
+        "PilotCore — fin de votre mois Starter offert",
         html,
         text,
         tenant_id=getattr(tenant, "id", None),

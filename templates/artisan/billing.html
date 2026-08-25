@@ -38,8 +38,12 @@
         <p class="plan-status-value">
           {% if tenant.is_paid %}
             {{ _('billing.current_paid', plan=plans[tenant.plan].name if tenant.plan in plans else tenant.plan) }}
+          {% elif founding_gift and tenant.subscription_active %}
+            {{ _('billing.current_founding_gift', days=tenant.trial_days_left) }}
           {% elif tenant.subscription_active %}
             {{ _('billing.current_trial', days=tenant.trial_days_left) }}
+          {% elif founding_gift %}
+            {{ _('billing.current_founding_expired') }}
           {% else %}
             {{ _('billing.current_expired') }}
           {% endif %}
@@ -51,18 +55,24 @@
     </div>
 
     {% if status_state == 'trial' %}
-    {% set trial_total = 14 %}
+    {% set trial_total = founding_gift.total_days if founding_gift else 14 %}
     {% set days_left = tenant.trial_days_left or 0 %}
     {% set trial_pct = [((trial_total - days_left) / trial_total * 100) | round(0, 'ceil') | int, 4] | max %}
     <div class="plan-status-trial">
       <div class="plan-status-trial-bar"><span style="width: {{ [trial_pct, 100] | min }}%"></span></div>
-      <span class="plan-status-trial-note">{{ _('billing.trial_days_used', used=trial_total - days_left, total=trial_total) }}</span>
+      <span class="plan-status-trial-note">
+        {% if founding_gift %}
+          {{ _('billing.founding_days_used', used=trial_total - days_left, total=trial_total) }}
+        {% else %}
+          {{ _('billing.trial_days_used', used=trial_total - days_left, total=trial_total) }}
+        {% endif %}
+      </span>
     </div>
     {% endif %}
   </div>
 
-  {% if tenant.is_paid and tenant.plan in plans and plans[tenant.plan].included_calls %}
-  {% set quota = plans[tenant.plan].included_calls %}
+  {% if (tenant.is_paid and tenant.plan in plans and plans[tenant.plan].included_calls) or (founding_gift and tenant.subscription_active) %}
+  {% set quota = plans['starter'].included_calls if (founding_gift and not tenant.is_paid) else plans[tenant.plan].included_calls %}
   {% set pct = [(call_usage / quota * 100) | round(0, 'ceil') | int, 100] | min %}
   <div class="plan-usage{% if call_usage > quota %} plan-usage--over{% endif %}">
     <div class="plan-usage-head">

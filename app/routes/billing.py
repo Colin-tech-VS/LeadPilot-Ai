@@ -26,6 +26,14 @@ def _fmt_eur(cents: int, lang: str) -> str:
 def billing_page():
     tenant = db.session.get(Tenant, g.tenant_id)
     lang = get_lang()
+    from app.services import founding_program
+
+    founding_gift = None
+    if tenant and not tenant.is_paid:
+        participant = founding_program.participant_for_tenant(tenant.id)
+        if participant:
+            cfg = founding_program.get_config()
+            founding_gift = {"total_days": cfg["duration_days"]}
     return render_template(
         "artisan/billing.html",
         tenant=tenant,
@@ -36,6 +44,7 @@ def billing_page():
         call_overage=billing.overage_calls(tenant),
         overage_amount=_fmt_eur(billing.overage_amount_cents(tenant), lang),
         overage_unit_price=_fmt_eur(billing.overage_price_cents(), lang),
+        founding_gift=founding_gift,
     )
 
 

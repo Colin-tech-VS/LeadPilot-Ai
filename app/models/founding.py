@@ -23,6 +23,17 @@ STATUSES = (
     "expired",
 )
 
+STATUS_LABELS = {
+    "pending": "En attente",
+    "active": "Actif",
+    "activated": "Activé",
+    "at_risk": "À risque",
+    "completed": "Terminé",
+    "converted": "Converti",
+    "cancelled": "Annulé",
+    "expired": "Expiré",
+}
+
 # A validated seat is never freed — cancelled still occupies a numbered place.
 SEAT_STATUSES = STATUSES
 
@@ -36,6 +47,17 @@ SOURCES = (
     "partner",
     "other",
 )
+
+SOURCE_LABELS = {
+    "facebook": "Facebook",
+    "reddit": "Reddit",
+    "google": "Google",
+    "organic": "Organique",
+    "referral": "Parrainage",
+    "direct": "Direct",
+    "partner": "Partenaire",
+    "other": "Autre",
+}
 
 
 class FoundingParticipant(db.Model):

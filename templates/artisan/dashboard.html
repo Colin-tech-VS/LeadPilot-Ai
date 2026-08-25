@@ -7,7 +7,15 @@
 {% if tenant and not tenant.is_paid %}
 <div class="trial-banner{% if not tenant.subscription_active %} trial-banner-expired{% endif %} dash-animate">
   <span class="trial-banner-text">
-    {% if not tenant.subscription_active %}
+    {% if founding %}
+      {% if not tenant.subscription_active %}
+        {{ _('dashboard.founding_gift_expired') }}
+      {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
+        {{ _('dashboard.founding_gift_last_day') }}
+      {% else %}
+        {{ _('dashboard.founding_gift_active', days=tenant.trial_days_left) }}
+      {% endif %}
+    {% elif not tenant.subscription_active %}
       {{ _('dashboard.trial_expired') }}
     {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
       {{ _('dashboard.trial_last_day') }}

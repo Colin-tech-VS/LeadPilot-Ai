@@ -21,7 +21,7 @@ from app.models.founding import (
 )
 from app.models.lead import Lead
 from app.models.page_view import PageView
-from app.models.tenant import TRIAL_DAYS, Tenant, utcnow
+from app.models.tenant import Tenant, utcnow
 from app.models.user import User
 from app.services import content_studio
 from app.services.events import CAT_AUTH, LEVEL_INFO, LEVEL_SUCCESS, log_event
@@ -39,18 +39,25 @@ SETTING_START = "founding_start_date"
 SETTING_END = "founding_end_date"
 SETTING_POST_OFFER = "founding_post_offer"
 
+# Gifted Starter window for /50-artisans. Distinct from the 14-day full trial
+# on /register: 30 days of the Starter feature set, no card, no dedicated line.
+STARTER_GIFT_DAYS = 30
+STARTER_GIFT_PLAN = "starter"
+
 DEFAULTS = {
     SETTING_ENABLED: "1",
     SETTING_MAX: "50",
-    SETTING_DURATION: str(TRIAL_DAYS),
+    SETTING_DURATION: str(STARTER_GIFT_DAYS),
     SETTING_WAITLIST: "1",
     SETTING_NUDGE_INACTIVE: "2",
     SETTING_NUDGE_NO_USAGE: "3",
     SETTING_AT_RISK: "5",
     SETTING_START: "",
     SETTING_END: "",
-    SETTING_POST_OFFER: "",
+    SETTING_POST_OFFER: STARTER_GIFT_PLAN,
 }
+
+_gift_defaults_ready = False
 
 ACTIVATION_STEPS = (
     ("account", "Compte créé", None),
@@ -70,20 +77,36 @@ def _int_setting(key: str, default: int, *, minimum: int = 1, maximum: int = 500
     return max(minimum, min(maximum, value))
 
 
+def _ensure_gift_defaults() -> None:
+    """One-shot: old default was 14-day trial copy; the gift is 30-day Starter."""
+    global _gift_defaults_ready
+    if _gift_defaults_ready:
+        return
+    raw = (content_studio.get_setting(SETTING_DURATION, "") or "").strip()
+    if raw in ("", "14"):
+        content_studio.set_setting(SETTING_DURATION, str(STARTER_GIFT_DAYS))
+    post = (content_studio.get_setting(SETTING_POST_OFFER, "") or "").strip()
+    if not post:
+        content_studio.set_setting(SETTING_POST_OFFER, STARTER_GIFT_PLAN)
+    _gift_defaults_ready = True
+
+
 def get_config() -> dict:
+    _ensure_gift_defaults()
     enabled = (content_studio.get_setting(SETTING_ENABLED, "1") or "1") == "1"
     waitlist = (content_studio.get_setting(SETTING_WAITLIST, "1") or "1") == "1"
     return {
         "enabled": enabled,
         "max_participants": _int_setting(SETTING_MAX, 50, minimum=1, maximum=500),
-        "duration_days": _int_setting(SETTING_DURATION, TRIAL_DAYS, minimum=1, maximum=365),
+        "duration_days": _int_setting(SETTING_DURATION, STARTER_GIFT_DAYS, minimum=1, maximum=365),
         "waitlist_enabled": waitlist,
         "nudge_inactive_days": _int_setting(SETTING_NUDGE_INACTIVE, 2, maximum=30),
         "nudge_no_usage_days": _int_setting(SETTING_NUDGE_NO_USAGE, 3, maximum=30),
         "at_risk_days": _int_setting(SETTING_AT_RISK, 5, maximum=60),
         "start_date": (content_studio.get_setting(SETTING_START, "") or "").strip(),
         "end_date": (content_studio.get_setting(SETTING_END, "") or "").strip(),
-        "post_offer": (content_studio.get_setting(SETTING_POST_OFFER, "") or "").strip(),
+        "post_offer": (content_studio.get_setting(SETTING_POST_OFFER, STARTER_GIFT_PLAN) or STARTER_GIFT_PLAN).strip(),
+        "gift_plan": STARTER_GIFT_PLAN,
     }
 
 
@@ -91,14 +114,14 @@ def save_config(values: dict) -> dict:
     mapping = {
         SETTING_ENABLED: "1" if values.get("enabled") else "0",
         SETTING_MAX: str(_int_setting(SETTING_MAX, int(values.get("max_participants") or 50))),
-        SETTING_DURATION: str(_int_setting(SETTING_DURATION, int(values.get("duration_days") or TRIAL_DAYS))),
+        SETTING_DURATION: str(_int_setting(SETTING_DURATION, int(values.get("duration_days") or STARTER_GIFT_DAYS))),
         SETTING_WAITLIST: "1" if values.get("waitlist_enabled") else "0",
         SETTING_NUDGE_INACTIVE: str(int(values.get("nudge_inactive_days") or 2)),
         SETTING_NUDGE_NO_USAGE: str(int(values.get("nudge_no_usage_days") or 3)),
         SETTING_AT_RISK: str(int(values.get("at_risk_days") or 5)),
         SETTING_START: (values.get("start_date") or "")[:32],
         SETTING_END: (values.get("end_date") or "")[:32],
-        SETTING_POST_OFFER: (values.get("post_offer") or "")[:40],
+        SETTING_POST_OFFER: (values.get("post_offer") or STARTER_GIFT_PLAN)[:40],
     }
     # Re-read through setters with clamping via _int_setting after write.
     content_studio.set_setting(SETTING_ENABLED, mapping[SETTING_ENABLED])
@@ -109,7 +132,7 @@ def save_config(values: dict) -> dict:
     try:
         content_studio.set_setting(SETTING_MAX, str(max(1, min(500, int(values.get("max_participants") or 50)))))
         content_studio.set_setting(
-            SETTING_DURATION, str(max(1, min(365, int(values.get("duration_days") or TRIAL_DAYS))))
+            SETTING_DURATION, str(max(1, min(365, int(values.get("duration_days") or STARTER_GIFT_DAYS))))
         )
         content_studio.set_setting(
             SETTING_NUDGE_INACTIVE, str(max(1, min(30, int(values.get("nudge_inactive_days") or 2))))
@@ -337,6 +360,49 @@ def mark_converted(tenant_id) -> None:
         )
 
 
+def gift_active_for_tenant(tenant) -> bool:
+    """True while this artisan is on the unpaid Starter month from /50-artisans."""
+    if not tenant or getattr(tenant, "is_paid", False):
+        return False
+    cached = getattr(tenant, "_founding_gift_active", None)
+    if isinstance(cached, bool):
+        return cached
+    tid = getattr(tenant, "id", None)
+    if tid is None:
+        tenant._founding_gift_active = False
+        return False
+    row = FoundingParticipant.query.filter_by(tenant_id=tid).first()
+    active = bool(row) and row.status not in ("cancelled", "converted")
+    tenant._founding_gift_active = active
+    return active
+
+
+def _sync_gift_window(participant: FoundingParticipant, tenant: Tenant | None, days: int) -> None:
+    """Extend (never shorten) an unpaid seat to the configured Starter month."""
+    if participant.status in ("cancelled", "converted", "expired", "completed"):
+        return
+    started = participant.started_at
+    if started and started.tzinfo is None:
+        started = started.replace(tzinfo=timezone.utc)
+    if not started:
+        return
+    now = utcnow()
+    ends = participant.ends_at
+    if ends and ends.tzinfo is None:
+        ends = ends.replace(tzinfo=timezone.utc)
+    if ends and ends < now:
+        return
+    target = started + timedelta(days=days)
+    if not ends or ends < target:
+        participant.ends_at = target
+    if tenant and not tenant.is_paid:
+        current = tenant.trial_ends_at
+        if current and current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+        if not current or current < target:
+            tenant.trial_ends_at = target
+
+
 def enroll(
     *,
     email: str,
@@ -532,6 +598,8 @@ def tick() -> dict:
     updated = 0
     mailed = 0
     for participant in FoundingParticipant.query.all():
+        tenant = participant.tenant or db.session.get(Tenant, participant.tenant_id)
+        _sync_gift_window(participant, tenant, cfg["duration_days"])
         before = participant.status
         refresh_participant(participant)
         if participant.status != before:
@@ -739,4 +807,5 @@ def landing_context() -> dict:
         "duration_days": cfg["duration_days"],
         "enabled": cfg["enabled"],
         "open": open_,
+        "gift_plan": STARTER_GIFT_PLAN,
     }

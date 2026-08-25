@@ -2410,7 +2410,14 @@ def listing_claim_reject(claim_id):
 @admin_required
 def promo():
     from app.constants.trades import trade_label
-    from app.models.founding import SOURCES, STATUSES, FoundingParticipant, FoundingWaitlist
+    from app.models.founding import (
+        SOURCE_LABELS,
+        SOURCES,
+        STATUS_LABELS,
+        STATUSES,
+        FoundingParticipant,
+        FoundingWaitlist,
+    )
     from app.services import founding_program
 
     try:
@@ -2448,22 +2455,30 @@ def promo():
             }
         )
     waitlist = FoundingWaitlist.query.order_by(FoundingWaitlist.created_at.desc()).all()
+    funnel = founding_program.funnel()
+    sources = founding_program.sources_breakdown()
+    occupancy_pct = int(round(100 * kpis["occupied"] / kpis["max"])) if kpis["max"] else 0
     return render_template(
         "admin/promo.html",
         kpis=kpis,
-        funnel=founding_program.funnel(),
-        sources=founding_program.sources_breakdown(),
+        funnel=funnel,
+        funnel_max=max((step["value"] for step in funnel), default=0),
+        sources=sources,
+        source_max=max((item["inscrits"] for item in sources), default=0),
         referrals=founding_program.referral_stats(),
         alerts=founding_program.alerts(),
         participants=participants,
         waitlist=waitlist,
         cfg=cfg,
+        occupancy_pct=occupancy_pct,
         status_filter=status_filter,
         trade_filter=trade_filter,
         city_filter=city_filter,
         source_filter=source_filter,
         statuses=STATUSES,
+        status_labels=STATUS_LABELS,
         sources_list=SOURCES,
+        source_labels=SOURCE_LABELS,
     )
 
 

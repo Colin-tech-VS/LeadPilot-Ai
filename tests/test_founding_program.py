@@ -33,6 +33,8 @@ def test_founding_landing_seo_and_counter(client):
     assert "Programme des 50 premiers artisans" in html
     assert "/ 50 artisans inscrits" in html
     assert "Rejoindre les 50 premiers artisans" in html or "est complet" in html
+    assert "Starter" in html
+    assert "30 jours" in html
     assert "des milliers" not in html.lower()
 
 
@@ -56,6 +58,20 @@ def test_founding_signup_creates_real_artisan_account(client, app):
         assert row is not None
         assert row.place_number >= 1
         assert row.status == "active"
+        tenant = user.tenant
+        assert tenant.plan == "trial"
+        assert tenant.is_paid is False
+        remaining = (tenant.trial_end_date - utcnow()).days
+        assert 29 <= remaining <= 30
+        assert (row.ends_at - row.started_at).days == founding_program.STARTER_GIFT_DAYS
+        from app.services import plan_features as pf
+        from app.services.twilio_provisioning import should_buy_dedicated_number
+
+        assert pf.founding_starter_gift_active(tenant) is True
+        assert pf.trial_has_all_features(tenant) is False
+        assert pf.has_feature(tenant, "auto_booking") is False
+        assert pf.call_quota(tenant) == 150
+        assert should_buy_dedicated_number(tenant) is False
 
 
 def test_founding_duplicate_email_rejected(client, app):
@@ -132,6 +148,41 @@ def test_founding_tick_expires_and_skips_converted(app):
         assert row.status == "converted"
 
 
+def test_founding_tick_extends_short_gift_to_one_month(app):
+    with app.app_context():
+        from app.services.signup_service import register_plumber
+
+        user, tenant = register_plumber(
+            email=_mail("short"),
+            password="password1",
+            company_name="Court SARL",
+            phone=f"07{uuid.uuid4().int % 10**8:08d}",
+            city="Lille",
+            first_name="Lea",
+            last_name="Court",
+            send_welcome=False,
+        )
+        started = utcnow() - timedelta(days=2)
+        row = FoundingParticipant(
+            place_number=(db.session.query(db.func.max(FoundingParticipant.place_number)).scalar() or 0) + 1,
+            tenant_id=tenant.id,
+            user_id=user.id,
+            status="active",
+            referral_code=uuid.uuid4().hex[:8].upper(),
+            started_at=started,
+            ends_at=started + timedelta(days=14),
+        )
+        tenant.trial_ends_at = started + timedelta(days=14)
+        db.session.add(row)
+        db.session.commit()
+        founding_program.tick()
+        db.session.refresh(row)
+        db.session.refresh(tenant)
+        assert (row.ends_at.replace(tzinfo=None) - row.started_at.replace(tzinfo=None)).days >= 29
+        assert (tenant.trial_end_date - utcnow()).days >= 27
+        assert row.status == "active"
+
+
 def test_founding_admin_kpis_start_empty(client, app):
     with client.session_transaction() as sess:
         sess["admin_authenticated"] = True
@@ -141,6 +192,42 @@ def test_founding_admin_kpis_start_empty(client, app):
     html = resp.data.decode()
     assert "50 artisans" in html
     assert "Promo" in html
+    assert "1 mois de Starter offert" in html
+    assert "Durée du Starter offert" in html
+    assert 'class="nvx promo-page"' in html
+    assert "promo-stats" in html
+    assert "Registre" in html
+    assert "Inscriptions ouvertes" in html
+    assert "En attente" in html
+    assert "À risque" in html
+    assert "Toutes les sources" in html
+
+
+def test_founding_admin_registre_shows_participant(client, app):
+    with app.app_context():
+        founding_program.enroll(
+            email=_mail("promo"),
+            password="password1",
+            first_name="Marie",
+            last_name="Martin",
+            phone=f"0612{uuid.uuid4().int % 10**6:06d}",
+            city="Cahors",
+            trade_type="plombier",
+            company_name="Plomberie Martin",
+            source="direct",
+        )
+    with client.session_transaction() as sess:
+        sess["admin_authenticated"] = True
+        sess["admin_username"] = "admin"
+    html = client.get("/admin/promo").data.decode()
+    assert "Plomberie Martin" in html
+    assert "Marie Martin" in html
+    assert "Cahors" in html
+    assert "promo-table" in html
+    assert "Direct" in html
+    assert "promo-status-select" in html
+    assert "Compte" in html
+    assert "Rappel" in html
 
 
 def test_pro_homepage_features_founding_programme(client):
@@ -150,7 +237,7 @@ def test_pro_homepage_features_founding_programme(client):
     assert "Les 50 premiers" in html
     assert "Rejoindre les 50" in html
     assert "/ 50 artisans inscrits" in html
-    assert "Commencer gratuitement" in html
+    assert "Un mois de Starter offert" in html or "1 mois de Starter" in html
     assert 'href="/register"' in html or "/register" in html
     assert "des milliers" not in html.lower()
     assert "clients garantis" not in html.lower()

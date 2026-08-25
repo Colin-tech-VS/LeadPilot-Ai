@@ -45,14 +45,21 @@
 .fa-breadcrumb-list a:hover { text-decoration: underline; }
 .fa-breadcrumb-list [aria-current="page"] { color: var(--lp-text-muted); }
 
+.fa-hero-grid .fa-breadcrumb {
+  max-width: none;
+  width: auto;
+  margin: 0 0 14px;
+  padding: 0;
+}
+
 /* ---- Hero ---- */
 .fa-hero {
-  padding: 34px 0 40px;
+  padding: 28px 0 44px;
 }
 .fa-hero--pillar {
   background:
-    radial-gradient(1200px 460px at 78% -10%, rgba(26, 35, 50, 0.12), transparent),
-    linear-gradient(180deg, var(--lp-brand-soft) 0%, var(--lp-bg) 100%);
+    radial-gradient(1200px 460px at 78% -10%, rgba(26, 35, 50, 0.08), transparent 55%),
+    var(--lp-bg);
 }
 .fa-hero-grid {
   display: grid;
@@ -73,6 +80,38 @@
   font-weight: 700;
   color: var(--lp-brand-deep);
   margin-bottom: 18px;
+}
+.page-depannage-urgent .fa-kicker {
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lp-text);
+  margin-bottom: 14px;
+}
+.page-depannage-urgent .fa-breadcrumb-list {
+  color: var(--lp-text);
+  font-size: 12px;
+}
+.page-depannage-urgent .fa-breadcrumb-list a,
+.page-depannage-urgent .fa-breadcrumb-list [aria-current="page"] {
+  color: var(--lp-text);
+}
+.page-depannage-urgent .fa-breadcrumb-list a {
+  font-weight: 500;
+  opacity: 0.7;
+}
+.page-depannage-urgent .fa-breadcrumb-list a:hover {
+  opacity: 1;
+}
+.page-depannage-urgent .fa-breadcrumb-list [aria-current="page"] {
+  font-weight: 600;
+  opacity: 0.92;
 }
 .fa-hero h1 {
   font-size: clamp(2rem, 4.4vw, 3.05rem);
@@ -183,7 +222,7 @@
   font-weight: 600;
   color: var(--lp-text);
 }
-.fa-trust li svg { flex: 0 0 auto; color: var(--lp-success); }
+.fa-trust li svg { flex: 0 0 auto; color: var(--lp-brand); }
 
 /* ---- Hero aside card ---- */
 .fa-hero-card {

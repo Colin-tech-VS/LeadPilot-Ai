@@ -12,7 +12,7 @@
 {% block body_class %}fa-page page-depannage-urgent{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/find-artisan.css') }}?v=6">
 {% endblock %}
 
 {% block meta %}
@@ -63,13 +63,13 @@
   'climaticien': "Panne de climatisation"
 } %}
 {% macro _check_icon() %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endmacro %}
-{{ breadcrumb([('Accueil', url_for('web.client_home')), ('Trouver un artisan', url_for('web.find_artisan')), ('Dépannage urgent', None)]) }}
 
 <section class="fa-hero fa-hero--pillar">
   <div class="container fa-hero-grid">
     <div>
-      <span class="fa-kicker">Urgence · 24h/24 · 7j/7</span>
-      <h1>Un <em>dépannage urgent</em> ? Trouvez un artisan disponible maintenant</h1>
+      {{ breadcrumb([('Accueil', url_for('web.client_home')), ('Trouver un artisan', url_for('web.find_artisan')), ('Dépannage urgent', None)], embedded=true) }}
+      <span class="fa-kicker">Disponible 24h/24 · 7j/7</span>
+      <h1>Un dépannage urgent ? Trouvez un artisan disponible maintenant</h1>
       <p class="fa-hero-lead">
         Fuite d'eau, porte claquée, panne de courant, chauffage en rade… Trouvez un plombier,
         serrurier, électricien ou chauffagiste près de chez vous, prêt à intervenir rapidement.

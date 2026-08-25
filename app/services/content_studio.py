@@ -12,6 +12,30 @@ from app.models.setting import SiteSetting
 
 logger = logging.getLogger(__name__)
 
+# Landing display only: rewrite known over-claims if an admin-edited offer still
+# lists a capability that the product does not actually ship.
+_HONEST_FEATURE_REWRITE = {
+    "Synchronisation Google Agenda": "Agenda des rendez-vous dans votre espace",
+    "Google Calendar sync": "Appointments in your workspace",
+    "Intégration CRM & rapports avancés": "Outils marketing et suivi des demandes",
+    "CRM integration & advanced reports": "Marketing tools and request tracking",
+    "Personnalisation complète de l'IA": "Personnalisation de l'assistant (prénom, consignes)",
+    "Full AI customization": "Assistant personalisation (name, instructions)",
+}
+
+
+def honest_offer_features(offer):
+    """Feature lines shown on /pro — never invent capabilities."""
+    raw = offer.feature_list() if offer else []
+    items = [_HONEST_FEATURE_REWRITE.get(item, item) for item in raw]
+    key = (getattr(offer, "key", "") or "").lower()
+    if key == "starter" and not any(
+        "rendez-vous automatique" in i.lower() or "automatic booking" in i.lower()
+        for i in items
+    ):
+        items.append("Sans prise de rendez-vous automatique (disponible en Pro)")
+    return items
+
 # Order + which plan card is highlighted on the landing grid.
 _OFFER_KEYS = ("starter", "pro", "premium")
 _FEATURED = "pro"

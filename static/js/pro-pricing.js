@@ -16,8 +16,13 @@
     if (!slides.length) return;
 
     var index = slides.findIndex(function (s) {
-      return s.classList.contains("pricing-card-launch");
+      return s.classList.contains("pricing-card-featured");
     });
+    if (index < 0) {
+      index = slides.findIndex(function (s) {
+        return s.classList.contains("pricing-card-trial");
+      });
+    }
     if (index < 0) index = 0;
 
     var timer = null;

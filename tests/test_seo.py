@@ -35,6 +35,21 @@ def test_pro_landing_seo(client):
     assert "annuaire" in html.lower() or "directory" in html.lower()
 
 
+def test_pro_landing_copy_is_honest(client):
+    """No invented volume, no fake launch SKU, no guaranteed-client promise."""
+    html = client.get("/pro").data.decode()
+    low = html.lower()
+    assert "offre de lancement" not in low
+    assert "249 €" not in html
+    assert "8 clients sur 10" not in low
+    assert "8 out of 10" not in low
+    assert "ne promet ni" in low or "does not promise" in low
+    assert "commencer gratuitement" in low or "start for free" in low
+    assert "sans carte" in low or "no credit card" in low
+    assert "google agenda" not in low
+    assert "/register" in html
+
+
 def test_directory_seo(client):
     response = client.get("/artisans")
     assert response.status_code == 200

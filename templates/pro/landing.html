@@ -24,42 +24,21 @@
       },
       "offers": {
         "@type": "Offer",
-        "price": "249",
+        "price": "149",
         "priceCurrency": "EUR",
-        "description": {{ _('landing.pricing_launch_kicker')|tojson }}
+        "description": {{ _('landing.schema_offer')|tojson }}
       }
     },
-    {#- The Organization is declared once, in the public layout's global graph.
-        A second copy here — it previously carried no @id at all, so Google read
-        it as a *different* company — only splits the brand entity. -#}
     {
       "@type": "FAQPage",
       "mainEntity": [
+        {% for n in range(1, 9) %}
         {
           "@type": "Question",
-          "name": {{ _('landing.faq_1_q')|tojson }},
-          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_1_a')|tojson }} }
-        },
-        {
-          "@type": "Question",
-          "name": {{ _('landing.faq_2_q')|tojson }},
-          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_2_a')|tojson }} }
-        },
-        {
-          "@type": "Question",
-          "name": {{ _('landing.faq_3_q')|tojson }},
-          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_3_a')|tojson }} }
-        },
-        {
-          "@type": "Question",
-          "name": {{ _('landing.faq_4_q')|tojson }},
-          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_4_a')|tojson }} }
-        },
-        {
-          "@type": "Question",
-          "name": {{ _('landing.faq_5_q')|tojson }},
-          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_5_a')|tojson }} }
-        }
+          "name": {{ _('landing.faq_%s_q'|format(n))|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_%s_a'|format(n))|tojson }} }
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
       ]
     }
   ]
@@ -76,7 +55,7 @@
       <h1>{{ _('landing.hero_title') }}</h1>
       <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
       <div class="v-hero-cta">
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_free') }}</a>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
         <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_see_demo') }}</a>
       </div>
       <p class="v-search-hint v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
@@ -142,64 +121,12 @@
   </div>
 </section>
 
-<section class="v-section v-acq" id="acquisition">
-  <div class="container">
-    <div class="v-section-head v-section-head--center v-reveal">
-      <p class="v-kicker">{{ _('landing.acq_kicker') }}</p>
-      <h2>{{ _('landing.acq_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
-    </div>
-    <div class="v-acq-grid">
-      <div class="v-acq-copy">
-        <ol class="v-acq-points">
-          <li>
-            <strong>{{ _('landing.acq_1_title') }}</strong>
-            <p>{{ _('landing.acq_1_desc') }}</p>
-          </li>
-          <li>
-            <strong>{{ _('landing.acq_2_title') }}</strong>
-            <p>{{ _('landing.acq_2_desc') }}</p>
-          </li>
-          <li>
-            <strong>{{ _('landing.acq_3_title') }}</strong>
-            <p>{{ _('landing.acq_3_desc') }}</p>
-          </li>
-        </ol>
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.acq_cta') }}</a>
-      </div>
-      <figure class="v-shot v-acq-mock v-reveal" aria-hidden="true">
-        <div class="v-shot-chrome">
-          <span></span><span></span><span></span>
-          <em>pilotcore.fr/artisans</em>
-        </div>
-        <div class="v-shot-screen dash-mock dash-mock--search">
-          <p class="dash-mock-label">{{ _('landing.acq_mock_found') }}</p>
-          <div class="v-acq-searchbar">{{ _('landing.acq_mock_query') }}</div>
-          <article class="v-acq-result">
-            <span class="v-acq-result-mark">1</span>
-            <div>
-              <strong>{{ _('landing.acq_mock_name') }}</strong>
-              <p>{{ _('landing.acq_mock_meta') }}</p>
-            </div>
-            <span class="v-acq-result-cta">{{ _('landing.acq_mock_cta') }}</span>
-          </article>
-          <article class="v-acq-result is-dim">
-            <span class="v-acq-result-mark">2</span>
-            <div>
-              <strong>{{ _('landing.acq_mock_name_alt') }}</strong>
-              <p>{{ _('landing.acq_mock_meta_alt') }}</p>
-            </div>
-          </article>
-        </div>
-      </figure>
-    </div>
-  </div>
-</section>
-
 <section class="v-section v-section--steps" id="how">
   <div class="container">
     <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.steps_kicker') }}</p>
       <h2 class="v-steps-heading">{{ _('landing.steps_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.steps_lead') }}</p>
     </div>
     <ol class="v-timeline v-timeline--4">
       <li class="v-timeline-step v-reveal">
@@ -223,229 +150,6 @@
         <p>{{ _('landing.step_4_desc') }}</p>
       </li>
     </ol>
-  </div>
-</section>
-
-<section class="v-section v-product-shots" id="espace">
-  <div class="container">
-    <div class="v-section-head v-section-head--center v-reveal">
-      <p class="v-kicker">{{ _('landing.dash_kicker') }}</p>
-      <h2>{{ _('landing.dash_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.dash_lead') }}</p>
-    </div>
-
-    <figure class="v-shot v-shot--hero v-reveal">
-      <div class="v-shot-chrome" aria-hidden="true">
-        <span></span><span></span><span></span>
-        <em>{{ _('landing.dash_url') }} · {{ _('landing.dash_board') }}</em>
-      </div>
-      <div class="v-shot-screen dash-mock dash-mock--board">
-        <header class="dash-mock-top">
-          <div>
-            <p class="dash-mock-hi">{{ _('landing.dash_greeting') }}</p>
-            <h3>{{ _('landing.dash_company') }}</h3>
-          </div>
-          <span class="dash-mock-pill">14 j. d'essai</span>
-        </header>
-        <ol class="dash-mock-kpis">
-          <li><strong>8</strong><span>{{ _('landing.dash_kpi_calls') }}</span></li>
-          <li><strong>3</strong><span>{{ _('landing.dash_kpi_leads') }}</span></li>
-          <li><strong>2</strong><span>{{ _('landing.dash_kpi_quotes') }}</span></li>
-          <li><strong>4</strong><span>{{ _('landing.dash_kpi_jobs') }}</span></li>
-        </ol>
-        <div class="dash-mock-flow">
-          <span>1 · Appels</span>
-          <span>2 · Prospects</span>
-          <span>3 · Devis</span>
-          <span>4 · Tournée</span>
-        </div>
-      </div>
-    </figure>
-
-    <div class="v-shot-row">
-      <figure class="v-shot v-reveal">
-        <div class="v-shot-chrome" aria-hidden="true">
-          <span></span><span></span><span></span>
-          <em>{{ _('landing.dash_leads') }}</em>
-        </div>
-        <div class="v-shot-screen dash-mock dash-mock--leads">
-          <p class="dash-mock-label">{{ _('landing.dash_leads') }}</p>
-          <ul>
-            <li><b>Urgent</b> {{ _('landing.dash_lead_1') }}</li>
-            <li>{{ _('landing.dash_lead_2') }}</li>
-            <li>{{ _('landing.dash_lead_3') }}</li>
-          </ul>
-        </div>
-      </figure>
-      <figure class="v-shot v-reveal v-reveal-delay-1">
-        <div class="v-shot-chrome" aria-hidden="true">
-          <span></span><span></span><span></span>
-          <em>{{ _('landing.dash_agenda') }}</em>
-        </div>
-        <div class="v-shot-screen dash-mock dash-mock--agenda">
-          <p class="dash-mock-label">{{ _('landing.dash_agenda') }}</p>
-          <ul>
-            <li>{{ _('landing.dash_slot_1') }}</li>
-            <li>{{ _('landing.dash_slot_2') }}</li>
-            <li class="is-urgent">{{ _('landing.dash_slot_3') }}</li>
-          </ul>
-        </div>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<section class="v-section v-fiche-preview" id="fiche">
-  <div class="container">
-    <div class="v-section-head v-section-head--center v-reveal">
-      <p class="v-kicker">{{ _('landing.fiche_kicker') }}</p>
-      <h2>{{ _('landing.fiche_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.fiche_lead') }}</p>
-    </div>
-    <div class="v-fiche-grid">
-      <article class="dl-card dl-card--listed">
-        <div class="dl-card-media">
-          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
-          <span class="dl-card-flag dl-card-flag--listed">{{ _('landing.fiche_listed_flag') }}</span>
-        </div>
-        <div class="dl-card-header">
-          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
-          <div class="dl-card-head-text">
-            <h3 class="dl-card-name">{{ _('landing.fiche_listed_name') }}</h3>
-            <p class="dl-card-specialty">Plombier</p>
-          </div>
-        </div>
-        <div class="dl-card-body">
-          <p class="dl-card-blurb">{{ _('landing.fiche_listed_note') }}</p>
-        </div>
-      </article>
-      <article class="dl-card dl-card--registry">
-        <div class="dl-card-media dl-card-media--registry">
-          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
-          <span class="dl-card-flag dl-card-flag--registry">{{ _('landing.fiche_registry_flag') }}</span>
-        </div>
-        <div class="dl-card-header">
-          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
-          <div class="dl-card-head-text">
-            <h3 class="dl-card-name">{{ _('landing.fiche_registry_name') }}</h3>
-            <p class="dl-card-specialty">Plombier</p>
-          </div>
-        </div>
-        <div class="dl-card-body">
-          <p class="dl-card-blurb dl-card-blurb--muted">{{ _('landing.fiche_registry_note') }}</p>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
-
-{# The acquisition path lives here too: many artisans already have a listing in
-   the directory and reaching it is a far shorter route to an account than the
-   full sign-up form. #}
-<section class="v-section v-claim-band">
-  <div class="container v-claim-inner">
-    <div>
-      <h2>Votre entreprise est peut-être déjà référencée</h2>
-      <p>
-        Notre annuaire reprend les entreprises artisanales inscrites au registre
-        officiel. Si la vôtre y figure, reprenez la main sur votre fiche en
-        quelques minutes — c'est gratuit, et plus rapide que de tout saisir.
-      </p>
-    </div>
-    <a href="{{ url_for('web.find_my_listing') }}" class="btn btn-outline btn-lg">Chercher mon entreprise</a>
-  </div>
-</section>
-
-<section class="v-impact-section">
-  <div class="container">
-    <div class="v-section-head v-section-head--center">
-      <p class="v-kicker">{{ _('landing.impact_kicker') }}</p>
-      <h2>{{ _('landing.impact_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.impact_lead') }}</p>
-    </div>
-    <div class="v-stat-grid">
-      <div class="v-stat-card v-reveal">
-        <span class="v-stat-value">{{ _('landing.impact_stat_1_value') }}</span>
-        <span class="v-stat-label">{{ _('landing.impact_stat_1_label') }}</span>
-      </div>
-      <div class="v-stat-card v-reveal v-reveal-delay-1">
-        <span class="v-stat-value">{{ _('landing.impact_stat_2_value') }}</span>
-        <span class="v-stat-label">{{ _('landing.impact_stat_2_label') }}</span>
-      </div>
-      <div class="v-stat-card v-reveal v-reveal-delay-2">
-        <span class="v-stat-value">{{ _('landing.impact_stat_3_value') }}</span>
-        <span class="v-stat-label">{{ _('landing.impact_stat_3_label') }}</span>
-      </div>
-      <div class="v-stat-card v-reveal v-reveal-delay-3">
-        <span class="v-stat-value">{{ _('landing.impact_stat_4_value') }}</span>
-        <span class="v-stat-label">{{ _('landing.impact_stat_4_label') }}</span>
-      </div>
-    </div>
-    <div class="v-roi-compare">
-      <div class="v-roi-col v-roi-col--before">
-        <h3>{{ _('landing.roi_before_title') }}</h3>
-        <ul>
-          <li>{{ _('landing.roi_before_1') }}</li>
-          <li>{{ _('landing.roi_before_2') }}</li>
-          <li>{{ _('landing.roi_before_3') }}</li>
-          <li>{{ _('landing.roi_before_4') }}</li>
-        </ul>
-      </div>
-      <div class="v-roi-col v-roi-col--after">
-        <h3>{{ _('landing.roi_after_title') }}</h3>
-        <ul>
-          <li>{{ _('landing.roi_after_1') }}</li>
-          <li>{{ _('landing.roi_after_2') }}</li>
-          <li>{{ _('landing.roi_after_3') }}</li>
-          <li>{{ _('landing.roi_after_4') }}</li>
-        </ul>
-      </div>
-    </div>
-    <p class="v-sources">{{ _('landing.roi_sources') }}</p>
-    <div class="v-impact-cta">
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_free') }}</a>
-    </div>
-  </div>
-</section>
-
-<section class="v-section" id="features">
-  <div class="container">
-    <div class="v-section-head v-section-head--center">
-      <p class="v-kicker">{{ _('landing.capabilities_kicker') }}</p>
-      <h2>{{ _('landing.capabilities_title') }}</h2>
-    </div>
-    <div class="v-bento">
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📞</div>
-        <h3>{{ _('landing.cap_1_title') }}</h3>
-        <p>{{ _('landing.cap_1_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">🔎</div>
-        <h3>{{ _('landing.cap_2_title') }}</h3>
-        <p>{{ _('landing.cap_2_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📅</div>
-        <h3>{{ _('landing.cap_3_title') }}</h3>
-        <p>{{ _('landing.cap_3_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">🧾</div>
-        <h3>{{ _('landing.cap_4_title') }}</h3>
-        <p>{{ _('landing.cap_4_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📲</div>
-        <h3>{{ _('landing.cap_5_title') }}</h3>
-        <p>{{ _('landing.cap_5_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📊</div>
-        <h3>{{ _('landing.cap_6_title') }}</h3>
-        <p>{{ _('landing.cap_6_desc') }}</p>
-      </article>
-    </div>
   </div>
 </section>
 
@@ -510,6 +214,203 @@
         </div>
       </div>
     </div>
+    <div class="v-mid-cta">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
+      <p class="v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
+    </div>
+  </div>
+</section>
+
+<section class="v-section v-acq" id="acquisition">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.acq_kicker') }}</p>
+      <h2>{{ _('landing.acq_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
+    </div>
+    <div class="v-acq-grid">
+      <div class="v-acq-copy">
+        <ol class="v-acq-points">
+          <li>
+            <strong>{{ _('landing.acq_1_title') }}</strong>
+            <p>{{ _('landing.acq_1_desc') }}</p>
+          </li>
+          <li>
+            <strong>{{ _('landing.acq_2_title') }}</strong>
+            <p>{{ _('landing.acq_2_desc') }}</p>
+          </li>
+          <li>
+            <strong>{{ _('landing.acq_3_title') }}</strong>
+            <p>{{ _('landing.acq_3_desc') }}</p>
+          </li>
+        </ol>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.acq_cta') }}</a>
+      </div>
+      <figure class="v-shot v-acq-mock v-reveal" aria-hidden="true">
+        <div class="v-shot-chrome">
+          <span></span><span></span><span></span>
+          <em>pilotcore.fr/artisans</em>
+        </div>
+        <div class="v-shot-screen dash-mock dash-mock--search">
+          <p class="dash-mock-label">{{ _('landing.acq_mock_found') }}</p>
+          <div class="v-acq-searchbar">{{ _('landing.acq_mock_query') }}</div>
+          <article class="v-acq-result">
+            <span class="v-acq-result-mark">1</span>
+            <div>
+              <strong>{{ _('landing.acq_mock_name') }}</strong>
+              <p>{{ _('landing.acq_mock_meta') }}</p>
+            </div>
+            <span class="v-acq-result-cta">{{ _('landing.acq_mock_cta') }}</span>
+          </article>
+          <article class="v-acq-result is-dim">
+            <span class="v-acq-result-mark">2</span>
+            <div>
+              <strong>{{ _('landing.acq_mock_name_alt') }}</strong>
+              <p>{{ _('landing.acq_mock_meta_alt') }}</p>
+            </div>
+          </article>
+        </div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="v-section v-fiche-preview" id="fiche">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.fiche_kicker') }}</p>
+      <h2>{{ _('landing.fiche_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.fiche_lead') }}</p>
+    </div>
+    <ul class="v-fiche-points">
+      <li>{{ _('landing.fiche_got_1') }}</li>
+      <li>{{ _('landing.fiche_got_2') }}</li>
+      <li>{{ _('landing.fiche_got_3') }}</li>
+      <li>{{ _('landing.fiche_got_4') }}</li>
+    </ul>
+    <div class="v-fiche-grid">
+      <article class="dl-card dl-card--listed">
+        <div class="dl-card-media">
+          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+          <span class="dl-card-flag dl-card-flag--listed">{{ _('landing.fiche_listed_flag') }}</span>
+        </div>
+        <div class="dl-card-header">
+          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
+          <div class="dl-card-head-text">
+            <h3 class="dl-card-name">{{ _('landing.fiche_listed_name') }}</h3>
+            <p class="dl-card-specialty">Plombier</p>
+          </div>
+        </div>
+        <div class="dl-card-body">
+          <p class="dl-card-blurb">{{ _('landing.fiche_listed_note') }}</p>
+        </div>
+      </article>
+      <article class="dl-card dl-card--registry">
+        <div class="dl-card-media dl-card-media--registry">
+          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+          <span class="dl-card-flag dl-card-flag--registry">{{ _('landing.fiche_registry_flag') }}</span>
+        </div>
+        <div class="dl-card-header">
+          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
+          <div class="dl-card-head-text">
+            <h3 class="dl-card-name">{{ _('landing.fiche_registry_name') }}</h3>
+            <p class="dl-card-specialty">Plombier</p>
+          </div>
+        </div>
+        <div class="dl-card-body">
+          <p class="dl-card-blurb dl-card-blurb--muted">{{ _('landing.fiche_registry_note') }}</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="v-section v-claim-band">
+  <div class="container v-claim-inner">
+    <div>
+      <h2>{{ _('landing.claim_title') }}</h2>
+      <p>{{ _('landing.claim_body') }}</p>
+    </div>
+    <a href="{{ url_for('web.find_my_listing') }}" class="btn btn-outline btn-lg">{{ _('landing.claim_cta') }}</a>
+  </div>
+</section>
+
+<section class="v-section v-product-shots" id="espace">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.dash_kicker') }}</p>
+      <h2>{{ _('landing.dash_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.dash_lead') }}</p>
+    </div>
+
+    <figure class="v-shot v-shot--hero v-reveal">
+      <div class="v-shot-chrome" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <em>{{ _('landing.dash_url') }} · {{ _('landing.dash_board') }}</em>
+      </div>
+      <div class="v-shot-screen dash-mock dash-mock--board">
+        <header class="dash-mock-top">
+          <div>
+            <p class="dash-mock-hi">{{ _('landing.dash_greeting') }}</p>
+            <h3>{{ _('landing.dash_company') }}</h3>
+          </div>
+          <span class="dash-mock-pill">{{ _('landing.dash_example') }}</span>
+        </header>
+        <ol class="dash-mock-kpis">
+          <li><strong>—</strong><span>{{ _('landing.dash_kpi_calls') }}</span></li>
+          <li><strong>—</strong><span>{{ _('landing.dash_kpi_leads') }}</span></li>
+          <li><strong>—</strong><span>{{ _('landing.dash_kpi_quotes') }}</span></li>
+          <li><strong>—</strong><span>{{ _('landing.dash_kpi_jobs') }}</span></li>
+        </ol>
+        <div class="dash-mock-flow">
+          <span>1 · {{ _('landing.dash_flow_1') }}</span>
+          <span>2 · {{ _('landing.dash_flow_2') }}</span>
+          <span>3 · {{ _('landing.dash_flow_3') }}</span>
+          <span>4 · {{ _('landing.dash_flow_4') }}</span>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section class="v-section" id="features">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.capabilities_kicker') }}</p>
+      <h2>{{ _('landing.capabilities_title') }}</h2>
+    </div>
+    <div class="v-bento">
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📞</div>
+        <h3>{{ _('landing.cap_1_title') }}</h3>
+        <p>{{ _('landing.cap_1_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">🔎</div>
+        <h3>{{ _('landing.cap_2_title') }}</h3>
+        <p>{{ _('landing.cap_2_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📅</div>
+        <h3>{{ _('landing.cap_3_title') }}</h3>
+        <p>{{ _('landing.cap_3_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">🧾</div>
+        <h3>{{ _('landing.cap_4_title') }}</h3>
+        <p>{{ _('landing.cap_4_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📲</div>
+        <h3>{{ _('landing.cap_5_title') }}</h3>
+        <p>{{ _('landing.cap_5_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📊</div>
+        <h3>{{ _('landing.cap_6_title') }}</h3>
+        <p>{{ _('landing.cap_6_desc') }}</p>
+      </article>
+    </div>
   </div>
 </section>
 
@@ -521,23 +422,25 @@
       <p class="v-section-lead">{{ _('landing.value_lead') }}</p>
     </div>
 
-    <div class="v-compare-grid">
-      <article class="v-compare-card">
-        <span class="v-compare-label">{{ _('landing.compare_1_label') }}</span>
-        <strong class="v-compare-value">{{ _('landing.compare_1_value') }}</strong>
-        <p class="v-compare-note">{{ _('landing.compare_1_note') }}</p>
-      </article>
-      <article class="v-compare-card">
-        <span class="v-compare-label">{{ _('landing.compare_2_label') }}</span>
-        <strong class="v-compare-value">{{ _('landing.compare_2_value') }}</strong>
-        <p class="v-compare-note">{{ _('landing.compare_2_note') }}</p>
-      </article>
-      <article class="v-compare-card v-compare-card--best">
-        <span class="v-compare-flag">{{ _('landing.compare_best') }}</span>
-        <span class="v-compare-label">{{ _('landing.compare_3_label') }}</span>
-        <strong class="v-compare-value">{{ _('landing.compare_3_value') }}</strong>
-        <p class="v-compare-note">{{ _('landing.compare_3_note') }}</p>
-      </article>
+    <div class="v-roi-compare">
+      <div class="v-roi-col v-roi-col--before">
+        <h3>{{ _('landing.roi_before_title') }}</h3>
+        <ul>
+          <li>{{ _('landing.roi_before_1') }}</li>
+          <li>{{ _('landing.roi_before_2') }}</li>
+          <li>{{ _('landing.roi_before_3') }}</li>
+          <li>{{ _('landing.roi_before_4') }}</li>
+        </ul>
+      </div>
+      <div class="v-roi-col v-roi-col--after">
+        <h3>{{ _('landing.roi_after_title') }}</h3>
+        <ul>
+          <li>{{ _('landing.roi_after_1') }}</li>
+          <li>{{ _('landing.roi_after_2') }}</li>
+          <li>{{ _('landing.roi_after_3') }}</li>
+          <li>{{ _('landing.roi_after_4') }}</li>
+        </ul>
+      </div>
     </div>
 
     <div class="v-roi-calc" data-roi-calc
@@ -570,7 +473,7 @@
           <span class="v-roi-result-label">{{ _('landing.roi_calc_result_label') }}</span>
           <strong class="v-roi-result-value" data-roi-month>—</strong>
           <span class="v-roi-result-year" data-roi-year></span>
-          <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block v-roi-cta">{{ _('landing.roi_calc_cta') }}</a>
+          <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block v-roi-cta">{{ _('landing.cta_signup') }}</a>
         </div>
       </div>
       <p class="v-sources">{{ _('landing.roi_calc_note') }}</p>
@@ -608,24 +511,7 @@
                 <li>{{ _('landing.pricing_trial_feat_3') }}</li>
                 <li>{{ _('landing.pricing_trial_feat_4') }}</li>
               </ul>
-              <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-block">{{ _('landing.pricing_trial_cta') }}</a>
-            </article>
-
-            <article class="pricing-card pricing-card-launch pricing-card-featured pro-pricing-slide" data-pricing-slide data-slide-label="{{ _('landing.pricing_launch_short') }}">
-              <span class="pricing-badge pricing-badge-featured">{{ _('landing.pricing_launch_kicker') }}</span>
-              <h3 class="pricing-name">{{ _('app.name') }} Pro</h3>
-              <p class="pricing-price">
-                <strong>{{ _('landing.pricing_launch_price') }}</strong>
-                <span>{{ _('landing.pricing_launch_period') }}</span>
-              </p>
-              <ul class="pricing-features">
-                <li>{{ _('landing.pricing_launch_feat_1') }}</li>
-                <li>{{ _('landing.pricing_launch_feat_2') }}</li>
-                <li>{{ _('landing.pricing_launch_feat_3') }}</li>
-                <li>{{ _('landing.pricing_launch_feat_4') }}</li>
-                <li>{{ _('landing.pricing_launch_feat_5') }}</li>
-              </ul>
-              <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.cta_start_free') }}</a>
+              <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.pricing_trial_cta') }}</a>
             </article>
 
             {% for offer in offers %}
@@ -636,7 +522,7 @@
               {% if offer.calls %}<p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ offer.calls }}</p>{% endif %}
               {% if offer.description %}<p class="pricing-desc">{{ offer.description }}</p>{% endif %}
               <ul class="pricing-features">
-                {% for feat in offer.feature_list() %}<li>{{ feat }}</li>{% endfor %}
+                {% for feat in honest_offer_features(offer) %}<li>{{ feat }}</li>{% endfor %}
               </ul>
               <a href="{{ url_for('web.register', plan=offer.key) }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
             </article>
@@ -672,26 +558,12 @@
       <h2>{{ _('landing.faq_title') }}</h2>
     </div>
     <div class="faq-list">
-      <details class="faq-item" open>
-        <summary>{{ _('landing.faq_1_q') }}</summary>
-        <p>{{ _('landing.faq_1_a') }}</p>
+      {% for n in range(1, 9) %}
+      <details class="faq-item"{% if n == 1 %} open{% endif %}>
+        <summary>{{ _('landing.faq_%s_q'|format(n)) }}</summary>
+        <p>{{ _('landing.faq_%s_a'|format(n)) }}</p>
       </details>
-      <details class="faq-item">
-        <summary>{{ _('landing.faq_2_q') }}</summary>
-        <p>{{ _('landing.faq_2_a') }}</p>
-      </details>
-      <details class="faq-item">
-        <summary>{{ _('landing.faq_3_q') }}</summary>
-        <p>{{ _('landing.faq_3_a') }}</p>
-      </details>
-      <details class="faq-item">
-        <summary>{{ _('landing.faq_4_q') }}</summary>
-        <p>{{ _('landing.faq_4_a') }}</p>
-      </details>
-      <details class="faq-item">
-        <summary>{{ _('landing.faq_5_q') }}</summary>
-        <p>{{ _('landing.faq_5_a') }}</p>
-      </details>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -701,11 +573,10 @@
     <h2>{{ _('landing.cta_band_title') }}</h2>
     <p>{{ _('landing.cta_band_sub') }}</p>
     <div class="v-cta-band-actions">
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_start_now') }}</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
       <a href="#demo" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_see_demo') }}</a>
     </div>
     <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
-    <p class="v-cta-band-proof">{{ _('landing.social_proof') }}</p>
   </div>
 </section>
 {% endblock %}
@@ -742,6 +613,6 @@
   };
 </script>
 <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pro-pricing.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/pro-pricing.js') }}?v=2"></script>
 <script src="{{ url_for('static', filename='js/roi-calc.js') }}?v=1"></script>
 {% endblock %}

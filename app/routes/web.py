@@ -652,7 +652,11 @@ def pro_landing():
     from app.services import content_studio
 
     offers = content_studio.get_offers(active_only=True)
-    return render_template("pro/landing.html", offers=offers or [])
+    return render_template(
+        "pro/landing.html",
+        offers=offers or [],
+        honest_offer_features=content_studio.honest_offer_features,
+    )
 
 
 # Legacy alias

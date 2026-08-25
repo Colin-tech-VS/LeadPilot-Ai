@@ -35,6 +35,22 @@ def test_pro_landing_seo(client):
     assert "annuaire" in html.lower() or "directory" in html.lower()
 
 
+def test_public_and_pro_nav_share_zone_line(client):
+    """Same Particuliers | Professionnels switcher on both public headers."""
+    home = client.get("/").data.decode()
+    pro = client.get("/pro").data.decode()
+    for html in (home, pro):
+        assert 'class="zone-line"' in html
+        assert "Particuliers" in html or "Public" in html or "Customers" in html
+        assert "Professionnels" in html or "Professionals" in html
+        assert "nav-auth-cta" in html
+        assert "Connexion" in html or "Sign in" in html
+    assert home.index("zone-line") < home.index("public-nav")
+    assert pro.index("zone-line") < pro.index("pro-nav")
+    assert 'aria-current="page"' in home
+    assert 'aria-current="page"' in pro
+
+
 def test_pro_landing_copy_is_honest(client):
     """No invented volume, no fake launch SKU, no guaranteed-client promise."""
     html = client.get("/pro").data.decode()

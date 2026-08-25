@@ -1,6 +1,6 @@
 {% from 'macros/brand.html' import brand_logo with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
-{% from 'macros/zone_nav.html' import public_zone_nav with context %}
+{% from 'macros/zone_nav.html' import public_zone_nav, zone_line with context %}
 {% from 'macros/address_autocomplete.html' import address_autocomplete_scripts with context %}
 <!DOCTYPE html>
 <html lang="{{ lang }}">
@@ -27,8 +27,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=22">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=40">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=15">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=8">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=16">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=9">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
   <link rel="alternate" type="text/plain" href="{{ canonical_url('/llms.txt') }}" title="LLM site index">
   <script type="application/ld+json">{{ global_site_json_ld_script() | safe }}</script>
@@ -37,10 +37,13 @@
 <body class="zone-public public-page vitrine dl-client {% block body_class %}{% endblock %}">
   <header class="v-header v-header--client">
     <div class="container v-header-inner">
-      <a href="{{ url_for('web.client_home') }}" class="v-brand brand">
-        {{ brand_logo('md', 'public') }}
-        <span class="brand-text">{{ _('app.name') }}</span>
-      </a>
+      <div class="v-brand-cluster">
+        <a href="{{ url_for('web.client_home') }}" class="v-brand brand">
+          {{ brand_logo('md', 'public') }}
+          <span class="brand-text">{{ _('app.name') }}</span>
+        </a>
+        {{ zone_line('public') }}
+      </div>
       <nav class="v-nav public-nav" id="public-nav" aria-label="{{ _('zone.public') }}">
         {{ public_zone_nav(nav_active|default('')) }}
       </nav>

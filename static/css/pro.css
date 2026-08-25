@@ -4,7 +4,7 @@
 }
 
 .v-header--pro {
-  border-bottom-color: color-mix(in srgb, var(--lp-zone-pro) 18%, var(--lp-border));
+  border-bottom-color: var(--lp-brand);
 }
 
 .v-header--pro .btn-primary {

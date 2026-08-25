@@ -1,5 +1,18 @@
 {# Navigation fixe par zone — ne pas surcharger public_nav / pro_nav dans les pages. #}
-{# Utiliser {% set nav_active = 'home'|'directory'|'account'|'login' %} dans chaque template. #}
+{# Utiliser {% set nav_active = 'home'|'directory'|'blog'|'account'|'login'|'how'|'pricing' %} #}
+
+{% macro zone_line(current='public') %}
+<nav class="zone-line" aria-label="{{ _('zone.public') }} / {{ _('zone.pro') }}">
+  <a href="{{ url_for('web.client_home') }}"
+     class="zone-line-item{% if current == 'public' %} is-active{% endif %}"
+     {% if current == 'public' %}aria-current="page"{% endif %}
+     title="{{ _('nav.switch_client') }}">{{ _('zone.public') }}</a>
+  <a href="{{ url_for('web.pro_landing') }}"
+     class="zone-line-item{% if current == 'pro' %} is-active{% endif %}"
+     {% if current == 'pro' %}aria-current="page"{% endif %}
+     title="{{ _('nav.switch_pro') }}">{{ _('zone.pro') }}</a>
+</nav>
+{% endmacro %}
 
 {% macro public_zone_nav(active='') %}
 <a href="{{ url_for('web.client_home') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('vitrine.nav_home') }}</a>
@@ -10,16 +23,15 @@
 <a href="{{ url_for('customer.account') }}" class="nav-auth {% if active == 'account' %}active{% endif %}">{{ _('zone.customer_space') }}</a>
 {% else %}
 <a href="{{ url_for('customer.login') }}" class="nav-auth {% if active == 'login' %}active{% endif %}">{{ _('client.nav_login') }}</a>
+<a href="{{ url_for('customer.register') }}" class="btn btn-primary btn-sm nav-auth-cta">{{ _('client.nav_register') }}</a>
 {% endif %}
-<a href="{{ url_for('web.pro_landing') }}" class="nav-zone-switch" title="{{ _('nav.switch_pro') }}">{{ _('nav.switch_pro_short') }}</a>
 {% endmacro %}
 
 {% macro pro_zone_nav(active='') %}
-<a href="{{ url_for('web.pro_landing') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('directory.nav_pro') }}</a>
+<a href="{{ url_for('web.pro_landing') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('vitrine.nav_home') }}</a>
 <a href="{{ url_for('web.pro_landing') }}#how" class="{% if active == 'how' %}active{% endif %}">{{ _('pro.nav_how') }}</a>
 <a href="{{ url_for('web.pro_landing') }}#pricing" class="{% if active == 'pricing' %}active{% endif %}">{{ _('landing.nav_pricing') }}</a>
 <span class="nav-zone-sep" aria-hidden="true"></span>
-<a href="{{ url_for('web.login') }}" class="nav-auth {% if active == 'login' %}active{% endif %}">{{ _('pro.nav_login') }}</a>
-<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm nav-auth-cta">{{ _('pro.nav_register') }}</a>
-<a href="{{ url_for('web.client_home') }}" class="nav-zone-switch" title="{{ _('nav.switch_client') }}">{{ _('nav.switch_client_short') }}</a>
+<a href="{{ url_for('web.login') }}" class="nav-auth {% if active == 'login' %}active{% endif %}">{{ _('client.nav_login') }}</a>
+<a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm nav-auth-cta">{{ _('landing.cta_signup') }}</a>
 {% endmacro %}

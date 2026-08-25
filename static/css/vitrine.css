@@ -33,6 +33,15 @@
   min-height: 72px;
 }
 
+.vitrine .v-brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .vitrine .v-brand {
   display: flex;
   align-items: center;
@@ -43,8 +52,49 @@
   flex-wrap: wrap;
 }
 
-.vitrine .v-brand .zone-badge {
-  margin-left: 2px;
+.vitrine .zone-line {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--v-border);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--v-surface);
+}
+
+.vitrine .zone-line-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-decoration: none;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+.vitrine .zone-line-item:hover {
+  color: var(--v-text);
+  background: rgba(26, 35, 50, 0.04);
+  text-decoration: none;
+}
+
+.vitrine .zone-line-item.is-active {
+  background: var(--v-accent);
+  color: #FBF7EE;
+  pointer-events: none;
+}
+
+.vitrine .v-header--client {
+  border-bottom: 1px solid var(--v-border);
+}
+
+.vitrine .v-header--pro {
+  border-bottom: 2px solid var(--v-accent);
+}
+
+.vitrine .v-nav .nav-auth-cta {
+  margin-left: 4px;
 }
 
 .vitrine .v-brand .brand-text {
@@ -94,7 +144,7 @@
   font-size: 13px;
 }
 
-.vitrine .public-nav-toggle { display: none; }
+.vitrine .nav-toggle { display: none; }
 
 /* hide legacy header shell only */
 .vitrine .public-header,
@@ -1516,8 +1566,17 @@
     margin-top: 4px;
   }
 
-  .vitrine .public-nav-toggle {
+  .vitrine .nav-toggle {
     display: flex !important;
+  }
+
+  .vitrine .v-brand-cluster {
+    gap: 8px;
+  }
+
+  .vitrine .zone-line-item {
+    padding: 5px 8px;
+    font-size: 11px;
   }
 
   .vitrine .v-hero-grid {
@@ -1610,6 +1669,7 @@
   .vitrine .v-section { padding: 48px 0; }
   .vitrine .v-hero h1 { font-size: clamp(1.75rem, 8vw, 2.25rem); }
   .vitrine .v-header-end .lang-switcher { font-size: 12px; }
+  .vitrine .v-brand .brand-text { display: none; }
   .vitrine .directory-grid { grid-template-columns: 1fr; }
 }
 

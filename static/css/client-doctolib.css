@@ -17,7 +17,6 @@
 
 .dl-client .v-header--client {
   background: var(--dl-bg);
-  border-bottom: 1px solid var(--dl-border);
   box-shadow: none;
 }
 
@@ -50,27 +49,8 @@
   flex-shrink: 0;
 }
 
-.nav-zone-switch {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: var(--dl-muted) !important;
-  white-space: nowrap;
-}
-
-.nav-zone-switch:hover {
-  color: var(--dl-primary) !important;
-}
-
-.zone-pro .nav-zone-switch {
-  color: var(--muted) !important;
-}
-
-.zone-pro .nav-zone-switch:hover {
-  color: #1A2332 !important;
-}
-
 .zone-pro .nav-zone-sep {
-  background: var(--border);
+  background: var(--v-border, var(--border));
 }
 
 /* Hero recherche */

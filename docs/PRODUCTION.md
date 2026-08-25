@@ -71,7 +71,8 @@ du destinataire l'a refusé). Deux causes, dans l'ordre :
 
 ## 3. Sécurité
 
-- `TWILIO_AUTO_PROVISION_NUMBERS` : un numéro dédié n’est acheté **qu’après paiement Stripe**. Les essais partagent `TWILIO_AI_PHONE_NUMBER`. Mettre `0` pour ne jamais acheter.
+- `TWILIO_AUTO_PROVISION_NUMBERS` : un numéro dédié n’est acheté **qu’après paiement Stripe**, et seulement si `LIVE_PROVIDER_SPEND=1`.
+- `LIVE_PROVIDER_SPEND=1` en production. En local / pytest c’est forcément off (pas de SMS, pas d’achat de numéro, pas de Places/OpenAI facturés).
 - `TWILIO_VALIDATE_SIGNATURE=1`.
 - Pas de hash admin par défaut en prod — uniquement `ADMIN_PASSWORD`.
 

@@ -60,6 +60,12 @@ def send_sms(to: str, body: str) -> bool:
         logger.info("SMS skipped — Twilio not configured (to=%s)", to_e164)
         return False
 
+    from app.core.production import live_provider_spend_allowed
+
+    if not live_provider_spend_allowed():
+        logger.info("SMS skipped — live spend is off outside production (to=%s)", to_e164)
+        return False
+
     cfg = current_app.config
     from_number = cfg.get("TWILIO_SMS_FROM") or cfg.get("TWILIO_AI_PHONE_NUMBER")
 

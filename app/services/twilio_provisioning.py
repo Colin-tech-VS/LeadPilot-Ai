@@ -26,7 +26,9 @@ def twilio_configured() -> bool:
 
 def auto_provision_enabled() -> bool:
     """Whether the app is allowed to buy dedicated numbers at all."""
-    if current_app.config.get("TESTING"):
+    from app.core.production import live_provider_spend_allowed
+
+    if not live_provider_spend_allowed():
         return False
     return bool(current_app.config.get("TWILIO_AUTO_PROVISION_NUMBERS")) and twilio_configured()
 
@@ -41,12 +43,14 @@ def _is_shared_line(number: str | None) -> bool:
 
 
 def should_buy_dedicated_number(tenant) -> bool:
-    """True only for a paying artisan, on a live app, with buying enabled.
+    """True only for a paying artisan on the live production app.
 
-    Trials, waitlists, founding tests and pytest never qualify. That is the
-    gate that stops a FR number (~1.35 USD/month) being bought per dummy signup.
+    Trials, local ``python main.py``, waitlists, founding tests and pytest
+    never qualify — that is what stopped dummy signups buying FR lines.
     """
-    if current_app.config.get("TESTING"):
+    from app.core.production import live_provider_spend_allowed
+
+    if not live_provider_spend_allowed():
         return False
     if not auto_provision_enabled():
         return False

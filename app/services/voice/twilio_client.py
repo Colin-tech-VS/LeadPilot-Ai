@@ -66,6 +66,13 @@ class TwilioVoiceClient:
         if provider == "twilio":
             return None
         try:
+            from app.core.production import live_provider_spend_allowed
+
+            if has_app_context() and not live_provider_spend_allowed():
+                return None
+        except Exception:
+            return None
+        try:
             from app.services.voice.text_to_speech import TextToSpeech
 
             result = TextToSpeech().synthesize(text)

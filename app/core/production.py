@@ -14,6 +14,22 @@ def is_production(app=None) -> bool:
     return app.config.get("ENV") == "production" or os.environ.get("FLASK_ENV") == "production"
 
 
+def live_provider_spend_allowed(app=None) -> bool:
+    """Bill Twilio / OpenAI / Places only on the real production app.
+
+    Pytest and local ``python main.py`` (even when ``.env`` holds live keys)
+    must never buy numbers, send SMS, or call billed Google/OpenAI APIs.
+    Set ``LIVE_PROVIDER_SPEND=0`` on Scalingo to freeze spend there too.
+    """
+    app = app or current_app
+    if app.config.get("TESTING"):
+        return False
+    if not is_production(app):
+        return False
+    flag = str(os.environ.get("LIVE_PROVIDER_SPEND") or app.config.get("LIVE_PROVIDER_SPEND") or "1")
+    return flag.lower() not in ("0", "false", "no", "off")
+
+
 def validate_production_config(app) -> None:
     """Fail fast on boot when critical production settings are missing."""
     if not is_production(app):

@@ -192,6 +192,8 @@ def collect():
                 _check("Validation signature", "TWILIO_VALIDATE_SIGNATURE", show_value=True),
                 _check("Provision numéros (payants)", "TWILIO_AUTO_PROVISION_NUMBERS", show_value=True,
                        hint="Achat uniquement après paiement Stripe — pas à l'inscription"),
+                _check("Dépenses live (Twilio/OpenAI/Places)", "LIVE_PROVIDER_SPEND", show_value=True,
+                       hint="0 = aucune dépense réelle (pytest / local). 1 en production."),
             ],
         )
     )

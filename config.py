@@ -117,6 +117,9 @@ class Config:
     # voice endpoints (which cost money: STT + LLM + TTS per call). Requires
     # TWILIO_AUTH_TOKEN. Set TWILIO_VALIDATE_SIGNATURE=0 to disable (e.g. local).
     TWILIO_VALIDATE_SIGNATURE = os.environ.get("TWILIO_VALIDATE_SIGNATURE", "1") not in ("0", "false", "False", "")
+    # 1 on Scalingo production (default). 0 freezes Twilio SMS/numbers, OpenAI
+    # images/TTS and Google Places even in production.
+    LIVE_PROVIDER_SPEND = os.environ.get("LIVE_PROVIDER_SPEND", "1")
 
     # ------------------------------------------------------------------ Admin
     # Standalone admin console (/admin), fully separate from the artisan app.

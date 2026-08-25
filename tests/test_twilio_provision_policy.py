@@ -45,21 +45,40 @@ def test_trial_never_qualifies_for_a_dedicated_number(app):
         assert should_buy_dedicated_number(tenant) is False
 
 
-def test_paid_tenant_qualifies_only_outside_pytest(app):
+def test_paid_tenant_qualifies_only_in_production(app, monkeypatch):
     tid = _tenant(app, plan="starter")
     with app.app_context():
         tenant = db.session.get(Tenant, tid)
         assert tenant.is_paid is True
-        # conftest sets TESTING — live purchase is forbidden in the suite.
         assert should_buy_dedicated_number(tenant) is False
+        monkeypatch.setenv("LIVE_PROVIDER_SPEND", "1")
+        monkeypatch.setenv("FLASK_ENV", "production")
         app.config["TESTING"] = False
+        app.config["ENV"] = "production"
+        app.config["LIVE_PROVIDER_SPEND"] = "1"
         app.config["TWILIO_AUTO_PROVISION_NUMBERS"] = True
         app.config["TWILIO_ACCOUNT_SID"] = "ACffffffffffffffffffffffffffffffff"
         app.config["TWILIO_AUTH_TOKEN"] = "tok"
-        try:
-            assert should_buy_dedicated_number(tenant) is True
-        finally:
-            app.config["TESTING"] = True
+        assert should_buy_dedicated_number(tenant) is True
+
+
+def test_sms_never_sends_during_pytest(app, monkeypatch):
+    from app.services import sms as sms_mod
+
+    called = []
+    monkeypatch.setattr(sms_mod, "sms_configured", lambda: True)
+
+    class _Boom:
+        def __init__(self, *a, **k):
+            raise AssertionError("Twilio Client must not be constructed in tests")
+
+    monkeypatch.setattr("twilio.rest.Client", _Boom)
+    with app.app_context():
+        app.config["TWILIO_ACCOUNT_SID"] = "ACffffffffffffffffffffffffffffffff"
+        app.config["TWILIO_AUTH_TOKEN"] = "tok"
+        app.config["TWILIO_AI_PHONE_NUMBER"] = "+33159169691"
+        assert sms_mod.send_sms("0612345678", "hello") is False
+    assert not called
 
 
 def test_stripe_checkout_does_not_buy_during_pytest(app):

@@ -441,7 +441,9 @@ def generate_for_post(
     headline_text = brief["headline"]
     visual = brief["visual_brief"]
     if use_dalle is None:
-        use_dalle = bool((current_app.config.get("OPENAI_API_KEY") or "").strip()) and not current_app.config.get("TESTING")
+        from app.core.production import live_provider_spend_allowed
+
+        use_dalle = bool((current_app.config.get("OPENAI_API_KEY") or "").strip()) and live_provider_spend_allowed()
 
     raw = _try_dalle(visual) if use_dalle else None
     try:

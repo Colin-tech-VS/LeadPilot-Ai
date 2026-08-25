@@ -8,6 +8,18 @@ import pytest
 os.environ["FLASK_ENV"] = "testing"
 os.environ.pop("DATABASE_URL", None)
 
+# Neutralize live provider keys BEFORE any app import / load_dotenv. dotenv
+# does not override existing variables, so this blocks billed Twilio / Stripe /
+# OpenAI / Places calls even when the developer .env holds real credentials.
+os.environ["TWILIO_ACCOUNT_SID"] = "ACffffffffffffffffffffffffffffffff"
+os.environ["TWILIO_AUTH_TOKEN"] = "pytest-never-live"
+os.environ["TWILIO_AUTO_PROVISION_NUMBERS"] = "0"
+os.environ["TWILIO_VALIDATE_SIGNATURE"] = "0"
+os.environ["LIVE_PROVIDER_SPEND"] = "0"
+os.environ["STRIPE_SECRET_KEY"] = "sk_test_pytest"
+os.environ["OPENAI_API_KEY"] = ""
+os.environ["GOOGLE_PLACES_API_KEY"] = ""
+
 # Each pytest session gets its own SQLite file.
 #
 # The default (``sqlite:///PilotCore_test.db``) is a file in the project root

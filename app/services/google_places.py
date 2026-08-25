@@ -71,7 +71,17 @@ def api_key() -> str:
 
 
 def is_enabled() -> bool:
-    return bool(api_key())
+    if not api_key():
+        return False
+    try:
+        # Pytest sets a fake key and mocks HTTP — let those tests run.
+        if current_app.config.get("TESTING"):
+            return True
+        from app.core.production import live_provider_spend_allowed
+
+        return live_provider_spend_allowed()
+    except RuntimeError:
+        return False
 
 
 def _cache_get(key: str):

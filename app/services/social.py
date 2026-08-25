@@ -4,10 +4,15 @@ Credentials (Page ID + Page access token) are stored as site settings so the
 owner can connect a Page from the admin console without a redeploy. When they
 are absent, publishing is disabled and the UI shows a "connect" prompt — nothing
 breaks.
+
+A Facebook *user* token always expires (~1–2h, or ~60 days after exchange).
+Only a *page* token derived from a long-lived user token never expires. We
+never store a short-lived page token as if it were unlimited.
 """
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 
 import requests
 from flask import current_app
@@ -32,18 +37,29 @@ SETTING_INTERVAL = "facebook_autopost_interval"
 SETTING_SHARE_GROUPS = "facebook_share_groups"
 SETTING_GROUP_IDS = "facebook_group_ids"
 
+DEFAULT_PAGE_ID = "1246135508572421"
+
 REQUIRED_PAGE_PERMISSIONS = (
     "pages_manage_posts",
     "pages_read_engagement",
     "pages_show_list",
 )
 
+OAUTH_SCOPES = ",".join(
+    (
+        "pages_show_list",
+        "pages_manage_posts",
+        "pages_read_engagement",
+        "pages_manage_metadata",
+        "business_management",
+    )
+)
+
 PERMISSION_ERROR_HINT = (
-    "Le token doit être un token d'accès de page (pas un token utilisateur) avec les "
-    "permissions pages_manage_posts, pages_read_engagement et pages_show_list. "
-    "Dans Graph API Explorer : générez un token utilisateur avec ces permissions, "
-    "puis appelez GET /me/accounts?fields=id,name,access_token et copiez le token "
-    "de votre page PilotCore."
+    "Collez un token UTILISATEUR (Graph Explorer, User Token) généré avec l'app "
+    "PilotCore, permissions pages_manage_posts, pages_read_engagement et "
+    "pages_show_list. Un token de page collé tel quel expire ; seul l'échange "
+    "via FACEBOOK_APP_ID / FACEBOOK_APP_SECRET produit un token de page illimité."
 )
 
 
@@ -302,7 +318,7 @@ def connection_status() -> dict:
             "can_publish": False,
             "message": "Aucune page connectée.",
             "token_health": {"is_valid": False, "never_expires": False, "expires_at": None, "error": "Aucune page connectée."},
-            "app_ready": bool(_app_credentials()[0] and _app_credentials()[1]),
+            "app_ready": app_credentials_ready(),
             "has_user_token": False,
         }
 
@@ -347,7 +363,7 @@ def connection_status() -> dict:
         "can_publish": can_publish,
         "message": message[:500],
         "token_health": inspect_stored_token(),
-        "app_ready": bool(_app_credentials()[0] and _app_credentials()[1]),
+        "app_ready": app_credentials_ready(),
         "has_user_token": bool((content.get_setting(SETTING_USER_TOKEN, "") or "").strip()),
     }
 
@@ -510,6 +526,97 @@ def _app_credentials() -> tuple[str, str]:
         return "", ""
 
 
+def app_credentials_ready() -> bool:
+    app_id, app_secret = _app_credentials()
+    return bool(app_id and app_secret)
+
+
+def facebook_oauth_redirect_uri() -> str:
+    from app.utils.seo import site_base_url
+
+    return f"{site_base_url()}/admin/social/facebook/callback"
+
+
+def facebook_oauth_url(state: str, redirect_uri: str | None = None) -> str:
+    app_id, _ = _app_credentials()
+    uri = redirect_uri or facebook_oauth_redirect_uri()
+    query = urlencode(
+        {
+            "client_id": app_id,
+            "redirect_uri": uri,
+            "state": state,
+            "scope": OAUTH_SCOPES,
+            "response_type": "code",
+        }
+    )
+    return f"https://www.facebook.com/{GRAPH_VERSION}/dialog/oauth?{query}"
+
+
+def exchange_oauth_code(code: str, redirect_uri: str) -> tuple[str | None, str | None]:
+    """Exchange a Facebook Login code for a short-lived user token."""
+    code = (code or "").strip()
+    app_id, app_secret = _app_credentials()
+    if not code:
+        return None, "Code d'autorisation Facebook manquant."
+    if not app_id or not app_secret:
+        return None, "FACEBOOK_APP_ID et FACEBOOK_APP_SECRET sont requis."
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/oauth/access_token",
+            params={
+                "client_id": app_id,
+                "redirect_uri": redirect_uri,
+                "client_secret": app_secret,
+                "code": code,
+            },
+            timeout=15,
+        )
+        data = resp.json() or {}
+        token = (data.get("access_token") or "").strip()
+        if resp.ok and token:
+            return token, None
+        err = _graph_error(data).get("message") or "Échange du code Facebook impossible."
+        logger.warning("Facebook OAuth code exchange failed: %s", data)
+        return None, err
+    except requests.RequestException as exc:
+        logger.exception("Facebook OAuth code exchange failed")
+        return None, str(exc)
+
+
+def list_user_pages(user_token: str) -> list[dict]:
+    """Pages the user can manage (id + name only)."""
+    token = (user_token or "").strip()
+    if not token:
+        return []
+    try:
+        resp = requests.get(
+            f"{GRAPH_BASE}/me/accounts",
+            params={
+                "access_token": token,
+                "fields": "id,name",
+                "limit": 100,
+            },
+            timeout=12,
+        )
+        data = resp.json() or {}
+        if not resp.ok:
+            return []
+        return [
+            {"id": str(page.get("id")), "name": page.get("name") or str(page.get("id"))}
+            for page in data.get("data") or []
+            if page.get("id")
+        ]
+    except requests.RequestException:
+        logger.exception("Facebook /me/accounts listing failed")
+        return []
+
+
+def _pages_summary(pages: list[dict]) -> str:
+    if not pages:
+        return "aucune page"
+    return ", ".join(f"{p['name']} ({p['id']})" for p in pages[:8])
+
+
 def inspect_token(token: str) -> dict:
     """Inspect a Graph token. expires_at == 0 means it never expires."""
     token = (token or "").strip()
@@ -567,22 +674,24 @@ def inspect_stored_token() -> dict:
 
 
 def refresh_never_expiring_token() -> dict:
-    """If a user token is stored, re-derive a never-expiring page token."""
-    health = inspect_stored_token()
-    if health.get("is_valid") and health.get("never_expires"):
-        return health
+    """Extend the 60-day user token and re-derive the never-expiring page token.
+
+    A page token that never expires still needs a living user token for groups
+    and for a later re-derivation if Meta invalidates the page token.
+    """
     user_token = (content.get_setting(SETTING_USER_TOKEN, "") or "").strip()
     cfg = get_config()
-    if not user_token or not cfg.get("page_id") or not _app_credentials()[0]:
-        return health
-    long_lived = exchange_long_lived_user_token(user_token) or user_token
-    if long_lived != user_token:
-        content.set_setting(SETTING_USER_TOKEN, long_lived)
-    resolved, page_name = resolve_page_access_token(long_lived, cfg["page_id"])
-    if resolved:
-        save_connection(cfg["page_id"], resolved, page_name or cfg.get("page_name") or "")
-        return inspect_stored_token()
-    return health
+    if user_token and app_credentials_ready():
+        long_lived = exchange_long_lived_user_token(user_token)
+        if long_lived:
+            content.set_setting(SETTING_USER_TOKEN, long_lived)
+            user_token = long_lived
+        page_id = (cfg.get("page_id") or "").strip()
+        if page_id:
+            resolved, page_name = resolve_page_access_token(user_token, page_id)
+            if resolved:
+                save_connection(page_id, resolved, page_name or cfg.get("page_name") or "")
+    return inspect_stored_token()
 
 
 def exchange_long_lived_user_token(short_token: str) -> str | None:
@@ -612,44 +721,118 @@ def exchange_long_lived_user_token(short_token: str) -> str | None:
 
 
 def connect_page(page_id: str, pasted_token: str) -> dict:
-    """Store a never-expiring page token whenever Graph allows it.
+    """Store a never-expiring page token derived from a user token.
 
-    Flow: user token → long-lived user token → /me/accounts page token
-    (page tokens derived from a long-lived user token do not expire).
+    User tokens always expire. We exchange them for a ~60-day user token, then
+    call /me/accounts: that page token does not expire. If the long-lived
+    exchange fails we refuse to save — a short-lived page token must not be
+    stored as « illimité ».
     """
     page_id = str(page_id or "").strip()
     pasted = (pasted_token or "").strip()
+    empty_health = {"is_valid": False, "never_expires": False, "expires_at": None, "error": None}
     if not page_id or not pasted:
-        return {"ok": False, "message": "Identifiant de page et token requis."}
+        return {
+            "ok": False,
+            "message": "Identifiant de page et token requis.",
+            "detail": "",
+            "health": empty_health,
+        }
 
-    working = pasted
-    if not is_page_access_token(pasted, page_id):
-        long_lived = exchange_long_lived_user_token(pasted)
-        if long_lived:
-            working = long_lived
-        content.set_setting(SETTING_USER_TOKEN, working)
-        resolved, page_name = resolve_page_access_token(working, page_id)
-        if resolved:
-            save_connection(page_id, resolved, page_name or "")
-        else:
-            save_connection(page_id, pasted, "")
-    else:
-        identity_id, identity_name = token_identity(pasted)
-        save_connection(page_id, pasted, identity_name or "")
-        if identity_id == page_id:
-            # Keep a previously stored user token for groups.
-            pass
+    identity_id, identity_name = token_identity(pasted)
+    if not identity_id:
+        return {
+            "ok": False,
+            "message": "Token Facebook invalide ou déjà expiré. Générez-en un nouveau (User Token) dans Graph Explorer avec l'app PilotCore.",
+            "detail": "",
+            "health": empty_health,
+        }
 
+    if identity_id == page_id:
+        health = inspect_token(pasted)
+        if health.get("never_expires"):
+            save_connection(page_id, pasted, identity_name or "")
+            ok, message = verify_connection(check_publish=False)
+            stored = inspect_stored_token()
+            return {
+                "ok": ok,
+                "message": message,
+                "detail": "Token de page illimité conservé (n'expire pas).",
+                "health": stored,
+            }
+        return {
+            "ok": False,
+            "message": (
+                "Ce jeton est un token de PAGE qui expire encore. Collez un "
+                "TOKEN UTILISATEUR (Graph Explorer → User Token, pas Page Token), "
+                "généré avec l'app PilotCore. On l'échange ensuite en token de page illimité."
+            ),
+            "detail": "",
+            "health": health,
+        }
+
+    pasted_health = inspect_token(pasted)
+    if (pasted_health.get("type") or "").upper() == "PAGE":
+        return {
+            "ok": False,
+            "message": (
+                f"Ce token appartient à la page « {identity_name or identity_id} », "
+                f"pas à {page_id}. Collez un token utilisateur, ou le token de la bonne page."
+            ),
+            "detail": "",
+            "health": pasted_health,
+        }
+
+    if not app_credentials_ready():
+        return {
+            "ok": False,
+            "message": (
+                "FACEBOOK_APP_ID et FACEBOOK_APP_SECRET sont requis pour convertir "
+                "un token utilisateur en token de page illimité. Ajoutez-les dans les "
+                "variables d'environnement (app Meta → Paramètres → Général), puis réessayez."
+            ),
+            "detail": "",
+            "health": empty_health,
+        }
+
+    long_lived = exchange_long_lived_user_token(pasted)
+    if not long_lived:
+        return {
+            "ok": False,
+            "message": (
+                "Impossible d'échanger le token utilisateur vers un jeton 60 jours. "
+                "Vérifiez qu'il a été généré avec LA MÊME app Meta que FACEBOOK_APP_ID "
+                "(Graph Explorer → Application en haut à droite), et que ce n'est pas un token de page."
+            ),
+            "detail": "",
+            "health": empty_health,
+        }
+
+    content.set_setting(SETTING_USER_TOKEN, long_lived)
+    resolved, page_name = resolve_page_access_token(long_lived, page_id)
+    if not resolved:
+        pages = list_user_pages(long_lived)
+        return {
+            "ok": False,
+            "message": (
+                f"Token utilisateur valide, mais la page {page_id} n'apparaît pas dans /me/accounts. "
+                f"Pages trouvées : {_pages_summary(pages)}. "
+                "Permissions requises : pages_show_list, pages_manage_posts, pages_read_engagement."
+            ),
+            "detail": "",
+            "health": empty_health,
+        }
+
+    save_connection(page_id, resolved, page_name or identity_name or "")
     ok, message = verify_connection(check_publish=False)
     health = inspect_stored_token()
     if health.get("never_expires"):
-        detail = "Token page sans expiration."
-    elif health.get("expires_at"):
-        detail = "Le token expire encore — collez un token utilisateur et renseignez FACEBOOK_APP_ID / FACEBOOK_APP_SECRET pour le convertir en token illimité."
-    elif not _app_credentials()[0]:
-        detail = "Ajoutez FACEBOOK_APP_ID et FACEBOOK_APP_SECRET pour échanger vers un token page illimité."
+        detail = "Token de page illimité (n'expire pas). Le token utilisateur est conservé 60 jours et renouvelé automatiquement."
     else:
-        detail = health.get("error") or ""
+        detail = (
+            "Page connectée, mais Graph indique encore une expiration. "
+            "Recollez un token utilisateur fraîchement généré avec l'app PilotCore."
+        )
     return {
         "ok": ok,
         "message": message,

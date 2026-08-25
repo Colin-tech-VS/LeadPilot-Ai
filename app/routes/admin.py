@@ -1756,7 +1756,10 @@ def social_page():
 
     cfg = social.get_config()
     if social.is_configured():
-        social.refresh_never_expiring_token()
+        try:
+            social.refresh_never_expiring_token()
+        except Exception:
+            logging.getLogger(__name__).exception("Facebook token refresh failed")
     fb_status = social.connection_status()
     groups, groups_error = social.list_member_groups() if social.is_configured() else ([], None)
     queued = social_autopost.queued_preview()
@@ -1788,6 +1791,9 @@ def social_page():
         facebook_connected=social.is_configured(),
         facebook_config=cfg,
         facebook_status=fb_status,
+        facebook_app_ready=social.app_credentials_ready(),
+        facebook_oauth_redirect=social.facebook_oauth_redirect_uri(),
+        facebook_default_page_id=social.DEFAULT_PAGE_ID,
         token_expires_label=expires_label,
         ai_available=content_ai.is_available(),
         link_targets=targets_for_admin(),
@@ -1815,6 +1821,58 @@ def social_connect():
     if result.get("ok"):
         flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
         log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {result['message']}", level=LEVEL_SUCCESS)
+    else:
+        flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/facebook/login")
+@admin_required
+def social_facebook_login():
+    if not social.app_credentials_ready():
+        flash(
+            "Configurez FACEBOOK_APP_ID et FACEBOOK_APP_SECRET (app Meta) pour connecter Facebook en un clic.",
+            "error",
+        )
+        return redirect(url_for("admin.social"))
+    page_id = (request.args.get("page_id") or "").strip() or social.get_config().get("page_id") or social.DEFAULT_PAGE_ID
+    state = secrets.token_urlsafe(32)
+    redirect_uri = social.facebook_oauth_redirect_uri()
+    session["fb_oauth_state"] = state
+    session["fb_oauth_page_id"] = page_id
+    session["fb_oauth_redirect_uri"] = redirect_uri
+    return redirect(social.facebook_oauth_url(state, redirect_uri))
+
+
+@admin_bp.route("/social/facebook/callback")
+@admin_required
+def social_facebook_callback():
+    oauth_error = request.args.get("error")
+    if oauth_error:
+        flash(f"Connexion Facebook refusée : {oauth_error}", "error")
+        return redirect(url_for("admin.social"))
+
+    state = request.args.get("state")
+    if not state or state != session.pop("fb_oauth_state", None):
+        flash("État OAuth Facebook invalide — réessayez la connexion.", "error")
+        return redirect(url_for("admin.social"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("Code d'autorisation Facebook manquant.", "error")
+        return redirect(url_for("admin.social"))
+
+    redirect_uri = session.pop("fb_oauth_redirect_uri", None) or social.facebook_oauth_redirect_uri()
+    page_id = session.pop("fb_oauth_page_id", "") or social.DEFAULT_PAGE_ID
+    user_token, err = social.exchange_oauth_code(code, redirect_uri)
+    if not user_token:
+        flash(f"Échec de la connexion Facebook : {err}", "error")
+        return redirect(url_for("admin.social"))
+
+    result = social.connect_page(page_id, user_token)
+    if result.get("ok"):
+        flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
+        log_event(CAT_ADMIN, "facebook_oauth", summary=f"Page Facebook connectée via OAuth: {result['message']}", level=LEVEL_SUCCESS)
     else:
         flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
     return redirect(url_for("admin.social"))

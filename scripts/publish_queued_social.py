@@ -21,10 +21,14 @@ logger = logging.getLogger("queued_social")
 
 def run() -> int:
     from app import create_app
-    from app.services import social_autopost
+    from app.services import social, social_autopost
 
     app = create_app()
     with app.app_context():
+        try:
+            social.refresh_never_expiring_token()
+        except Exception:
+            logger.exception("Facebook token refresh failed")
         result = social_autopost.tick()
         logger.info("social autopost tick: %s", result)
         if result.get("action") == "failed":

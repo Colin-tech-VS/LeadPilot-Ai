@@ -25,6 +25,7 @@
 <p class="dash-intro">Publications Facebook à la charte PilotCore — papier, encre, visuel 1200×630. L’aperçu est toujours visible avant l’envoi.</p>
 
 {% set health = facebook_status.token_health if facebook_status else {} %}
+{% set page_id_value = facebook_config.page_id or facebook_default_page_id %}
 {% if facebook_connected %}
 <div class="connect-banner ok social-token-banner">
   <div class="social-token-mark" aria-hidden="true"></div>
@@ -33,31 +34,39 @@
     <div class="studio-item-meta">{{ facebook_config.page_name or facebook_config.page_id }}</div>
     <div class="social-token-meta">
       <span class="pill {% if health.never_expires %}pill-published{% elif health.is_valid %}pill-draft{% else %}pill-failed{% endif %}">
-        {% if health.never_expires %}token illimité{% elif health.is_valid %}token à durée limitée{% else %}token à vérifier{% endif %}
+        {% if health.never_expires %}token page illimité{% elif health.is_valid %}token à durée limitée{% else %}token à vérifier{% endif %}
       </span>
       <span>Expiration : <strong>{{ token_expires_label }}</strong></span>
       {% if facebook_status %}
       <span>· {{ 'page' if facebook_status.token_kind == 'page' else 'utilisateur' }} · {{ facebook_status.message }}</span>
+      {% if facebook_status.has_user_token %}<span>· token utilisateur conservé (renouvelé auto.)</span>{% endif %}
       {% endif %}
     </div>
     {% if not health.never_expires %}
     <p class="admin-hint" style="margin-top:8px">
-      {% if not facebook_status.app_ready %}
-      Ajoutez <code>FACEBOOK_APP_ID</code> et <code>FACEBOOK_APP_SECRET</code> (app Meta), puis recoller un <strong>token utilisateur</strong> : il sera échangé en token de page qui n’expire pas.
+      {% if not facebook_app_ready %}
+      Ajoutez <code>FACEBOOK_APP_ID</code> et <code>FACEBOOK_APP_SECRET</code> (app Meta), puis reconnectez avec un <strong>token utilisateur</strong>.
       {% else %}
-      Recollez un token utilisateur (Graph Explorer → permissions page + <code>pages_show_list</code>) pour obtenir un token de page illimité.
+      Reconnectez avec un <strong>token utilisateur</strong> (bouton Facebook ou Graph Explorer). Un token de page collé tel quel expire ; seul l’échange produit un token illimité.
       {% endif %}
     </p>
     {% endif %}
   </div>
-  <details style="width:100%">
+  <details class="social-token-update" style="width:100%">
     <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Mettre à jour le token</summary>
+    {% if facebook_app_ready %}
+    <form method="GET" action="{{ url_for('admin.social_facebook_login') }}" class="db-form social-oauth-form">
+      <input type="hidden" name="page_id" value="{{ page_id_value }}">
+      <button type="submit" class="admin-btn">Reconnecter avec Facebook</button>
+      <p class="admin-hint" style="margin:8px 0 0">Ouvre Facebook Login, échange le token utilisateur, puis enregistre le token de page qui n’expire pas.</p>
+    </form>
+    {% endif %}
     <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="margin-top:12px">
       <div class="db-form-grid">
-        <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ facebook_config.page_id }}" required></label>
-        <label>Token d'accès<input type="text" name="token" required placeholder="Token utilisateur (recommandé) ou token de page"></label>
+        <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ page_id_value }}" required></label>
+        <label>Token utilisateur Graph Explorer<input type="text" name="token" required placeholder="User Token — pas le token de page" autocomplete="off"></label>
       </div>
-      <button type="submit" class="admin-btn">Enregistrer le token</button>
+      <button type="submit" class="admin-btn">Échanger en token illimité</button>
     </form>
     <form method="POST" action="{{ url_for('admin.social_disconnect') }}" style="margin-top:12px">
       <button type="submit" class="admin-btn danger tiny">Déconnecter la page</button>
@@ -69,20 +78,34 @@
   <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:260px">
     <strong>Connectez votre page Facebook</strong>
-    <div class="studio-item-meta">Un token utilisateur + l’app Meta donne un token de page illimité. Un token de page déjà sans expiration est conservé tel quel.</div>
+    <div class="studio-item-meta">Un token <em>utilisateur</em> (jamais un token de page) est échangé en token de page illimité. Le token utilisateur lui-même expire ~60 jours et est renouvelé tout seul.</div>
   </div>
-  <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="width:100%">
+  {% if facebook_app_ready %}
+  <form method="GET" action="{{ url_for('admin.social_facebook_login') }}" class="db-form" style="width:100%">
     <div class="db-form-grid">
-      <label>Identifiant de la page (Page ID)<input type="text" name="page_id" required></label>
-      <label>Token d'accès<input type="text" name="token" required></label>
+      <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ page_id_value }}" required></label>
     </div>
-    <button type="submit" class="admin-btn">Connecter Facebook</button>
-    <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
-      <li>Ouvrez <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> (app PilotCore).</li>
-      <li>Permissions : <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>. Pour les groupes : <code>groups_show_list</code>, <code>publish_to_groups</code>.</li>
-      <li>Copiez le token utilisateur, ou exécutez <code>GET /me/accounts?fields=id,name,access_token</code> et copiez le token de la page (ID <code>1246135508572421</code>).</li>
-    </ol>
+    <button type="submit" class="admin-btn">Connecter avec Facebook</button>
+    <p class="admin-hint" style="margin:8px 0 0">URI de redirection à autoriser dans Meta → Facebook Login → Paramètres : <code>{{ facebook_oauth_redirect }}</code></p>
   </form>
+  {% else %}
+  <p class="admin-hint" style="width:100%">Ajoutez <code>FACEBOOK_APP_ID</code> et <code>FACEBOOK_APP_SECRET</code> sur Scalingo pour activer le bouton Facebook et l’échange illimité.</p>
+  {% endif %}
+  <details class="social-token-update" style="width:100%">
+    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Coller un token utilisateur (Graph Explorer)</summary>
+    <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="margin-top:12px">
+      <div class="db-form-grid">
+        <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ page_id_value }}" required></label>
+        <label>Token utilisateur<input type="text" name="token" required placeholder="User Token — pas le token de page" autocomplete="off"></label>
+      </div>
+      <button type="submit" class="admin-btn">Échanger en token illimité</button>
+      <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
+        <li>Ouvrez <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> et sélectionnez l’app PilotCore (même ID que <code>FACEBOOK_APP_ID</code>).</li>
+        <li>Générez un <strong>User Token</strong> (pas Page Token) avec <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
+        <li>Collez-le ici. On l’échange en jeton 60 jours, puis en token de page qui n’expire pas. Page ID : <code>{{ facebook_default_page_id }}</code>.</li>
+      </ol>
+    </form>
+  </details>
 </div>
 {% endif %}
 

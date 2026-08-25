@@ -319,7 +319,7 @@ def connection_status() -> dict:
             "message": "Aucune page connectée.",
             "token_health": {"is_valid": False, "never_expires": False, "expires_at": None, "error": "Aucune page connectée."},
             "app_ready": app_credentials_ready(),
-            "has_user_token": False,
+            "has_user_token": bool((content.get_setting(SETTING_USER_TOKEN, "") or "").strip()),
         }
 
     identity_id, identity_name = token_identity(cfg["token"])
@@ -584,31 +584,41 @@ def exchange_oauth_code(code: str, redirect_uri: str) -> tuple[str | None, str |
 
 
 def list_user_pages(user_token: str) -> list[dict]:
-    """Pages the user can manage (id + name only)."""
+    """Pages the user can manage (id + name only), following Graph pagination."""
     token = (user_token or "").strip()
     if not token:
         return []
+    pages: list[dict] = []
+    url = f"{GRAPH_BASE}/me/accounts"
+    params: dict | None = {
+        "access_token": token,
+        "fields": "id,name",
+        "limit": 100,
+    }
     try:
-        resp = requests.get(
-            f"{GRAPH_BASE}/me/accounts",
-            params={
-                "access_token": token,
-                "fields": "id,name",
-                "limit": 100,
-            },
-            timeout=12,
-        )
-        data = resp.json() or {}
-        if not resp.ok:
-            return []
-        return [
-            {"id": str(page.get("id")), "name": page.get("name") or str(page.get("id"))}
-            for page in data.get("data") or []
-            if page.get("id")
-        ]
+        for _ in range(5):
+            resp = requests.get(url, params=params, timeout=12)
+            data = resp.json() or {}
+            if not resp.ok:
+                break
+            for page in data.get("data") or []:
+                pid = str(page.get("id") or "")
+                if not pid:
+                    continue
+                pages.append({"id": pid, "name": page.get("name") or pid})
+            next_url = ((data.get("paging") or {}).get("next") or "").strip()
+            if not next_url:
+                break
+            url = next_url
+            params = None
+        return pages
     except requests.RequestException:
         logger.exception("Facebook /me/accounts listing failed")
-        return []
+        return pages
+
+
+def stored_user_token() -> str:
+    return (content.get_setting(SETTING_USER_TOKEN, "") or "").strip()
 
 
 def _pages_summary(pages: list[dict]) -> str:
@@ -720,6 +730,41 @@ def exchange_long_lived_user_token(short_token: str) -> str | None:
     return None
 
 
+def _page_choice_result(pages: list[dict], asked_page_id: str, empty_health: dict) -> dict:
+    """Ask the admin to pick a page instead of guessing when several exist."""
+    app_id, _ = _app_credentials()
+    hint = ""
+    if app_id and asked_page_id and asked_page_id == app_id:
+        hint = (
+            f" {asked_page_id} est l'App ID Meta (FACEBOOK_APP_ID), pas l'identifiant d'une page."
+        )
+    elif asked_page_id:
+        hint = f" « {asked_page_id} » n'est pas dans ce compte Facebook."
+    if not pages:
+        return {
+            "ok": False,
+            "needs_page_choice": False,
+            "pages": [],
+            "message": (
+                "Token utilisateur valide, mais aucune page n'apparaît dans /me/accounts."
+                f"{hint} Vous devez être admin de la page, avec pages_show_list."
+            ),
+            "detail": "",
+            "health": empty_health,
+        }
+    return {
+        "ok": False,
+        "needs_page_choice": True,
+        "pages": pages,
+        "message": (
+            f"Token utilisateur accepté.{hint} "
+            f"{len(pages)} page(s) trouvée(s) — choisissez celle sur laquelle publier."
+        ),
+        "detail": _pages_summary(pages),
+        "health": empty_health,
+    }
+
+
 def connect_page(page_id: str, pasted_token: str) -> dict:
     """Store a never-expiring page token derived from a user token.
 
@@ -731,12 +776,13 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
     page_id = str(page_id or "").strip()
     pasted = (pasted_token or "").strip()
     empty_health = {"is_valid": False, "never_expires": False, "expires_at": None, "error": None}
-    if not page_id or not pasted:
+    if not pasted:
         return {
             "ok": False,
-            "message": "Identifiant de page et token requis.",
+            "message": "Token utilisateur requis.",
             "detail": "",
             "health": empty_health,
+            "pages": [],
         }
 
     identity_id, identity_name = token_identity(pasted)
@@ -748,7 +794,7 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
             "health": empty_health,
         }
 
-    if identity_id == page_id:
+    if page_id and identity_id == page_id:
         health = inspect_token(pasted)
         if health.get("never_expires"):
             save_connection(page_id, pasted, identity_name or "")
@@ -773,7 +819,7 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
         }
 
     pasted_health = inspect_token(pasted)
-    if (pasted_health.get("type") or "").upper() == "PAGE":
+    if page_id and (pasted_health.get("type") or "").upper() == "PAGE":
         return {
             "ok": False,
             "message": (
@@ -811,19 +857,15 @@ def connect_page(page_id: str, pasted_token: str) -> dict:
         }
 
     content.set_setting(SETTING_USER_TOKEN, long_lived)
-    resolved, page_name = resolve_page_access_token(long_lived, page_id)
+    asked_page_id = page_id
+    resolved, page_name = (None, None)
+    if page_id:
+        resolved, page_name = resolve_page_access_token(long_lived, page_id)
     if not resolved:
         pages = list_user_pages(long_lived)
-        return {
-            "ok": False,
-            "message": (
-                f"Token utilisateur valide, mais la page {page_id} n'apparaît pas dans /me/accounts. "
-                f"Pages trouvées : {_pages_summary(pages)}. "
-                "Permissions requises : pages_show_list, pages_manage_posts, pages_read_engagement."
-            ),
-            "detail": "",
-            "health": empty_health,
-        }
+        choice = _page_choice_result(pages, asked_page_id, empty_health)
+        if choice:
+            return choice
 
     save_connection(page_id, resolved, page_name or identity_name or "")
     ok, message = verify_connection(check_publish=False)

@@ -424,3 +424,40 @@ def test_refresh_extends_user_token_when_page_never_expires(app, monkeypatch):
         assert health["never_expires"] is True
         assert content_studio.get_setting(social.SETTING_USER_TOKEN) == "new-user"
         assert content_studio.get_setting(social.SETTING_TOKEN) == "new-page"
+
+
+def test_connect_page_asks_to_pick_when_several_pages(app, monkeypatch):
+    with app.app_context():
+        app.config["FACEBOOK_APP_ID"] = "1251548163615019"
+        app.config["FACEBOOK_APP_SECRET"] = "secret"
+        _wipe_fb_settings()
+        monkeypatch.setattr(social, "token_identity", lambda t: ("user-1", "Colin"))
+        monkeypatch.setattr(
+            social,
+            "inspect_token",
+            lambda t: {
+                "is_valid": True,
+                "type": "USER",
+                "never_expires": False,
+                "expires_at": 1,
+                "scopes": [],
+                "error": None,
+            },
+        )
+        monkeypatch.setattr(social, "exchange_long_lived_user_token", lambda t: "long-user")
+        monkeypatch.setattr(social, "resolve_page_access_token", lambda t, pid: (None, None))
+        monkeypatch.setattr(
+            social,
+            "list_user_pages",
+            lambda t: [
+                {"id": "1246135508572421", "name": "PilotCore"},
+                {"id": "999", "name": "Autre page"},
+            ],
+        )
+        result = social.connect_page("1251548163615019", "short-user")
+        assert result["ok"] is False
+        assert result["needs_page_choice"] is True
+        assert len(result["pages"]) == 2
+        assert "App ID" in result["message"]
+        assert content_studio.get_setting(social.SETTING_USER_TOKEN) == "long-user"
+        assert not (content_studio.get_setting(social.SETTING_TOKEN) or "").strip()

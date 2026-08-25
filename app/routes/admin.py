@@ -1785,6 +1785,13 @@ def social_page():
         queued_iso = due.isoformat()
         queued_when = due.astimezone(ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
         queued_reason = slot_reason(due)
+    fb_page_choices = []
+    pending_token = social.stored_user_token()
+    if pending_token:
+        try:
+            fb_page_choices = social.list_user_pages(pending_token)
+        except Exception:
+            logging.getLogger(__name__).exception("Facebook page listing failed")
     return render_template(
         "admin/social.html",
         posts=social.recent_posts(),
@@ -1806,6 +1813,7 @@ def social_page():
         fb_groups=groups,
         fb_groups_error=groups_error,
         selected_group_ids=set(social.selected_group_ids()),
+        fb_page_choices=fb_page_choices,
     )
 
 
@@ -1814,13 +1822,35 @@ def social_page():
 def social_connect():
     page_id = request.form.get("page_id", "").strip()
     token = request.form.get("token", "").strip()
-    if not page_id or not token:
-        flash("Identifiant de page et token requis.", "error")
+    if not token:
+        flash("Token utilisateur requis.", "error")
         return redirect(url_for("admin.social"))
     result = social.connect_page(page_id, token)
     if result.get("ok"):
         flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
         log_event(CAT_ADMIN, "facebook_connect", summary=f"Page Facebook connectée: {result['message']}", level=LEVEL_SUCCESS)
+    elif result.get("needs_page_choice"):
+        flash(result.get("message") or "Choisissez une page Facebook ci-dessous.", "success")
+    else:
+        flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/pick-page", methods=["POST"])
+@admin_required
+def social_pick_page():
+    page_id = request.form.get("page_id", "").strip()
+    token = social.stored_user_token()
+    if not page_id:
+        flash("Choisissez une page dans la liste.", "error")
+        return redirect(url_for("admin.social"))
+    if not token:
+        flash("Token utilisateur manquant — recollez-le ou reconnectez avec Facebook.", "error")
+        return redirect(url_for("admin.social"))
+    result = social.connect_page(page_id, token)
+    if result.get("ok"):
+        flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
+        log_event(CAT_ADMIN, "facebook_pick_page", summary=f"Page Facebook choisie: {result['message']}", level=LEVEL_SUCCESS)
     else:
         flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
     return redirect(url_for("admin.social"))
@@ -1835,7 +1865,7 @@ def social_facebook_login():
             "error",
         )
         return redirect(url_for("admin.social"))
-    page_id = (request.args.get("page_id") or "").strip() or social.get_config().get("page_id") or social.DEFAULT_PAGE_ID
+    page_id = (request.args.get("page_id") or "").strip() or (social.get_config().get("page_id") or "")
     state = secrets.token_urlsafe(32)
     redirect_uri = social.facebook_oauth_redirect_uri()
     session["fb_oauth_state"] = state
@@ -1863,7 +1893,7 @@ def social_facebook_callback():
         return redirect(url_for("admin.social"))
 
     redirect_uri = session.pop("fb_oauth_redirect_uri", None) or social.facebook_oauth_redirect_uri()
-    page_id = session.pop("fb_oauth_page_id", "") or social.DEFAULT_PAGE_ID
+    page_id = session.pop("fb_oauth_page_id", "") or ""
     user_token, err = social.exchange_oauth_code(code, redirect_uri)
     if not user_token:
         flash(f"Échec de la connexion Facebook : {err}", "error")
@@ -1873,6 +1903,9 @@ def social_facebook_callback():
     if result.get("ok"):
         flash(f"Page Facebook « {result['message']} » connectée. {result.get('detail') or ''}", "success")
         log_event(CAT_ADMIN, "facebook_oauth", summary=f"Page Facebook connectée via OAuth: {result['message']}", level=LEVEL_SUCCESS)
+    elif result.get("needs_page_choice"):
+        flash(result.get("message") or "Choisissez une page Facebook ci-dessous.", "success")
+        log_event(CAT_ADMIN, "facebook_oauth", summary="Token Facebook reçu — choix de page", level=LEVEL_SUCCESS)
     else:
         flash(f"Connexion impossible : {result.get('message') or result.get('detail')}", "error")
     return redirect(url_for("admin.social"))

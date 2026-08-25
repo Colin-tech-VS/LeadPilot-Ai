@@ -26,6 +26,28 @@
 
 {% set health = facebook_status.token_health if facebook_status else {} %}
 {% set page_id_value = facebook_config.page_id or facebook_default_page_id %}
+{% if fb_page_choices %}
+<div class="connect-banner social-token-banner">
+  <div class="social-token-mark" aria-hidden="true"></div>
+  <div style="flex:1;min-width:0">
+    <strong>Choisissez la page Facebook</strong>
+    <div class="studio-item-meta">Le token utilisateur est enregistré. Ne mettez pas l’App ID Meta dans ce champ — ce sont vos pages, une par ligne.</div>
+  </div>
+  <form method="POST" action="{{ url_for('admin.social_pick_page') }}" class="db-form" style="width:100%">
+    <div class="social-groups">
+      {% for p in fb_page_choices %}
+      <label class="social-group">
+        <input type="radio" name="page_id" value="{{ p.id }}" {% if facebook_config.page_id == p.id or (not facebook_config.page_id and p.id == facebook_default_page_id) %}checked{% endif %} required>
+        <span>{{ p.name }} · <code>{{ p.id }}</code></span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="form-actions" style="margin-top:12px">
+      <button type="submit" class="admin-btn">Connecter cette page</button>
+    </div>
+  </form>
+</div>
+{% endif %}
 {% if facebook_connected %}
 <div class="connect-banner ok social-token-banner">
   <div class="social-token-mark" aria-hidden="true"></div>
@@ -82,11 +104,8 @@
   </div>
   {% if facebook_app_ready %}
   <form method="GET" action="{{ url_for('admin.social_facebook_login') }}" class="db-form" style="width:100%">
-    <div class="db-form-grid">
-      <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ page_id_value }}" required></label>
-    </div>
     <button type="submit" class="admin-btn">Connecter avec Facebook</button>
-    <p class="admin-hint" style="margin:8px 0 0">URI de redirection à autoriser dans Meta → Facebook Login → Paramètres : <code>{{ facebook_oauth_redirect }}</code></p>
+    <p class="admin-hint" style="margin:8px 0 0">Après connexion, la liste de vos pages s’affiche pour en choisir une. URI de redirection Meta : <code>{{ facebook_oauth_redirect }}</code></p>
   </form>
   {% else %}
   <p class="admin-hint" style="width:100%">Ajoutez <code>FACEBOOK_APP_ID</code> et <code>FACEBOOK_APP_SECRET</code> sur Scalingo pour activer le bouton Facebook et l’échange illimité.</p>
@@ -94,11 +113,8 @@
   <details class="social-token-update" style="width:100%">
     <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Coller un token utilisateur (Graph Explorer)</summary>
     <form method="POST" action="{{ url_for('admin.social_connect') }}" class="db-form" style="margin-top:12px">
-      <div class="db-form-grid">
-        <label>Identifiant de la page (Page ID)<input type="text" name="page_id" value="{{ page_id_value }}" required></label>
-        <label>Token utilisateur<input type="text" name="token" required placeholder="User Token — pas le token de page" autocomplete="off"></label>
-      </div>
-      <button type="submit" class="admin-btn">Échanger en token illimité</button>
+      <label>Token utilisateur<input type="text" name="token" required placeholder="User Token — pas le token de page, pas l'App ID" autocomplete="off"></label>
+      <button type="submit" class="admin-btn">Lister mes pages</button>
       <ol class="admin-hint" style="margin:8px 0 0 18px;line-height:1.6">
         <li>Ouvrez <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style="color:var(--brand)">Graph API Explorer</a> et sélectionnez l’app PilotCore (même ID que <code>FACEBOOK_APP_ID</code>).</li>
         <li>Le menu à droite du token doit afficher <strong>User Token</strong> — pas le nom de la page. Permissions : <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>

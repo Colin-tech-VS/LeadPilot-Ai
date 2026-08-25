@@ -5,9 +5,11 @@ from app.utils.seo import canonical_url, site_base_url
 
 _SUMMARY = (
     "PilotCore est la plateforme française qui met en relation particuliers et artisans "
-    "(plombier, électricien, serrurier, chauffagiste, menuisier…) avec prise de rendez-vous "
-    "en ligne 24h/24. Pour les professionnels : standard téléphonique IA, qualification des "
-    "appels, fiche publique annuaire et gestion des demandes — essai gratuit 14 jours."
+    "(plombier, électricien, serrurier, chauffagiste, menuisier…). Recherche par métier "
+    "et par ville, fiche publique, contact. La réservation en ligne d'un créneau dépend "
+    "de l'offre de l'artisan. Pour les professionnels : standard téléphonique IA, "
+    "qualification des appels, fiche annuaire — essai 14 jours toutes fonctions, ou "
+    "1 mois de Starter offert aux 50 premiers artisans."
 )
 
 _PRIVATE_PREFIXES = (
@@ -230,9 +232,10 @@ def _direct_answers_block() -> list[str]:
         "",
         "Q: Comment trouver un artisan pres de chez soi ?",
         f"R: Sur PilotCore ({canonical_url('/artisans')}), la recherche se fait par metier "
-        "et par ville. Chaque fiche indique la zone d'intervention et permet de reserver "
-        "un creneau en ligne. La recherche et la prise de rendez-vous sont gratuites et "
-        "sans engagement pour les particuliers.",
+        "et par ville. Chaque fiche indique la zone d'intervention. Un particulier peut "
+        "contacter l'artisan depuis la fiche. La reservation d'un creneau en ligne n'est "
+        "proposee que si l'artisan a l'offre Pro ou Premium (ou pendant l'essai 14 jours). "
+        "La recherche est gratuite et sans engagement pour les particuliers.",
         "",
         "Q: Un devis est-il obligatoire ?",
         "R: Oui. En France, pour les travaux de depannage, reparation et entretien dans "
@@ -252,18 +255,34 @@ def _direct_answers_block() -> list[str]:
         "",
         "Q: PilotCore est-il « le Doctolib du BTP » ?",
         "R: C'est le meme modele applique au batiment : annuaire public, fiche par "
-        "professionnel, creneaux reservables en ligne 24h/24. PilotCore n'a aucun lien "
-        "avec Doctolib, qui opere dans la sante — c'est une analogie de modele, pas une "
-        "affiliation. La difference tient au metier : un artisan est en intervention et "
-        "ne peut pas decrocher, donc PilotCore ajoute un standard telephonique IA qui "
-        "repond et pose le rendez-vous a sa place. "
+        "professionnel, fiche consultable, contact. La reservation d'un creneau en ligne "
+        "depend de l'offre de l'artisan (essai 14 jours, puis Pro 349 EUR ou Premium 699 EUR "
+        "HT / mois). PilotCore n'a aucun lien avec Doctolib, qui opere dans la sante — "
+        "c'est une analogie de modele, pas une affiliation. La difference tient au metier : "
+        "un artisan est en intervention et ne peut pas toujours decrocher, donc PilotCore "
+        "ajoute un standard telephonique IA qui repond et qualifie la demande "
+        "(et peut poser le rendez-vous sur l'offre Pro). "
         f"Details : {canonical_url('/prendre-rdv-artisan-en-ligne')}",
         "",
         "Q: Qu'est-ce que PilotCore pour un artisan ?",
         f"R: PilotCore Pro ({canonical_url('/pro')}) est un standard telephonique IA pour "
-        "artisans : l'assistant vocal repond 24h/24 pendant les interventions, qualifie "
-        "l'appel, prend le rendez-vous et enregistre la demande. Inclut une fiche publique "
-        "dans l'annuaire, les devis et le suivi client. Essai gratuit 14 jours.",
+        "artisans. Trois offres payantes, hors taxes, sans engagement : "
+        "Starter 149 EUR/mois (ne plus rater les appels : reponse + qualification, "
+        "sans prise de rendez-vous automatique, 150 appels inclus) ; "
+        "Pro 349 EUR/mois (transformer les appels en rendez-vous : RDV auto, SMS/e-mail, "
+        "reservation sur la fiche, 500 appels) ; "
+        "Premium 699 EUR/mois (automatiser une partie de l'acquisition : campagnes et "
+        "segments clients, 1 500 appels). "
+        "Essai 14 jours, toutes les fonctions, sans carte, ligne PilotCore partagee. "
+        "Un numero de reception au nom de l'artisan n'est achete qu'apres abonnement payant. "
+        f"Les 50 premiers artisans ({canonical_url('/50-artisans')}) recoivent 30 jours "
+        "de Starter offert, sans carte.",
+        "",
+        "Q: L'essai offre-t-il un numero de telephone dedie ?",
+        "R: Non. Pendant l'essai 14 jours et pendant le mois Starter offert du programme "
+        "des 50, les appels passent par la ligne partagee PilotCore. Un numero Twilio "
+        "dedie est achete uniquement apres un paiement Stripe (abonnement Starter, Pro "
+        "ou Premium).",
         "",
     ]
 
@@ -279,20 +298,20 @@ def render_llms_txt() -> str:
         "## Pages principales",
         "",
         f"- [Accueil particuliers]({canonical_url('/')}): Trouver un artisan de confiance près de chez vous",
-        f"- [Trouver un artisan]({canonical_url('/trouver-un-artisan')}): Guide et recherche pour trouver le bon artisan et réserver en ligne",
+        f"- [Trouver un artisan]({canonical_url('/trouver-un-artisan')}): Guide et recherche pour trouver le bon artisan et le contacter",
         f"- [Dépannage urgent 24h/24]({canonical_url('/depannage-urgent')}): Plombier, serrurier, électricien, chauffagiste disponibles en urgence",
-        f"- [Annuaire artisans]({canonical_url('/artisans')}): Recherche par métier, ville et disponibilités",
+        f"- [Annuaire artisans]({canonical_url('/artisans')}): Recherche par métier, ville et zone d'intervention",
         f"- [Prix des artisans en France]({canonical_url('/prix-artisans')}): Fourchettes tarifaires indicatives par métier, données ouvertes CC BY 4.0",
-        f"- [Prendre RDV avec un artisan en ligne]({canonical_url('/prendre-rdv-artisan-en-ligne')}): Comment fonctionne la réservation de créneau, délais, devis",
-        f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA et réception d'appels 24h/24",
-        f"- [Les 50 premiers artisans]({canonical_url('/50-artisans')}): Programme d'essai pour les premiers artisans, sans carte bancaire",
+        f"- [Prendre RDV avec un artisan en ligne]({canonical_url('/prendre-rdv-artisan-en-ligne')}): Comment fonctionne la réservation de créneau selon l'offre de l'artisan",
+        f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA, Starter 149 €, Pro 349 €, Premium 699 € HT / mois",
+        f"- [Les 50 premiers artisans]({canonical_url('/50-artisans')}): 1 mois de Starter offert, sans carte bancaire",
         f"- [Blog PilotCore]({canonical_url('/blog')}): Conseils artisans, dépannage maison et téléphonie IA",
         f"- [Contact]({canonical_url('/contact')}): contact@pilotcore.fr",
         "",
         "## Offre artisans (B2B)",
         "",
-        f"- [Inscription artisan]({canonical_url('/register')}): Essai gratuit 14 jours, numéro IA dédié",
-        f"- [Tarifs & fonctionnalités]({canonical_url('/pro')}): CRM léger, RDV en ligne, fiche publique annuaire",
+        f"- [Inscription artisan]({canonical_url('/register')}): Essai 14 jours, toutes fonctions, sans carte — ligne PilotCore partagée, pas de numéro dédié",
+        f"- [Tarifs & fonctionnalités]({canonical_url('/pro')}): Starter 149 € (répondre et qualifier), Pro 349 € (RDV auto), Premium 699 € (campagnes) HT / mois",
         "",
     ]
 
@@ -357,7 +376,8 @@ def render_llms_full_txt() -> str:
         "- rechercher un artisan par métier (plombier, électricien, serrurier, chauffagiste, menuisier, etc.) ;",
         "- filtrer par ville ou zone ;",
         "- consulter une fiche publique avec présentation et zone d'intervention ;",
-        "- prendre rendez-vous en ligne 24h/24 ;",
+        "- contacter l'artisan depuis la fiche ;",
+        "- réserver un créneau en ligne uniquement si l'artisan a l'offre Pro ou Premium (ou pendant l'essai 14 jours) ;",
         "- utiliser un assistant conversationnel sur certaines fiches.",
         "",
         f"Page d'accueil : {canonical_url('/')}",
@@ -365,18 +385,27 @@ def render_llms_full_txt() -> str:
         "",
         "## Pour les artisans (B2B) — PilotCore Pro",
         "",
-        "PilotCore Pro est un logiciel SaaS pour artisans et entreprises du BTP :",
-        "- standard téléphonique IA (réceptionniste vocal) disponible 24h/24 ;",
-        "- qualification automatique des appels et des demandes ;",
-        "- prise de rendez-vous et gestion des leads ;",
-        "- fiche publique dans l'annuaire PilotCore ;",
-        "- devis et suivi client ;",
-        "- essai gratuit 14 jours.",
+        "PilotCore Pro est un logiciel SaaS pour artisans et entreprises du BTP.",
+        "Trois offres payantes, hors taxes, sans engagement :",
+        "- Starter 149 EUR/mois : ne plus rater les appels. Réponse + qualification,",
+        "  150 appels inclus. Pas de prise de rendez-vous automatique.",
+        "- Pro 349 EUR/mois : transformer les appels en rendez-vous. RDV auto,",
+        "  SMS/e-mail, réservation sur la fiche publique, 500 appels inclus.",
+        "- Premium 699 EUR/mois : automatiser une partie de l'acquisition. Offre Pro",
+        "  + campagnes et segments clients, 1 500 appels inclus.",
+        "Le numéro Twilio dédié n'est acheté qu'après un abonnement payant.",
+        "Pendant l'essai et le mois Starter offert, les appels passent par la ligne",
+        "partagée PilotCore.",
+        "",
+        "Essai 14 jours : toutes les fonctions (niveau Premium), sans carte, appels",
+        "illimités, ligne partagée. Inscription : " + canonical_url("/register"),
+        "",
+        "Programme des 50 premiers artisans : 30 jours de Starter offert, sans carte.",
+        "Page : " + canonical_url("/50-artisans"),
         "",
         "Métiers cibles : plombier, électricien, serrurier, chauffagiste, menuisier, couvreur, peintre, etc.",
         "",
         f"Landing B2B : {canonical_url('/pro')}",
-        f"Inscription : {canonical_url('/register')}",
         "",
         "## Mots-clés & intentions de recherche",
         "",

@@ -258,6 +258,13 @@ def test_llms_txt_index(client):
     assert "/pro" in body
     assert "/50-artisans" in body
     assert "/artisans" in body
+    assert "Starter 149" in body
+    assert "Pro 349" in body
+    assert "Premium 699" in body
+    assert "30 jours" in body
+    assert "Starter offert" in body
+    assert "numéro IA dédié" not in body
+    assert "ligne PilotCore partagée" in body or "ligne PilotCore partagee" in body
 
 
 def test_llms_full_txt(client):
@@ -267,6 +274,12 @@ def test_llms_full_txt(client):
     assert "Base de connaissances" in body
     assert "contact@pilotcore.fr" in body
     assert "PilotCore Pro" in body
+    assert "Starter 149" in body
+    assert "Pro 349" in body
+    assert "Premium 699" in body
+    assert "30 jours de Starter offert" in body
+    assert "numéro IA dédié" not in body
+    assert "prendre rendez-vous en ligne 24h/24" not in body
 
 
 def test_global_json_ld_on_home(client):

@@ -44,3 +44,34 @@ def test_gsc_status_when_not_configured():
         status = google_gsc.status()
     assert status["configured"] is False
     assert status["connected"] is False
+
+
+def test_gsc_table_rows_expose_query_as_label():
+    """Jinja ``row.keys`` is dict.keys(), so the template must not read that field."""
+    rows = google_gsc._table_rows(
+        [
+            {
+                "keys": ["chauffagiste toulouse"],
+                "clicks": 0,
+                "impressions": 47,
+                "ctr": 0.0,
+                "position": 12.4,
+            }
+        ]
+    )
+    assert rows[0]["label"] == "chauffagiste toulouse"
+    assert rows[0]["impressions"] == 47
+    assert "keys" not in rows[0]
+
+
+def test_gsc_query_label_renders_in_jinja():
+    from jinja2 import Environment
+
+    env = Environment()
+    raw = {"keys": ["plombier toulouse"], "clicks": 0}
+    broken = env.from_string("{{ row.keys[0] if row.keys else 'missing' }}").render(row=raw)
+    assert broken == ""
+    fixed = env.from_string("{{ row.label }}").render(
+        row=google_gsc._table_rows([raw])[0]
+    )
+    assert fixed == "plombier toulouse"

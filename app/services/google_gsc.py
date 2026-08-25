@@ -317,22 +317,20 @@ def _row_metrics(row: dict) -> dict:
     }
 
 
-def _sum_metrics(rows: list[dict]) -> dict:
-    clicks = impressions = 0
-    weighted = 0.0
+def _table_rows(rows: list[dict]) -> list[dict]:
+    """Flatten Search Analytics rows for the admin tables.
+
+    Google names the dimension values ``keys``. Jinja treats ``row.keys`` as
+    ``dict.keys`` (the method), so a template that reads ``row.keys[0]``
+    renders an empty cell — the queries look missing even though the API
+    returned them. Expose a plain ``label`` instead.
+    """
+    out = []
     for row in rows:
-        clicks += int(row.get("clicks") or 0)
-        imp = int(row.get("impressions") or 0)
-        impressions += imp
-        weighted += float(row.get("position") or 0) * imp
-    ctr = (clicks / impressions * 100) if impressions else 0.0
-    position = (weighted / impressions) if impressions else 0.0
-    return {
-        "clicks": clicks,
-        "impressions": impressions,
-        "ctr": round(ctr, 2),
-        "position": round(position, 1),
-    }
+        keys = row.get("keys") or []
+        label = keys[0] if keys else "—"
+        out.append({"label": label, **_row_metrics(row)})
+    return out
 
 
 ALLOWED_PERIODS = (7, 28, 90, 180)
@@ -367,12 +365,26 @@ def dashboard_payload(days: int = 28) -> dict:
             site_url, start_date=start_date, end_date=end_date, row_limit=1
         ).get("rows") or []
         summary = _row_metrics(totals[0]) if totals else _row_metrics({})
-        queries = search_analytics(
-            site_url, start_date=start_date, end_date=end_date, dimensions=["query"], row_limit=50
-        ).get("rows") or []
-        pages = search_analytics(
-            site_url, start_date=start_date, end_date=end_date, dimensions=["page"], row_limit=50
-        ).get("rows") or []
+        queries = _table_rows(
+            search_analytics(
+                site_url,
+                start_date=start_date,
+                end_date=end_date,
+                dimensions=["query"],
+                row_limit=50,
+            ).get("rows")
+            or []
+        )
+        pages = _table_rows(
+            search_analytics(
+                site_url,
+                start_date=start_date,
+                end_date=end_date,
+                dimensions=["page"],
+                row_limit=50,
+            ).get("rows")
+            or []
+        )
         return {
             **base,
             "start_date": start_date,

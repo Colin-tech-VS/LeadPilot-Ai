@@ -172,11 +172,11 @@
         <tbody>
           {% for row in dashboard.queries %}
           <tr>
-            <td data-label="Requête">{{ row.keys[0] if row.keys else '—' }}</td>
-            <td data-label="Clics">{{ row.clicks or 0 }}</td>
-            <td data-label="Impressions">{{ row.impressions or 0 }}</td>
-            <td data-label="CTR">{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
-            <td data-label="Position">{{ '%.1f'|format(row.position or 0) }}</td>
+            <td data-label="Requête">{{ row.label }}</td>
+            <td data-label="Clics">{{ row.clicks }}</td>
+            <td data-label="Impressions">{{ row.impressions }}</td>
+            <td data-label="CTR">{{ '%.1f'|format(row.ctr) }} %</td>
+            <td data-label="Position">{{ '%.1f'|format(row.position) }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -198,11 +198,11 @@
         <tbody>
           {% for row in dashboard.pages %}
           <tr>
-            <td data-label="Page" class="gsc-cell-page" title="{{ row.keys[0] if row.keys else '' }}">{{ row.keys[0] if row.keys else '—' }}</td>
-            <td data-label="Clics">{{ row.clicks or 0 }}</td>
-            <td data-label="Impressions">{{ row.impressions or 0 }}</td>
-            <td data-label="CTR">{{ '%.1f'|format((row.ctr or 0) * 100) }} %</td>
-            <td data-label="Position">{{ '%.1f'|format(row.position or 0) }}</td>
+            <td data-label="Page" class="gsc-cell-page" title="{{ row.label }}">{{ row.label }}</td>
+            <td data-label="Clics">{{ row.clicks }}</td>
+            <td data-label="Impressions">{{ row.impressions }}</td>
+            <td data-label="CTR">{{ '%.1f'|format(row.ctr) }} %</td>
+            <td data-label="Position">{{ '%.1f'|format(row.position) }}</td>
           </tr>
           {% endfor %}
         </tbody>

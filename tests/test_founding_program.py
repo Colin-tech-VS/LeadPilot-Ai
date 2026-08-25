@@ -36,6 +36,13 @@ def test_founding_landing_seo_and_counter(client):
     assert "des milliers" not in html.lower()
 
 
+def test_founding_city_field_uses_places_autocomplete(client):
+    html = client.get("/50-artisans").data.decode()
+    assert "address-autocomplete.js" in html
+    assert "data-places-city" in html
+    assert "maps.googleapis.com/maps/api" not in html
+
+
 def test_founding_signup_creates_real_artisan_account(client, app):
     email = _mail("marie")
     resp = _signup(client, email=email, phone="0611223344")

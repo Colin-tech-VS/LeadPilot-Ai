@@ -103,7 +103,9 @@
           <input type="tel" name="phone" value="{{ form.phone or '' }}" required autocomplete="tel">
         </label>
         <label>{{ _('founding.city') }}
-          <input type="text" name="city" value="{{ form.city or '' }}" required autocomplete="address-level2">
+          <input type="text" name="city" class="places-city" data-places-city
+                 value="{{ form.city or '' }}" required autocomplete="off"
+                 placeholder="Paris" spellcheck="false">
         </label>
         <label>{{ _('founding.trade') }}
           {{ trade_select('trade_type', trades, selected=form.trade_type or '', required=true, placeholder=_('founding.trade_placeholder'), chips=false) }}
@@ -134,7 +136,9 @@
           <input type="tel" name="phone" value="{{ form.phone or '' }}">
         </label>
         <label>{{ _('founding.city') }}
-          <input type="text" name="city" value="{{ form.city or '' }}" required>
+          <input type="text" name="city" class="places-city" data-places-city
+                 value="{{ form.city or '' }}" required autocomplete="off"
+                 placeholder="Paris" spellcheck="false">
         </label>
         <label>{{ _('founding.trade') }}
           {{ trade_select('trade_type', trades, selected=form.trade_type or '', placeholder=_('founding.trade_placeholder'), chips=false) }}

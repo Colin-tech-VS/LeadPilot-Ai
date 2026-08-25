@@ -517,6 +517,77 @@
   gap: 12px;
 }
 
+.auth-field__hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #5C5648;
+}
+
+.auth-claim {
+  margin: 4px 0 12px;
+  padding: 14px;
+  border: 1px solid #D7CDB8;
+  border-radius: 4px;
+  background: #F6F1E6;
+}
+
+.auth-claim__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1A2332;
+  padding: 0;
+}
+
+.auth-claim__lead {
+  margin: 6px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #5C5648;
+}
+
+.auth-claim__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 8px;
+  cursor: pointer;
+}
+
+.auth-claim__option:last-child {
+  margin-bottom: 0;
+}
+
+.auth-claim__option input {
+  margin-top: 6px;
+  accent-color: #1A2332;
+}
+
+.auth-claim__card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  padding: 10px 12px;
+  background: #FBF7EE;
+  border: 1px solid #D7CDB8;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #5C5648;
+}
+
+.auth-claim__option input:checked + .auth-claim__card {
+  border-color: #1A2332;
+  background: #EFE9DC;
+}
+
+.auth-claim__card strong {
+  color: #1A2332;
+  font-size: 14px;
+}
+
 .auth-pro__actions {
   display: flex;
   gap: 10px;

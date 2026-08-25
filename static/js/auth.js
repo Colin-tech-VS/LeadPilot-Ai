@@ -190,7 +190,13 @@ document.documentElement.classList.add("js-enabled");
       }
     });
 
-    var start = document.querySelector(".auth-pro__panel .alert-error") ? steps.length - 1 : 0;
+    var start = 0;
+    var startAttr = registerForm.getAttribute("data-start-step");
+    if (startAttr !== null && startAttr !== "") {
+      start = parseInt(startAttr, 10) || 0;
+    } else if (document.querySelector(".auth-pro__panel .alert-error")) {
+      start = steps.length - 1;
+    }
     showStep(start);
   }
 })();

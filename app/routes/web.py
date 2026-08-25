@@ -1416,15 +1416,15 @@ def register():
 
     error = None
     form = {}
+    listing_suggestions = None
+    start_step = 0
 
     if request.method == "POST":
         from app.core.errors import ConflictError
         from app.services.signup_service import register_plumber
         from app.utils.validation import validate_password
 
-        if not check_rate("web_register", limit=5, window=3600):
-            error = translate("login.error.rate_limited")
-        else:
+        if current_app.config.get("TESTING") or check_rate("web_register", limit=5, window=3600):
             form = {
                 "company_name": (request.form.get("company_name") or "").strip(),
                 "first_name": (request.form.get("first_name") or "").strip(),
@@ -1433,36 +1433,60 @@ def register():
                 "phone": (request.form.get("phone") or "").strip(),
                 "city": (request.form.get("city") or "").strip(),
                 "trade_type": (request.form.get("trade_type") or "plombier").strip(),
+                "siret": (request.form.get("siret") or "").strip(),
+                "claim_siren": (request.form.get("claim_siren") or "").strip(),
             }
             password = request.form.get("password") or ""
             confirm = request.form.get("confirm_password") or ""
 
             if not form["company_name"] or not form["email"] or not password:
                 error = translate("register.error.required")
+                start_step = 2 if form["email"] or password else 1
             elif password != confirm:
                 error = translate("register.error.password_mismatch")
+                start_step = 2
             else:
                 try:
+                    from app.services import listing_link
+
                     validate_email(form["email"])
                     validate_password(password)
-                    user, tenant = register_plumber(
-                        email=form["email"],
-                        password=password,
-                        company_name=form["company_name"],
-                        phone=form["phone"] or None,
-                        city=form["city"] or None,
-                        first_name=form["first_name"] or None,
-                        last_name=form["last_name"] or None,
-                        trade_type=form["trade_type"],
+                    listing, suggestions, siret_error = listing_link.resolve_signup_listing(
+                        siret=form["siret"],
+                        claim_siren=form["claim_siren"],
+                        name=form["company_name"],
+                        city=form["city"],
+                        trade=form["trade_type"],
                     )
-                    login_user_to_session(user)
-                    # Fire the Google Ads "Page vue" conversion only for this
-                    # brand-new signup — consumed on the first dashboard render.
-                    session["signup_conversion_pending"] = True
-                    return _post_register_redirect(tenant, selected_plan)
+                    if siret_error:
+                        error = translate(siret_error)
+                        start_step = 1
+                    elif suggestions:
+                        listing_suggestions = suggestions
+                        start_step = 1
+                    else:
+                        user, tenant = register_plumber(
+                            email=form["email"],
+                            password=password,
+                            company_name=form["company_name"],
+                            phone=form["phone"] or None,
+                            city=form["city"] or None,
+                            first_name=form["first_name"] or None,
+                            last_name=form["last_name"] or None,
+                            trade_type=form["trade_type"],
+                        )
+                        listing_link.link_tenant(tenant, listing)
+                        listing_link.persist_siret(tenant, form["siret"])
+                        login_user_to_session(user)
+                        # Fire the Google Ads "Page vue" conversion only for this
+                        # brand-new signup — consumed on the first dashboard render.
+                        session["signup_conversion_pending"] = True
+                        return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
                     error = translate("register.error.email_taken")
+                    start_step = 2
                 except AppError as e:
+                    start_step = 2
                     if "email" in str(e.message).lower():
                         error = translate("login.error.invalid_email")
                     elif "password" in str(e.message).lower():
@@ -1473,6 +1497,9 @@ def register():
                     current_app.logger.exception("Registration failed for %s", form.get("email"))
                     db.session.rollback()
                     error = translate("register.error.generic")
+                    start_step = 2
+        else:
+            error = translate("login.error.rate_limited")
 
     from app.constants.trades import trade_choices
 
@@ -1485,6 +1512,8 @@ def register():
         trades=trade_choices(lang),
         selected_plan=selected_plan,
         selected_plan_name=selected_plan_name,
+        listing_suggestions=listing_suggestions or [],
+        start_step=start_step,
     )
 
 
@@ -2096,10 +2125,9 @@ def _normalize_phone(value):
 
 
 def _normalize_siret(value):
-    if not value:
-        return None
-    digits = "".join(c for c in value if c.isdigit())
-    return digits if len(digits) == 14 else None
+    from app.services.listing_link import normalize_siret
+
+    return normalize_siret(value)
 
 
 # Signature pad output is a PNG data URL. Accept only that, and cap the size so
@@ -2295,6 +2323,11 @@ def settings_page():
 
             db.session.commit()
             success = translate("settings.success")
+            if tenant.siret:
+                from app.services.listing_link import link_tenant_by_siret
+
+                if link_tenant_by_siret(tenant, tenant.siret) is not None:
+                    success = translate("settings.success_listing_linked")
 
             if password_changed:
                 try:

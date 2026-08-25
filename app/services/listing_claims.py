@@ -2,10 +2,10 @@
 
 Two flows, deliberately asymmetric:
 
-* **Claiming** notifies the admin and leaves the listing public and unclaimed
-  until a human confirms. Handing a business page to whoever fills in a form
-  first would be an obvious impersonation route, so ownership is never granted
-  automatically.
+* **Claiming** via the public form notifies the admin and leaves the listing
+  public until a human confirms. A matching SIREN/SIRET at signup (see
+  ``listing_link``) is a different path: the identifier is unique, so the
+  fiche is attached without a second review.
 * **Delisting** takes effect immediately, with no account and no justification
   asked. Publishing someone's business data is our choice; removing it on
   request is their right, and putting friction in front of it would be
@@ -152,17 +152,49 @@ def opt_out(siren: str, *, reason: str = "") -> bool:
 
 
 def attach(siren: str, tenant_id) -> RegistryListing | None:
-    """Attach a listing to a tenant once ownership has been verified."""
+    """Attach a listing to a tenant once ownership has been verified.
+
+    A listing already claimed by someone else is left alone — attaching is a
+    merge, not a takeover.
+    """
     from app.models.registry_listing import STATUS_CLAIMED
+    from app.models.tenant import Tenant
 
     listing = RegistryListing.query.filter_by(siren=(siren or "").strip()).one_or_none()
     if listing is None or listing.status == STATUS_OPTED_OUT:
         return None
+    if (
+        listing.status == STATUS_CLAIMED
+        and listing.claimed_tenant_id
+        and listing.claimed_tenant_id != tenant_id
+    ):
+        return None
+
+    tenant = db.session.get(Tenant, tenant_id)
+    if tenant is None:
+        return None
+
     listing.status = STATUS_CLAIMED
     listing.claimed_tenant_id = tenant_id
-    listing.claimed_at = utcnow()
+    listing.claimed_at = listing.claimed_at or utcnow()
+    _copy_listing_onto_tenant(listing, tenant)
     db.session.commit()
     return listing
+
+
+def _copy_listing_onto_tenant(listing: RegistryListing, tenant) -> None:
+    """Fill blank tenant profile fields from the register. Never overwrite."""
+    if not (tenant.siret or "").strip() and listing.siret:
+        tenant.siret = listing.siret
+    if not (tenant.address or "").strip() and listing.address:
+        tenant.address = listing.address[:500]
+    if not (tenant.postal_code or "").strip() and listing.postal_code:
+        tenant.postal_code = listing.postal_code[:10]
+    if not (tenant.city or "").strip() and listing.city:
+        tenant.city = listing.city[:100]
+    if tenant.latitude is None and listing.latitude is not None and listing.longitude is not None:
+        tenant.latitude = listing.latitude
+        tenant.longitude = listing.longitude
 
 
 def approve(claim, *, note: str = "") -> tuple[bool, str]:

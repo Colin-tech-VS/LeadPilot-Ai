@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=9">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -53,7 +53,7 @@
       <div class="alert alert-error">{{ error }}</div>
       {% endif %}
 
-      <form method="post" class="auth-form" id="register-form">
+      <form method="post" class="auth-form" id="register-form" data-start-step="{{ start_step|default(0) }}">
         <input type="hidden" name="plan" value="{{ selected_plan }}">
 
         <div class="auth-pro__viewport">
@@ -94,6 +94,36 @@
                   </span>
                 </label>
               </div>
+              <label class="auth-field">
+                <span class="auth-field__label">{{ _('register.siret') }}</span>
+                <span class="auth-field__wrap">
+                  <input type="text" class="auth-field__input auth-field__input--plain" id="siret" name="siret"
+                         value="{{ form.get('siret', '') }}" placeholder="123 456 789 00012"
+                         inputmode="numeric" maxlength="17" autocomplete="off">
+                </span>
+                <span class="auth-field__hint">{{ _('register.siret_hint') }}</span>
+              </label>
+              {% if listing_suggestions %}
+              <fieldset class="auth-claim">
+                <legend class="auth-claim__title">{{ _('register.claim_title') }}</legend>
+                <p class="auth-claim__lead">{{ _('register.claim_lead') }}</p>
+                {% for l in listing_suggestions %}
+                <label class="auth-claim__option">
+                  <input type="radio" name="claim_siren" value="{{ l.siren }}" required
+                         {% if form.get('claim_siren') == l.siren %}checked{% endif %}>
+                  <span class="auth-claim__card">
+                    <strong>{{ l.name | display_name }}</strong>
+                    <span>{{ l.city | display_name }}{% if l.postal_code %} · {{ l.postal_code }}{% endif %} · SIREN {{ l.siren }}</span>
+                  </span>
+                </label>
+                {% endfor %}
+                <label class="auth-claim__option">
+                  <input type="radio" name="claim_siren" value="skip" required
+                         {% if form.get('claim_siren') == 'skip' %}checked{% endif %}>
+                  <span class="auth-claim__card">{{ _('register.claim_skip') }}</span>
+                </label>
+              </fieldset>
+              {% endif %}
             </div>
 
             <div class="auth-pro__form-step" data-register-step>
@@ -166,6 +196,6 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=5"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=6"></script>
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 {% endblock %}

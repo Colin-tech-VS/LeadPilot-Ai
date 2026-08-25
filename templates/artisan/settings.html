@@ -47,6 +47,7 @@
 
       <label for="siret">{{ _('settings.siret') }}</label>
       <input type="text" id="siret" name="siret" value="{{ tenant.siret or '' }}" placeholder="12345678901234" maxlength="17">
+      <p class="field-hint">{{ _('settings.siret_hint') }}</p>
     </section>
 
     <section class="card form-card settings-section">

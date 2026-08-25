@@ -63,10 +63,57 @@ def test_prepare_article_body_toc(app):
 def test_blog_category_page(client, app):
     with app.app_context():
         ensure_default_categories()
+        cat = BlogCategory.query.filter_by(slug="conseils-artisans").first()
+        slug = f"test-cat-visible-{uuid.uuid4().hex[:8]}"
+        post = BlogPost(
+            id=uuid.uuid4(),
+            slug=slug,
+            title="Article classé conseils",
+            excerpt="Test catégorie.",
+            body_html="<p>Contenu.</p>",
+            category_id=cat.id,
+            status="published",
+            published_at=datetime.now(timezone.utc),
+        )
+        db.session.add(post)
+        db.session.commit()
 
     response = client.get("/blog/categorie/conseils-artisans")
     assert response.status_code == 200
-    assert "Conseils artisans" in response.data.decode()
+    html = response.data.decode()
+    assert "Conseils artisans" in html
+    assert "Article classé conseils" in html
+    assert "Aucun article" not in html
+
+
+def test_uncategorized_posts_are_backfilled_into_the_right_tab(client, app):
+    with app.app_context():
+        from app.services.blog import backfill_post_categories, infer_category_slug
+
+        ensure_default_categories()
+        assert infer_category_slug("Délai plombier : combien de temps") == "depannage-maison"
+        assert infer_category_slug("Évitez de rater des appels") == "telephonie-ia"
+        orphan = BlogPost(
+            id=uuid.uuid4(),
+            slug=f"test-orphan-{uuid.uuid4().hex[:8]}",
+            title="Délai plombier : combien de temps pour une intervention ?",
+            excerpt="Fuite d'eau, que faire.",
+            body_html="<p>Contenu.</p>",
+            category_id=None,
+            status="published",
+            published_at=datetime.now(timezone.utc),
+        )
+        db.session.add(orphan)
+        db.session.commit()
+        backfill_post_categories()
+        db.session.refresh(orphan)
+        assert orphan.category is not None
+        assert orphan.category.slug == "depannage-maison"
+        slug = orphan.slug
+
+    html = client.get("/blog/categorie/depannage-maison").data.decode()
+    assert "Délai plombier" in html
+    assert slug in html
 
 
 def test_sitemap_includes_blog(client, app):

@@ -70,10 +70,15 @@ def create_app(config_object=None):
         _backfill_completed_appointments()
         _backfill_directory_visibility()
         try:
-            from app.services.blog import ensure_blog_schema, ensure_default_categories
+            from app.services.blog import (
+                backfill_post_categories,
+                ensure_blog_schema,
+                ensure_default_categories,
+            )
 
             ensure_blog_schema()
             ensure_default_categories()
+            backfill_post_categories()
         except Exception:
             logging.getLogger(__name__).exception("blog schema/category seed failed")
 

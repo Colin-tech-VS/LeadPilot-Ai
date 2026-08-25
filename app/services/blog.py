@@ -1,9 +1,11 @@
 """Blog listing, categories and default seed data."""
 from __future__ import annotations
 
+import unicodedata
 from datetime import datetime, timezone
 
 from sqlalchemy import or_
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app.core.extensions import db
 from app.models.blog_category import BlogCategory
@@ -36,6 +38,67 @@ DEFAULT_CATEGORIES = (
     },
 )
 
+# First matching bucket wins. Keep telephony before generic "conseils".
+_CATEGORY_HINTS = (
+    (
+        "telephonie-ia",
+        (
+            "appel",
+            "appels",
+            "standard telephonique",
+            "standard ia",
+            "receptionniste",
+            "telephonie",
+            "assistant vocal",
+            "intelligence artificielle",
+        ),
+    ),
+    (
+        "depannage-maison",
+        (
+            "plombier",
+            "plomberie",
+            "fuite",
+            "vitrier",
+            "vitre",
+            "serrurier",
+            "serrure",
+            "electricien",
+            "chauffagiste",
+            "chaudiere",
+            "depannage",
+            "urgence",
+            "intervention",
+            "couvreur",
+            "menuisier",
+        ),
+    ),
+    (
+        "actualites-pilotcore",
+        (
+            "nouveaute produit",
+            "feuille de route",
+            "changelog",
+        ),
+    ),
+)
+
+
+def _fold(text: str) -> str:
+    raw = unicodedata.normalize("NFKD", text or "")
+    return "".join(ch for ch in raw if not unicodedata.combining(ch)).lower()
+
+
+def infer_category_slug(*parts: str | None) -> str:
+    """Pick a default-category slug from title / excerpt / keywords."""
+    blob = _fold(" ".join(p for p in parts if p))
+    if not blob.strip():
+        return "conseils-artisans"
+    for slug, needles in _CATEGORY_HINTS:
+        if any(_fold(needle) in blob for needle in needles):
+            return slug
+    return "conseils-artisans"
+
 
 def ensure_default_categories() -> None:
     """Idempotent seed of predefined blog categories."""
@@ -66,10 +129,40 @@ def get_category_by_slug(slug: str) -> BlogCategory | None:
     return BlogCategory.query.filter_by(slug=(slug or "").strip()).first()
 
 
-def published_posts_query(*, category_id=None, exclude_id=None):
-    q = BlogPost.query.filter_by(status="published")
-    if category_id:
-        q = q.filter(BlogPost.category_id == category_id)
+def category_for_text(*parts: str | None) -> BlogCategory | None:
+    slug = infer_category_slug(*parts)
+    return get_category_by_slug(slug) or get_category_by_slug("conseils-artisans")
+
+
+def backfill_post_categories() -> int:
+    """Attach published posts that were saved without a category."""
+    ensure_default_categories()
+    posts = BlogPost.query.filter(BlogPost.category_id.is_(None)).all()
+    if not posts:
+        return 0
+    updated = 0
+    for post in posts:
+        cat = category_for_text(post.title, post.excerpt, post.meta_keywords, post.slug)
+        if not cat:
+            continue
+        post.category_id = cat.id
+        updated += 1
+    if updated:
+        db.session.commit()
+    return updated
+
+
+def published_posts_query(*, category_id=None, category_slug=None, exclude_id=None):
+    if category_slug:
+        q = (
+            BlogPost.query.join(BlogCategory)
+            .options(contains_eager(BlogPost.category))
+            .filter(BlogPost.status == "published", BlogCategory.slug == category_slug)
+        )
+    else:
+        q = BlogPost.query.options(joinedload(BlogPost.category)).filter_by(status="published")
+        if category_id:
+            q = q.filter(BlogPost.category_id == category_id)
     if exclude_id:
         q = q.filter(BlogPost.id != exclude_id)
     return q.order_by(
@@ -79,8 +172,10 @@ def published_posts_query(*, category_id=None, exclude_id=None):
     )
 
 
-def list_published_posts(limit=50, *, category_id=None):
-    return published_posts_query(category_id=category_id).limit(limit).all()
+def list_published_posts(limit=50, *, category_id=None, category_slug=None):
+    return published_posts_query(
+        category_id=category_id, category_slug=category_slug
+    ).limit(limit).all()
 
 
 def get_published_post(slug: str) -> BlogPost | None:

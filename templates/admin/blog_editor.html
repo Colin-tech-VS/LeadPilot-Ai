@@ -62,7 +62,7 @@
           <select name="category_id" id="f-category">
             <option value="">— Sans catégorie —</option>
             {% for cat in categories %}
-            <option value="{{ cat.id }}" {% if post and post.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            <option value="{{ cat.id }}" data-name="{{ cat.name }}" {% if post and post.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
             {% endfor %}
           </select>
         </label>
@@ -178,6 +178,14 @@
           if (res.d.reading_time_min) readingEl.value = res.d.reading_time_min;
           if (res.d.body_html) bodyEl.value = res.d.body_html;
           if (res.d.faq && res.d.faq.length) faqJsonEl.value = JSON.stringify(res.d.faq);
+          if (catHint) {
+            var catSelect = document.getElementById("f-category");
+            if (catSelect) {
+              Array.prototype.forEach.call(catSelect.options, function (opt) {
+                if (opt.getAttribute("data-name") === catHint) opt.selected = true;
+              });
+            }
+          }
           render(); syncSlug();
         })
         .catch(function (e) { errEl.textContent = e.message; errEl.style.display = "block"; })

@@ -929,7 +929,7 @@ def blog_category(slug):
     category = blog_svc.get_category_by_slug(slug)
     if not category:
         abort(404)
-    posts = blog_svc.list_published_posts(limit=48, category_id=category.id)
+    posts = blog_svc.list_published_posts(limit=48, category_slug=slug)
     featured = posts[0] if posts else None
     meta_desc = (category.description or category.name)[:300]
     return render_template(

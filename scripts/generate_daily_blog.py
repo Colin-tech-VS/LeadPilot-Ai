@@ -90,12 +90,11 @@ def _slugify(value: str, max_len: int = 90) -> str:
     return v[:max_len].rstrip("-")
 
 
-def _pick_category(fallback: str = "conseils"):
-    """Return an existing BlogCategory (by slug 'conseils' or the first one)."""
-    from app.models.blog_category import BlogCategory
+def _pick_category(topic: str = ""):
+    """Map a topic onto one of the seeded blog categories."""
+    from app.services.blog import category_for_text, list_categories
 
-    cat = BlogCategory.query.filter_by(slug=fallback).one_or_none()
-    return cat or BlogCategory.query.order_by(BlogCategory.sort_order).first()
+    return category_for_text(topic) or (list_categories()[0] if list_categories() else None)
 
 
 def run(topic: str | None = None, *, dry_run: bool = False) -> int:
@@ -137,7 +136,7 @@ def run(topic: str | None = None, *, dry_run: bool = False) -> int:
             )
             return 0
 
-        cat = _pick_category()
+        cat = _pick_category(f"{title} {topic}")
         post = BlogPost(
             slug=slug,
             title=title,

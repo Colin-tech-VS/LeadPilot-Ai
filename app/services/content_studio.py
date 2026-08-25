@@ -15,19 +15,74 @@ logger = logging.getLogger(__name__)
 # Landing display only: rewrite known over-claims if an admin-edited offer still
 # lists a capability that the product does not actually ship.
 _HONEST_FEATURE_REWRITE = {
-    "Synchronisation Google Agenda": "Agenda des rendez-vous dans votre espace",
-    "Google Calendar sync": "Appointments in your workspace",
-    "Intégration CRM & rapports avancés": "Outils marketing et suivi des demandes",
-    "CRM integration & advanced reports": "Marketing tools and request tracking",
-    "Personnalisation complète de l'IA": "Personnalisation de l'assistant (prénom, consignes)",
-    "Full AI customization": "Assistant personalisation (name, instructions)",
+    "Synchronisation Google Agenda": "Les rendez-vous posés apparaissent dans votre agenda",
+    "Google Calendar sync": "Booked appointments appear in your workspace",
+    "Intégration CRM & rapports avancés": "Campagnes SMS et e-mail vers vos clients",
+    "CRM integration & advanced reports": "SMS and email campaigns to your customers",
+    "Personnalisation complète de l'IA": "Personnalisation du prénom de l'assistant",
+    "Full AI customization": "Assistant first-name personalisation",
+    "Personnalisation de l'assistant (prénom, consignes)": "Personnalisation du prénom de l'assistant",
+    "Assistant personalisation (name, instructions)": "Assistant first-name personalisation",
+    "Plusieurs utilisateurs (jusqu'à 10)": "Réservation en ligne depuis votre fiche publique",
+    "Multiple users (up to 10)": "Online booking from your public listing",
+    "Plusieurs utilisateurs & statistiques": "Réservation en ligne depuis votre fiche publique",
+    "Multiple users & statistics": "Online booking from your public listing",
+    "Plusieurs numéros de réception": "Ligne IA à votre nom une fois abonné",
+    "Plusieurs numéros de téléphone": "Ligne IA à votre nom une fois abonné",
+    "Several reception numbers": "AI line in your name once you subscribe",
+    "Multiple phone numbers": "AI line in your name once you subscribe",
 }
+
+
+def _looks_english(text: str) -> bool:
+    low = text.lower()
+    return any(
+        tok in low
+        for tok in ("multiple", "several", "calendar", "users", "everything in", "instructions")
+    )
+
+
+def honest_feature_line(item: str) -> str:
+    """Map one advertised line onto a capability the product actually ships."""
+    text = (item or "").strip()
+    if not text:
+        return text
+    mapped = _HONEST_FEATURE_REWRITE.get(text)
+    if mapped:
+        return mapped
+    low = text.lower()
+    english = _looks_english(text)
+    if "google agenda" in low or "google calendar" in low:
+        return (
+            "Booked appointments appear in your workspace"
+            if english
+            else "Les rendez-vous posés apparaissent dans votre agenda"
+        )
+    if "plusieurs utilisateurs" in low or "multiple users" in low:
+        return (
+            "Online booking from your public listing"
+            if english
+            else "Réservation en ligne depuis votre fiche publique"
+        )
+    if "plusieurs numéro" in low or "several reception" in low or "multiple phone" in low:
+        return (
+            "AI line in your name once you subscribe"
+            if english
+            else "Ligne IA à votre nom une fois abonné"
+        )
+    if "consignes" in low or ("instructions" in low and "personal" in low):
+        return (
+            "Assistant first-name personalisation"
+            if english
+            else "Personnalisation du prénom de l'assistant"
+        )
+    return text
 
 
 def honest_offer_features(offer):
     """Feature lines shown on /pro — never invent capabilities."""
     raw = offer.feature_list() if offer else []
-    items = [_HONEST_FEATURE_REWRITE.get(item, item) for item in raw]
+    items = [honest_feature_line(item) for item in raw]
     key = (getattr(offer, "key", "") or "").lower()
     if key == "starter" and not any(
         "rendez-vous automatique" in i.lower() or "automatic booking" in i.lower()

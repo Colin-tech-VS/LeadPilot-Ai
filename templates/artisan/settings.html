@@ -67,9 +67,12 @@
       {% if tenant.ai_phone_number and tenant.ai_phone_number != twilio_ai_phone_e164 %}
       <input type="tel" id="ai_phone_number" value="{{ tenant.ai_phone_number }}" readonly>
       <p class="field-hint">{{ _('settings.ai_phone_dedicated_hint') }}</p>
-      {% else %}
+      {% elif tenant.is_paid %}
       <input type="tel" id="ai_phone_number" value="{{ twilio_ai_phone_e164 }}" readonly>
       <p class="field-hint">{{ _('settings.ai_phone_pending_hint') }}</p>
+      {% else %}
+      <input type="tel" id="ai_phone_number" value="{{ twilio_ai_phone_e164 }}" readonly>
+      <p class="field-hint">{{ _('settings.ai_phone_shared_hint') }}</p>
       {% endif %}
     </section>
 

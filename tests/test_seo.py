@@ -32,6 +32,7 @@ def test_pro_landing_seo(client):
     assert "FAQPage" in html
     assert "pilotcore" in html.lower()
     assert "occupé" in html.lower() or "busy" in html.lower()
+    assert "annuaire" in html.lower() or "directory" in html.lower()
 
 
 def test_directory_seo(client):

@@ -1858,3 +1858,119 @@
 @media (max-width: 640px) {
   .lp-seller { flex-direction: column; align-items: flex-start; }
 }
+
+.vitrine .v-hero-dual {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.vitrine .v-hero-dual li {
+  margin: 0;
+  padding: 14px 16px;
+  background: #FBF7EE;
+  border: 1px solid #D7CDB8;
+  border-radius: 4px;
+}
+.vitrine .v-hero-dual-kicker {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6B6458;
+  margin-bottom: 6px;
+}
+.vitrine .v-hero-dual strong {
+  display: block;
+  font-size: 15px;
+  color: #1A2332;
+}
+.vitrine .v-hero-dual p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6B6458;
+}
+
+.vitrine .v-acq { padding: 72px 0; background: #FBF7EE; border-top: 1px solid #D7CDB8; }
+.vitrine .v-acq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+  gap: 36px 40px;
+  align-items: center;
+  margin-top: 8px;
+}
+.vitrine .v-acq-points {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+.vitrine .v-acq-points li { margin: 0; }
+.vitrine .v-acq-points strong {
+  display: block;
+  font-size: 16px;
+  color: #1A2332;
+  margin-bottom: 4px;
+}
+.vitrine .v-acq-points p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #6B6458;
+}
+.vitrine .v-acq-searchbar {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: #FBF7EE;
+  border: 1px solid #C4B79A;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A2332;
+}
+.vitrine .v-acq-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: #FBF7EE;
+  border: 1px solid #D7CDB8;
+  border-radius: 4px;
+}
+.vitrine .v-acq-result.is-dim { opacity: 0.62; }
+.vitrine .v-acq-result-mark {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: #1A2332;
+  color: #F6F1E6;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+.vitrine .v-acq-result strong { display: block; font-size: 14px; color: #1A2332; }
+.vitrine .v-acq-result p { margin: 2px 0 0; font-size: 12px; color: #6B6458; }
+.vitrine .v-acq-result-cta {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #F6F1E6;
+  background: #1A2332;
+  padding: 7px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+@media (max-width: 800px) {
+  .vitrine .v-hero-dual,
+  .vitrine .v-acq-grid { grid-template-columns: 1fr; }
+}

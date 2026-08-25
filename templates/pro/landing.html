@@ -54,6 +54,11 @@
           "@type": "Question",
           "name": {{ _('landing.faq_4_q')|tojson }},
           "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_4_a')|tojson }} }
+        },
+        {
+          "@type": "Question",
+          "name": {{ _('landing.faq_5_q')|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ _('landing.faq_5_a')|tojson }} }
         }
       ]
     }
@@ -79,6 +84,19 @@
         <li>{{ _('landing.trust_1') }}</li>
         <li>{{ _('landing.trust_2') }}</li>
         <li>{{ _('landing.trust_3') }}</li>
+        <li>{{ _('landing.trust_4') }}</li>
+      </ul>
+      <ul class="v-hero-dual">
+        <li>
+          <span class="v-hero-dual-kicker">{{ _('landing.hero_acq_kicker') }}</span>
+          <strong>{{ _('landing.hero_acq_title') }}</strong>
+          <p>{{ _('landing.hero_acq_desc') }}</p>
+        </li>
+        <li>
+          <span class="v-hero-dual-kicker">{{ _('landing.hero_crm_kicker') }}</span>
+          <strong>{{ _('landing.hero_crm_title') }}</strong>
+          <p>{{ _('landing.hero_crm_desc') }}</p>
+        </li>
       </ul>
     </div>
     <div class="v-phone" aria-hidden="true">
@@ -120,6 +138,60 @@
         <h3>{{ _('landing.problem_3_title') }}</h3>
         <p>{{ _('landing.problem_3_desc') }}</p>
       </article>
+    </div>
+  </div>
+</section>
+
+<section class="v-section v-acq" id="acquisition">
+  <div class="container">
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.acq_kicker') }}</p>
+      <h2>{{ _('landing.acq_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
+    </div>
+    <div class="v-acq-grid">
+      <div class="v-acq-copy">
+        <ol class="v-acq-points">
+          <li>
+            <strong>{{ _('landing.acq_1_title') }}</strong>
+            <p>{{ _('landing.acq_1_desc') }}</p>
+          </li>
+          <li>
+            <strong>{{ _('landing.acq_2_title') }}</strong>
+            <p>{{ _('landing.acq_2_desc') }}</p>
+          </li>
+          <li>
+            <strong>{{ _('landing.acq_3_title') }}</strong>
+            <p>{{ _('landing.acq_3_desc') }}</p>
+          </li>
+        </ol>
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.acq_cta') }}</a>
+      </div>
+      <figure class="v-shot v-acq-mock v-reveal" aria-hidden="true">
+        <div class="v-shot-chrome">
+          <span></span><span></span><span></span>
+          <em>pilotcore.fr/artisans</em>
+        </div>
+        <div class="v-shot-screen dash-mock dash-mock--search">
+          <p class="dash-mock-label">{{ _('landing.acq_mock_found') }}</p>
+          <div class="v-acq-searchbar">{{ _('landing.acq_mock_query') }}</div>
+          <article class="v-acq-result">
+            <span class="v-acq-result-mark">1</span>
+            <div>
+              <strong>{{ _('landing.acq_mock_name') }}</strong>
+              <p>{{ _('landing.acq_mock_meta') }}</p>
+            </div>
+            <span class="v-acq-result-cta">{{ _('landing.acq_mock_cta') }}</span>
+          </article>
+          <article class="v-acq-result is-dim">
+            <span class="v-acq-result-mark">2</span>
+            <div>
+              <strong>{{ _('landing.acq_mock_name_alt') }}</strong>
+              <p>{{ _('landing.acq_mock_meta_alt') }}</p>
+            </div>
+          </article>
+        </div>
+      </figure>
     </div>
   </div>
 </section>
@@ -349,7 +421,7 @@
         <p>{{ _('landing.cap_1_desc') }}</p>
       </article>
       <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">💬</div>
+        <div class="v-tool-icon" aria-hidden="true">🔎</div>
         <h3>{{ _('landing.cap_2_title') }}</h3>
         <p>{{ _('landing.cap_2_desc') }}</p>
       </article>
@@ -615,6 +687,10 @@
       <details class="faq-item">
         <summary>{{ _('landing.faq_4_q') }}</summary>
         <p>{{ _('landing.faq_4_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_5_q') }}</summary>
+        <p>{{ _('landing.faq_5_a') }}</p>
       </details>
     </div>
   </div>

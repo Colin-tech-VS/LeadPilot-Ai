@@ -32,6 +32,9 @@ TABLES = [
 ]
 
 with app.app_context():
+    from app.models.tenant import Tenant
+    from app.services.twilio_provisioning import release_ai_number
+
     if DRY_RUN:
         print("DRY RUN — rien ne sera supprimé.")
         for t in TABLES:
@@ -41,6 +44,15 @@ with app.app_context():
             except Exception as exc:
                 print(f"  {t}: (skip) {exc}")
         sys.exit(0)
+
+    released = failed_release = 0
+    for tenant in Tenant.query.all():
+        if release_ai_number(tenant):
+            released += 1
+        else:
+            failed_release += 1
+    db.session.commit()
+    print(f"Twilio : {released} numéro(s) libéré(s), {failed_release} échec(s).")
 
     deleted = {}
     for t in TABLES:

@@ -1,20 +1,15 @@
-"""Automatic Twilio phone-number provisioning for each tenant.
+"""Twilio phone-number provisioning for paying tenants.
 
 The AI receptionist is a phone line, and the ONLY signal Twilio gives us to
 know which plumber a caller wants is the number that was dialed (the ``To``
-field, resolved in :mod:`app.routes.voice`). A single shared number therefore
-cannot work in a real multi-tenant setup — every tenant needs their own
-dedicated number.
+field, resolved in :mod:`app.routes.voice`). Paying artisans therefore get a
+dedicated number. Trials, test signups and unpaid accounts share
+``TWILIO_AI_PHONE_NUMBER`` / ``TWILIO_DEFAULT_TENANT_ID`` — buying a FR line at
+every ``/register`` is what drained the Twilio balance on dummy accounts.
 
-This module buys that number automatically at signup and wires its voice
-webhook straight to ``/voice/inbound?tenant_id=<id>`` so the plumber never has
-to configure anything.
-
-Everything here is **best-effort**: when Twilio is not configured, auto-provision
-is disabled, or the purchase fails (e.g. Twilio regulatory bundle missing), the
-tenant is simply left without ``ai_phone_number`` and the app falls back to the
-shared ``TWILIO_AI_PHONE_NUMBER`` / ``TWILIO_DEFAULT_TENANT_ID``. Signup never
-breaks because of a provisioning problem.
+Purchase is **best-effort** and never runs under pytest. Signup, founding
+enrolment and listing-claim approval must not call this. Stripe checkout
+(paid plan) does.
 """
 
 import logging
@@ -30,8 +25,32 @@ def twilio_configured() -> bool:
 
 
 def auto_provision_enabled() -> bool:
-    """Whether a dedicated number should be bought automatically at signup."""
+    """Whether the app is allowed to buy dedicated numbers at all."""
+    if current_app.config.get("TESTING"):
+        return False
     return bool(current_app.config.get("TWILIO_AUTO_PROVISION_NUMBERS")) and twilio_configured()
+
+
+def _digits(value: str | None) -> str:
+    return "".join(ch for ch in (value or "") if ch.isdigit())
+
+
+def _is_shared_line(number: str | None) -> bool:
+    shared = current_app.config.get("TWILIO_AI_PHONE_NUMBER") or ""
+    return bool(number and shared and _digits(number) == _digits(shared))
+
+
+def should_buy_dedicated_number(tenant) -> bool:
+    """True only for a paying artisan, on a live app, with buying enabled.
+
+    Trials, waitlists, founding tests and pytest never qualify. That is the
+    gate that stops a FR number (~1.35 USD/month) being bought per dummy signup.
+    """
+    if current_app.config.get("TESTING"):
+        return False
+    if not auto_provision_enabled():
+        return False
+    return bool(getattr(tenant, "is_paid", False))
 
 
 def _base_url() -> str | None:
@@ -153,21 +172,33 @@ def _regulatory_ids(client, country: str):
     return address_sid, bundle_sid
 
 
-def provision_ai_number(tenant) -> str | None:
-    """Buy a dedicated AI number for ``tenant`` and wire its voice webhook.
+def provision_ai_number(tenant, *, force: bool = False) -> str | None:
+    """Buy a dedicated AI number for a **paying** tenant and wire its webhook.
 
     Sets ``tenant.ai_phone_number`` in place (the caller owns the DB commit) and
     returns the purchased E.164 number, or ``None`` when nothing was bought.
-    Never raises.
+    Never raises. Pass ``force=True`` only for an explicit admin override.
     """
-    if getattr(tenant, "ai_phone_number", None):
-        return tenant.ai_phone_number  # already has a dedicated number
+    existing = getattr(tenant, "ai_phone_number", None)
+    if existing and not _is_shared_line(existing):
+        return existing
 
-    if not auto_provision_enabled():
+    if not force and not should_buy_dedicated_number(tenant):
+        logger.info(
+            "Skip Twilio purchase for unpaid/test tenant=%s — shared line",
+            getattr(tenant, "id", "?"),
+        )
+        return None
+
+    if not auto_provision_enabled() and not force:
         logger.info(
             "Auto-provision disabled/unconfigured — tenant=%s keeps the shared number",
             getattr(tenant, "id", "?"),
         )
+        return None
+
+    # Pytest loads the real .env. Never buy or release against the live account.
+    if current_app.config.get("TESTING"):
         return None
 
     voice_url = voice_webhook_url(str(tenant.id))
@@ -240,6 +271,62 @@ def provision_ai_number(tenant) -> str | None:
     except Exception:
         logger.exception("Twilio number provisioning failed for tenant=%s", tenant.id)
         return None
+
+
+def release_ai_number(tenant) -> bool:
+    """Release the tenant's dedicated Twilio number and clear the field.
+
+    Never releases the shared ``TWILIO_AI_PHONE_NUMBER``. Best-effort: a Twilio
+    outage or suspended account logs and returns False without raising, so
+    account deletion can still proceed. Under pytest the field is cleared only.
+    """
+    number = (getattr(tenant, "ai_phone_number", None) or "").strip()
+    if not number:
+        return True
+    if _is_shared_line(number):
+        tenant.ai_phone_number = None
+        return True
+    if current_app.config.get("TESTING") or not twilio_configured():
+        tenant.ai_phone_number = None
+        return True
+
+    try:
+        from twilio.rest import Client
+
+        cfg = current_app.config
+        client = Client(cfg["TWILIO_ACCOUNT_SID"], cfg["TWILIO_AUTH_TOKEN"])
+        matches = client.incoming_phone_numbers.list(phone_number=number, limit=5)
+        if not matches:
+            # Fallback: digit-match if Twilio wants a slightly different E.164.
+            want = _digits(number)
+            matches = [
+                n for n in client.incoming_phone_numbers.list(limit=200)
+                if _digits(n.phone_number) == want
+            ]
+        released = False
+        for incoming in matches:
+            incoming.delete()
+            released = True
+            logger.info(
+                "Released Twilio number %s for tenant=%s",
+                incoming.phone_number,
+                getattr(tenant, "id", "?"),
+            )
+        tenant.ai_phone_number = None
+        if not released:
+            logger.warning(
+                "No Twilio incoming number matched %s for tenant=%s — field cleared",
+                number,
+                getattr(tenant, "id", "?"),
+            )
+        return True
+    except Exception:
+        logger.exception(
+            "Twilio number release failed for tenant=%s number=%s",
+            getattr(tenant, "id", "?"),
+            number,
+        )
+        return False
 
 
 def _purchase_hint(exc) -> str:

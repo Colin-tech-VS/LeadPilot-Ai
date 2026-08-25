@@ -190,7 +190,8 @@ def collect():
                 _check("Numéro IA", "TWILIO_AI_PHONE_NUMBER", show_value=True),
                 _check("Tenant par défaut", "TWILIO_DEFAULT_TENANT_ID", show_value=True),
                 _check("Validation signature", "TWILIO_VALIDATE_SIGNATURE", show_value=True),
-                _check("Provision auto numéros", "TWILIO_AUTO_PROVISION_NUMBERS", show_value=True),
+                _check("Provision numéros (payants)", "TWILIO_AUTO_PROVISION_NUMBERS", show_value=True,
+                       hint="Achat uniquement après paiement Stripe — pas à l'inscription"),
             ],
         )
     )

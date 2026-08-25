@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<p class="dash-intro">Solde, consommation mensuelle et numéros IA provisionnés sur le compte Twilio.</p>
+<p class="dash-intro">Solde, consommation mensuelle et numéros IA. Un numéro dédié n'est acheté que lorsqu'un artisan <strong>paie</strong> — les essais partagent la ligne IA.</p>
 {% if not twilio.configured %}
 <div class="admin-notice">
   Twilio n'est pas configuré. Renseignez <code>TWILIO_ACCOUNT_SID</code> et <code>TWILIO_AUTH_TOKEN</code> sur Scalingo.

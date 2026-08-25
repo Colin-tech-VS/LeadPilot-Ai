@@ -271,6 +271,13 @@ def apply_event(event_type: str, obj: dict) -> bool:
             mark_converted(tenant.id)
         except Exception:
             logger.exception("Founding conversion mark failed for %s", tenant_id)
+        try:
+            from app.services.twilio_provisioning import provision_ai_number
+
+            if provision_ai_number(tenant):
+                db.session.commit()
+        except Exception:
+            logger.exception("Twilio number purchase failed for paid tenant=%s", tenant_id)
         return True
 
     if event_type in ("customer.subscription.deleted", "customer.subscription.canceled"):
@@ -285,6 +292,13 @@ def apply_event(event_type: str, obj: dict) -> bool:
         tenant.trial_ends_at = utcnow() - timedelta(seconds=1)
         db.session.commit()
         logger.info("Tenant %s subscription ended — reverted to trial", tenant.id)
+        try:
+            from app.services.twilio_provisioning import release_ai_number
+
+            if release_ai_number(tenant):
+                db.session.commit()
+        except Exception:
+            logger.exception("Twilio number release failed for tenant=%s", tenant.id)
         return True
 
     if event_type == "customer.subscription.updated":
@@ -301,6 +315,13 @@ def apply_event(event_type: str, obj: dict) -> bool:
             tenant.trial_ends_at = utcnow() - timedelta(seconds=1)
             db.session.commit()
             logger.info("Tenant %s subscription %s — reverted to trial", tenant.id, status)
+            try:
+                from app.services.twilio_provisioning import release_ai_number
+
+                if release_ai_number(tenant):
+                    db.session.commit()
+            except Exception:
+                logger.exception("Twilio number release failed for tenant=%s", tenant.id)
             return True
         return False
 

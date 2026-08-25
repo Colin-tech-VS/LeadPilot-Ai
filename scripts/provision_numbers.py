@@ -1,15 +1,14 @@
-"""Provision a dedicated AI phone number for existing tenants.
+"""Provision a dedicated AI phone number for **paying** tenants that lack one.
 
-New tenants get their number automatically at signup (see signup_service). This
-one-off/backfill job gives an AI number to any tenant created before that, or to
-tenants whose earlier provisioning attempt failed.
+New paying tenants get their number on Stripe checkout (see billing.py). This
+backfill is for artisans who already paid before that hook existed.
 
-Idempotent: a tenant that already has ``ai_phone_number`` is skipped, so it is
-safe to re-run. Requires TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN and, for the
-webhook URL, SERVER_NAME to be configured.
+Idempotent: a tenant that already has a dedicated ``ai_phone_number`` is
+skipped. Trial / test accounts are skipped on purpose — they share
+``TWILIO_AI_PHONE_NUMBER``.
 
 Usage:
-    python scripts/provision_numbers.py            # provision every tenant missing a number
+    python scripts/provision_numbers.py            # paid tenants missing a number
     python scripts/provision_numbers.py --dry-run  # list who would get one, buy nothing
 """
 import sys
@@ -35,28 +34,23 @@ def main(argv):
             )
             return
 
-        # A tenant that still carries the shared fallback number (persisted by an
-        # older settings form) is NOT dedicated — treat it as missing so it gets
-        # its own number, otherwise call routing collides between tenants.
-        from sqlalchemy import or_
+        shared = (app.config.get("TWILIO_AI_PHONE_NUMBER") or "").strip()
+        paid = [t for t in Tenant.query.all() if t.is_paid]
+        missing = []
+        for tenant in paid:
+            number = (tenant.ai_phone_number or "").strip()
+            if not number or (shared and number == shared):
+                missing.append(tenant)
 
-        shared = app.config.get("TWILIO_AI_PHONE_NUMBER")
-        for t in Tenant.query.filter(Tenant.ai_phone_number == shared).all():
-            t.ai_phone_number = None
-        db.session.commit()
-
-        missing = Tenant.query.filter(
-            or_(Tenant.ai_phone_number.is_(None), Tenant.ai_phone_number == "")
-        ).all()
         if not missing:
-            print("Tous les tenants ont déjà un numéro IA dédié. Rien à faire.")
+            print("Tous les artisans payants ont déjà un numéro IA dédié. Rien à faire.")
             return
 
-        print(f"{len(missing)} tenant(s) sans numéro IA.")
+        print(f"{len(missing)} artisan(s) payant(s) sans numéro IA dédié.")
         provisioned = failed = 0
         for tenant in missing:
             if dry_run:
-                print(f"  [dry-run] {tenant.name} ({tenant.id})")
+                print(f"  [dry-run] {tenant.name} ({tenant.plan}) ({tenant.id})")
                 continue
             number = provision_ai_number(tenant)
             if number:

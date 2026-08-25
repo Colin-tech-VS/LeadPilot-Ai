@@ -2505,9 +2505,8 @@ def settings_page():
                 tenant.public_slug = unique_public_slug(slugify(public_slug_raw), tenant.id)
             tenant.siret = _normalize_siret(siret_raw) if siret_raw else None
             tenant.phone_number = phone_number
-            # tenant.ai_phone_number is managed by automatic Twilio provisioning
-            # (see app.services.twilio_provisioning) — never overwritten from the
-            # settings form, which would clobber the dedicated number or persist
+            # tenant.ai_phone_number is set on paid Stripe checkout, never from
+            # this form — overwriting it would clobber a dedicated line or persist
             # the shared fallback onto the tenant and break call routing.
             tenant.address = address
             tenant.postal_code = postal_code

@@ -61,6 +61,8 @@ from app.services import (
 )
 from app.services.events import CAT_ADMIN, CAT_AUTH, LEVEL_ERROR, LEVEL_SUCCESS, LEVEL_WARNING, log_event
 
+logger = logging.getLogger(__name__)
+
 admin_bp = Blueprint(
     "admin",
     __name__,
@@ -823,6 +825,18 @@ def delete_tenant(tenant_id):
 
     name = tenant.name
     tid = tenant.id
+    try:
+        from app.services.twilio_provisioning import release_ai_number
+
+        if not release_ai_number(tenant):
+            flash(
+                "Compte supprimé côté PilotCore, mais Twilio n'a pas libéré le "
+                "numéro (compte suspendu ?). Libérez-le dans la console Twilio "
+                "sinon il continue d'être facturé.",
+                "error",
+            )
+    except Exception:
+        logger.exception("Twilio release before tenant delete failed for %s", tid)
     # tenant_id-scoped models, ordered so children (appointments/quotes ->
     # leads) go before leads, and everything before the tenant row itself.
     # ORM deletes bind the Uuid column type correctly on both Postgres (prod)

@@ -106,22 +106,77 @@ def skip_queued(reason: str = "remplacé") -> None:
     db.session.commit()
 
 
-def generate_preview(*, keep_schedule: datetime | None = None) -> SocialPost:
-    """Compose the next Facebook post and store it as queued (never publishes)."""
+def _fallback_payload(target_key: str, prompt: str) -> dict:
+    """Honest copy if Mistral is down — no invented volume or guaranteed clients."""
+    from app.services.social_links import build_tracked_url_for_target
+
+    if target_key == "pro":
+        message = (
+            "Artisan : un standard peut prendre l'appel pendant que vous êtes en intervention. "
+            "Fiche dans l'annuaire PilotCore. Essai 14 jours, sans carte. "
+            "#PilotCore #Artisan"
+        )
+        headline = "Joignable même occupé"
+    else:
+        message = (
+            "Trouvez un artisan près de chez vous et prenez rendez-vous en ligne. "
+            "Gratuit pour les particuliers, sans engagement. "
+            "#PilotCore #Artisan"
+        )
+        headline = "Un artisan près de chez vous"
+    return {
+        "message": message,
+        "link": build_tracked_url_for_target(target_key or "home", content="autopost"),
+        "image_headline": headline,
+        "visual_brief": (prompt or "PilotCore")[:500],
+        "target_key": target_key or "home",
+    }
+
+
+def generate_preview(*, keep_schedule: datetime | None = None, use_dalle: bool = False) -> SocialPost:
+    """Compose the next Facebook post and store it as queued (never publishes).
+
+    ``use_dalle=False`` keeps Enregistrer under the Scalingo router timeout
+    (Mistral + DALL·E together often exceeds 30s and surfaces as a JSON 500).
+    """
     from app.services import content_ai, social_image
     from app.services.social_links import ensure_tracked
 
     skip_queued("nouvelle preview")
     when = keep_schedule or schedule_next()
     target_key, prompt = _next_topic(when)
-    payload = content_ai.generate_social_post(prompt, "engageant", target_key=target_key, content_tag="autopost")
-    visual = social_image.generate_for_post(
-        prompt,
-        "engageant",
-        headline=payload.get("image_headline"),
-        visual_brief=payload.get("visual_brief"),
-        theme=target_key,
-    )
+    try:
+        payload = content_ai.generate_social_post(
+            prompt, "engageant", target_key=target_key, content_tag="autopost"
+        )
+        if not (payload.get("message") or "").strip():
+            payload = _fallback_payload(target_key, prompt)
+    except Exception:
+        logger.exception("Autopost copy IA unavailable — using fallback text")
+        payload = _fallback_payload(target_key, prompt)
+
+    headline = (payload.get("image_headline") or "").strip() or "PilotCore"
+    brief = (payload.get("visual_brief") or prompt or "PilotCore")[:500]
+    try:
+        visual = social_image.generate_for_post(
+            prompt,
+            "engageant",
+            headline=headline,
+            visual_brief=brief,
+            theme=target_key,
+            use_dalle=use_dalle,
+        )
+    except Exception:
+        logger.exception("Autopost visual failed — branded fallback")
+        visual = social_image.generate_for_post(
+            prompt,
+            "engageant",
+            headline=headline,
+            visual_brief=brief,
+            theme=target_key,
+            use_dalle=False,
+        )
+
     post = SocialPost(
         platform="facebook",
         message=payload["message"],
@@ -132,6 +187,7 @@ def generate_preview(*, keep_schedule: datetime | None = None) -> SocialPost:
         status="queued",
         target_key=target_key,
         scheduled_for=when,
+        error=None,
     )
     db.session.add(post)
     db.session.commit()

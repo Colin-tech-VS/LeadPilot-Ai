@@ -2026,8 +2026,12 @@ def social_autopost_save():
         else:
             social_autopost.disable_autopost()
             flash("Autopublication désactivée. Rien ne partira automatiquement.", "success")
-    except content_ai.ContentAIError as exc:
-        flash(f"Impossible de préparer l'aperçu : {exc}", "error")
+    except Exception:
+        current_app.logger.exception("social_autopost_save failed")
+        flash(
+            "Impossible de préparer l'aperçu Facebook. Les réglages n'ont pas tous été enregistrés — réessayez.",
+            "error",
+        )
     return redirect(url_for("admin.social"))
 
 
@@ -2039,10 +2043,11 @@ def social_queue_regenerate():
     current = social_autopost.queued_preview()
     keep = current.scheduled_for if current else None
     try:
-        social_autopost.generate_preview(keep_schedule=keep)
+        social_autopost.generate_preview(keep_schedule=keep, use_dalle=True)
         flash("Nouvel aperçu généré — l'heure d'envoi ne change pas.", "success")
-    except content_ai.ContentAIError as exc:
-        flash(f"Génération impossible : {exc}", "error")
+    except Exception:
+        current_app.logger.exception("social_queue_regenerate failed")
+        flash("Génération impossible. Réessayez dans un instant.", "error")
     return redirect(url_for("admin.social"))
 
 
@@ -2051,11 +2056,15 @@ def social_queue_regenerate():
 def social_queue_save():
     from app.services import social_autopost
 
-    social_autopost.update_queued(
-        message=request.form.get("message"),
-        target_key=request.form.get("target_key"),
-    )
-    flash("Aperçu mis à jour. Il restera affiché jusqu'à l'envoi.", "success")
+    try:
+        social_autopost.update_queued(
+            message=request.form.get("message"),
+            target_key=request.form.get("target_key"),
+        )
+        flash("Aperçu mis à jour. Il restera affiché jusqu'à l'envoi.", "success")
+    except Exception:
+        current_app.logger.exception("social_queue_save failed")
+        flash("Impossible d'enregistrer l'aperçu. Réessayez.", "error")
     return redirect(url_for("admin.social"))
 
 

@@ -155,7 +155,7 @@ def _try_dalle(visual_brief: str) -> bytes | None:
 
         from openai import OpenAI
 
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, timeout=20.0)
         prompt = _dalle_prompt(visual_brief)
         last_error = None
         for model, size in (("gpt-image-1", "1536x1024"), ("dall-e-3", "1792x1024")):

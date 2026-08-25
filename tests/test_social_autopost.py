@@ -242,6 +242,46 @@ def test_enable_autopost_does_not_publish(app, monkeypatch):
         assert social_autopost.is_enabled()
 
 
+def test_generate_preview_falls_back_when_ai_fails(app, monkeypatch):
+    with app.app_context():
+        _wipe_posts()
+        _connect_page()
+        monkeypatch.setattr(
+            "app.services.content_ai.generate_social_post",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("mistral down")),
+        )
+        monkeypatch.setattr("app.services.social_image._try_dalle", lambda brief: None)
+        post = social_autopost.generate_preview()
+        assert post.status == "queued"
+        assert post.message
+        assert "garantit" not in (post.message or "").lower()
+        assert post.image_path
+
+
+def test_autopost_save_returns_redirect_when_preview_would_fail(client, app, monkeypatch):
+    with app.app_context():
+        _wipe_posts()
+        _connect_page()
+    monkeypatch.setattr(
+        "app.services.content_ai.generate_social_post",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    monkeypatch.setattr("app.services.social_image._try_dalle", lambda brief: None)
+    with client.session_transaction() as sess:
+        sess["admin_authenticated"] = True
+        sess["admin_username"] = "admin"
+    resp = client.post(
+        "/admin/social/autopost",
+        data={"enabled": "1", "interval": "24"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/admin/social")
+    with app.app_context():
+        assert social_autopost.is_enabled()
+        assert social_autopost.queued_preview() is not None
+
+
 def test_manual_publish_requires_preview_confirm(client, app):
     with app.app_context():
         _wipe_posts()

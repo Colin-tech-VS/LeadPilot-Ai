@@ -46,10 +46,19 @@ def inject_tenant():
     ai_phone_e164 = tenant_e164 or shared_e164
     ai_phone_display = _format_phone_display(tenant_e164) if tenant_e164 else shared_display
 
+    from app.services import founding_program
+
+    try:
+        founding = founding_program.landing_context()
+    except Exception:
+        logger.exception("founding landing context failed")
+        founding = None
+
     return {
         "current_tenant": tenant,
         "twilio_ai_phone_display": ai_phone_display,
         "twilio_ai_phone_e164": ai_phone_e164,
+        "founding": founding,
     }
 
 

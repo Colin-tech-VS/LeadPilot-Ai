@@ -332,15 +332,105 @@
   }
 }
 
-/* Programme des 50 artisans */
-.page-pro .founding-pro-banner {
-  margin-top: 14px;
-  font-size: 14px;
-  color: var(--lp-text, #1C1914);
+/* Programme des 50 artisans — bandeau /pro */
+.page-pro .founding-spotlight {
+  background: var(--lp-brand);
+  color: var(--lp-text-inverse);
+  border-bottom: 1px solid var(--lp-brand-deep);
 }
-.page-pro .founding-pro-banner a {
+
+.page-pro .founding-spotlight-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.7fr);
+  gap: 32px;
+  align-items: center;
+  padding: 28px 0;
+}
+
+.page-pro .founding-spotlight-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #C4B79A;
+}
+
+.page-pro .founding-spotlight-title {
+  margin: 0 0 8px;
+  font-family: var(--lp-font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--lp-text-inverse);
+}
+
+.page-pro .founding-spotlight-lead {
+  margin: 0 0 14px;
+  max-width: 42rem;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #E8E4D6;
+}
+
+.page-pro .founding-spotlight-counter {
+  margin: 0 0 8px;
+  font-size: 15px;
   font-weight: 700;
-  color: inherit;
+  color: var(--lp-text-inverse);
+}
+
+.page-pro .founding-meter {
+  width: min(280px, 100%);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(251, 247, 238, 0.18);
+  overflow: hidden;
+}
+
+.page-pro .founding-meter-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: var(--lp-bg-elevated);
+  border-radius: inherit;
+}
+
+.page-pro .founding-spotlight-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.page-pro .founding-spotlight .btn-primary {
+  background: var(--lp-surface);
+  color: var(--lp-brand);
+  border-color: transparent;
+}
+
+.page-pro .founding-spotlight .btn-primary:hover {
+  background: var(--lp-bg);
+  color: var(--lp-brand-deep);
+}
+
+.page-pro .founding-spotlight .btn-outline {
+  border-color: #C4B79A;
+  color: var(--lp-text-inverse);
+}
+
+.page-pro .founding-spotlight-hint {
+  margin: 0;
+  font-size: 13px;
+  color: #C4B79A;
+}
+
+@media (max-width: 800px) {
+  .page-pro .founding-spotlight-inner {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px 0;
+  }
 }
 
 .page-founding .founding-hero-grid {

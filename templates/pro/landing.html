@@ -48,6 +48,36 @@
 {% endblock %}
 
 {% block content %}
+{% if founding and founding.enabled %}
+<section class="founding-spotlight" aria-labelledby="founding-spotlight-title">
+  <div class="container founding-spotlight-inner">
+    <div class="founding-spotlight-copy">
+      <p class="founding-spotlight-kicker">{{ _('founding.kicker') }}</p>
+      <p class="founding-spotlight-title" id="founding-spotlight-title">{{ _('founding.pro_spotlight_title') }}</p>
+      <p class="founding-spotlight-lead">{{ _('founding.pro_spotlight_lead') }}</p>
+      {% if founding.open %}
+      <p class="founding-spotlight-counter">{{ _('founding.counter', n=founding.occupied, max=founding.max) }}</p>
+      {% set meter_pct = ((founding.occupied / founding.max) * 100)|round(0, 'floor')|int %}
+      <div class="founding-meter" role="meter" aria-valuemin="0" aria-valuemax="{{ founding.max }}" aria-valuenow="{{ founding.occupied }}" aria-label="{{ _('founding.counter', n=founding.occupied, max=founding.max) }}">
+        <span class="founding-meter-fill" style="width: {{ [meter_pct, 100]|min }}%"></span>
+      </div>
+      {% else %}
+      <p class="founding-spotlight-counter">{{ _('founding.full_banner') }}</p>
+      {% endif %}
+    </div>
+    <div class="founding-spotlight-actions">
+      {% if founding.open %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+      <p class="founding-spotlight-hint">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
+      {% elif founding.waitlist_enabled %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
+      {% else %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.pro_banner_cta') }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
 <section class="v-hero v-hero--split">
   <div class="container v-hero-grid">
     <div>
@@ -55,18 +85,14 @@
       <h1>{{ _('landing.hero_title') }}</h1>
       <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
       <div class="v-hero-cta">
+        {% if founding and founding.enabled and founding.open %}
+        <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg">{{ _('landing.cta_signup') }}</a>
+        {% else %}
         <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
         <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_see_demo') }}</a>
-      </div>
-      {% if founding and founding.enabled %}
-      <p class="founding-pro-banner">
-        {{ _('founding.pro_banner') }}
-        <a href="{{ url_for('web.founding_landing') }}">{{ _('founding.pro_banner_cta') }}</a>
-        {% if founding.open %}
-          · {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
         {% endif %}
-      </p>
-      {% endif %}
+      </div>
       <p class="v-search-hint v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
       <ul class="v-trust">
         <li>{{ _('landing.trust_1') }}</li>
@@ -582,8 +608,13 @@
     <h2>{{ _('landing.cta_band_title') }}</h2>
     <p>{{ _('landing.cta_band_sub') }}</p>
     <div class="v-cta-band-actions">
+      {% if founding and founding.enabled and founding.open %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_signup') }}</a>
+      {% else %}
       <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
       <a href="#demo" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_see_demo') }}</a>
+      {% endif %}
     </div>
     <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
   </div>

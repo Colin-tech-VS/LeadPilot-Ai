@@ -136,6 +136,19 @@ def test_founding_admin_kpis_start_empty(client, app):
     assert "Promo" in html
 
 
+def test_pro_homepage_features_founding_programme(client):
+    html = client.get("/pro").data.decode()
+    assert 'class="founding-spotlight"' in html
+    assert "/50-artisans" in html
+    assert "Les 50 premiers" in html
+    assert "Rejoindre les 50" in html
+    assert "/ 50 artisans inscrits" in html
+    assert "Commencer gratuitement" in html
+    assert 'href="/register"' in html or "/register" in html
+    assert "des milliers" not in html.lower()
+    assert "clients garantis" not in html.lower()
+
+
 def test_sitemap_includes_founding_page(client):
     body = client.get("/sitemap-core.xml").data.decode()
     assert "/50-artisans</loc>" in body

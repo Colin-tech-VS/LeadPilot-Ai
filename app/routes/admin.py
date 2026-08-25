@@ -1750,7 +1750,6 @@ def api_blog_generate():
 @admin_required
 def social_page():
     from app.services import social_autopost
-    from app.services.social_image import image_public_url
     from app.services.social_links import targets_for_admin
     from app.services.social_schedule import slot_reason
 
@@ -1763,7 +1762,15 @@ def social_page():
     fb_status = social.connection_status()
     groups, groups_error = social.list_member_groups() if social.is_configured() else ([], None)
     queued = social_autopost.queued_preview()
-    queued_image = image_public_url(queued.image_path) if queued and queued.image_path else ""
+    queued_image = ""
+    if queued:
+        try:
+            from app.services.social_image import ensure_post_visual
+
+            ensure_post_visual(queued, subject=queued.message, theme=queued.target_key)
+        except Exception:
+            logging.getLogger(__name__).exception("Queued Facebook visual missing")
+        queued_image = url_for("web.social_post_image", post_id=queued.id)
     health = fb_status.get("token_health") or {}
     expires_label = "inconnu"
     queued_when = ""
@@ -1982,8 +1989,10 @@ def api_social_generate():
                 tone,
                 headline=payload.get("image_headline"),
                 visual_brief=payload.get("visual_brief"),
+                theme=target_key,
             )
         )
+        payload.pop("png", None)
         log_event(CAT_ADMIN, "social_ai_generate", summary=f"Post généré par IA: {prompt[:80]}")
         return jsonify(payload)
     except content_ai.ContentAIError as exc:

@@ -264,6 +264,10 @@ def _ensure_schema_updates():
         if "scheduled_for" not in sp_columns:
             with db.engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE social_posts ADD COLUMN scheduled_for {ts_type}"))
+        if "image_blob" not in sp_columns:
+            blob_type = "BYTEA" if db.engine.dialect.name == "postgresql" else "BLOB"
+            with db.engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE social_posts ADD COLUMN image_blob {blob_type}"))
 
     if "quotes" not in inspector.get_table_names():
         return

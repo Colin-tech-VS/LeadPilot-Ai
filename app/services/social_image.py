@@ -35,10 +35,11 @@ _IMAGE_BRIEF_SYSTEM = (
     "Tu es directeur artistique pour PilotCore (standardiste IA pour artisans).\n"
     f"{_BRAND}\n"
     "Réponds UNIQUEMENT en JSON avec :\n"
-    '- "headline" : accroche courte en français (6 mots max, pour overlay texte),\n'
-    '- "visual_brief" : description du visuel principal SANS texte dans l\'image '
-    "(icônes, artisan, téléphone, calendrier RDV, outils du bâtiment…), "
-    "cohérent avec le sujet du post."
+    '- "headline" : accroche vendeuse en français (5 mots max, overlay),\n'
+    '- "visual_brief" : scène PHOTO publicitaire SANS aucun texte dans l\'image '
+    "(artisan au travail, téléphone qui sonne, créneau d'agenda, atelier chaud, "
+    "outils du bâtiment, particulier soulagé). Lumière d'atelier, papier crème, "
+    "encre sombre, pas de bleu."
 )
 
 
@@ -106,11 +107,13 @@ def _image_brief(subject: str, tone: str) -> dict:
 
 def _dalle_prompt(visual_brief: str) -> str:
     return (
-        f"Professional social media marketing illustration for a French home-services brand. "
+        "Cinematic Facebook ad still for a premium French home-services brand "
+        "(plumber, locksmith, electrician). "
         f"{visual_brief}. "
-        f"Style: editorial workshop, warm cream paper #EFE9DC, dark ink #1A2332, "
-        f"no blue, no cyan, clean typography space, no text, no logos, no watermarks. "
-        f"Landscape 1.91:1 composition."
+        "Warm cream paper #EFE9DC, dark ink #1A2332, no blue, no cyan, no purple. "
+        "Photoreal editorial workshop light, shallow depth of field, trustworthy, converting. "
+        "No text, no letters, no logos, no watermarks, no UI mockups. "
+        "Landscape 1.91:1. Keep the lower third slightly darker for a caption overlay."
     )
 
 
@@ -119,25 +122,37 @@ def _try_dalle(visual_brief: str) -> bytes | None:
     if not api_key:
         return None
     try:
+        import base64
+
         from openai import OpenAI
 
         client = OpenAI(api_key=api_key)
-        resp = client.images.generate(
-            model="dall-e-3",
-            prompt=_dalle_prompt(visual_brief),
-            size="1792x1024",
-            quality="standard",
-            n=1,
-        )
-        url = resp.data[0].url
-        if not url:
-            return None
-        img_resp = requests.get(url, timeout=90)
-        img_resp.raise_for_status()
-        return img_resp.content
+        prompt = _dalle_prompt(visual_brief)
+        last_error = None
+        for model, size in (("gpt-image-1", "1536x1024"), ("dall-e-3", "1792x1024")):
+            try:
+                kwargs = {"model": model, "prompt": prompt, "size": size, "n": 1}
+                if model == "dall-e-3":
+                    kwargs["quality"] = "standard"
+                resp = client.images.generate(**kwargs)
+                item = resp.data[0]
+                b64 = getattr(item, "b64_json", None)
+                if b64:
+                    return base64.b64decode(b64)
+                url = getattr(item, "url", None)
+                if not url:
+                    continue
+                img_resp = requests.get(url, timeout=90)
+                img_resp.raise_for_status()
+                return img_resp.content
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                logger.warning("OpenAI image model %s failed: %s", model, exc)
+        if last_error:
+            logger.info("OpenAI image generation unavailable — branded fallback")
     except Exception:  # noqa: BLE001
-        logger.exception("DALL·E image generation failed — using branded fallback")
-        return None
+        logger.exception("OpenAI image generation failed — using branded fallback")
+    return None
 
 
 def _hex_rgb(value: str) -> tuple[int, int, int]:
@@ -195,6 +210,68 @@ def _wrap_text(draw, text: str, font, max_width: int) -> list[str]:
     return lines[:3]
 
 
+def _scene_kind(subject: str, theme: str | None = None) -> str:
+    text = f"{theme or ''} {subject or ''}".lower()
+    if any(token in text for token in ("pro", "appel", "décroche", "decroche", "standard", "occupé", "occupe")):
+        return "call"
+    if any(token in text for token in ("annuaire", "trouver", "rdv", "home", "particulier", "près", "pres")):
+        return "booking"
+    return "trade"
+
+
+def _selling_copy(kind: str, headline: str, subject: str) -> tuple[str, str, str]:
+    title = (headline or subject or "PilotCore").strip()
+    if kind == "call":
+        return title, "Le standard décroche. Vous restez sur le chantier.", "Essayer 14 jours"
+    if kind == "booking":
+        return title, "Un artisan près de chez vous — un créneau en 2 minutes.", "Réserver un créneau"
+    return title, "Dépannage le jour même. Agenda en ligne 24h/24.", "Trouver un artisan"
+
+
+def _draw_phone(draw, x: int, y: int, *, ink, paper, cream) -> None:
+    draw.rounded_rectangle((x, y, x + 168, y + 300), radius=22, fill=ink)
+    draw.rounded_rectangle((x + 12, y + 36, x + 156, y + 268), radius=8, fill=cream)
+    draw.rounded_rectangle((x + 64, y + 12, x + 104, y + 22), radius=4, fill=paper)
+    # missed-call pulse
+    draw.ellipse((x + 118, y + 48, x + 142, y + 72), fill=_hex_rgb("#C45C26"))
+    draw.rounded_rectangle((x + 28, y + 88, x + 140, y + 112), radius=4, fill=ink)
+    draw.rounded_rectangle((x + 28, y + 128, x + 140, y + 152), radius=4, fill=_hex_rgb("#D7CDB8"))
+    draw.rounded_rectangle((x + 28, y + 168, x + 140, y + 192), radius=4, fill=_hex_rgb("#D7CDB8"))
+    draw.ellipse((x + 68, y + 276, x + 100, y + 290), outline=paper, width=2)
+
+
+def _draw_calendar(draw, x: int, y: int, *, ink, cream, paper) -> None:
+    draw.rounded_rectangle((x, y, x + 220, y + 200), radius=8, fill=cream, outline=ink, width=3)
+    draw.rectangle((x, y, x + 220, y + 44), fill=ink)
+    cell = 28
+    ox, oy = x + 18, y + 64
+    for row in range(4):
+        for col in range(6):
+            cx, cy = ox + col * 32, oy + row * 32
+            fill = ink if (row, col) in {(1, 2), (2, 4)} else paper
+            draw.rounded_rectangle((cx, cy, cx + cell, cy + cell), radius=4, fill=fill)
+
+
+def _draw_tools(draw, x: int, y: int, *, ink, cream) -> None:
+    draw.ellipse((x, y, x + 160, y + 160), fill=cream, outline=ink, width=4)
+    draw.rectangle((x + 72, y + 28, x + 88, y + 132), fill=ink)
+    draw.polygon([(x + 40, y + 48), (x + 120, y + 88), (x + 40, y + 108)], fill=ink)
+    draw.rounded_rectangle((x + 24, y + 176, x + 200, y + 248), radius=8, fill=cream, outline=ink, width=3)
+    draw.ellipse((x + 48, y + 196, x + 88, y + 228), outline=ink, width=3)
+    draw.ellipse((x + 136, y + 196, x + 176, y + 228), outline=ink, width=3)
+
+
+def _draw_selling_scene(draw, kind: str, *, ink, cream, paper) -> None:
+    origin_x, origin_y = 820, 150
+    if kind == "call":
+        _draw_phone(draw, origin_x + 40, origin_y, ink=ink, paper=paper, cream=cream)
+        return
+    if kind == "booking":
+        _draw_calendar(draw, origin_x, origin_y + 20, ink=ink, cream=cream, paper=paper)
+        return
+    _draw_tools(draw, origin_x, origin_y + 10, ink=ink, cream=cream)
+
+
 def _draw_brand_icon(draw, cx: int, cy: int) -> None:
     paper = _hex_rgb("#F6F1E6")
     ink = _hex_rgb("#1A2332")
@@ -208,34 +285,51 @@ def _draw_brand_icon(draw, cx: int, cy: int) -> None:
     draw.rectangle((cx - 28, cy + 34, cx + 28, cy + 38), fill=paper)
 
 
-def _branded_fallback(headline: str, subject: str) -> bytes:
+def _branded_fallback(headline: str, subject: str, theme: str | None = None) -> bytes:
     from PIL import Image, ImageDraw
 
     paper = _hex_rgb("#EFE9DC")
     cream = _hex_rgb("#FBF7EE")
     ink = _hex_rgb("#1A2332")
     rule = _hex_rgb("#D7CDB8")
+    muted = _hex_rgb("#6B6458")
+    kind = _scene_kind(subject, theme)
+    title, subline, cta = _selling_copy(kind, headline, subject)
+
     img = Image.new("RGB", (WIDTH, HEIGHT), paper)
     draw = ImageDraw.Draw(img)
-    draw.rectangle((0, 0, 280, HEIGHT), fill=ink)
-    draw.rectangle((280, 0, WIDTH, HEIGHT), fill=cream)
-    draw.rectangle((280, 0, 284, HEIGHT), fill=rule)
-    draw.rectangle((0, HEIGHT - 10, WIDTH, HEIGHT), fill=ink)
+    draw.rectangle((0, 0, 96, HEIGHT), fill=ink)
+    draw.rectangle((96, 0, WIDTH, HEIGHT), fill=cream)
+    draw.rectangle((96, 0, 100, HEIGHT), fill=rule)
+    draw.rectangle((0, HEIGHT - 12, WIDTH, HEIGHT), fill=ink)
+    for y in range(48, HEIGHT - 48, 28):
+        draw.line((120, y, 760, y), fill=_hex_rgb("#E8E0D0"), width=1)
 
-    _draw_brand_icon(draw, 140, HEIGHT // 2 - 24)
-    mark_font = _load_font(22, bold=True)
-    draw.text((72, HEIGHT // 2 + 36), "PilotCore", font=mark_font, fill=_hex_rgb("#F6F1E6"))
+    _draw_brand_icon(draw, 48, 72)
+    draw.text((24, HEIGHT - 52), "PilotCore", font=_load_font(16, bold=True), fill=_hex_rgb("#F6F1E6"))
 
-    title_font = _load_font(54, bold=True)
-    lines = _wrap_text(draw, headline or subject[:60], title_font, WIDTH - 380)
-    y = HEIGHT // 2 - 20 - (len(lines) - 1) * 32
+    _draw_selling_scene(draw, kind, ink=ink, cream=cream, paper=paper)
+
+    kicker = _load_font(18, bold=True)
+    draw.text((140, 72), "ANNUAIRE · STANDARD IA", font=kicker, fill=muted)
+
+    title_font = _load_font(52, bold=True)
+    lines = _wrap_text(draw, title[:70], title_font, 640)
+    y = 140
     for line in lines:
-        draw.text((332, y), line, font=title_font, fill=ink)
-        y += 64
+        draw.text((140, y), line, font=title_font, fill=ink)
+        y += 62
 
-    sub_font = _load_font(22, bold=True)
-    draw.rounded_rectangle((332, y + 10, 332 + 168, y + 48), radius=4, fill=ink)
-    draw.text((348, y + 16), "RDV en ligne", font=sub_font, fill=_hex_rgb("#F6F1E6"))
+    sub_font = _load_font(22, bold=False)
+    for line in _wrap_text(draw, subline, sub_font, 620):
+        draw.text((140, y + 8), line, font=sub_font, fill=muted)
+        y += 32
+
+    cta_font = _load_font(22, bold=True)
+    cta_w = int(_text_width(draw, cta, cta_font) + 48)
+    cy0 = min(y + 36, HEIGHT - 90)
+    draw.rounded_rectangle((140, cy0, 140 + cta_w, cy0 + 52), radius=4, fill=ink)
+    draw.text((164, cy0 + 12), cta, font=cta_font, fill=_hex_rgb("#F6F1E6"))
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
@@ -266,13 +360,13 @@ def _apply_brand_overlay(image_bytes: bytes, headline: str) -> bytes:
         draw.line([(0, y), (WIDTH, y)], fill=(26, 35, 50, alpha))
     draw.rectangle((0, HEIGHT - 8, WIDTH, HEIGHT), fill=_hex_rgb("#1A2332"))
 
-    font = _load_font(40, bold=True)
+    font = _load_font(42, bold=True)
     lines = _wrap_text(draw, headline, font, WIDTH - 80)
-    y = HEIGHT - 28 - len(lines) * 44
+    y = HEIGHT - 86 - len(lines) * 46
     for line in lines:
         draw.text((40, y), line, font=font, fill=_hex_rgb("#F6F1E6"))
-        y += 44
-    draw.text((40, HEIGHT - 50), "PilotCore", font=_load_font(18, bold=True), fill=_hex_rgb("#E8E4D6"))
+        y += 46
+    draw.text((40, HEIGHT - 48), "PilotCore  ·  RDV en ligne 24h/24", font=_load_font(18, bold=True), fill=_hex_rgb("#E8E4D6"))
 
     result = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     buf = io.BytesIO()
@@ -299,9 +393,10 @@ def generate_for_post(
     *,
     headline: str | None = None,
     visual_brief: str | None = None,
-    use_dalle: bool = False,
+    use_dalle: bool | None = None,
+    theme: str | None = None,
 ) -> dict:
-    """Generate a branded PNG and return ``image_path`` + ``image_url``."""
+    """Generate a branded PNG and return ``image_path`` + ``image_url`` + ``png``."""
     if headline and visual_brief:
         brief = {"headline": headline[:80], "visual_brief": visual_brief[:500]}
     else:
@@ -316,23 +411,67 @@ def generate_for_post(
 
     headline_text = brief["headline"]
     visual = brief["visual_brief"]
+    if use_dalle is None:
+        use_dalle = bool((current_app.config.get("OPENAI_API_KEY") or "").strip()) and not current_app.config.get("TESTING")
 
     raw = _try_dalle(visual) if use_dalle else None
     try:
         if raw:
             png = _apply_brand_overlay(raw, headline_text)
         else:
-            png = _branded_fallback(headline_text, subject)
+            png = _branded_fallback(headline_text, subject, theme=theme)
     except Exception:  # noqa: BLE001
         logger.exception("Social image render failed — minimal fallback")
-        png = _branded_fallback("PilotCore", subject)
+        png = _branded_fallback("PilotCore", subject, theme=theme)
 
     relative = _save_png(png)
     return {
         "image_path": relative,
         "image_url": image_public_url(relative),
         "image_headline": headline_text,
+        "png": png,
     }
+
+
+def materialize_post_image(post) -> Path | None:
+    """Ensure the PNG exists on disk (from path or DB blob)."""
+    existing = resolve_image_path(getattr(post, "image_path", None))
+    if existing:
+        return existing
+    blob = getattr(post, "image_blob", None)
+    if not blob:
+        return None
+    name = f"{getattr(post, 'id', uuid.uuid4()).hex}.png"
+    path = uploads_dir() / name
+    path.write_bytes(bytes(blob))
+    if not getattr(post, "image_path", None):
+        post.image_path = f"{MEDIA_PREFIX}/{name}"
+    return path
+
+
+def ensure_post_visual(post, *, subject: str | None = None, use_dalle: bool = False, theme: str | None = None):
+    """Create a selling visual if the queued post has none (or the file vanished)."""
+    from app.core.extensions import db
+
+    if materialize_post_image(post):
+        if getattr(post, "image_blob", None) is None:
+            path = resolve_image_path(post.image_path)
+            if path:
+                post.image_blob = path.read_bytes()
+                db.session.commit()
+        return post
+    first = ((subject or getattr(post, "message", None) or "PilotCore").split("\n")[0]).strip()[:60]
+    visual = generate_for_post(
+        subject or (post.message or "PilotCore"),
+        headline=first or "PilotCore",
+        visual_brief=subject or (post.message or "PilotCore"),
+        use_dalle=use_dalle,
+        theme=theme or getattr(post, "target_key", None),
+    )
+    post.image_path = visual["image_path"]
+    post.image_blob = visual["png"]
+    db.session.commit()
+    return post
 
 
 # ── Per-artisan Open Graph / social card ──────────────────────────────────────

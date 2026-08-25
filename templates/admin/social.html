@@ -218,7 +218,7 @@
           <h2>Aperçu Facebook</h2>
           <span class="studio-preview-dot">en attente d’envoi</span>
         </div>
-        {{ fb_card(facebook_config.page_name or 'PilotCore', 'q-body', 'q-img-wrap', 'q-img', 'q-img-link', queued.message or '', queued_image, 'Programmé · ' ~ (queued_when or ''), queued_image) }}
+        {{ fb_card(facebook_config.page_name or 'PilotCore', 'q-body', 'q-img-wrap', 'q-img', 'q-img-link', queued.message or '', queued_image, 'Programmé · ' ~ (queued_when or ''), true) }}
       </div>
     </div>
     <div class="social-queue-actions">

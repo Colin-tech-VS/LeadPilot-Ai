@@ -120,12 +120,14 @@ def generate_preview(*, keep_schedule: datetime | None = None) -> SocialPost:
         "engageant",
         headline=payload.get("image_headline"),
         visual_brief=payload.get("visual_brief"),
+        theme=target_key,
     )
     post = SocialPost(
         platform="facebook",
         message=payload["message"],
         link=ensure_tracked(payload.get("link") or "", target_key=target_key, content="autopost"),
         image_path=visual["image_path"],
+        image_blob=visual.get("png"),
         generated_by_ai=True,
         status="queued",
         target_key=target_key,
@@ -185,6 +187,14 @@ def publish_queued_now() -> SocialPost | None:
     post = queued_preview()
     if not post:
         return None
+    from app.services import social_image
+
+    social_image.ensure_post_visual(
+        post,
+        subject=post.message,
+        theme=post.target_key,
+        use_dalle=False,
+    )
     published = social.publish_post(
         post.message,
         link=post.link,

@@ -661,6 +661,23 @@ def landing():
     return redirect(url_for("web.pro_landing"), code=301)
 
 
+@web_bp.route("/media/social/post/<uuid:post_id>.png", methods=["GET"])
+def social_post_image(post_id):
+    """Serve the exact PNG attached to a social post (DB blob survives Scalingo)."""
+    from app.models.social_post import SocialPost
+    from app.services.social_image import materialize_post_image
+
+    post = db.session.get(SocialPost, post_id)
+    if post is None:
+        abort(404)
+    path = materialize_post_image(post)
+    if path is None:
+        abort(404)
+    response = send_from_directory(path.parent, path.name, mimetype="image/png")
+    response.headers["Cache-Control"] = "private, max-age=120"
+    return response
+
+
 @web_bp.route("/media/social/<path:filename>", methods=["GET"])
 def social_media(filename):
     """Serve generated social images (e.g. from temp storage on ephemeral hosts)."""

@@ -243,8 +243,9 @@ _SOCIAL_SYSTEM = (
     f"{_SOCIAL_BRAND}\n"
     "Réponds UNIQUEMENT en JSON avec :\n"
     '- "message" : texte du post Facebook (sans guillemets),\n'
-    '- "image_headline" : accroche visuelle courte en français (6 mots max),\n'
-    '- "visual_brief" : description du visuel SANS texte (icônes, artisan, téléphone…).'
+    '- "image_headline" : accroche vendeuse en français (5 mots max),\n'
+    '- "visual_brief" : scène photo publicitaire SANS aucun texte (artisan au travail, '
+    "téléphone qui sonne, agenda, atelier chaud, particulier soulagé)."
 )
 
 

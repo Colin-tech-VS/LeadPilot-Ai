@@ -30,6 +30,23 @@ def test_branded_fallback_creates_png(app, monkeypatch):
         assert img.size == (1200, 630)
         assert img.getpixel((10, 10))[:3] == (0x1A, 0x23, 0x32)
         assert img.getpixel((400, 80))[:3] == (0xFB, 0xF7, 0xEE)
+        assert path.stat().st_size > 4000
+
+
+def test_ensure_post_visual_stores_blob(app, monkeypatch):
+    monkeypatch.setattr("app.services.social_image._try_dalle", lambda brief: None)
+    with app.app_context():
+        from app.models.social_post import SocialPost
+        from app.services import social_image
+        from app.core.extensions import db
+
+        post = SocialPost(platform="facebook", message="Les clients vous trouvent", status="queued")
+        db.session.add(post)
+        db.session.commit()
+        social_image.ensure_post_visual(post, subject=post.message, theme="home")
+        assert post.image_blob and len(post.image_blob) > 4000
+        path = social_image.materialize_post_image(post)
+        assert path is not None and path.is_file()
 
 
 def test_profile_card_renders_branded_png(app):

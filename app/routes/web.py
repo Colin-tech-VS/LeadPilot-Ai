@@ -348,6 +348,21 @@ def _trade_price_facts(trade_key, lang="fr"):
         return None
 
 
+@web_bp.route("/twilio-domain-verification.html", methods=["GET"])
+def twilio_domain_verification():
+    """Twilio Organization / Trust Hub HTTPS domain ownership proof.
+
+    Served at the site root — Twilio fetches this file, not /static/.
+    """
+    token = "1f6c8bfa40257e582fd2df5cacfab6bb"
+    html = (
+        "<!DOCTYPE html>\n<html>\n<head>\n"
+        f'<meta name="twilio-domain-verification" content="{token}">\n'
+        "</head>\n<body>\n</body>\n</html>\n"
+    )
+    return make_response(html, 200, {"Content-Type": "text/html; charset=utf-8"})
+
+
 @web_bp.route("/robots.txt", methods=["GET"])
 def robots_txt():
     from app.utils.llm_discovery import render_robots_txt

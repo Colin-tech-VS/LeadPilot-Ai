@@ -222,6 +222,18 @@ def test_sitemap_rejects_unknown_section(client):
     assert client.get("/sitemap-nope.xml").status_code == 404
 
 
+def test_twilio_domain_verification(client):
+    response = client.get("/twilio-domain-verification.html")
+    assert response.status_code == 200
+    body = response.data.decode()
+    assert 'name="twilio-domain-verification"' in body
+    assert 'content="1f6c8bfa40257e582fd2df5cacfab6bb"' in body
+
+    home = client.get("/").data.decode()
+    assert 'name="twilio-domain-verification"' in home
+    assert "1f6c8bfa40257e582fd2df5cacfab6bb" in home
+
+
 def test_robots_allows_public_pages(client):
     response = client.get("/robots.txt")
     assert response.status_code == 200

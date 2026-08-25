@@ -20,30 +20,65 @@
 {% endblock %}
 
 {% block content %}
-<section class="v-hero founding-hero" id="inscription">
-  <div class="container founding-hero-grid">
-    <div>
-      <p class="v-kicker">{{ _('founding.kicker') }}</p>
-      <h1>{{ _('founding.hero_title') }}</h1>
-      <p class="v-hero-lead">{{ _('founding.hero_subtitle') }}</p>
-      <p class="founding-counter" aria-live="polite">
+<section class="founding-hero" id="inscription">
+  <div class="container founding-hero-inner">
+    <p class="founding-kicker">{{ _('founding.kicker') }}</p>
+    <div class="founding-hero-split">
+      <div class="founding-hero-copy">
+        <h1>{{ _('founding.hero_title') }}</h1>
+        <p class="founding-lead">{{ _('founding.hero_subtitle') }}</p>
+        <p class="founding-duration">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
+        <div class="founding-hero-cta">
+          {% if founding.open %}
+          <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+          {% elif founding.waitlist_enabled %}
+          <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
+          {% endif %}
+          <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.cta_pro') }}</a>
+        </div>
+      </div>
+      <div class="founding-hero-mark">
+        <p class="founding-seat" aria-hidden="true">
+          <span class="founding-seat-n">{{ founding.occupied }}</span>
+          <span class="founding-seat-rest">
+            <span class="founding-seat-slash">/</span>
+            <span class="founding-seat-max">{{ founding.max }}</span>
+          </span>
+        </p>
+        <p class="founding-counter" aria-live="polite">
+          {% if founding.open %}
+            {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
+          {% else %}
+            {{ _('founding.full_banner') }}
+          {% endif %}
+        </p>
         {% if founding.open %}
-          {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
-        {% else %}
-          {{ _('founding.full_banner') }}
+        {% set meter_pct = ((founding.occupied / founding.max) * 100)|round(0, 'floor')|int %}
+        <div class="founding-meter founding-meter--hero" role="meter" aria-valuemin="0" aria-valuemax="{{ founding.max }}" aria-valuenow="{{ founding.occupied }}" aria-label="{{ _('founding.counter', n=founding.occupied, max=founding.max) }}">
+          <span class="founding-meter-fill" style="width: {{ [meter_pct, 100]|min }}%"></span>
+        </div>
         {% endif %}
-      </p>
-      <p class="v-search-hint">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
-      <div class="v-hero-cta founding-hero-cta">
-        {% if founding.open %}
-        <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
-        {% elif founding.waitlist_enabled %}
-        <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
-        {% endif %}
-        <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.cta_pro') }}</a>
       </div>
     </div>
-    <div class="founding-hero-card" id="formulaire">
+  </div>
+</section>
+
+<section class="founding-sheet" id="formulaire">
+  <div class="container">
+    <div class="founding-fiche">
+      <header class="founding-fiche-head">
+        <div>
+          <p class="founding-fiche-kicker">{{ _('founding.kicker') }}</p>
+          {% if founding.open %}
+          <h2>{{ _('founding.form_title') }}</h2>
+          {% elif founding.waitlist_enabled %}
+          <h2>{{ _('founding.waitlist_title') }}</h2>
+          {% else %}
+          <h2>{{ _('founding.full_title') }}</h2>
+          {% endif %}
+        </div>
+        <p class="founding-fiche-index" aria-hidden="true">{{ founding.occupied }}&nbsp;/&nbsp;{{ founding.max }}</p>
+      </header>
       {% if waitlisted %}
       <p class="founding-flash">{{ _('founding.waitlist_thanks') }}</p>
       {% endif %}
@@ -51,7 +86,6 @@
       <p class="founding-error" role="alert">{{ error }}</p>
       {% endif %}
       {% if founding.open %}
-      <h2>{{ _('founding.form_title') }}</h2>
       <p class="founding-form-sub">{{ _('founding.form_sub') }}</p>
       <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
         <div class="founding-form-row">
@@ -84,7 +118,6 @@
         <p class="founding-legal">{{ _('founding.legal') }}</p>
       </form>
       {% elif founding.waitlist_enabled %}
-      <h2>{{ _('founding.waitlist_title') }}</h2>
       <p class="founding-form-sub">{{ _('founding.waitlist_sub') }}</p>
       <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
         <input type="hidden" name="waitlist" value="1">
@@ -110,54 +143,66 @@
       </form>
       <p class="founding-legal">{{ _('founding.full_register_hint') }} <a href="{{ url_for('web.register') }}">{{ _('founding.cta_register') }}</a></p>
       {% else %}
-      <h2>{{ _('founding.full_title') }}</h2>
-      <p>{{ _('founding.full_register_hint') }}</p>
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary">{{ _('founding.cta_register') }}</a>
+      <p class="founding-form-sub">{{ _('founding.full_register_hint') }}</p>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('founding.cta_register') }}</a>
       {% endif %}
     </div>
   </div>
 </section>
 
-<section class="v-section founding-why">
-  <div class="container">
-    <h2>{{ _('founding.why_title') }}</h2>
-    <ul class="founding-list">
-      <li>{{ _('founding.why_1') }}</li>
-      <li>{{ _('founding.why_2') }}</li>
-      <li>{{ _('founding.why_3') }}</li>
-      <li>{{ _('founding.why_4') }}</li>
-      <li>{{ _('founding.why_5') }}</li>
-    </ul>
+<section class="founding-ledger v-reveal">
+  <div class="container founding-ledger-grid">
+    <article class="founding-ledger-col">
+      <h2>{{ _('founding.why_title') }}</h2>
+      <ol class="founding-ledger-list">
+        <li>{{ _('founding.why_1') }}</li>
+        <li>{{ _('founding.why_2') }}</li>
+        <li>{{ _('founding.why_3') }}</li>
+        <li>{{ _('founding.why_4') }}</li>
+        <li>{{ _('founding.why_5') }}</li>
+      </ol>
+    </article>
+    <article class="founding-ledger-col">
+      <h2>{{ _('founding.ask_title') }}</h2>
+      <ol class="founding-ledger-list">
+        <li>{{ _('founding.ask_1') }}</li>
+        <li>{{ _('founding.ask_2') }}</li>
+        <li>{{ _('founding.ask_3') }}</li>
+        <li>{{ _('founding.ask_4') }}</li>
+      </ol>
+      <p class="founding-note">{{ _('founding.ask_note') }}</p>
+    </article>
   </div>
 </section>
 
-<section class="v-section founding-ask">
-  <div class="container">
-    <h2>{{ _('founding.ask_title') }}</h2>
-    <ul class="founding-list">
-      <li>{{ _('founding.ask_1') }}</li>
-      <li>{{ _('founding.ask_2') }}</li>
-      <li>{{ _('founding.ask_3') }}</li>
-      <li>{{ _('founding.ask_4') }}</li>
-    </ul>
-    <p class="founding-note">{{ _('founding.ask_note') }}</p>
-  </div>
-</section>
-
-<section class="v-section founding-faq">
+<section class="founding-faq v-reveal">
   <div class="container">
     <h2>{{ _('founding.faq_title') }}</h2>
-    <details><summary>{{ _('founding.faq_1_q') }}</summary><p>{{ _('founding.faq_1_a') }}</p></details>
-    <details><summary>{{ _('founding.faq_2_q') }}</summary><p>{{ _('founding.faq_2_a') }}</p></details>
-    <details><summary>{{ _('founding.faq_3_q') }}</summary><p>{{ _('founding.faq_3_a') }}</p></details>
-    <details><summary>{{ _('founding.faq_4_q') }}</summary><p>{{ _('founding.faq_4_a') }}</p></details>
+    <div class="faq-list">
+      <details class="faq-item" open>
+        <summary>{{ _('founding.faq_1_q') }}</summary>
+        <p>{{ _('founding.faq_1_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('founding.faq_2_q') }}</summary>
+        <p>{{ _('founding.faq_2_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('founding.faq_3_q') }}</summary>
+        <p>{{ _('founding.faq_3_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('founding.faq_4_q') }}</summary>
+        <p>{{ _('founding.faq_4_a') }}</p>
+      </details>
+    </div>
   </div>
 </section>
 
-<section class="v-section founding-final">
+<section class="founding-final">
   <div class="container">
     <h2>{{ _('founding.final_title') }}</h2>
-    <p class="founding-counter">
+    <p class="founding-counter" aria-live="polite">
       {% if founding.open %}
         {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
       {% else %}
@@ -172,7 +217,9 @@
   </div>
 </section>
 {% if founding.open or founding.waitlist_enabled %}
-<a href="#formulaire" class="founding-sticky">{{ _('founding.cta') if founding.open else _('founding.cta_waitlist') }}</a>
+<div class="founding-sticky-bar">
+  <a href="#formulaire" class="founding-sticky">{{ _('founding.cta') if founding.open else _('founding.cta_waitlist') }}</a>
+</div>
 {% endif %}
 {% endblock %}
 

@@ -2390,3 +2390,124 @@ def listing_claim_reject(claim_id):
         level=LEVEL_WARNING,
     )
     return redirect(url_for("admin.listing_claims"))
+
+
+@admin_bp.route("/promo")
+@admin_required
+def promo():
+    from app.constants.trades import trade_label
+    from app.models.founding import SOURCES, STATUSES, FoundingParticipant, FoundingWaitlist
+    from app.services import founding_program
+
+    try:
+        founding_program.tick()
+    except Exception:
+        current_app.logger.exception("promo tick failed")
+    cfg = founding_program.get_config()
+    kpis = founding_program.kpis()
+    status_filter = (request.args.get("status") or "all").strip()
+    trade_filter = (request.args.get("trade") or "").strip()
+    city_filter = (request.args.get("city") or "").strip()
+    source_filter = (request.args.get("source") or "").strip()
+    query = FoundingParticipant.query
+    if status_filter and status_filter != "all":
+        query = query.filter(FoundingParticipant.status == status_filter)
+    rows = query.order_by(FoundingParticipant.place_number.asc()).all()
+    participants = []
+    for row in rows:
+        tenant = row.tenant or db.session.get(Tenant, row.tenant_id)
+        user = row.user or db.session.get(User, row.user_id)
+        if trade_filter and (not tenant or tenant.trade_type != trade_filter):
+            continue
+        if city_filter and (not tenant or city_filter.lower() not in (tenant.city or "").lower()):
+            continue
+        if source_filter and (row.source or "") != source_filter:
+            continue
+        progress = founding_program.activation_progress(row)
+        participants.append(
+            {
+                "row": row,
+                "tenant": tenant,
+                "user": user,
+                "progress": progress,
+                "trade": trade_label(tenant.trade_type, "fr") if tenant else "—",
+            }
+        )
+    waitlist = FoundingWaitlist.query.order_by(FoundingWaitlist.created_at.desc()).all()
+    return render_template(
+        "admin/promo.html",
+        kpis=kpis,
+        funnel=founding_program.funnel(),
+        sources=founding_program.sources_breakdown(),
+        referrals=founding_program.referral_stats(),
+        alerts=founding_program.alerts(),
+        participants=participants,
+        waitlist=waitlist,
+        cfg=cfg,
+        status_filter=status_filter,
+        trade_filter=trade_filter,
+        city_filter=city_filter,
+        source_filter=source_filter,
+        statuses=STATUSES,
+        sources_list=SOURCES,
+    )
+
+
+@admin_bp.route("/promo/config", methods=["POST"])
+@admin_required
+def promo_config():
+    from app.services import founding_program
+
+    founding_program.save_config(
+        {
+            "enabled": request.form.get("enabled") == "1",
+            "max_participants": request.form.get("max_participants"),
+            "duration_days": request.form.get("duration_days"),
+            "waitlist_enabled": request.form.get("waitlist_enabled") == "1",
+            "nudge_inactive_days": request.form.get("nudge_inactive_days"),
+            "nudge_no_usage_days": request.form.get("nudge_no_usage_days"),
+            "at_risk_days": request.form.get("at_risk_days"),
+            "start_date": request.form.get("start_date"),
+            "end_date": request.form.get("end_date"),
+            "post_offer": request.form.get("post_offer"),
+        }
+    )
+    flash("Configuration du programme enregistrée.", "success")
+    log_event(CAT_ADMIN, "founding_config", summary="Promo 50 artisans : configuration mise à jour")
+    return redirect(url_for("admin.promo"))
+
+
+@admin_bp.route("/promo/<participant_id>/status", methods=["POST"])
+@admin_required
+def promo_status(participant_id):
+    from app.models.founding import FoundingParticipant
+    from app.services import founding_program
+
+    row = db.session.get(FoundingParticipant, _pk_value(FoundingParticipant, participant_id))
+    if not row:
+        abort(404)
+    new_status = (request.form.get("status") or "").strip()
+    try:
+        founding_program.set_status(
+            row, new_status, actor=f"admin:{session.get('admin_username') or 'admin'}"
+        )
+        flash("Statut mis à jour.", "success")
+    except Exception:
+        flash("Statut invalide.", "error")
+    return redirect(url_for("admin.promo"))
+
+
+@admin_bp.route("/promo/<participant_id>/remind", methods=["POST"])
+@admin_required
+def promo_remind(participant_id):
+    from app.models.founding import FoundingParticipant
+    from app.services.transactional_email import send_founding_admin_reminder
+
+    row = db.session.get(FoundingParticipant, _pk_value(FoundingParticipant, participant_id))
+    if not row:
+        abort(404)
+    user = row.user or db.session.get(User, row.user_id)
+    tenant = row.tenant or db.session.get(Tenant, row.tenant_id)
+    send_founding_admin_reminder(user, tenant, row)
+    flash("Rappel envoyé (ou simulé si SMTP absent).", "success")
+    return redirect(url_for("admin.promo"))

@@ -652,10 +652,13 @@ def pro_landing():
     from app.services import content_studio
 
     offers = content_studio.get_offers(active_only=True)
+    from app.services import founding_program
+
     return render_template(
         "pro/landing.html",
         offers=offers or [],
         honest_offer_features=content_studio.honest_offer_features,
+        founding=founding_program.landing_context(),
     )
 
 
@@ -663,6 +666,175 @@ def pro_landing():
 @web_bp.route("/landing", methods=["GET"])
 def landing():
     return redirect(url_for("web.pro_landing"), code=301)
+
+
+def _founding_attribution():
+    """Persist ?source / UTM / ?ref on first landing view for the signup POST."""
+    if request.args.get("source"):
+        session["founding_source"] = (request.args.get("source") or "")[:40]
+    if request.args.get("ref"):
+        session["founding_ref"] = (request.args.get("ref") or "").strip().upper()[:16]
+        session.setdefault("founding_source", "referral")
+    for key in ("utm_source", "utm_medium", "utm_campaign", "utm_content"):
+        val = (request.args.get(key) or "").strip()
+        if val:
+            session[f"founding_{key}"] = val[:120]
+
+
+@web_bp.route("/50-artisans", methods=["GET", "POST"])
+def founding_landing():
+    from app.constants.trades import TRADES, trade_choices
+    from app.core.errors import ConflictError
+    from app.services import founding_program
+    from app.utils.validation import validate_password
+
+    _founding_attribution()
+    ctx = founding_program.landing_context()
+    lang = getattr(g, "lang", "fr")
+    error = None
+    form = {}
+
+    if request.method == "POST":
+        waitlist = request.form.get("waitlist") == "1" or not ctx["open"]
+        if current_app.config.get("TESTING") or check_rate("founding_signup", limit=5, window=3600):
+            form = {
+                "first_name": (request.form.get("first_name") or "").strip(),
+                "last_name": (request.form.get("last_name") or "").strip(),
+                "email": (request.form.get("email") or "").strip().lower(),
+                "phone": (request.form.get("phone") or "").strip(),
+                "city": (request.form.get("city") or "").strip(),
+                "trade_type": (request.form.get("trade_type") or "").strip(),
+                "company_name": (request.form.get("company_name") or "").strip(),
+            }
+            if waitlist:
+                if not form["first_name"] or not form["email"] or not form["city"]:
+                    error = translate("founding.error.required")
+                else:
+                    try:
+                        validate_email(form["email"])
+                        founding_program.join_waitlist(
+                            name=f"{form['first_name']} {form['last_name']}".strip(),
+                            email=form["email"],
+                            phone=form["phone"] or None,
+                            trade_type=form["trade_type"] or None,
+                            city=form["city"] or None,
+                            source=session.get("founding_source"),
+                            utm_source=session.get("founding_utm_source"),
+                        )
+                        return redirect(url_for("web.founding_landing", waitlisted=1))
+                    except ConflictError:
+                        error = translate("founding.error.email_taken")
+                    except AppError as exc:
+                        error = str(exc.message) if getattr(exc, "message", None) else translate("founding.error.required")
+            else:
+                password = request.form.get("password") or ""
+                if (
+                    not form["first_name"]
+                    or not form["last_name"]
+                    or not form["email"]
+                    or not form["phone"]
+                    or not form["city"]
+                    or not form["trade_type"]
+                    or not password
+                ):
+                    error = translate("founding.error.required")
+                elif form["trade_type"] not in TRADES:
+                    error = translate("founding.error.trade")
+                else:
+                    try:
+                        validate_email(form["email"])
+                        validate_password(password)
+                        user, tenant, participant = founding_program.enroll(
+                            email=form["email"],
+                            password=password,
+                            first_name=form["first_name"],
+                            last_name=form["last_name"],
+                            phone=form["phone"],
+                            city=form["city"],
+                            trade_type=form["trade_type"],
+                            company_name=form["company_name"] or None,
+                            source=session.get("founding_source") or request.form.get("source"),
+                            utm={
+                                "utm_source": session.get("founding_utm_source"),
+                                "utm_medium": session.get("founding_utm_medium"),
+                                "utm_campaign": session.get("founding_utm_campaign"),
+                                "utm_content": session.get("founding_utm_content"),
+                            },
+                            referral_code=session.get("founding_ref"),
+                        )
+                        login_user_to_session(user)
+                        session["signup_conversion_pending"] = True
+                        session["founding_just_joined"] = str(participant.place_number)
+                        return redirect(url_for("web.dashboard"))
+                    except ConflictError as exc:
+                        msg = str(getattr(exc, "message", None) or exc)
+                        if "phone" in msg.lower():
+                            error = translate("founding.error.phone_taken")
+                        else:
+                            error = translate("founding.error.email_taken")
+                    except AppError as exc:
+                        error = str(exc.message) if getattr(exc, "message", None) else translate("founding.error.generic")
+        else:
+            error = translate("founding.error.rate")
+
+    return render_template(
+        "pro/founding.html",
+        nav_active="home",
+        founding=ctx,
+        trades=trade_choices(lang),
+        error=error,
+        form=form,
+        waitlisted=request.args.get("waitlisted") == "1",
+    )
+
+
+@web_bp.route("/programme/continuer", methods=["GET", "POST"])
+@web_tenant_required
+def founding_continue():
+    from app.services import content_studio, founding_program
+    from app.services.events import CAT_AUTH, log_event
+
+    participant = founding_program.participant_for_tenant(g.tenant_id)
+    if not participant:
+        return redirect(url_for("web.dashboard"))
+    founding_program.refresh_participant(participant)
+    if request.method == "POST" and request.form.get("decline") == "1":
+        founding_program.decline_continue(participant)
+        return redirect(url_for("web.dashboard"))
+    if request.method == "POST" and request.form.get("billing") == "1":
+        log_event(
+            CAT_AUTH,
+            "founding_billing_click",
+            summary="Clic offre après programme",
+            tenant_id=g.tenant_id,
+            meta={"participant_id": str(participant.id)},
+        )
+        return redirect(url_for("billing.billing_page"))
+    offers = content_studio.get_offers(active_only=True)
+    cfg = founding_program.get_config()
+    if cfg.get("post_offer"):
+        offers = [o for o in offers if o.key == cfg["post_offer"]] or offers
+    return render_template(
+        "artisan/founding_continue.html",
+        participant=participant,
+        offers=offers or [],
+        honest_offer_features=content_studio.honest_offer_features,
+    )
+
+
+@web_bp.route("/programme/avis", methods=["POST"])
+@web_tenant_required
+def founding_feedback():
+    from app.services import founding_program
+
+    participant = founding_program.participant_for_tenant(g.tenant_id)
+    if participant:
+        founding_program.save_feedback(
+            participant,
+            request.form.get("feedback") or "",
+            request.form.get("consent") == "1",
+        )
+    return redirect(url_for("web.dashboard"))
 
 
 @web_bp.route("/media/social/post/<uuid:post_id>.png", methods=["GET"])
@@ -1717,6 +1889,22 @@ def dashboard():
         .order_by(Appointment.date_time.asc())
         .first()
     )
+    founding = None
+    try:
+        from app.services import founding_program
+
+        participant = founding_program.participant_for_tenant(g.tenant_id)
+        if participant:
+            founding_program.refresh_participant(participant)
+            progress = founding_program.activation_progress(participant)
+            founding = {
+                "participant": participant,
+                "progress": progress,
+                "ended": participant.status in ("expired", "completed")
+                and not (tenant and tenant.is_paid),
+            }
+    except Exception:
+        logger.exception("Founding dashboard context failed")
 
     return render_template(
         "artisan/dashboard.html",
@@ -1734,6 +1922,7 @@ def dashboard():
         upcoming_count=upcoming_count,
         total_leads=total_leads,
         next_appointment=next_appointment,
+        founding=founding,
     )
 
 

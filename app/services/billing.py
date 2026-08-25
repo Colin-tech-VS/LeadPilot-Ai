@@ -265,6 +265,12 @@ def apply_event(event_type: str, obj: dict) -> bool:
             tenant.stripe_subscription_id = obj["subscription"]
         db.session.commit()
         logger.info("Tenant %s upgraded to plan=%s via Stripe", tenant_id, plan)
+        try:
+            from app.services.founding_program import mark_converted
+
+            mark_converted(tenant.id)
+        except Exception:
+            logger.exception("Founding conversion mark failed for %s", tenant_id)
         return True
 
     if event_type in ("customer.subscription.deleted", "customer.subscription.canceled"):

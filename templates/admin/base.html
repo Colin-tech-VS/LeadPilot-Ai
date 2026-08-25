@@ -20,7 +20,7 @@
   {% include 'partials/brand_icons.html' %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=27">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=28">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -56,6 +56,9 @@
         <a href="{{ url_for('admin.listing_claims') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.listing_claim') %}active{% endif %}">
           {% call admin_ico() %}<path d="M7 4h10v6l-5 3-5-3V4z"/><path d="M7 20h10"/>{% endcall %} Revendications
           {% if pending_claims %}<span class="admin-badge tiny">{{ pending_claims }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('admin.promo') }}" class="{% if request.endpoint and request.endpoint.startswith('admin.promo') %}active{% endif %}">
+          {% call admin_ico() %}<path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/>{% endcall %} Promo
         </a>
         <div class="admin-nav-sep">Contenu</div>
         <a href="{{ url_for('admin.offers') }}" class="{% if request.endpoint == 'admin.offers' %}active{% endif %}">

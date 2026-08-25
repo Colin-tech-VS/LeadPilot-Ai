@@ -212,6 +212,7 @@ def test_sitemap_core_includes_key_pages(client):
     body = response.data.decode()
     assert "<loc>" in body
     assert "/pro</loc>" in body
+    assert "/50-artisans</loc>" in body
     assert "/contact</loc>" in body
     assert "/artisans</loc>" in body
     assert "<lastmod>" in body
@@ -243,6 +244,7 @@ def test_llms_txt_index(client):
     assert "> PilotCore est" in body
     assert "/blog" in body
     assert "/pro" in body
+    assert "/50-artisans" in body
     assert "/artisans" in body
 
 

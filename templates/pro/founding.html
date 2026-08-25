@@ -1,0 +1,181 @@
+{% extends "layouts/pro.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/trade_picker.html' import trade_select %}
+{% set nav_active = 'home' %}
+
+{% block title %}{{ _('founding.meta_title') }}{% endblock %}
+{% block body_class %}page-founding{% endblock %}
+
+{% block meta %}
+{% set founding_ld %}
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": {{ _('founding.meta_title')|tojson }},
+  "description": {{ _('founding.meta_description')|tojson }},
+  "url": {{ canonical_url('/50-artisans')|tojson }}
+}
+{% endset %}
+{{ seo_meta(_('founding.meta_title'), _('founding.meta_description'), '/50-artisans', _('founding.meta_keywords'), 'website', None, 'index, follow', founding_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="v-hero founding-hero" id="inscription">
+  <div class="container founding-hero-grid">
+    <div>
+      <p class="v-kicker">{{ _('founding.kicker') }}</p>
+      <h1>{{ _('founding.hero_title') }}</h1>
+      <p class="v-hero-lead">{{ _('founding.hero_subtitle') }}</p>
+      <p class="founding-counter" aria-live="polite">
+        {% if founding.open %}
+          {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
+        {% else %}
+          {{ _('founding.full_banner') }}
+        {% endif %}
+      </p>
+      <p class="v-search-hint">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
+      <div class="v-hero-cta founding-hero-cta">
+        {% if founding.open %}
+        <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+        {% elif founding.waitlist_enabled %}
+        <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
+        {% endif %}
+        <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.cta_pro') }}</a>
+      </div>
+    </div>
+    <div class="founding-hero-card" id="formulaire">
+      {% if waitlisted %}
+      <p class="founding-flash">{{ _('founding.waitlist_thanks') }}</p>
+      {% endif %}
+      {% if error %}
+      <p class="founding-error" role="alert">{{ error }}</p>
+      {% endif %}
+      {% if founding.open %}
+      <h2>{{ _('founding.form_title') }}</h2>
+      <p class="founding-form-sub">{{ _('founding.form_sub') }}</p>
+      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
+        <div class="founding-form-row">
+          <label>{{ _('founding.first_name') }}
+            <input type="text" name="first_name" value="{{ form.first_name or '' }}" required autocomplete="given-name">
+          </label>
+          <label>{{ _('founding.last_name') }}
+            <input type="text" name="last_name" value="{{ form.last_name or '' }}" required autocomplete="family-name">
+          </label>
+        </div>
+        <label>{{ _('founding.email') }}
+          <input type="email" name="email" value="{{ form.email or '' }}" required autocomplete="email">
+        </label>
+        <label>{{ _('founding.phone') }}
+          <input type="tel" name="phone" value="{{ form.phone or '' }}" required autocomplete="tel">
+        </label>
+        <label>{{ _('founding.city') }}
+          <input type="text" name="city" value="{{ form.city or '' }}" required autocomplete="address-level2">
+        </label>
+        <label>{{ _('founding.trade') }}
+          {{ trade_select('trade_type', trades, selected=form.trade_type or '', required=true, placeholder=_('founding.trade_placeholder'), chips=false) }}
+        </label>
+        <label>{{ _('founding.company') }}
+          <input type="text" name="company_name" value="{{ form.company_name or '' }}" autocomplete="organization">
+        </label>
+        <label>{{ _('founding.password') }}
+          <input type="password" name="password" required minlength="8" autocomplete="new-password">
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg founding-submit">{{ _('founding.cta') }}</button>
+        <p class="founding-legal">{{ _('founding.legal') }}</p>
+      </form>
+      {% elif founding.waitlist_enabled %}
+      <h2>{{ _('founding.waitlist_title') }}</h2>
+      <p class="founding-form-sub">{{ _('founding.waitlist_sub') }}</p>
+      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
+        <input type="hidden" name="waitlist" value="1">
+        <label>{{ _('founding.first_name') }}
+          <input type="text" name="first_name" value="{{ form.first_name or '' }}" required>
+        </label>
+        <label>{{ _('founding.last_name') }}
+          <input type="text" name="last_name" value="{{ form.last_name or '' }}">
+        </label>
+        <label>{{ _('founding.email') }}
+          <input type="email" name="email" value="{{ form.email or '' }}" required>
+        </label>
+        <label>{{ _('founding.phone') }}
+          <input type="tel" name="phone" value="{{ form.phone or '' }}">
+        </label>
+        <label>{{ _('founding.city') }}
+          <input type="text" name="city" value="{{ form.city or '' }}" required>
+        </label>
+        <label>{{ _('founding.trade') }}
+          {{ trade_select('trade_type', trades, selected=form.trade_type or '', placeholder=_('founding.trade_placeholder'), chips=false) }}
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg founding-submit">{{ _('founding.cta_waitlist') }}</button>
+      </form>
+      <p class="founding-legal">{{ _('founding.full_register_hint') }} <a href="{{ url_for('web.register') }}">{{ _('founding.cta_register') }}</a></p>
+      {% else %}
+      <h2>{{ _('founding.full_title') }}</h2>
+      <p>{{ _('founding.full_register_hint') }}</p>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary">{{ _('founding.cta_register') }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="v-section founding-why">
+  <div class="container">
+    <h2>{{ _('founding.why_title') }}</h2>
+    <ul class="founding-list">
+      <li>{{ _('founding.why_1') }}</li>
+      <li>{{ _('founding.why_2') }}</li>
+      <li>{{ _('founding.why_3') }}</li>
+      <li>{{ _('founding.why_4') }}</li>
+      <li>{{ _('founding.why_5') }}</li>
+    </ul>
+  </div>
+</section>
+
+<section class="v-section founding-ask">
+  <div class="container">
+    <h2>{{ _('founding.ask_title') }}</h2>
+    <ul class="founding-list">
+      <li>{{ _('founding.ask_1') }}</li>
+      <li>{{ _('founding.ask_2') }}</li>
+      <li>{{ _('founding.ask_3') }}</li>
+      <li>{{ _('founding.ask_4') }}</li>
+    </ul>
+    <p class="founding-note">{{ _('founding.ask_note') }}</p>
+  </div>
+</section>
+
+<section class="v-section founding-faq">
+  <div class="container">
+    <h2>{{ _('founding.faq_title') }}</h2>
+    <details><summary>{{ _('founding.faq_1_q') }}</summary><p>{{ _('founding.faq_1_a') }}</p></details>
+    <details><summary>{{ _('founding.faq_2_q') }}</summary><p>{{ _('founding.faq_2_a') }}</p></details>
+    <details><summary>{{ _('founding.faq_3_q') }}</summary><p>{{ _('founding.faq_3_a') }}</p></details>
+    <details><summary>{{ _('founding.faq_4_q') }}</summary><p>{{ _('founding.faq_4_a') }}</p></details>
+  </div>
+</section>
+
+<section class="v-section founding-final">
+  <div class="container">
+    <h2>{{ _('founding.final_title') }}</h2>
+    <p class="founding-counter">
+      {% if founding.open %}
+        {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
+      {% else %}
+        {{ _('founding.full_banner') }}
+      {% endif %}
+    </p>
+    {% if founding.open %}
+    <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+    {% elif founding.waitlist_enabled %}
+    <a href="#formulaire" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
+    {% endif %}
+  </div>
+</section>
+{% if founding.open or founding.waitlist_enabled %}
+<a href="#formulaire" class="founding-sticky">{{ _('founding.cta') if founding.open else _('founding.cta_waitlist') }}</a>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
+{% endblock %}

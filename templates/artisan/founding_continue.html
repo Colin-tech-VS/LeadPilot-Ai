@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ _('founding.continue_title') }} — {{ _('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="billing-page">
+  <div class="billing-hero">
+    <h1>{{ _('founding.continue_title') }}</h1>
+    <p class="billing-hero-sub">{{ _('founding.continue_lead') }}</p>
+  </div>
+  {% if offers %}
+  <ul class="founding-continue-offers">
+    {% for offer in offers %}
+    <li>
+      <strong>{{ offer.name }}</strong>
+      <span>{{ offer.price }} {{ offer.period or '' }}</span>
+      <p>{{ offer.description or '' }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <form method="POST" class="founding-continue-actions">
+    <button type="submit" name="billing" value="1" class="btn btn-primary">{{ _('founding.continue_cta') }}</button>
+    <button type="submit" name="decline" value="1" class="btn btn-outline">{{ _('founding.continue_decline') }}</button>
+  </form>
+</div>
+{% endblock %}

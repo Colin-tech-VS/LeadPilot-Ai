@@ -525,3 +525,221 @@ def send_booking_quote_pending_to_artisan(
     )
     text = f"Devis {quote_number} envoyé à {customer_name} pour le {when_label} — en attente de signature."
     return _send(to_addr, "Devis en attente de signature client", html, text, tenant_id=tenant_id)
+
+
+def send_founding_welcome(user, tenant, participant):
+    if not user or not user.email:
+        return None
+    base = _base_url()
+    place = getattr(participant, "place_number", None)
+    name = (getattr(tenant, "first_name", None) or getattr(tenant, "name", None) or "").strip()
+    hello = f"Bonjour {name}," if name else "Bonjour,"
+    slot = f"Vous occupez la place {place} du programme." if place else "Votre place dans le programme est confirmée."
+    html = render_email(
+        "Bienvenue parmi les premiers artisans PilotCore",
+        hello,
+        kicker="Programme des 50",
+        lines=[
+            "Votre compte artisan est créé. Même espace, même connexion, même fiche "
+            "dans l'annuaire qu'un essai classique.",
+            slot,
+            "Prochaine étape : ouvrez votre tableau de bord et vérifiez votre fiche "
+            "(adresse, métier, téléphone). Le standard ne peut décrocher que si la "
+            "ligne est configurée.",
+            "Dites-nous si quelque chose bloque — répondez simplement à cet e-mail.",
+        ],
+        cta_label="Ouvrir mon tableau de bord",
+        cta_url=f"{base}/dashboard",
+    )
+    text = (
+        f"{hello}\n{slot}\nTableau de bord : {base}/dashboard\n"
+        "Complétez votre fiche, puis dites-nous si un point bloque."
+    )
+    return _send(
+        user.email,
+        "Bienvenue — programme des 50 premiers artisans PilotCore",
+        html,
+        text,
+        tenant_id=getattr(tenant, "id", None),
+    )
+
+
+def send_founding_waitlist(row):
+    if not row or not row.email:
+        return None
+    base = _base_url()
+    hello = f"Bonjour {row.name}," if row.name else "Bonjour,"
+    html = render_email(
+        "Vous êtes sur la liste d'attente",
+        hello,
+        kicker="Programme des 50",
+        lines=[
+            "Le programme des 50 premiers artisans est complet. Nous avons bien "
+            "enregistré votre demande.",
+            "Nous vous écrirons si une prochaine ouverture a lieu. L'essai 14 jours "
+            "sans carte reste disponible à tout moment via la création de compte classique.",
+        ],
+        cta_label="Créer un compte essai",
+        cta_url=f"{base}/register",
+    )
+    text = f"{hello}\nListe d'attente enregistrée. Essai classique : {base}/register"
+    return _send(row.email, "PilotCore — liste d'attente des 50 artisans", html, text)
+
+
+def _founding_nudge(user, tenant, title, lines, subject):
+    if not user or not user.email:
+        return None
+    base = _base_url()
+    name = (getattr(tenant, "first_name", None) or getattr(tenant, "name", None) or "").strip()
+    hello = f"Bonjour {name}," if name else "Bonjour,"
+    html = render_email(
+        title,
+        hello,
+        kicker="Programme des 50",
+        lines=lines,
+        cta_label="Ouvrir mon espace",
+        cta_url=f"{base}/dashboard",
+    )
+    text = f"{hello}\n{title}\n{base}/dashboard"
+    return _send(user.email, subject, html, text, tenant_id=getattr(tenant, "id", None))
+
+
+def send_founding_nudge_inactive(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Votre compte est créé — une étape manque encore",
+        [
+            "Vous êtes inscrit au programme des 50 premiers artisans, mais votre "
+            "espace n'a pas encore servi.",
+            "Ouvrez votre fiche, vérifiez téléphone et adresse, puis revenez au "
+            "tableau de bord. Rien n'est obligatoire : c'est simplement la suite utile.",
+        ],
+        "PilotCore — prochaine étape de votre essai",
+    )
+
+
+def send_founding_nudge_no_usage(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Votre espace est prêt, il n'a pas encore reçu de demande",
+        [
+            "Votre fiche est en ligne. Quand un particulier vous contacte via "
+            "PilotCore, la demande apparaît dans votre tableau de bord.",
+            "Ce message ne dit pas que vous avez déjà reçu un client — seulement "
+            "que l'espace est prêt à en enregistrer une.",
+        ],
+        "PilotCore — votre espace n'a pas encore été utilisé",
+    )
+
+
+def send_founding_ask_feedback(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Une demande est arrivée — votre avis nous aide",
+        [
+            "Une demande a bien été enregistrée dans votre espace. Si quelque chose "
+            "a coincé, répondez à cet e-mail ou laissez un avis depuis le tableau de bord.",
+            "Nous ne publierons rien sans votre accord explicite.",
+        ],
+        "PilotCore — votre avis sur une vraie demande",
+    )
+
+
+def send_founding_ask_testimonial(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Vous utilisez PilotCore — un retour, si vous le souhaitez",
+        [
+            "Vous avez déjà plusieurs demandes dans votre espace. Si le service vous "
+            "aide réellement, vous pouvez laisser un avis dans le tableau de bord "
+            "et cocher l'autorisation de le citer.",
+            "Sans cette case, rien n'est publié.",
+        ],
+        "PilotCore — partagez votre expérience (facultatif)",
+    )
+
+
+def send_founding_expiry_7(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Votre période de test arrive bientôt à son terme",
+        [
+            "Il reste environ 7 jours sur votre accès du programme. Ensuite, "
+            "vous pourrez continuer avec une offre payante, ou vous arrêter — "
+            "sans engagement caché.",
+        ],
+        "PilotCore — J-7 avant la fin de votre essai",
+    )
+
+
+def send_founding_expiry_3(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Votre programme PilotCore se termine bientôt",
+        [
+            "Il reste environ 3 jours. Vous pourrez choisir une offre depuis "
+            "votre espace, ou ne pas continuer.",
+        ],
+        "PilotCore — J-3 avant la fin de votre essai",
+    )
+
+
+def send_founding_expiry_1(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Votre accès gratuit se termine demain",
+        [
+            "Demain, la période du programme se termine. Si vous voulez garder "
+            "la ligne et l'espace, choisissez une offre. Sinon, vous n'avez "
+            "rien à faire.",
+        ],
+        "PilotCore — votre essai se termine demain",
+    )
+
+
+def send_founding_expiry_0(user, tenant, participant):
+    if not user or not user.email:
+        return None
+    base = _base_url()
+    name = (getattr(tenant, "first_name", None) or getattr(tenant, "name", None) or "").strip()
+    hello = f"Bonjour {name}," if name else "Bonjour,"
+    html = render_email(
+        "Votre programme est arrivé à son terme",
+        hello,
+        kicker="Programme des 50",
+        lines=[
+            "La période prévue est terminée. Vous pouvez continuer avec une offre "
+            "PilotCore, ou vous arrêter.",
+            "Aucun prélèvement n'a lieu tant que vous n'avez pas choisi d'offre.",
+        ],
+        cta_label="Voir les offres",
+        cta_url=f"{base}/programme/continuer",
+    )
+    text = f"{hello}\nFin de période. Offres : {base}/programme/continuer"
+    return _send(
+        user.email,
+        "PilotCore — fin de votre période de test",
+        html,
+        text,
+        tenant_id=getattr(tenant, "id", None),
+    )
+
+
+def send_founding_admin_reminder(user, tenant, participant):
+    return _founding_nudge(
+        user,
+        tenant,
+        "Rappel depuis PilotCore",
+        [
+            "L'équipe PilotCore vous invite à ouvrir votre tableau de bord pour "
+            "poursuivre la configuration, si ce n'est pas déjà fait.",
+        ],
+        "PilotCore — rappel de configuration",
+    )

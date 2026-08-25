@@ -331,3 +331,142 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Programme des 50 artisans */
+.page-pro .founding-pro-banner {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--lp-text, #1C1914);
+}
+.page-pro .founding-pro-banner a {
+  font-weight: 700;
+  color: inherit;
+}
+
+.page-founding .founding-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.page-founding .founding-counter {
+  margin: 16px 0 8px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--lp-text, #1C1914);
+}
+
+.page-founding .founding-hero-card {
+  background: var(--lp-surface, #FBF7EE);
+  border: 1px solid var(--lp-border, #d7cdb8);
+  border-radius: 12px;
+  padding: 22px;
+}
+
+.page-founding .founding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-founding .founding-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.page-founding .founding-form input,
+.page-founding .founding-form select {
+  font: inherit;
+  font-weight: 400;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-border, #d7cdb8);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--lp-text, #1C1914);
+}
+
+.page-founding .founding-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.page-founding .founding-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.page-founding .founding-legal,
+.page-founding .founding-form-sub,
+.page-founding .founding-note {
+  font-size: 13px;
+  color: var(--lp-text-muted, #5c564c);
+}
+
+.page-founding .founding-error {
+  background: #F3EEE3;
+  border: 1px solid var(--lp-border, #d7cdb8);
+  color: var(--lp-text, #1C1914);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.page-founding .founding-flash {
+  background: #E8E4D6;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.page-founding .founding-list {
+  margin: 0;
+  padding-left: 1.2em;
+  max-width: 42rem;
+  line-height: 1.55;
+}
+
+.page-founding .founding-faq details {
+  border-bottom: 1px solid var(--lp-border, #d7cdb8);
+  padding: 12px 0;
+}
+
+.page-founding .founding-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.page-founding .founding-final {
+  text-align: center;
+  padding-bottom: 80px;
+}
+
+.page-founding .founding-sticky {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .page-founding .founding-hero-grid,
+  .page-founding .founding-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-founding .founding-sticky {
+    display: flex;
+    position: sticky;
+    bottom: 12px;
+    margin: 0 16px 16px;
+    justify-content: center;
+    align-items: center;
+    background: var(--lp-brand, #1A2332);
+    color: #FBF7EE;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 14px 18px;
+    border-radius: 10px;
+    z-index: 20;
+  }
+}

@@ -58,6 +58,15 @@
         <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
         <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_see_demo') }}</a>
       </div>
+      {% if founding and founding.enabled %}
+      <p class="founding-pro-banner">
+        {{ _('founding.pro_banner') }}
+        <a href="{{ url_for('web.founding_landing') }}">{{ _('founding.pro_banner_cta') }}</a>
+        {% if founding.open %}
+          · {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
+        {% endif %}
+      </p>
+      {% endif %}
       <p class="v-search-hint v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
       <ul class="v-trust">
         <li>{{ _('landing.trust_1') }}</li>

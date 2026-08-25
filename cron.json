@@ -11,6 +11,10 @@
     {
       "command": "*/15 * * * * python scripts/publish_queued_social.py",
       "size": "S"
+    },
+    {
+      "command": "0 7 * * * python scripts/tick_founding_program.py",
+      "size": "S"
     }
   ]
 }

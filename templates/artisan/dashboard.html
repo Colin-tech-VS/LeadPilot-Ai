@@ -19,6 +19,44 @@
 </div>
 {% endif %}
 
+{% if founding %}
+<section class="founding-dash dash-animate">
+  <header class="founding-dash-head">
+    <p class="founding-dash-kicker">{{ _('founding.dash_title') }} · {{ _('founding.dash_place', n=founding.participant.place_number) }}</p>
+    <h2>{{ _('founding.dash_progress', pct=founding.progress.percent) }}</h2>
+    <div class="founding-dash-bar" aria-hidden="true"><span style="width: {{ founding.progress.percent }}%"></span></div>
+  </header>
+  <ol class="founding-dash-steps">
+    {% for step in founding.progress.steps %}
+    <li class="{% if step.done %}is-done{% endif %}">{{ step.label }}</li>
+    {% endfor %}
+  </ol>
+  <div class="founding-dash-actions">
+    {% if founding.progress.needs_address or not founding.progress.steps[1].done %}
+    <a class="btn btn-sm btn-primary" href="{{ url_for('web.settings_page') }}">{{ _('founding.dash_cta_settings') }}</a>
+    {% endif %}
+    <a class="btn btn-sm btn-outline" href="{{ url_for('web.leads_page') }}">{{ _('founding.dash_cta_leads') }}</a>
+    {% if founding.ended %}
+    <a class="btn btn-sm btn-primary" href="{{ url_for('web.founding_continue') }}">{{ _('founding.dash_cta_continue') }}</a>
+    {% endif %}
+  </div>
+  {% if founding.progress.activated %}
+  <p class="founding-dash-refer">{{ _('founding.dash_refer') }}</p>
+  <input class="founding-dash-link" readonly value="{{ canonical_url('/50-artisans') }}?ref={{ founding.participant.referral_code }}" aria-label="{{ _('founding.dash_refer_copy') }}">
+  {% endif %}
+  <form method="POST" action="{{ url_for('web.founding_feedback') }}" class="founding-dash-feedback">
+    <label>{{ _('founding.dash_feedback') }}
+      <textarea name="feedback" rows="3">{{ founding.participant.feedback_text or '' }}</textarea>
+    </label>
+    <label class="founding-dash-consent">
+      <input type="checkbox" name="consent" value="1" {% if founding.participant.testimonial_consent %}checked{% endif %}>
+      {{ _('founding.dash_consent') }}
+    </label>
+    <button type="submit" class="btn btn-sm btn-outline">{{ _('founding.dash_feedback_send') }}</button>
+  </form>
+</section>
+{% endif %}
+
 <div class="dash-hero dash-hero-slim dash-animate">
   <div class="dash-hero-text">
     <p class="dash-greeting" id="dash-greeting">{{ _('dashboard.greeting') }}</p>

@@ -474,3 +474,11 @@ def _ensure_schema_updates():
                     """
                 )
             )
+
+    inspector = inspect(db.engine)
+    table_names = set(inspector.get_table_names())
+    from app.models.founding import FoundingParticipant, FoundingStatusEvent, FoundingWaitlist
+
+    for model in (FoundingParticipant, FoundingWaitlist, FoundingStatusEvent):
+        if model.__tablename__ not in table_names:
+            model.__table__.create(db.engine, checkfirst=True)

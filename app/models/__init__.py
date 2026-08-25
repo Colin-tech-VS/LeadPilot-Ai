@@ -20,6 +20,7 @@ from app.models.social_post import SocialPost
 from app.models.tenant import Tenant
 from app.models.trade_guide import TradeGuide
 from app.models.user import User
+from app.models.founding import FoundingParticipant, FoundingStatusEvent, FoundingWaitlist
 
 __all__ = [
     "User",
@@ -41,4 +42,7 @@ __all__ = [
     "SessionRecording",
     "PageView",
     "IpGeoCache",
+    "FoundingParticipant",
+    "FoundingWaitlist",
+    "FoundingStatusEvent",
 ]

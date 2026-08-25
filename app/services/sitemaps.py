@@ -59,6 +59,7 @@ def core_urls() -> list[Url]:
         ("/prendre-rdv-artisan-en-ligne", "weekly", "0.9", today),
         ("/artisans/ma-fiche", "weekly", "0.8", today),
         ("/pro", "weekly", "0.9", today),
+        ("/50-artisans", "weekly", "0.85", today),
         ("/contact", "monthly", "0.5", today),
         ("/blog", "daily", "0.85", today),
         ("/mentions-legales", "yearly", "0.3", None),

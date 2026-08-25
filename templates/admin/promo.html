@@ -1,0 +1,202 @@
+{% extends "admin/base.html" %}
+{% block title %}Promo · Admin{% endblock %}
+{% block page_title %}Promo — 50 artisans{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('web.founding_landing') }}" target="_blank" rel="noopener" class="admin-btn ghost">Voir /50-artisans ↗</a>
+{% endblock %}
+
+{% block content %}
+<p class="dash-intro">Programme des premiers artisans. Les compteurs viennent des inscriptions réelles — rien n'est inventé.</p>
+
+{% if alerts %}
+<div class="admin-panel" style="margin-bottom:16px">
+  <h2>Alertes</h2>
+  <ul>
+    {% for a in alerts %}
+    <li>{{ a.text }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="kpi-grid">
+  <div class="kpi-card"><span class="kpi-label">Inscrits</span><span class="kpi-value">{{ kpis.occupied }} / {{ kpis.max }}</span><span class="kpi-sub">{{ kpis.remaining }} place(s) restante(s)</span></div>
+  <div class="kpi-card"><span class="kpi-label">Actifs</span><span class="kpi-value">{{ kpis.active }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Activés</span><span class="kpi-value">{{ kpis.activated }}</span><span class="kpi-sub">{{ kpis.activation_rate }} % d'activation</span></div>
+  <div class="kpi-card"><span class="kpi-label">À risque</span><span class="kpi-value">{{ kpis.at_risk }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Expirés</span><span class="kpi-value">{{ kpis.expired }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Convertis</span><span class="kpi-value">{{ kpis.converted }}</span><span class="kpi-sub">{{ kpis.conversion_rate }} % payants</span></div>
+  <div class="kpi-card"><span class="kpi-label">Annulés</span><span class="kpi-value">{{ kpis.cancelled }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Liste d'attente</span><span class="kpi-value">{{ kpis.waitlist }}</span></div>
+</div>
+
+<div class="admin-grid-2">
+  <section class="admin-panel">
+    <h2>Funnel</h2>
+    <div class="funnel">
+      {% for step in funnel %}
+      {% set width = 100 if loop.first and step.value else (step.value / funnel[0].value * 100 if funnel[0].value else 0) %}
+      <div class="funnel-step">
+        <div class="funnel-bar" style="width: {{ [width, 12] | max if step.value else 8 }}%">{{ step.label }} · {{ step.value }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="admin-panel">
+    <h2>Sources</h2>
+    {% if sources %}
+    <table class="db-table">
+      <thead><tr><th>Source</th><th>Inscrits</th><th>Activés</th><th>Payants</th></tr></thead>
+      <tbody>
+        {% for s in sources %}
+        <tr><td>{{ s.source }}</td><td>{{ s.inscrits }}</td><td>{{ s.actives }}</td><td>{{ s.payants }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="admin-hint">Aucune inscription pour l'instant.</p>
+    {% endif %}
+    {% if referrals %}
+    <h2 style="margin-top:18px">Parrainage</h2>
+    <table class="db-table">
+      <thead><tr><th>#</th><th>Code</th><th>Inscriptions</th><th>Activés</th><th>Payants</th></tr></thead>
+      <tbody>
+        {% for r in referrals %}
+        <tr><td>{{ r.place }}</td><td>{{ r.code }}</td><td>{{ r.invites }}</td><td>{{ r.activated }}</td><td>{{ r.converted }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+</div>
+
+<section class="admin-panel" style="margin-top:16px">
+  <h2>Participants</h2>
+  <form method="get" class="admin-search-form" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <select name="status">
+      <option value="all">Tous</option>
+      {% for st in statuses %}
+      <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ st }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="trade" value="{{ trade_filter }}" placeholder="Métier (clé)">
+    <input type="text" name="city" value="{{ city_filter }}" placeholder="Ville">
+    <select name="source">
+      <option value="">Source</option>
+      {% for s in sources_list %}
+      <option value="{{ s }}" {% if source_filter == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="admin-btn" type="submit">Filtrer</button>
+  </form>
+  <div class="admin-table-wrap">
+    <table class="db-table table-stack">
+      <thead>
+        <tr>
+          <th>#</th><th>Entreprise</th><th>Artisan</th><th>Métier</th><th>Ville</th>
+          <th>Inscription</th><th>Source</th><th>Statut</th><th>%</th><th>Début</th><th>Fin</th>
+          <th>Dernier usage</th><th>Conversion</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in participants %}
+        <tr>
+          <td>{{ p.row.place_number }}</td>
+          <td>{{ p.tenant.name if p.tenant else '—' }}</td>
+          <td>{{ (p.tenant.first_name or '') ~ ' ' ~ (p.tenant.last_name or '') if p.tenant else '—' }}</td>
+          <td>{{ p.trade }}</td>
+          <td>{{ p.tenant.city if p.tenant else '—' }}</td>
+          <td>{{ p.row.created_at.strftime('%d/%m/%Y') if p.row.created_at else '—' }}</td>
+          <td>{{ p.row.source or '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.promo_status', participant_id=p.row.id) }}">
+              <select name="status" onchange="this.form.submit()">
+                {% for st in statuses %}
+                <option value="{{ st }}" {% if p.row.status == st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>{{ p.progress.percent }} %</td>
+          <td>{{ p.row.started_at.strftime('%d/%m/%Y') if p.row.started_at else '—' }}</td>
+          <td>{{ p.row.ends_at.strftime('%d/%m/%Y') if p.row.ends_at else '—' }}</td>
+          <td>{{ p.row.last_usage_at.strftime('%d/%m/%Y') if p.row.last_usage_at else '—' }}</td>
+          <td>{{ 'oui' if p.row.status == 'converted' else 'non' }}</td>
+          <td>
+            <a href="{{ url_for('admin.clients', tab='artisans', q=p.user.email if p.user else '') }}">Compte</a>
+            {% if p.row.feedback_text %}<span title="{{ p.row.feedback_text }}">avis</span>{% endif %}
+            <form method="POST" action="{{ url_for('admin.promo_remind', participant_id=p.row.id) }}" style="display:inline">
+              <button class="admin-btn ghost" type="submit">Rappel</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="14">Aucun participant.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="admin-panel" style="margin-top:16px">
+  <h2>Liste d'attente</h2>
+  {% if waitlist %}
+  <div class="admin-table-wrap">
+    <table class="db-table">
+      <thead><tr><th>Nom</th><th>E-mail</th><th>Métier</th><th>Ville</th><th>Date</th><th>Source</th></tr></thead>
+      <tbody>
+        {% for w in waitlist %}
+        <tr>
+          <td>{{ w.name }}</td>
+          <td>{{ w.email }}</td>
+          <td>{{ w.trade_type or '—' }}</td>
+          <td>{{ w.city or '—' }}</td>
+          <td>{{ w.created_at.strftime('%d/%m/%Y') if w.created_at else '—' }}</td>
+          <td>{{ w.source or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="admin-hint">Vide.</p>
+  {% endif %}
+</section>
+
+<section class="admin-panel" style="margin-top:16px">
+  <h2>Configuration</h2>
+  <form method="POST" action="{{ url_for('admin.promo_config') }}" class="studio-editor">
+    <label class="field"><span>Programme actif</span>
+      <input type="checkbox" name="enabled" value="1" {% if cfg.enabled %}checked{% endif %}>
+    </label>
+    <label class="field"><span>Nombre max de places</span>
+      <input type="number" name="max_participants" min="1" max="500" value="{{ cfg.max_participants }}">
+    </label>
+    <label class="field"><span>Durée (jours)</span>
+      <input type="number" name="duration_days" min="1" max="365" value="{{ cfg.duration_days }}">
+    </label>
+    <label class="field"><span>Date de début (optionnel, AAAA-MM-JJ)</span>
+      <input type="text" name="start_date" value="{{ cfg.start_date }}">
+    </label>
+    <label class="field"><span>Date de fin (optionnel)</span>
+      <input type="text" name="end_date" value="{{ cfg.end_date }}">
+    </label>
+    <label class="field"><span>Liste d'attente</span>
+      <input type="checkbox" name="waitlist_enabled" value="1" {% if cfg.waitlist_enabled %}checked{% endif %}>
+    </label>
+    <label class="field"><span>Rappel non activé (jours)</span>
+      <input type="number" name="nudge_inactive_days" min="1" value="{{ cfg.nudge_inactive_days }}">
+    </label>
+    <label class="field"><span>Rappel sans usage (jours)</span>
+      <input type="number" name="nudge_no_usage_days" min="1" value="{{ cfg.nudge_no_usage_days }}">
+    </label>
+    <label class="field"><span>Seuil à risque (jours)</span>
+      <input type="number" name="at_risk_days" min="1" value="{{ cfg.at_risk_days }}">
+    </label>
+    <label class="field"><span>Offre après programme (clé starter/pro/premium, vide = toutes)</span>
+      <input type="text" name="post_offer" value="{{ cfg.post_offer }}">
+    </label>
+    <button class="admin-btn" type="submit">Enregistrer</button>
+  </form>
+</section>
+{% endblock %}

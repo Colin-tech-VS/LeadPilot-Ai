@@ -19,6 +19,7 @@ def register_plumber(
     first_name: str | None = None,
     last_name: str | None = None,
     trade_type: str = "plombier",
+    send_welcome: bool = True,
 ) -> tuple[User, Tenant]:
     email = validate_email(email)
     validate_password(password)
@@ -92,12 +93,13 @@ def register_plumber(
         db.session.rollback()  # account is already committed; drop any half state
 
     # Automatic branded welcome email (never blocks signup).
-    try:
-        from app.services.transactional_email import send_artisan_welcome
+    if send_welcome:
+        try:
+            from app.services.transactional_email import send_artisan_welcome
 
-        send_artisan_welcome(user, tenant)
-    except Exception:  # pragma: no cover - defensive; sender already swallows
-        logger.exception("Welcome email failed for tenant=%s", tenant.id)
+            send_artisan_welcome(user, tenant)
+        except Exception:  # pragma: no cover - defensive; sender already swallows
+            logger.exception("Welcome email failed for tenant=%s", tenant.id)
 
     return user, tenant
 

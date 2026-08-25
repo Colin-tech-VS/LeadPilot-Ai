@@ -978,6 +978,82 @@ a:hover {
   box-shadow: 0 4px 12px rgba(26, 35, 50, 0.25);
 }
 
+.founding-dash {
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--lp-border, #d7cdb8);
+  border-radius: 12px;
+  background: var(--lp-surface, #FBF7EE);
+}
+.founding-dash-kicker {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lp-text-muted, #5c564c);
+}
+.founding-dash-head h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+.founding-dash-bar {
+  height: 8px;
+  background: #E8E4D6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.founding-dash-bar span {
+  display: block;
+  height: 100%;
+  background: var(--lp-brand, #1A2332);
+}
+.founding-dash-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--lp-text-muted, #5c564c);
+}
+.founding-dash-steps .is-done {
+  color: var(--lp-text, #1C1914);
+  font-weight: 600;
+}
+.founding-dash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.founding-dash-refer { margin: 16px 0 6px; font-size: 14px; }
+.founding-dash-link {
+  width: 100%;
+  max-width: 520px;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--lp-border, #d7cdb8);
+  border-radius: 8px;
+  background: #fff;
+}
+.founding-dash-feedback {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.founding-dash-feedback textarea {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--lp-border, #d7cdb8);
+  border-radius: 8px;
+}
+.founding-dash-consent { font-size: 13px; display: flex; gap: 8px; align-items: flex-start; }
+  flex: 0 0 auto;
+  box-shadow: 0 4px 12px rgba(26, 35, 50, 0.25);
+}
+
 /* ── Billing / plans ── */
 .billing-page {
   max-width: 920px;

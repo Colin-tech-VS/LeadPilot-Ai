@@ -94,6 +94,8 @@ def honest_offer_features(offer):
 # Order + which plan card is highlighted on the landing grid.
 _OFFER_KEYS = ("starter", "pro", "premium")
 _FEATURED = "pro"
+_FEATURE_COUNTS = {"starter": 4, "pro": 5, "premium": 5}
+SETTING_JOBS_COPY = "offers_jobs_copy_v1"
 
 
 def _seed_offers():
@@ -104,11 +106,10 @@ def _seed_offers():
     def t(key):
         return translate(f"landing.pricing_{key}", "fr")
 
-    feature_counts = {"starter": 4, "pro": 5, "premium": 5}
     for order, key in enumerate(_OFFER_KEYS):
         feats = [
             t(f"{key}_feat_{i}")
-            for i in range(1, feature_counts[key] + 1)
+            for i in range(1, _FEATURE_COUNTS[key] + 1)
         ]
         offer = Offer(
             key=key,
@@ -126,6 +127,36 @@ def _seed_offers():
         offer.set_features(feats)
         db.session.add(offer)
     db.session.commit()
+    set_setting(SETTING_JOBS_COPY, "1")
+
+
+def _sync_offer_jobs_copy():
+    """One-shot: landing cards pick up the three-job copy without an admin save."""
+    if (get_setting(SETTING_JOBS_COPY, "") or "").strip() == "1":
+        return
+    from app.utils.i18n import translate
+
+    def t(key):
+        return translate(f"landing.pricing_{key}", "fr")
+
+    offers = Offer.query.all()
+    if not offers:
+        return
+    for offer in offers:
+        key = (offer.key or "").lower()
+        if key not in _FEATURE_COUNTS:
+            continue
+        offer.badge = t(f"{key}_badge")
+        offer.description = t(f"{key}_desc")
+        offer.price = t(f"{key}_price")
+        offer.period = t(f"{key}_period")
+        offer.calls = t(f"{key}_calls")
+        offer.cta = t(f"{key}_cta")
+        offer.set_features(
+            [t(f"{key}_feat_{i}") for i in range(1, _FEATURE_COUNTS[key] + 1)]
+        )
+    db.session.commit()
+    set_setting(SETTING_JOBS_COPY, "1")
 
 
 def get_offers(active_only=False):
@@ -138,7 +169,9 @@ def get_offers(active_only=False):
         offers = query.order_by(Offer.sort_order.asc()).all()
         if not offers:
             _seed_offers()
-            offers = query.order_by(Offer.sort_order.asc()).all()
+        else:
+            _sync_offer_jobs_copy()
+        offers = query.order_by(Offer.sort_order.asc()).all()
         return offers
     except Exception:
         logger.exception("get_offers failed")

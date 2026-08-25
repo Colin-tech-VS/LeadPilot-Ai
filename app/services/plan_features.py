@@ -3,11 +3,12 @@
 Marketing copy lives in i18n; this module is the runtime source of truth.
 
 Trial (14 days): all Premium features, unlimited calls while active.
-Starter: voice + leads + dashboard; 150 calls/mo; no auto-booking, SMS/e-mail
-         alerts, calendar, multi-user, CRM, AI customization, extra numbers.
-Pro:     Starter + auto-booking, calendar, SMS/e-mail, multi-user (≤10); 500 calls/mo.
-Premium: Pro + multiple numbers, full AI customization, CRM/marketing, priority
-         support; 1 500 calls/mo.
+Starter (149 €): stop missing calls — voice + qualification + listing +
+         dashboard; 150 calls/mo; no auto-booking, no client SMS/e-mail.
+Pro (349 €): turn calls into appointments — Starter + auto-booking, SMS/e-mail
+         to the client, public listing booking; 500 calls/mo.
+Premium (699 €): automate part of acquisition / client follow-up — Pro +
+         marketing campaigns and segments, assistant first name; 1 500 calls/mo.
 """
 
 from __future__ import annotations

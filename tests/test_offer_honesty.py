@@ -26,6 +26,33 @@ def test_published_prices_match_stripe_plans():
         ) in calls
 
 
+def test_i18n_states_the_three_jobs_at_kept_prices():
+    fr = TRANSLATIONS["fr"]
+    assert fr["landing.pricing_starter_price"] == "149 €"
+    assert fr["landing.pricing_pro_price"] == "349 €"
+    assert fr["landing.pricing_premium_price"] == "699 €"
+    assert fr["landing.pricing_starter_badge"] == "Je ne perds plus mes appels"
+    assert fr["landing.pricing_pro_badge"] == "Je transforme mes appels en rendez-vous"
+    assert "acquisition" in fr["landing.pricing_premium_badge"].lower()
+
+
+def test_stale_offer_rows_pick_up_job_copy(app):
+    from app.models.offer import Offer
+    from app.models.setting import SiteSetting
+
+    with app.app_context():
+        content_studio.get_offers()
+        pro = Offer.query.filter_by(key="pro").one()
+        pro.badge = "Le plus choisi"
+        db.session.commit()
+        row = db.session.get(SiteSetting, content_studio.SETTING_JOBS_COPY)
+        if row:
+            db.session.delete(row)
+            db.session.commit()
+        content_studio._sync_offer_jobs_copy()
+        assert "rendez-vous" in (Offer.query.filter_by(key="pro").one().badge or "").lower()
+
+
 def test_trial_length_is_fourteen_days():
     assert TRIAL_DAYS == 14
     assert "14 jours" in TRANSLATIONS["fr"]["landing.pricing_trial_period"]
@@ -155,6 +182,9 @@ def test_public_pages_describe_offers_honestly(client):
     assert "Plusieurs utilisateurs" not in pro
     assert "Plusieurs numéros" not in pro
     assert "Sans prise de rendez-vous automatique" in pro
+    assert "Je ne perds plus mes appels" in pro
+    assert "Je transforme mes appels en rendez-vous" in pro
+    assert "automatise une partie" in pro.lower()
 
     register = client.get("/register").get_data(as_text=True)
     assert "Numéro IA dédié pour vos clients" not in register

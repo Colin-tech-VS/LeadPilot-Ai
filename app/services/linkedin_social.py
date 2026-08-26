@@ -32,11 +32,13 @@ V2_BASE = "https://api.linkedin.com/v2"
 USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 LINKEDIN_VERSION = "202605"
 
-# Products actually granted on the PilotCore app: Sign In with LinkedIn (OpenID)
-# + Share on LinkedIn. Requesting w_organization_social without Community
-# Management API makes LinkedIn abort OAuth (« Bummer… ») and send the user
-# back to the app website URL instead of the callback.
-OAUTH_SCOPES = "openid profile w_member_social"
+# Self-serve products (Sign In with LinkedIn + Share on LinkedIn) expose
+# profile, email, w_member_social. `openid` is only valid if « Sign In with
+# LinkedIn using OpenID Connect » is on the app — requesting it otherwise
+# returns « The requested permission scope is not valid ». Override via
+# LINKEDIN_OAUTH_SCOPES if the Auth tab lists different names.
+DEFAULT_OAUTH_SCOPES = "profile email w_member_social"
+OAUTH_SCOPES = DEFAULT_OAUTH_SCOPES
 
 SETTING_ORG_ID = "linkedin_org_id"
 SETTING_ORG_NAME = "linkedin_org_name"
@@ -86,6 +88,13 @@ def linkedin_oauth_redirect_uri() -> str:
     return f"{site_base_url()}/admin/social/linkedin/callback"
 
 
+def oauth_scopes() -> str:
+    raw = _cfg("LINKEDIN_OAUTH_SCOPES")
+    if raw:
+        return " ".join(raw.replace(",", " ").split())
+    return DEFAULT_OAUTH_SCOPES
+
+
 def oauth_url(state: str, redirect_uri: str | None = None) -> str:
     uri = redirect_uri or linkedin_oauth_redirect_uri()
     query = urlencode(
@@ -94,7 +103,7 @@ def oauth_url(state: str, redirect_uri: str | None = None) -> str:
             "client_id": _cfg("LINKEDIN_CLIENT_ID"),
             "redirect_uri": uri,
             "state": state,
-            "scope": OAUTH_SCOPES,
+            "scope": oauth_scopes(),
         }
     )
     return f"{AUTH_URL}?{query}"

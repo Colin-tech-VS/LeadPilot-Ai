@@ -184,7 +184,7 @@
   <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:260px">
     <strong>Connectez LinkedIn</strong>
-    <div class="studio-item-meta">Produits ouverts sur l’app : <strong>Sign In with LinkedIn</strong> et <strong>Share on LinkedIn</strong>. Community Management API n’est pas demandable — les posts partent donc sur le <strong>profil du compte qui autorise</strong>, pas au nom de la page entreprise. Le « Bummer, something went wrong » venait des droits page qu’on demandait sans les avoir.</div>
+    <div class="studio-item-meta">Produits ouverts sur l’app : <strong>Sign In with LinkedIn</strong> et <strong>Share on LinkedIn</strong>. On demande uniquement les droits self-serve (<code>profile</code>, <code>email</code>, <code>w_member_social</code>) — ceux de l’onglet Auth. Community Management API n’est pas demandable : les posts partent sur le <strong>profil du compte qui autorise</strong>, pas au nom de la page entreprise.</div>
   </div>
   {% if linkedin_app_ready %}
   <form method="GET" action="{{ url_for('admin.social_linkedin_login') }}" class="db-form" style="width:100%">

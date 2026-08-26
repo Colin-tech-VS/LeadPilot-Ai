@@ -63,11 +63,21 @@ def test_oauth_url_includes_callback_and_share_scopes(app):
         assert "client_id=li-app" in url
         assert "state=st" in url
         assert "w_member_social" in url
-        assert "openid" in url
+        assert "profile" in url
+        assert "email" in url
+        assert "openid" not in url
         assert "linkedin.com/oauth" in url
         assert "callback" in url
         assert "w_organization_social" not in url
         assert "rw_organization_admin" not in url
+
+
+def test_oauth_scopes_env_override(app):
+    with app.app_context():
+        app.config["LINKEDIN_OAUTH_SCOPES"] = "openid profile email w_member_social"
+        url = linkedin_social.oauth_url("st", "https://www.pilotcore.fr/admin/social/linkedin/callback")
+        assert "openid" in url
+        assert "w_member_social" in url
 
 
 def test_linkedin_login_redirects(client, app):

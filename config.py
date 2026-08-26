@@ -183,6 +183,9 @@ class Config:
     # Company-page posting needs Community Management API (often locked).
     LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
     LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+    # Optional. Default: "profile email w_member_social".
+    # If Auth lists OpenID Connect: "openid profile email w_member_social".
+    LINKEDIN_OAUTH_SCOPES = os.environ.get("LINKEDIN_OAUTH_SCOPES", "")
 
     # Prospection B2B — recherche web d'artisans (admin /admin/prospecting).
     # SerpAPI (recommandé) ou Google Custom Search JSON API.

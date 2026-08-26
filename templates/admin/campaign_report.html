@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+{% block title %}Rapport · {{ campaign.name }}{% endblock %}
+{% block page_title %}Rapport — {{ campaign.name }}{% endblock %}
+
+{% block topbar_actions %}
+<span class="camp-status camp-status--{{ campaign.status }}">{{ campaign.status_label }}</span>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_editor', campaign_id=campaign.id) }}">Éditeur</a>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_preview', campaign_id=campaign.id) }}" target="_blank" rel="noopener">Voir l'e-mail</a>
+{% endblock %}
+
+{% block content %}
+<p class="dash-intro">
+  Objet envoyé : <strong>{{ campaign.subject or '—' }}</strong>
+  {% if campaign.started_at %} · démarrée le {{ campaign.started_at.strftime('%d/%m/%Y à %H:%M') }}{% endif %}
+  {% if campaign.finished_at %} · terminée le {{ campaign.finished_at.strftime('%d/%m/%Y à %H:%M') }}{% endif %}
+</p>
+
+<div class="prospect-kpi-row">
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--total">
+    <span class="kpi-label">Destinataires</span>
+    <span class="kpi-value">{{ stats.recipients }}</span>
+    <span class="kpi-sub">{{ stats.pending }} encore en attente</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Remis</span>
+    <span class="kpi-value">{{ stats.delivered }}</span>
+    <span class="kpi-sub">{{ stats.delivery_rate }} des envois · {{ stats.failed }} échecs</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Ouvertures</span>
+    <span class="kpi-value">{{ stats.open_rate }}</span>
+    <span class="kpi-sub">{{ stats.unique_opens }} uniques · {{ stats.total_opens }} au total</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--win">
+    <span class="kpi-label">Clics</span>
+    <span class="kpi-value">{{ stats.click_rate }}</span>
+    <span class="kpi-sub">{{ stats.unique_clicks }} cliqueurs · CTOR {{ stats.ctor }}</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Désinscriptions</span>
+    <span class="kpi-value">{{ stats.unsubscribed }}</span>
+    <span class="kpi-sub">{{ stats.unsub_rate }} des envois</span>
+  </div>
+</div>
+
+{% if stats.top_links %}
+<section class="admin-panel">
+  <h2>Liens les plus cliqués</h2>
+  <table class="admin-table camp-links">
+    <thead><tr><th>Destination</th><th class="num">Clics</th></tr></thead>
+    <tbody>
+      {% for link in stats.top_links %}
+      <tr><td class="camp-link-url">{{ link.url }}</td><td class="num">{{ link.count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<div class="prospect-toolbar">
+  <nav class="prospect-tabs" aria-label="Filtrer les destinataires">
+    <a href="{{ url_for('admin.campaign_report', campaign_id=campaign.id) }}"
+       class="prospect-tab{% if not status_filter %} active{% endif %}">
+      Tous <span class="prospect-tab-count">{{ stats.recipients }}</span>
+    </a>
+    {% for code, label in status_labels.items() %}
+    <a href="{{ url_for('admin.campaign_report', campaign_id=campaign.id, r=code) }}"
+       class="prospect-tab{% if status_filter == code %} active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+{% if recipients %}
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Contact</th><th>E-mail</th><th>Ville</th><th>Statut</th>
+        <th class="num">Ouvertures</th><th class="num">Clics</th><th>Détail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recipients %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td class="camp-mono">{{ r.email }}</td>
+        <td>{{ r.city or '—' }}</td>
+        <td><span class="camp-rstatus camp-rstatus--{{ r.status }}">{{ r.status_label }}</span></td>
+        <td class="num">{% if r.opened %}{{ r.opens }}{% else %}—{% endif %}</td>
+        <td class="num">{% if r.clicked %}{{ r.clicks }}{% else %}—{% endif %}</td>
+        <td class="camp-error">{{ r.error or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="admin-empty"><p>Aucun destinataire pour ce filtre.</p></div>
+{% endif %}
+{% endblock %}

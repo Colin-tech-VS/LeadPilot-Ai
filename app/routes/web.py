@@ -154,6 +154,23 @@ def email_click_redirect(token):
     return redirect(dest or site_base_url(), code=302)
 
 
+@web_bp.route("/desinscription/<token>", methods=["GET", "POST"])
+def campaign_unsubscribe(token):
+    """One-click opt-out from a mailing campaign.
+
+    A GET must already unsubscribe: the List-Unsubscribe header and the footer
+    link are both followed without a form, and an opt-out that needs a second
+    click is an opt-out that does not happen. The page then simply confirms it.
+    """
+    from app.services import campaigns
+
+    recipient = campaigns.unsubscribe(token)
+    return (
+        render_template("public/unsubscribe.html", recipient=recipient),
+        200 if recipient else 404,
+    )
+
+
 @web_bp.route("/favicon.ico", methods=["GET"])
 def favicon():
     from flask import current_app

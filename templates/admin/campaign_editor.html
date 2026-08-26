@@ -1,0 +1,282 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ campaign.name }} · Campagnes{% endblock %}
+{% block page_title %}{{ campaign.name }}{% endblock %}
+{% block body_class %} admin-campaign-editor{% endblock %}
+
+{% block topbar_actions %}
+<span class="camp-status camp-status--{{ campaign.status }}">{{ campaign.status_label }}</span>
+<span class="camp-save" id="camp-save-state">Enregistré</span>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_report', campaign_id=campaign.id) }}">Rapport</a>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaigns') }}">← Campagnes</a>
+{% endblock %}
+
+{% block content %}
+<div class="camp-editor"
+     data-campaign-id="{{ campaign.id }}"
+     data-editable="{{ '1' if campaign.is_editable else '0' }}"
+     data-ai="{{ '1' if ai_available else '0' }}"
+     data-save-url="{{ url_for('admin.api_campaign_save', campaign_id=campaign.id) }}"
+     data-preview-url="{{ url_for('admin.api_campaign_preview') }}"
+     data-audience-url="{{ url_for('admin.api_campaign_audience', campaign_id=campaign.id) }}"
+     data-generate-url="{{ url_for('admin.api_campaign_generate') }}"
+     data-subjects-url="{{ url_for('admin.api_campaign_subjects') }}"
+     data-rewrite-url="{{ url_for('admin.api_campaign_rewrite_block') }}"
+     data-prepare-url="{{ url_for('admin.api_campaign_prepare', campaign_id=campaign.id) }}"
+     data-send-url="{{ url_for('admin.api_campaign_send_batch', campaign_id=campaign.id) }}">
+
+  {% if not campaign.is_editable %}
+  <div class="camp-locked">
+    Cette campagne a commencé à partir : le contenu est verrouillé pour que le rapport reflète
+    ce qui a réellement été envoyé. <strong>Dupliquez-la</strong> pour repartir de ce design.
+  </div>
+  {% endif %}
+
+  <!-- ── Header: identity of the message ─────────────────────────────── -->
+  <section class="admin-panel camp-head">
+    <div class="camp-head-grid">
+      <label class="field">
+        <span>Nom interne</span>
+        <input type="text" id="camp-name" class="admin-input" value="{{ campaign.name }}">
+      </label>
+      <label class="field camp-field--grow">
+        <span>Objet de l'e-mail</span>
+        <div class="camp-subject-row">
+          <input type="text" id="camp-subject" class="admin-input" value="{{ campaign.subject }}"
+                 placeholder="Ce que le destinataire lit dans sa boîte">
+          <button type="button" class="admin-btn ghost tiny" id="camp-subject-ai"
+                  {% if not ai_available %}disabled title="Renseignez MISTRAL_API_KEY"{% endif %}>✨ Idées</button>
+        </div>
+        <span class="camp-counter" id="camp-subject-count"></span>
+      </label>
+      <label class="field camp-field--grow">
+        <span>Pré-en-tête</span>
+        <input type="text" id="camp-preheader" class="admin-input" value="{{ campaign.preheader or '' }}"
+               placeholder="La ligne grise affichée après l'objet">
+      </label>
+      <label class="field">
+        <span>Répondre à</span>
+        <input type="text" id="camp-replyto" class="admin-input" value="{{ campaign.reply_to or default_from }}">
+      </label>
+    </div>
+    <ul class="camp-subject-ideas" id="camp-subject-ideas" hidden></ul>
+  </section>
+
+  <!-- ── Workspace: palette | canvas | inspector ─────────────────────── -->
+  <div class="camp-workspace">
+
+    <aside class="camp-side camp-side--left">
+      <div class="camp-side-tabs" role="tablist">
+        <button type="button" class="camp-side-tab active" data-pane="blocks">Blocs</button>
+        <button type="button" class="camp-side-tab" data-pane="ai">IA</button>
+        <button type="button" class="camp-side-tab" data-pane="style">Style</button>
+      </div>
+
+      <div class="camp-pane active" data-pane="blocks">
+        <p class="camp-pane-hint">Cliquez pour ajouter, glissez pour réordonner.</p>
+        <div class="camp-palette">
+          <button type="button" class="camp-chip" data-add="heading"><span>H</span> Titre</button>
+          <button type="button" class="camp-chip" data-add="text"><span>¶</span> Texte</button>
+          <button type="button" class="camp-chip" data-add="button"><span>▭</span> Bouton</button>
+          <button type="button" class="camp-chip" data-add="list"><span>✓</span> Liste</button>
+          <button type="button" class="camp-chip" data-add="image"><span>▣</span> Image</button>
+          <button type="button" class="camp-chip" data-add="offer"><span>€</span> Offre</button>
+          <button type="button" class="camp-chip" data-add="stats"><span>%</span> Chiffres</button>
+          <button type="button" class="camp-chip" data-add="quote"><span>“</span> Citation</button>
+          <button type="button" class="camp-chip" data-add="divider"><span>—</span> Séparateur</button>
+          <button type="button" class="camp-chip" data-add="spacer"><span>↕</span> Espace</button>
+          <button type="button" class="camp-chip" data-add="header"><span>▤</span> En-tête</button>
+          <button type="button" class="camp-chip" data-add="footer"><span>▁</span> Pied</button>
+        </div>
+
+        <p class="camp-pane-title">Variables de personnalisation</p>
+        <p class="camp-pane-hint">Cliquez pour insérer dans le champ sélectionné.</p>
+        <div class="camp-tags">
+          {% for tag in merge_tags %}
+          <button type="button" class="camp-tag" data-tag="{{ tag.tag }}" title="{{ tag.label }}">{{ tag.tag }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="camp-pane" data-pane="ai">
+        {% if ai_available %}
+        <p class="camp-pane-hint">
+          L'IA lit les offres en ligne, les pages publiées et la fiche de connaissances du site
+          avant d'écrire. Elle ne cite que ce qui existe vraiment.
+        </p>
+        <label class="field">
+          <span>Que doit dire cet e-mail ?</span>
+          <textarea id="camp-ai-brief" class="admin-input" rows="5"
+                    placeholder="Ex : présenter le standard IA aux plombiers du Rhône qui ratent des appels en intervention, proposer l'essai gratuit">{{ campaign.ai_prompt or '' }}</textarea>
+        </label>
+        <div class="camp-ai-row">
+          <label class="field">
+            <span>Ton</span>
+            <select id="camp-ai-tone" class="admin-select">
+              <option value="direct">Direct</option>
+              <option value="professionnel">Professionnel</option>
+              <option value="chaleureux">Chaleureux</option>
+              <option value="factuel">Factuel</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Objectif</span>
+            <select id="camp-ai-goal" class="admin-select">
+              <option value="inscription">Inscription à l'essai</option>
+              <option value="demo">Demander une démo</option>
+              <option value="reponse">Obtenir une réponse</option>
+              <option value="information">Informer</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" class="admin-btn camp-ai-btn" id="camp-ai-generate">✨ Générer l'e-mail</button>
+        <p class="camp-ai-note" id="camp-ai-note" hidden></p>
+        {% else %}
+        <p class="camp-pane-hint">
+          Génération indisponible : renseignez <code>MISTRAL_API_KEY</code>.
+          Vous pouvez composer l'e-mail bloc par bloc, tout le reste fonctionne.
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="camp-pane" data-pane="style">
+        <label class="field">
+          <span>Fond de page</span>
+          <input type="color" id="camp-set-bg" class="camp-color">
+        </label>
+        <label class="field">
+          <span>Fond du message</span>
+          <input type="color" id="camp-set-surface" class="camp-color">
+        </label>
+        <label class="field">
+          <span>Couleur d'accent (boutons)</span>
+          <input type="color" id="camp-set-accent" class="camp-color">
+        </label>
+        <label class="field">
+          <span>Largeur du message</span>
+          <input type="range" id="camp-set-width" min="440" max="720" step="20">
+          <span class="camp-counter" id="camp-set-width-val"></span>
+        </label>
+      </div>
+    </aside>
+
+    <main class="camp-canvas-wrap">
+      <div class="camp-canvas-bar">
+        <div class="camp-view-toggle" role="tablist">
+          <button type="button" class="camp-view active" data-view="edit">Édition</button>
+          <button type="button" class="camp-view" data-view="preview">Aperçu réel</button>
+        </div>
+        <div class="camp-device-toggle" id="camp-device" hidden>
+          <button type="button" class="camp-device-btn active" data-device="desktop">Ordinateur</button>
+          <button type="button" class="camp-device-btn" data-device="mobile">Mobile</button>
+        </div>
+      </div>
+
+      <div class="camp-canvas" id="camp-canvas"></div>
+
+      <div class="camp-preview" id="camp-preview" hidden>
+        <iframe id="camp-preview-frame" title="Aperçu de l'e-mail"></iframe>
+      </div>
+    </main>
+
+    <aside class="camp-side camp-side--right">
+      <div class="camp-inspector" id="camp-inspector">
+        <p class="camp-pane-hint">Sélectionnez un bloc pour l'éditer.</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ── Audience & send ─────────────────────────────────────────────── -->
+  <div class="camp-bottom">
+    <section class="admin-panel camp-audience">
+      <h2>Audience</h2>
+      <p class="admin-panel-lead">Choisie parmi vos prospects artisans. Les désinscrits sont toujours exclus.</p>
+      <div class="camp-audience-grid">
+        <label class="field">
+          <span>Métiers</span>
+          <select id="seg-trades" class="admin-select" multiple size="6">
+            {% for t in trades %}<option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="field">
+          <span>Statuts du prospect</span>
+          <select id="seg-statuses" class="admin-select" multiple size="6">
+            {% for code, label in {'new':'Nouveau','ready':'Prêt','contacted':'Contacté','replied':'Répondu','converted':'Converti'}.items() %}
+            <option value="{{ code }}">{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <div class="camp-audience-fields">
+          <label class="field">
+            <span>Villes (séparées par des virgules)</span>
+            <input type="text" id="seg-cities" class="admin-input" placeholder="Lyon, Villeurbanne">
+          </label>
+          <label class="field">
+            <span>Nombre maximum d'envois</span>
+            <input type="number" id="seg-limit" class="admin-input" min="1" max="5000" value="200">
+          </label>
+          <label class="camp-check">
+            <input type="checkbox" id="seg-exclude"> Exclure les prospects déjà contactés
+          </label>
+        </div>
+      </div>
+      <div class="camp-audience-out">
+        <div class="camp-audience-count">
+          <strong id="seg-count">{{ audience.will_receive }}</strong>
+          <span>destinataires sur {{ audience.total }} correspondants</span>
+        </div>
+        <button type="button" class="admin-btn ghost tiny" id="seg-refresh">Recalculer</button>
+      </div>
+      <ul class="camp-audience-sample" id="seg-sample">
+        {% for p in audience.sample %}
+        <li><strong>{{ p.name }}</strong> · {{ p.email }}{% if p.city %} · {{ p.city }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="admin-panel camp-send">
+      <h2>Envoi</h2>
+      {% if not smtp_configured %}
+      <p class="camp-warn">SMTP non configuré : les envois seront <strong>simulés</strong> et enregistrés,
+        mais aucun e-mail ne partira réellement.</p>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('admin.campaign_test', campaign_id=campaign.id) }}" class="camp-test">
+        <label class="field camp-field--grow">
+          <span>Envoyer un test à</span>
+          <input type="email" name="to" class="admin-input" value="{{ default_from }}" required>
+        </label>
+        <button type="submit" class="admin-btn ghost">Envoyer un test</button>
+      </form>
+
+      <div class="camp-send-progress">
+        <div class="camp-progress-track"><div class="camp-progress-bar" id="camp-progress"></div></div>
+        <p class="camp-send-stats" id="camp-send-stats">
+          {{ stats.sent }} envoyés · {{ stats.pending }} en attente · {{ stats.failed }} en échec
+        </p>
+      </div>
+
+      <div class="camp-send-actions">
+        <button type="button" class="admin-btn ghost" id="camp-prepare">1. Préparer l'audience</button>
+        <button type="button" class="admin-btn camp-send-btn" id="camp-send">2. Lancer l'envoi</button>
+        <button type="button" class="admin-btn ghost" id="camp-pause" hidden>Interrompre</button>
+      </div>
+      <p class="camp-send-note" id="camp-send-note"></p>
+
+      <form method="POST" action="{{ url_for('admin.campaign_schedule', campaign_id=campaign.id) }}" class="camp-schedule">
+        <label class="field camp-field--grow">
+          <span>Ou programmer l'envoi</span>
+          <input type="datetime-local" name="scheduled_at" class="admin-input"
+                 value="{{ campaign.scheduled_at.strftime('%Y-%m-%dT%H:%M') if campaign.scheduled_at else '' }}">
+        </label>
+        <button type="submit" class="admin-btn ghost">Programmer</button>
+      </form>
+      <p class="camp-send-note">L'envoi programmé part par lots via la tâche planifiée du serveur.</p>
+    </section>
+  </div>
+</div>
+
+<script id="camp-initial" type="application/json">{{ campaign_json|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='admin/campaign-designer.js') }}?v=1"></script>
+{% endblock %}

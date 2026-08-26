@@ -20,7 +20,7 @@
   {% include 'partials/brand_icons.html' %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=30">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin/admin.css') }}?v=31">
 </head>
 <body class="admin zone-admin{% block body_class %}{% endblock %}">
 {% if is_admin %}
@@ -85,6 +85,9 @@
         </a>
         <a href="{{ url_for('admin.prospecting') }}" class="{% if request.endpoint and 'prospect' in request.endpoint %}active{% endif %}">
           {% call admin_ico() %}<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>{% endcall %} Prospection
+        </a>
+        <a href="{{ url_for('admin.campaigns') }}" class="{% if request.endpoint and 'campaign' in request.endpoint %}active{% endif %}">
+          {% call admin_ico() %}<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/><path d="M9 20h6"/>{% endcall %} Campagnes
         </a>
         <a href="{{ url_for('admin.logs') }}" class="{% if request.endpoint == 'admin.logs' %}active{% endif %}">
           {% call admin_ico() %}<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>{% endcall %} Journal

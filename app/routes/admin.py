@@ -2697,3 +2697,354 @@ def promo_remind(participant_id):
     send_founding_admin_reminder(user, tenant, row)
     flash("Rappel envoyé (ou simulé si SMTP absent).", "success")
     return redirect(url_for("admin.promo"))
+
+
+# --------------------------------------------------------------------------- #
+# Mailing campaigns — Brevo-style designer, sending and reporting
+# --------------------------------------------------------------------------- #
+def _campaign_or_404(campaign_id):
+    from app.services import campaigns
+
+    try:
+        return campaigns.get_campaign(campaign_id)
+    except campaigns.CampaignError:
+        abort(404)
+
+
+@admin_bp.route("/campagnes", endpoint="campaigns")
+@admin_required
+def campaigns_page():
+    from app.constants.trades import trade_choices
+    from app.services import campaign_ai, campaigns
+
+    status_filter = (request.args.get("status") or "").strip() or None
+    rows = campaigns.list_campaigns(status=status_filter)
+    return render_template(
+        "admin/campaigns.html",
+        campaigns=rows,
+        stats=campaigns.overview_stats(),
+        campaign_stats={str(c.id): campaigns.campaign_stats(c.id) for c in rows},
+        status_filter=status_filter,
+        trades=trade_choices("fr"),
+        ai_available=campaign_ai.is_available(),
+        smtp_configured=admin_email.is_configured(),
+    )
+
+
+@admin_bp.route("/campagnes/new", methods=["POST"])
+@admin_required
+def campaign_new():
+    from app.services import campaigns
+
+    campaign = campaigns.create_campaign(
+        name=request.form.get("name") or "",
+        template=(request.form.get("template") or "offre").strip(),
+    )
+    log_event(CAT_ADMIN, "campaign_create", summary=f"Campagne créée : {campaign.name}")
+    return redirect(url_for("admin.campaign_editor", campaign_id=campaign.id))
+
+
+@admin_bp.route("/campagnes/<campaign_id>", endpoint="campaign_editor")
+@admin_required
+def campaign_editor_page(campaign_id):
+    from app.constants.trades import trade_choices
+    from app.services import campaign_ai, campaign_render, campaigns
+
+    campaign = _campaign_or_404(campaign_id)
+    return render_template(
+        "admin/campaign_editor.html",
+        campaign=campaign,
+        campaign_json=campaign.to_dict(),
+        stats=campaigns.campaign_stats(campaign.id),
+        audience=campaigns.preview_audience(campaign.segment()),
+        trades=trade_choices("fr"),
+        merge_tags=campaign_render.MERGE_TAGS,
+        ai_available=campaign_ai.is_available(),
+        smtp_configured=admin_email.is_configured(),
+        default_from=admin_email.default_from_addr(),
+    )
+
+
+@admin_bp.route("/campagnes/<campaign_id>/rapport", endpoint="campaign_report")
+@admin_required
+def campaign_report_page(campaign_id):
+    from app.models.email_campaign import RECIPIENT_STATUS_LABELS
+    from app.services import campaigns
+
+    campaign = _campaign_or_404(campaign_id)
+    status_filter = (request.args.get("r") or "").strip() or None
+    return render_template(
+        "admin/campaign_report.html",
+        campaign=campaign,
+        stats=campaigns.campaign_stats(campaign.id),
+        recipients=campaigns.recipient_rows(campaign.id, status=status_filter),
+        status_labels=RECIPIENT_STATUS_LABELS,
+        status_filter=status_filter,
+    )
+
+
+@admin_bp.route("/campagnes/<campaign_id>/apercu", endpoint="campaign_preview")
+@admin_required
+def campaign_preview(campaign_id):
+    """The rendered e-mail on its own, for the editor iframe and the report."""
+    from app.services import campaign_render
+
+    campaign = _campaign_or_404(campaign_id)
+    html = campaign_render.render_html(
+        campaign.design(),
+        ctx=campaign_render.sample_context(),
+        preheader=campaign.preheader,
+    )
+    return current_app.response_class(html, mimetype="text/html")
+
+
+@admin_bp.route("/api/campaigns/preview", methods=["POST"])
+@admin_required
+def api_campaign_preview():
+    """Render an unsaved design — what the editor shows while you type."""
+    from app.services import campaign_render
+
+    data = request.get_json(silent=True) or {}
+    design = data.get("design") if isinstance(data.get("design"), dict) else {}
+    html = campaign_render.render_html(
+        design,
+        ctx=campaign_render.sample_context(),
+        preheader=(data.get("preheader") or "").strip() or None,
+    )
+    return jsonify({"html": html})
+
+
+@admin_bp.route("/api/campaigns/<campaign_id>/save", methods=["POST"])
+@admin_required
+def api_campaign_save(campaign_id):
+    from app.services import campaigns
+
+    data = request.get_json(silent=True) or {}
+    fields = {k: data[k] for k in
+              ("name", "subject", "preheader", "from_name", "reply_to", "design", "segment", "ai_prompt")
+              if k in data}
+    try:
+        campaign = campaigns.save_campaign(campaign_id, **fields)
+    except campaigns.CampaignError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"campaign": campaign.to_dict(), "saved_at": campaign.updated_at.isoformat()})
+
+
+@admin_bp.route("/api/campaigns/<campaign_id>/audience", methods=["POST"])
+@admin_required
+def api_campaign_audience(campaign_id):
+    from app.services import campaigns
+
+    _campaign_or_404(campaign_id)
+    data = request.get_json(silent=True) or {}
+    segment = data.get("segment") if isinstance(data.get("segment"), dict) else {}
+    return jsonify(campaigns.preview_audience(segment))
+
+
+@admin_bp.route("/api/campaigns/generate", methods=["POST"])
+@admin_required
+@rate_limit(limit=20, window=3600, scope="admin_campaign_ai")
+def api_campaign_generate():
+    from app.services import campaign_ai
+
+    data = request.get_json(silent=True) or {}
+    brief = (data.get("brief") or "").strip()
+    if not brief:
+        return jsonify({"error": "Décrivez ce que doit dire l'e-mail."}), 400
+    try:
+        payload = campaign_ai.generate_campaign(
+            brief=brief,
+            audience=data.get("audience") if isinstance(data.get("audience"), dict) else None,
+            tone=(data.get("tone") or "direct").strip(),
+            goal=(data.get("goal") or "inscription").strip(),
+        )
+        log_event(CAT_ADMIN, "campaign_ai_generate", summary=f"Campagne générée par IA : {brief[:80]}")
+        return jsonify(payload)
+    except campaign_ai.CampaignAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001 — never 500 on an AI call
+        current_app.logger.exception("campaign_ai_generate failed")
+        return jsonify({"error": f"Génération impossible : {exc}"}), 502
+
+
+@admin_bp.route("/api/campaigns/subjects", methods=["POST"])
+@admin_required
+@rate_limit(limit=30, window=3600, scope="admin_campaign_ai")
+def api_campaign_subjects():
+    from app.services import campaign_ai
+
+    data = request.get_json(silent=True) or {}
+    try:
+        return jsonify({"subjects": campaign_ai.suggest_subjects(brief=(data.get("brief") or "").strip())})
+    except campaign_ai.CampaignAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("campaign_ai_subjects failed")
+        return jsonify({"error": f"Génération impossible : {exc}"}), 502
+
+
+@admin_bp.route("/api/campaigns/rewrite-block", methods=["POST"])
+@admin_required
+@rate_limit(limit=60, window=3600, scope="admin_campaign_ai")
+def api_campaign_rewrite_block():
+    from app.services import campaign_ai
+
+    data = request.get_json(silent=True) or {}
+    block = data.get("block")
+    if not isinstance(block, dict):
+        return jsonify({"error": "Bloc manquant."}), 400
+    try:
+        return jsonify({"block": campaign_ai.rewrite_block(
+            block=block, instruction=(data.get("instruction") or "").strip()
+        )})
+    except campaign_ai.CampaignAIError as exc:
+        return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.exception("campaign_ai_rewrite failed")
+        return jsonify({"error": f"Réécriture impossible : {exc}"}), 502
+
+
+@admin_bp.route("/api/campaigns/<campaign_id>/prepare", methods=["POST"])
+@admin_required
+def api_campaign_prepare(campaign_id):
+    from app.services import campaigns
+
+    try:
+        result = campaigns.prepare_campaign(campaign_id)
+    except campaigns.CampaignError as exc:
+        return jsonify({"error": str(exc)}), 400
+    log_event(
+        CAT_ADMIN,
+        "campaign_prepare",
+        summary=f"Audience préparée : +{result['added']} destinataires ({result['total']} au total)",
+    )
+    return jsonify({**result, "stats": campaigns.campaign_stats(campaign_id)})
+
+
+@admin_bp.route("/api/campaigns/<campaign_id>/send-batch", methods=["POST"])
+@admin_required
+def api_campaign_send_batch(campaign_id):
+    from app.services import campaigns
+
+    data = request.get_json(silent=True) or {}
+    try:
+        result = campaigns.send_batch(
+            campaign_id, batch_size=int(data.get("batch_size") or campaigns.DEFAULT_BATCH)
+        )
+    except campaigns.CampaignError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:  # noqa: BLE001 — a broken batch must not 500 the console
+        db.session.rollback()
+        current_app.logger.exception("campaign_send_batch failed")
+        return jsonify({"error": f"Envoi interrompu : {exc}"}), 502
+    if result["done"]:
+        log_event(
+            CAT_ADMIN,
+            "campaign_sent",
+            summary=f"Campagne terminée — {result['sent']} envoyés sur le dernier lot",
+            level=LEVEL_SUCCESS,
+        )
+    return jsonify({**result, "stats": campaigns.campaign_stats(campaign_id)})
+
+
+@admin_bp.route("/campagnes/<campaign_id>/test", methods=["POST"])
+@admin_required
+def campaign_test(campaign_id):
+    from app.services import campaigns
+
+    to_addr = (request.form.get("to") or "").strip() or admin_email.default_from_addr()
+    try:
+        result = campaigns.send_test(campaign_id, to_addr)
+        flash(
+            f"E-mail de test envoyé à {to_addr} (statut : {result['status']}).",
+            "success" if result["status"] != "failed" else "error",
+        )
+    except campaigns.CampaignError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.campaign_editor", campaign_id=campaign_id))
+
+
+@admin_bp.route("/campagnes/<campaign_id>/schedule", methods=["POST"])
+@admin_required
+def campaign_schedule(campaign_id):
+    from app.services import campaigns
+
+    try:
+        campaigns.prepare_campaign(campaign_id)
+        campaigns.schedule_campaign(campaign_id, (request.form.get("scheduled_at") or "").strip() or None)
+        flash("Programmation enregistrée.", "success")
+    except campaigns.CampaignError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.campaign_editor", campaign_id=campaign_id))
+
+
+@admin_bp.route("/campagnes/<campaign_id>/status", methods=["POST"])
+@admin_required
+def campaign_status(campaign_id):
+    from app.services import campaigns
+
+    try:
+        campaigns.set_status(campaign_id, (request.form.get("status") or "").strip())
+        flash("Statut mis à jour.", "success")
+    except campaigns.CampaignError as exc:
+        flash(str(exc), "error")
+    return redirect(request.referrer or url_for("admin.campaigns"))
+
+
+@admin_bp.route("/campagnes/<campaign_id>/duplicate", methods=["POST"])
+@admin_required
+def campaign_duplicate(campaign_id):
+    from app.services import campaigns
+
+    try:
+        copy = campaigns.duplicate_campaign(campaign_id)
+    except campaigns.CampaignError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("admin.campaigns"))
+    flash("Campagne dupliquée.", "success")
+    return redirect(url_for("admin.campaign_editor", campaign_id=copy.id))
+
+
+@admin_bp.route("/campagnes/<campaign_id>/delete", methods=["POST"])
+@admin_required
+def campaign_delete(campaign_id):
+    from app.services import campaigns
+
+    try:
+        campaigns.delete_campaign(campaign_id)
+        flash("Campagne supprimée.", "success")
+    except campaigns.CampaignError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("admin.campaigns"))
+
+
+@admin_bp.route("/api/prospecting/import-rge", methods=["POST"])
+@admin_required
+@rate_limit(limit=10, window=3600, scope="admin_rge_import")
+def api_prospecting_import_rge():
+    """Bulk-source artisans with a real e-mail from the ADEME open register."""
+    from app.services import artisan_sourcing
+
+    data = request.get_json(silent=True) or {}
+    trades = [t for t in (data.get("trades") or []) if isinstance(t, str)]
+    departments = [d for d in (data.get("departments") or []) if isinstance(d, str)]
+    try:
+        result = artisan_sourcing.source_artisans(
+            target=int(data.get("target") or 200),
+            trades=trades or None,
+            departments=departments or None,
+        )
+    except artisan_sourcing.SourcingError as exc:
+        return jsonify({"error": str(exc)}), 502
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        current_app.logger.exception("rge_import failed")
+        return jsonify({"error": f"Import impossible : {exc}"}), 502
+
+    log_event(
+        CAT_ADMIN,
+        "prospect_import_rge",
+        summary=f"Import registre RGE — {result['imported']} artisans avec e-mail",
+        level=LEVEL_SUCCESS,
+    )
+    return jsonify(result)

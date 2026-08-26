@@ -1,0 +1,55 @@
+{% extends "layouts/public.html" %}
+
+{% block title %}Désinscription — PilotCore{% endblock %}
+
+{% block meta %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block content %}
+<section class="unsub-wrap">
+  <div class="unsub-card">
+    {% if recipient %}
+      <p class="unsub-kicker">Désinscription</p>
+      <h1 class="unsub-title">C'est fait.</h1>
+      <p class="unsub-lead">
+        L'adresse <strong>{{ recipient.email }}</strong> ne recevra plus nos e-mails de prospection.
+        La demande est prise en compte immédiatement et vaut pour toutes nos campagnes,
+        y compris celles déjà programmées.
+      </p>
+      <p class="unsub-note">
+        Vous n'avez rien d'autre à faire. Si vous recevez malgré tout un message de notre part,
+        écrivez-nous à <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a> et nous
+        traiterons le problème.
+      </p>
+    {% else %}
+      <p class="unsub-kicker">Désinscription</p>
+      <h1 class="unsub-title">Ce lien n'est plus valide.</h1>
+      <p class="unsub-lead">
+        Le lien a peut-être déjà été utilisé, ou il a été tronqué par votre messagerie.
+      </p>
+      <p class="unsub-note">
+        Écrivez-nous à <a href="mailto:contact@pilotcore.fr">contact@pilotcore.fr</a> avec
+        l'adresse à retirer : nous la désinscrivons manuellement.
+      </p>
+    {% endif %}
+    <a class="unsub-back" href="{{ url_for('web.client_home') }}">Retour à l'accueil</a>
+  </div>
+</section>
+
+<style>
+  .unsub-wrap { display:flex; justify-content:center; padding:64px 20px 96px; }
+  .unsub-card {
+    max-width: 560px; width:100%; background: var(--surface, #FBF7EE);
+    border:1px solid var(--border-strong, #C4B79A); border-radius:6px; padding:36px 34px;
+  }
+  .unsub-kicker {
+    margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:.16em;
+    text-transform:uppercase; color: var(--ink-muted, #6B6458);
+  }
+  .unsub-title { margin:0 0 16px; font-size:30px; letter-spacing:-0.03em; }
+  .unsub-lead { margin:0 0 14px; font-size:16px; line-height:1.65; }
+  .unsub-note { margin:0 0 24px; font-size:14px; line-height:1.6; color: var(--ink-muted, #6B6458); }
+  .unsub-back { font-size:14px; font-weight:600; }
+</style>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "admin/base.html" %}
+{% block title %}Campagnes · Admin{% endblock %}
+{% block page_title %}Campagnes e-mail{% endblock %}
+
+{% block topbar_actions %}
+<span class="prospect-chip {% if smtp_configured %}prospect-chip--ok{% else %}prospect-chip--warn{% endif %}">
+  {% if smtp_configured %}✓ SMTP{% else %}⚠ SMTP simulé{% endif %}
+</span>
+<span class="prospect-chip {% if ai_available %}prospect-chip--ok{% else %}prospect-chip--warn{% endif %}">
+  {% if ai_available %}✓ IA{% else %}⚠ IA off{% endif %}
+</span>
+{% endblock %}
+
+{% block content %}
+<p class="dash-intro">Concevez un e-mail, choisissez l'audience parmi vos prospects artisans, envoyez et mesurez.</p>
+
+<div class="prospect-kpi-row">
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--total">
+    <span class="kpi-label">Contacts joignables</span>
+    <span class="kpi-value">{{ stats.contactable }}</span>
+    <span class="kpi-sub">avec e-mail, non désinscrits</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">E-mails envoyés</span>
+    <span class="kpi-value">{{ stats.sent }}</span>
+    <span class="kpi-sub">toutes campagnes</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Taux d'ouverture</span>
+    <span class="kpi-value">{{ stats.open_rate }}</span>
+    <span class="kpi-sub">{{ stats.unique_opens }} ouvertures uniques</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--win">
+    <span class="kpi-label">Taux de clic</span>
+    <span class="kpi-value">{{ stats.click_rate }}</span>
+    <span class="kpi-sub">{{ stats.unique_clicks }} cliqueurs</span>
+  </div>
+  <div class="kpi-card kpi-card--sm prospect-kpi">
+    <span class="kpi-label">Désinscriptions</span>
+    <span class="kpi-value">{{ stats.unsubscribed }}</span>
+    <span class="kpi-sub">opt-out définitifs</span>
+  </div>
+</div>
+
+<section class="admin-panel camp-new">
+  <div class="camp-new-head">
+    <div>
+      <h2>Nouvelle campagne</h2>
+      <p class="admin-panel-lead">Partez d'un modèle, puis laissez l'IA rédiger ou écrivez vous-même.</p>
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('admin.campaign_new') }}" class="camp-new-form">
+    <label class="field prospect-field prospect-field--grow">
+      <span>Nom interne</span>
+      <input type="text" name="name" class="admin-input" placeholder="Ex : Prospection plombiers Rhône — septembre">
+    </label>
+    <label class="field prospect-field">
+      <span>Modèle de départ</span>
+      <select name="template" class="admin-select">
+        <option value="offre">Acquisition — présenter l'offre</option>
+        <option value="relance">Relance — deuxième contact</option>
+        <option value="annonce">Annonce — nouveauté produit</option>
+        <option value="blank">Vierge</option>
+      </select>
+    </label>
+    <div class="prospect-search-action">
+      <button type="submit" class="admin-btn prospect-search-btn">✉️ Créer la campagne</button>
+    </div>
+  </form>
+</section>
+
+<section class="admin-panel camp-source" id="rge-import"
+         data-url="{{ url_for('admin.api_prospecting_import_rge') }}">
+  <div class="camp-new-head">
+    <div>
+      <h2>Alimenter la base d'artisans</h2>
+      <p class="admin-panel-lead">
+        Import depuis le registre public RGE de l'ADEME (Licence Ouverte) : entreprises du bâtiment
+        certifiées, en activité, déclarant intervenir chez les particuliers — avec l'e-mail
+        professionnel qu'elles ont elles-mêmes publié.
+      </p>
+    </div>
+  </div>
+  <div class="camp-source-form">
+    <label class="field prospect-field">
+      <span>Métiers</span>
+      <select id="rge-trades" class="admin-select" multiple size="6">
+        {% for t in trades %}{% if t.key != 'autre' %}
+        <option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>
+        {% endif %}{% endfor %}
+      </select>
+    </label>
+    <label class="field prospect-field prospect-field--grow">
+      <span>Départements (optionnel)</span>
+      <input type="text" id="rge-depts" class="admin-input" placeholder="Ex : 69, 33, 75 — vide = toute la France">
+    </label>
+    <label class="field prospect-field prospect-field--narrow">
+      <span>Nombre</span>
+      <input type="number" id="rge-target" class="admin-input" min="10" max="1000" value="200">
+    </label>
+    <div class="prospect-search-action">
+      <button type="button" class="admin-btn prospect-search-btn" id="rge-btn">📥 Importer</button>
+    </div>
+  </div>
+  <div class="prospect-search-foot">
+    <span class="mail-error" id="rge-error" hidden></span>
+    <p class="admin-hint" id="rge-summary" hidden></p>
+  </div>
+  <p class="prospect-legal-hint">
+    ⚖️ Données professionnelles publiques · un e-mail est obligatoire pour être importé ·
+    lien de désinscription ajouté automatiquement à chaque envoi.
+  </p>
+</section>
+
+<div class="prospect-toolbar">
+  <nav class="prospect-tabs" aria-label="Filtrer par statut">
+    <a href="{{ url_for('admin.campaigns') }}" class="prospect-tab{% if not status_filter %} active{% endif %}">
+      Toutes <span class="prospect-tab-count">{{ stats.campaigns }}</span>
+    </a>
+    {% for code, label in {'draft':'Brouillons','scheduled':'Programmées','sending':'En cours','sent':'Envoyées','paused':'En pause'}.items() %}
+    <a href="{{ url_for('admin.campaigns', status=code) }}"
+       class="prospect-tab{% if status_filter == code %} active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+{% if campaigns %}
+<div class="admin-table-wrap">
+  <table class="admin-table camp-table">
+    <thead>
+      <tr>
+        <th>Campagne</th>
+        <th>Statut</th>
+        <th class="num">Destinataires</th>
+        <th class="num">Envoyés</th>
+        <th class="num">Ouvertures</th>
+        <th class="num">Clics</th>
+        <th class="num">Désinsc.</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in campaigns %}
+      {% set s = campaign_stats[c.id|string] %}
+      <tr>
+        <td>
+          <a class="camp-name" href="{{ url_for('admin.campaign_editor', campaign_id=c.id) }}">{{ c.name }}</a>
+          <span class="camp-subject">{{ c.subject or 'Sans objet' }}</span>
+        </td>
+        <td><span class="camp-status camp-status--{{ c.status }}">{{ c.status_label }}</span></td>
+        <td class="num">{{ s.recipients }}</td>
+        <td class="num">{{ s.sent }}{% if s.pending %} <span class="camp-pending">+{{ s.pending }} en attente</span>{% endif %}</td>
+        <td class="num">{{ s.open_rate }}<span class="camp-sub">{{ s.unique_opens }}</span></td>
+        <td class="num">{{ s.click_rate }}<span class="camp-sub">{{ s.unique_clicks }}</span></td>
+        <td class="num">{{ s.unsubscribed }}</td>
+        <td class="camp-actions">
+          <a class="admin-btn ghost tiny"
+             href="{{ url_for('admin.campaign_report', campaign_id=c.id) }}">Rapport</a>
+          <form method="POST" action="{{ url_for('admin.campaign_duplicate', campaign_id=c.id) }}">
+            <button class="admin-btn ghost tiny" type="submit">Dupliquer</button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.campaign_delete', campaign_id=c.id) }}"
+                onsubmit="return confirm('Supprimer cette campagne et son historique de destinataires ?');">
+            <button class="admin-btn danger tiny" type="submit">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="admin-empty">
+  <p>Aucune campagne pour l'instant. Créez-en une ci-dessus.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var box = document.getElementById('rge-import');
+  if (!box) return;
+  var btn = document.getElementById('rge-btn');
+  var err = document.getElementById('rge-error');
+  var out = document.getElementById('rge-summary');
+
+  btn.addEventListener('click', function () {
+    var trades = Array.from(document.getElementById('rge-trades').selectedOptions).map(function (o) { return o.value; });
+    var depts = (document.getElementById('rge-depts').value || '')
+      .split(/[,;\s]+/).map(function (d) { return d.trim(); }).filter(Boolean);
+    var target = parseInt(document.getElementById('rge-target').value, 10) || 200;
+
+    err.hidden = true;
+    out.hidden = false;
+    out.textContent = 'Interrogation du registre RGE… (jusqu’à une minute pour 200 contacts)';
+    btn.disabled = true;
+
+    fetch(box.dataset.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trades: trades, departments: depts, target: target })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) {
+          out.hidden = true;
+          err.hidden = false;
+          err.textContent = res.data.error || 'Import impossible.';
+          return;
+        }
+        var d = res.data;
+        var byTrade = Object.keys(d.by_trade || {})
+          .map(function (k) { return k + ' : ' + d.by_trade[k]; }).join(' · ');
+        out.textContent = d.imported + ' artisans importés avec e-mail (' + d.scanned +
+          ' lignes analysées, ' + (d.skipped.duplicate || 0) + ' doublons écartés). ' + byTrade;
+        if (d.imported > 0) { setTimeout(function () { window.location.reload(); }, 2500); }
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        out.hidden = true;
+        err.hidden = false;
+        err.textContent = 'Import impossible : ' + e;
+      });
+  });
+})();
+</script>
+{% endblock %}

@@ -15,6 +15,10 @@
     {
       "command": "0 7 * * * python scripts/tick_founding_program.py",
       "size": "S"
+    },
+    {
+      "command": "*/10 * * * * python scripts/send_due_campaigns.py",
+      "size": "S"
     }
   ]
 }

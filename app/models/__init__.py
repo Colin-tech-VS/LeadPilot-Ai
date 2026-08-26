@@ -1,4 +1,5 @@
 from app.models.appointment import Appointment
+from app.models.email_campaign import CampaignRecipient, EmailCampaign
 from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.heatmap_event import HeatmapEvent
@@ -37,6 +38,8 @@ __all__ = [
     "SocialPost",
     "OutreachProspect",
     "EmailMessage",
+    "EmailCampaign",
+    "CampaignRecipient",
     "Event",
     "HeatmapEvent",
     "SessionRecording",

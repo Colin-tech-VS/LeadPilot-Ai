@@ -55,6 +55,7 @@ from app.services import (
     diagnostics,
     google_gsc,
     imap_mailbox,
+    linkedin_social,
     social,
     traffic,
     twilio_admin,
@@ -1299,6 +1300,7 @@ def studio():
         offer_count=Offer.query.count(),
         social_count=SocialPost.query.count(),
         facebook_connected=social.is_configured(),
+        linkedin_connected=linkedin_social.is_configured(),
         ai_available=content_ai.is_available(),
     )
 
@@ -1813,6 +1815,28 @@ def social_page():
             fb_page_choices = social.list_user_pages(pending_token)
         except Exception:
             logging.getLogger(__name__).exception("Facebook page listing failed")
+    li_expires_label = "inconnu"
+    li_status = {"connected": False, "message": "", "has_refresh": False, "has_token": False, "app_ready": False}
+    li_org_choices = []
+    li_list_error = None
+    try:
+        if linkedin_social.has_token():
+            linkedin_social.ensure_access_token()
+    except Exception:
+        logging.getLogger(__name__).exception("LinkedIn token refresh failed")
+    li_status = linkedin_social.connection_status()
+    if li_status.get("has_refresh"):
+        li_expires_label = "renouvelé automatiquement (~60 jours)"
+    elif li_status.get("expires_at"):
+        from datetime import datetime, timezone as tz
+
+        li_expires_label = datetime.fromtimestamp(int(li_status["expires_at"]), tz=tz.utc).strftime("%d/%m/%Y %H:%M UTC")
+    if linkedin_social.has_token() and not linkedin_social.is_configured():
+        try:
+            li_org_choices, li_list_error = linkedin_social.list_admin_orgs()
+        except Exception:
+            logging.getLogger(__name__).exception("LinkedIn organization listing failed")
+            li_list_error = "Impossible de lister les pages entreprise LinkedIn."
     return render_template(
         "admin/social.html",
         posts=social.recent_posts(),
@@ -1823,6 +1847,14 @@ def social_page():
         facebook_oauth_redirect=social.facebook_oauth_redirect_uri(),
         facebook_default_page_id=social.DEFAULT_PAGE_ID,
         token_expires_label=expires_label,
+        linkedin_connected=linkedin_social.is_configured(),
+        linkedin_config=linkedin_social.get_config(),
+        linkedin_status=li_status,
+        linkedin_app_ready=linkedin_social.app_credentials_ready(),
+        linkedin_oauth_redirect=linkedin_social.linkedin_oauth_redirect_uri(),
+        linkedin_expires_label=li_expires_label,
+        linkedin_org_choices=li_org_choices,
+        linkedin_list_error=li_list_error,
         ai_available=content_ai.is_available(),
         link_targets=targets_for_admin(),
         autopost=social_autopost.get_settings(),
@@ -1940,10 +1972,101 @@ def social_disconnect():
     return redirect(url_for("admin.social"))
 
 
+@admin_bp.route("/social/linkedin/login")
+@admin_required
+def social_linkedin_login():
+    if not linkedin_social.app_credentials_ready():
+        flash(
+            "Configurez LINKEDIN_CLIENT_ID et LINKEDIN_CLIENT_SECRET (app LinkedIn Developers) pour connecter LinkedIn en un clic.",
+            "error",
+        )
+        return redirect(url_for("admin.social"))
+    state = secrets.token_urlsafe(32)
+    redirect_uri = linkedin_social.linkedin_oauth_redirect_uri()
+    session["li_oauth_state"] = state
+    session["li_oauth_redirect_uri"] = redirect_uri
+    return redirect(linkedin_social.oauth_url(state, redirect_uri))
+
+
+@admin_bp.route("/social/linkedin/callback")
+@admin_required
+def social_linkedin_callback():
+    oauth_error = request.args.get("error")
+    if oauth_error:
+        desc = request.args.get("error_description") or oauth_error
+        flash(f"Connexion LinkedIn refusée : {desc}", "error")
+        return redirect(url_for("admin.social"))
+
+    state = request.args.get("state")
+    if not state or state != session.pop("li_oauth_state", None):
+        flash("État OAuth LinkedIn invalide — réessayez la connexion.", "error")
+        return redirect(url_for("admin.social"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("Code d'autorisation LinkedIn manquant.", "error")
+        return redirect(url_for("admin.social"))
+
+    redirect_uri = session.pop("li_oauth_redirect_uri", None) or linkedin_social.linkedin_oauth_redirect_uri()
+    result = linkedin_social.complete_oauth(code, redirect_uri)
+    if result.get("ok"):
+        flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
+        log_event(CAT_ADMIN, "linkedin_oauth", summary=f"Page LinkedIn connectée: {result['message']}", level=LEVEL_SUCCESS)
+    elif result.get("needs_org_choice"):
+        flash(result.get("message") or "Choisissez une page entreprise ci-dessous.", "success")
+        log_event(CAT_ADMIN, "linkedin_oauth", summary="Token LinkedIn reçu — choix de page", level=LEVEL_SUCCESS)
+    else:
+        flash(f"Connexion LinkedIn : {result.get('message')}", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/linkedin/connect", methods=["POST"])
+@admin_required
+def social_linkedin_connect():
+    token = request.form.get("token", "").strip()
+    org_id = request.form.get("org_id", "").strip()
+    if not token:
+        flash("Jeton LinkedIn requis.", "error")
+        return redirect(url_for("admin.social"))
+    result = linkedin_social.connect_with_token(token, org_id)
+    if result.get("ok"):
+        flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
+        log_event(CAT_ADMIN, "linkedin_connect", summary=f"Page LinkedIn connectée: {result['message']}", level=LEVEL_SUCCESS)
+    elif result.get("needs_org_choice"):
+        flash(result.get("message") or "Choisissez une page entreprise ci-dessous.", "success")
+    else:
+        flash(result.get("message") or "Connexion LinkedIn impossible.", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/linkedin/pick-org", methods=["POST"])
+@admin_required
+def social_linkedin_pick_org():
+    org_id = request.form.get("org_id", "").strip()
+    if not org_id:
+        flash("Choisissez une page entreprise dans la liste.", "error")
+        return redirect(url_for("admin.social"))
+    result = linkedin_social.connect_organization(org_id)
+    if result.get("ok"):
+        flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
+        log_event(CAT_ADMIN, "linkedin_pick_org", summary=f"Page LinkedIn choisie: {result['message']}", level=LEVEL_SUCCESS)
+    else:
+        flash(result.get("message") or "Connexion LinkedIn impossible.", "error")
+    return redirect(url_for("admin.social"))
+
+
+@admin_bp.route("/social/linkedin/disconnect", methods=["POST"])
+@admin_required
+def social_linkedin_disconnect():
+    linkedin_social.disconnect()
+    flash("Page LinkedIn déconnectée.", "success")
+    return redirect(url_for("admin.social"))
+
+
 @admin_bp.route("/social/publish", methods=["POST"])
 @admin_required
 def social_publish():
-    from app.services.social_links import display_url, ensure_tracked
+    from app.services.social_links import display_url, ensure_tracked, with_utm_source
 
     message = request.form.get("message", "").strip()
     link = request.form.get("link", "").strip()
@@ -1960,22 +2083,47 @@ def social_publish():
     if not image_path:
         flash("Générez d'abord le visuel — l'aperçu doit être visible avant l'envoi.", "error")
         return redirect(url_for("admin.social"))
+    if not social.is_configured() and not linkedin_social.is_configured():
+        flash("Connectez Facebook ou LinkedIn pour publier.", "error")
+        return redirect(url_for("admin.social"))
     tracked_link = ensure_tracked(link, target_key=target_key, content=content_tag)
-    post = social.publish_post(
-        message,
-        link=tracked_link,
-        generated_by_ai=ai_flag,
-        image_path=image_path,
-    )
-    if post.status == "published":
-        shown = display_url(tracked_link) if tracked_link else ""
+    results = []
+    if social.is_configured():
+        results.append(
+            (
+                "Facebook",
+                social.publish_post(
+                    message,
+                    link=tracked_link,
+                    generated_by_ai=ai_flag,
+                    image_path=image_path,
+                ),
+            )
+        )
+    if linkedin_social.is_configured():
+        results.append(
+            (
+                "LinkedIn",
+                linkedin_social.publish_post(
+                    message,
+                    link=with_utm_source(tracked_link, "linkedin"),
+                    generated_by_ai=ai_flag,
+                    image_path=image_path,
+                    target_key=target_key,
+                ),
+            )
+        )
+    shown = display_url(tracked_link) if tracked_link else ""
+    ok_names = [name for name, post in results if post.status == "published"]
+    if ok_names:
         flash(
-            f"Post publié sur Facebook 🎉"
+            f"Post publié sur {' et '.join(ok_names)} 🎉"
             + (f" — lien tracké : {shown}" if shown else ""),
             "success",
         )
-    else:
-        flash(f"Échec de la publication : {post.error}", "error")
+    for name, post in results:
+        if post.status != "published":
+            flash(f"{name} : {post.error or 'échec de publication'}", "error")
     return redirect(url_for("admin.social"))
 
 
@@ -2030,8 +2178,8 @@ def social_autopost_save():
     group_ids = request.form.getlist("group_id")
     social.save_group_ids(group_ids)
     social_autopost.save_settings(interval=interval, share_groups=share_groups)
-    if enabled and not social.is_configured():
-        flash("Connectez d'abord une page Facebook pour activer l'autopublication.", "error")
+    if enabled and not social_autopost.any_network_connected():
+        flash("Connectez d'abord Facebook ou LinkedIn pour activer l'autopublication.", "error")
         return redirect(url_for("admin.social"))
     try:
         if enabled:
@@ -2043,7 +2191,7 @@ def social_autopost_save():
     except Exception:
         current_app.logger.exception("social_autopost_save failed")
         flash(
-            "Impossible de préparer l'aperçu Facebook. Les réglages n'ont pas tous été enregistrés — réessayez.",
+            "Impossible de préparer l'aperçu. Les réglages n'ont pas tous été enregistrés — réessayez.",
             "error",
         )
     return redirect(url_for("admin.social"))

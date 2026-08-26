@@ -12,8 +12,8 @@ def utcnow():
 
 class SocialPost(db.Model):
     """A social-media post composed in the admin console (manually or generated
-    with Mistral) and published to a connected network (currently Facebook
-    Pages via the Graph API)."""
+    with Mistral) and published to a connected network (Facebook Page and/or
+    LinkedIn Company Page)."""
 
     __tablename__ = "social_posts"
 
@@ -24,7 +24,7 @@ class SocialPost(db.Model):
     image_path = db.Column(db.String(300), nullable=True)  # static/uploads/social/…
     image_blob = db.Column(db.LargeBinary, nullable=True)
     status = db.Column(db.String(20), nullable=False, default="draft", index=True)  # draft|queued|published|failed|skipped
-    external_id = db.Column(db.String(120), nullable=True)   # Facebook post id
+    external_id = db.Column(db.String(120), nullable=True)   # Facebook post id or LinkedIn URN
     permalink = db.Column(db.String(500), nullable=True)
     error = db.Column(db.String(500), nullable=True)
     generated_by_ai = db.Column(db.Boolean, default=False, nullable=False)

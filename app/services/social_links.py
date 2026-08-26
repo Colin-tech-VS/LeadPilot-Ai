@@ -87,6 +87,7 @@ def build_tracked_url_for_target(
     target_key: str,
     *,
     content: str = "admin_post",
+    source: str = UTM_SOURCE,
 ) -> str | None:
     target = get_target(target_key)
     if not target:
@@ -95,7 +96,21 @@ def build_tracked_url_for_target(
         target["path"],
         campaign=target["campaign"],
         content=content,
+        source=source,
     )
+
+
+def with_utm_source(url: str | None, source: str) -> str | None:
+    """Rewrite utm_source on an existing tracked URL (Facebook → LinkedIn fan-out)."""
+    url = (url or "").strip()
+    if not url:
+        return None
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["utm_source"] = source
+    if not query.get("utm_medium"):
+        query["utm_medium"] = UTM_MEDIUM
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 
 def display_url(url: str | None) -> str:
@@ -116,23 +131,24 @@ def ensure_tracked(
     *,
     target_key: str | None = None,
     content: str = "admin_post",
+    source: str = UTM_SOURCE,
 ) -> str | None:
     """Add UTM params when missing (e.g. user pasted a clean URL)."""
     url = (url or "").strip()
     if not url:
         if target_key:
-            return build_tracked_url_for_target(target_key, content=content)
+            return build_tracked_url_for_target(target_key, content=content, source=source)
         return None
     parsed = urlparse(url)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     if any(k.lower().startswith("utm_") for k in query):
-        return url
+        return with_utm_source(url, source) if source and query.get("utm_source") != source else url
     target = get_target(target_key) if target_key else None
     path = parsed.path or "/"
     campaign = target["campaign"] if target else f"fb_{(path.strip('/') or 'home').replace('/', '_')}"
     query.update(
         {
-            "utm_source": UTM_SOURCE,
+            "utm_source": source,
             "utm_medium": UTM_MEDIUM,
             "utm_campaign": campaign,
             "utm_content": content,

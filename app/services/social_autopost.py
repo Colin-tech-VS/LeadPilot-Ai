@@ -1,8 +1,9 @@
-"""Facebook autopost queue: generate a preview, wait, then publish.
+"""Social autopost queue: generate a preview, wait, then publish.
 
-The next post is always composed and shown in admin before Graph ever sees
-it. Send times snap to artisan-peak hours (Europe/Paris), not a raw +6/+12/+24h
-offset that can land at 3am.
+The next post is always composed and shown in admin before Facebook or
+LinkedIn ever sees it. Send times snap to artisan-peak hours (Europe/Paris),
+not a raw +6/+12/+24h offset that can land at 3am. When both networks are
+connected, the same preview is sent to each (separate history rows).
 """
 from __future__ import annotations
 
@@ -67,9 +68,19 @@ def save_settings(*, enabled: bool | None = None, interval: int | None = None, s
         content_studio.set_setting(social.SETTING_SHARE_GROUPS, "1" if share_groups else "0")
 
 
+def any_network_connected() -> bool:
+    from app.services import linkedin_social
+
+    return social.is_configured() or linkedin_social.is_configured()
+
+
+def _queue_platform() -> str:
+    return "facebook" if social.is_configured() else "linkedin"
+
+
 def queued_preview() -> SocialPost | None:
     return (
-        SocialPost.query.filter_by(platform="facebook", status="queued")
+        SocialPost.query.filter_by(status="queued")
         .order_by(SocialPost.scheduled_for.asc())
         .first()
     )
@@ -77,7 +88,7 @@ def queued_preview() -> SocialPost | None:
 
 def last_published_at() -> datetime | None:
     row = (
-        SocialPost.query.filter_by(platform="facebook", status="published")
+        SocialPost.query.filter_by(status="published")
         .order_by(SocialPost.published_at.desc())
         .first()
     )
@@ -134,7 +145,7 @@ def _fallback_payload(target_key: str, prompt: str) -> dict:
 
 
 def generate_preview(*, keep_schedule: datetime | None = None, use_dalle: bool = False) -> SocialPost:
-    """Compose the next Facebook post and store it as queued (never publishes).
+    """Compose the next social post and store it as queued (never publishes).
 
     ``use_dalle=False`` keeps Enregistrer under the Scalingo router timeout
     (Mistral + DALL·E together often exceeds 30s and surfaces as a JSON 500).
@@ -178,7 +189,7 @@ def generate_preview(*, keep_schedule: datetime | None = None, use_dalle: bool =
         )
 
     post = SocialPost(
-        platform="facebook",
+        platform=_queue_platform(),
         message=payload["message"],
         link=ensure_tracked(payload.get("link") or "", target_key=target_key, content="autopost"),
         image_path=visual["image_path"],
@@ -193,7 +204,7 @@ def generate_preview(*, keep_schedule: datetime | None = None, use_dalle: bool =
     db.session.commit()
     log_event(
         CAT_ADMIN,
-        "facebook_queue_preview",
+        "social_queue_preview",
         summary=f"Aperçu auto-post prêt pour {when.isoformat()} : {post.preview(60)}",
         level=LEVEL_INFO,
     )
@@ -239,11 +250,26 @@ def update_queued(message: str | None = None, target_key: str | None = None) -> 
     return post
 
 
+def _apply_publish_result(queued: SocialPost, published: SocialPost, *, platform: str) -> None:
+    queued.platform = platform
+    queued.status = published.status
+    queued.external_id = published.external_id
+    queued.permalink = published.permalink
+    queued.published_at = published.published_at
+    queued.error = published.error
+    queued.link = published.link or queued.link
+    db.session.commit()
+    if published.id != queued.id:
+        db.session.delete(published)
+        db.session.commit()
+
+
 def publish_queued_now() -> SocialPost | None:
     post = queued_preview()
     if not post:
         return None
-    from app.services import social_image
+    from app.services import linkedin_social, social_image
+    from app.services.social_links import with_utm_source
 
     social_image.ensure_post_visual(
         post,
@@ -252,28 +278,43 @@ def publish_queued_now() -> SocialPost | None:
         use_dalle=False,
     )
     social_image.materialize_post_image(post)
-    published = social.publish_post(
-        post.message,
-        link=post.link,
-        generated_by_ai=post.generated_by_ai,
-        image_path=post.image_path,
-        image_blob=post.image_blob,
-    )
-    post.status = published.status
-    post.external_id = published.external_id
-    post.permalink = published.permalink
-    post.published_at = published.published_at
-    post.error = published.error
-    db.session.commit()
-    # Drop the duplicate row created by publish_post (it always inserts).
-    if published.id != post.id:
-        db.session.delete(published)
+
+    fb_on = social.is_configured()
+    li_on = linkedin_social.is_configured()
+    if not fb_on and not li_on:
+        post.status = "failed"
+        post.error = "Aucun réseau connecté (Facebook ou LinkedIn)."
         db.session.commit()
+        return post
+
+    if fb_on:
+        published = social.publish_post(
+            post.message,
+            link=post.link,
+            generated_by_ai=post.generated_by_ai,
+            image_path=post.image_path,
+            image_blob=post.image_blob,
+        )
+        _apply_publish_result(post, published, platform="facebook")
+
+    if li_on:
+        li_link = with_utm_source(post.link, "linkedin") if post.link else None
+        li_post = linkedin_social.publish_post(
+            post.message,
+            link=li_link,
+            generated_by_ai=post.generated_by_ai,
+            image_path=post.image_path,
+            image_blob=post.image_blob,
+            target_key=post.target_key,
+        )
+        if not fb_on:
+            _apply_publish_result(post, li_post, platform="linkedin")
+
     if is_enabled() and post.status in ("published", "failed"):
         try:
             generate_preview()
         except Exception:
-            logger.exception("Could not compose the next Facebook preview")
+            logger.exception("Could not compose the next social preview")
     return post
 
 
@@ -281,7 +322,7 @@ def tick() -> dict:
     """Cron entry: publish a due queued preview, then compose the next one."""
     if not is_enabled():
         return {"action": "disabled"}
-    if not social.is_configured():
+    if not any_network_connected():
         return {"action": "not_configured"}
 
     post = queued_preview()

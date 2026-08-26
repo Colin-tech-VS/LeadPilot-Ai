@@ -76,7 +76,20 @@ du destinataire l'a refusé). Deux causes, dans l'ordre :
 - `TWILIO_VALIDATE_SIGNATURE=1`.
 - Pas de hash admin par défaut en prod — uniquement `ADMIN_PASSWORD`.
 
-## 4. Twilio
+## 4. Réseaux sociaux (admin `/admin/social`)
+
+Redirect URIs à autoriser **à l'identique** (prod + local) :
+
+| Réseau | Variables Scalingo | Redirect URI |
+|--------|--------------------|--------------|
+| Facebook | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | `https://www.pilotcore.fr/admin/social/facebook/callback` |
+| LinkedIn | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | `https://www.pilotcore.fr/admin/social/linkedin/callback` |
+
+LinkedIn : créer une app sur [LinkedIn Developers](https://www.linkedin.com/developers/apps), ajouter **Community Management API**. En **mode Développement**, les admins de l’app peuvent publier **au nom de la page** qu’ils administrent, sans attendre la review partenaire. « Share on LinkedIn » ne poste que sur un profil personnel — PilotCore ne l’utilise pas. Scopes : `openid`, `profile`, `w_organization_social`, `r_organization_social`, `rw_organization_admin`.
+
+L'autopublication (cron `scripts/publish_queued_social.py`, toutes les 15 min) envoie le même aperçu sur **chaque** réseau connecté.
+
+## 5. Twilio
 
 Numéro : **+33 1 59 16 96 91** (`+33159169691`)
 
@@ -88,7 +101,7 @@ https://PilotCore-ai.osc-fr1.scalingo.io/voice/inbound
 
 Méthode : `POST`
 
-## 5. Stripe
+## 6. Stripe
 
 1. Créer les produits Starter (149 €), Pro (349 €), Premium (699 €).
 2. **Activer Stripe Connect** (Express) dans le Dashboard Stripe — les acomptes carte client sont versés sur le compte Stripe de l'artisan.
@@ -103,7 +116,7 @@ Copier `STRIPE_WEBHOOK_SECRET` dans Scalingo.
 
 Optionnel : `STRIPE_CONNECT_FEE_PERCENT` (0 par défaut) pour une commission plateforme sur les acomptes carte.
 
-## 6. Health checks
+## 7. Health checks
 
 | Probe | URL |
 |-------|-----|
@@ -112,7 +125,7 @@ Optionnel : `STRIPE_CONNECT_FEE_PERCENT` (0 par défaut) pour une commission pla
 
 Configurer Scalingo health check sur `/health/ready`.
 
-## 7. Rate limits (actifs)
+## 8. Rate limits (actifs)
 
 | Route | Limite |
 |-------|--------|
@@ -122,7 +135,7 @@ Configurer Scalingo health check sur `/health/ready`.
 | `POST /chat/<id>/message` | 30 / min / IP |
 | Login web / API / admin | déjà en place |
 
-## 8. Tests avant deploy
+## 9. Tests avant deploy
 
 ```bash
 pytest -q
@@ -130,6 +143,6 @@ pytest -q
 
 Ou push sur `main` → CI GitHub.
 
-## 9. GitHub secrets
+## 10. GitHub secrets
 
 - `SCALINGO_API_TOKEN` pour le workflow de deploy.

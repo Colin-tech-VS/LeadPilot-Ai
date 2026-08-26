@@ -5,6 +5,7 @@ from app.services.social_links import (
     display_url,
     ensure_tracked,
     get_target,
+    with_utm_source,
 )
 
 
@@ -42,6 +43,15 @@ def test_get_target_pro_audience():
     assert t is not None
     assert t["path"] == "/pro"
     assert "artisan" in t["audience"].lower()
+
+
+def test_with_utm_source_rewrites_facebook_to_linkedin(app):
+    with app.app_context():
+        url = build_tracked_url("/pro", campaign="pro_landing", content="autopost")
+        li = with_utm_source(url, "linkedin")
+    assert "utm_source=linkedin" in li
+    assert "utm_source=facebook" not in li
+    assert "utm_campaign=pro_landing" in li
 
 
 def test_generate_social_post_shape(app, monkeypatch):

@@ -1,4 +1,4 @@
-"""Publish a due Facebook autopost preview, then compose the next one.
+"""Publish a due social autopost preview, then compose the next one.
 
 Scheduled via Scalingo cron (every 15 minutes). Never publishes without a
 queued preview that was visible in /admin/social for the chosen interval.
@@ -29,6 +29,13 @@ def run() -> int:
             social.refresh_never_expiring_token()
         except Exception:
             logger.exception("Facebook token refresh failed")
+        try:
+            from app.services import linkedin_social
+
+            if linkedin_social.is_configured():
+                linkedin_social.ensure_access_token()
+        except Exception:
+            logger.exception("LinkedIn token refresh failed")
         result = social_autopost.tick()
         logger.info("social autopost tick: %s", result)
         if result.get("action") == "failed":

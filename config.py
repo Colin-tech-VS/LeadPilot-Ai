@@ -179,6 +179,10 @@ class Config:
     FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "")
     FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "")
 
+    # LinkedIn Community Management (admin /admin/social). Posts as the Company Page.
+    LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
+    LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+
     # Prospection B2B — recherche web d'artisans (admin /admin/prospecting).
     # SerpAPI (recommandé) ou Google Custom Search JSON API.
     SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")

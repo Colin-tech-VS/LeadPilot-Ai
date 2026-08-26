@@ -27,8 +27,8 @@
   <a class="studio-tile" href="{{ url_for('admin.social') }}">
     <span class="studio-tile-ico">📣</span>
     <h3>Social</h3>
-    <p>Rédigez et publiez sur Facebook, manuellement ou avec l'IA Mistral.</p>
-    <span class="studio-tile-badge">{% if facebook_connected %}✅ Facebook connecté{% else %}⚠️ Non connecté{% endif %}</span>
+    <p>Rédigez et publiez sur Facebook et LinkedIn, manuellement ou avec l'IA Mistral.</p>
+    <span class="studio-tile-badge">{% if facebook_connected and linkedin_connected %}✅ Facebook + LinkedIn{% elif facebook_connected %}✅ Facebook connecté{% elif linkedin_connected %}✅ LinkedIn connecté{% else %}⚠️ Non connecté{% endif %}</span>
   </a>
 </div>
 

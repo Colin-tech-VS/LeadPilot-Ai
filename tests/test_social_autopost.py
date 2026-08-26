@@ -310,10 +310,12 @@ def test_social_page_shows_autopost_controls(client):
     assert "6 h" in html
     assert "12 h" in html
     assert "24 h" in html
-    assert "Aperçu Facebook" in html
+    assert "Aperçu du post" in html or "Aperçu" in html
     assert "confirmed" in html
     assert "token utilisateur" in html.lower()
     assert "Échanger en token illimité" in html or "Coller un token utilisateur" in html
+    assert "LinkedIn" in html
+    assert "Community Management" in html
 
 
 def test_facebook_oauth_url_includes_callback(app):

@@ -22,7 +22,7 @@
 {% endmacro %}
 
 {% block content %}
-<p class="dash-intro">Publications Facebook à la charte PilotCore — papier, encre, visuel 1200×630. L’aperçu est toujours visible avant l’envoi.</p>
+<p class="dash-intro">Publications Facebook et LinkedIn à la charte PilotCore — papier, encre, visuel 1200×630. L’aperçu est toujours visible avant l’envoi. L’autopublication envoie le même post sur chaque réseau connecté.</p>
 
 {% set health = facebook_status.token_health if facebook_status else {} %}
 {% set page_id_value = facebook_config.page_id or facebook_default_page_id %}
@@ -125,35 +125,117 @@
 </div>
 {% endif %}
 
+{% if linkedin_org_choices and not linkedin_connected %}
+<div class="connect-banner social-token-banner">
+  <div class="social-token-mark" aria-hidden="true"></div>
+  <div style="flex:1;min-width:0">
+    <strong>Choisissez la page entreprise LinkedIn</strong>
+    <div class="studio-item-meta">Le compte est autorisé. Sélectionnez la page sur laquelle publier — pas un profil personnel.</div>
+  </div>
+  <form method="POST" action="{{ url_for('admin.social_linkedin_pick_org') }}" class="db-form" style="width:100%">
+    <div class="social-groups">
+      {% for p in linkedin_org_choices %}
+      <label class="social-group">
+        <input type="radio" name="org_id" value="{{ p.id }}" {% if loop.first %}checked{% endif %} required>
+        <span>{{ p.name }} · <code>{{ p.id }}</code></span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="form-actions" style="margin-top:12px">
+      <button type="submit" class="admin-btn">Connecter cette page</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% if linkedin_connected %}
+<div class="connect-banner ok social-token-banner">
+  <div class="social-token-mark" aria-hidden="true"></div>
+  <div style="flex:1;min-width:0">
+    <strong>Page LinkedIn connectée</strong>
+    <div class="studio-item-meta">{{ linkedin_config.org_name or linkedin_config.org_id }}{% if linkedin_config.member_name %} · compte {{ linkedin_config.member_name }}{% endif %}</div>
+    <div class="social-token-meta">
+      <span class="pill {% if linkedin_status.has_refresh %}pill-published{% else %}pill-draft{% endif %}">
+        {% if linkedin_status.has_refresh %}jeton renouvelé auto.{% else %}jeton ~60 jours{% endif %}
+      </span>
+      <span>Expiration : <strong>{{ linkedin_expires_label }}</strong></span>
+      {% if linkedin_status.message %}<span>· {{ linkedin_status.message }}</span>{% endif %}
+    </div>
+  </div>
+  <details class="social-token-update" style="width:100%">
+    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Mettre à jour LinkedIn</summary>
+    {% if linkedin_app_ready %}
+    <form method="GET" action="{{ url_for('admin.social_linkedin_login') }}" class="db-form social-oauth-form">
+      <button type="submit" class="admin-btn">Reconnecter avec LinkedIn</button>
+      <p class="admin-hint" style="margin:8px 0 0">Ouvre LinkedIn, enregistre un jeton renouvelable, puis republie au nom de la page entreprise.</p>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('admin.social_linkedin_disconnect') }}" style="margin-top:12px">
+      <button type="submit" class="admin-btn danger tiny">Déconnecter LinkedIn</button>
+    </form>
+  </details>
+</div>
+{% else %}
+<div class="connect-banner">
+  <div class="social-token-mark" aria-hidden="true"></div>
+  <div style="flex:1;min-width:260px">
+    <strong>Connectez votre page entreprise LinkedIn</strong>
+    <div class="studio-item-meta">Les posts partent <strong>au nom de la page entreprise</strong>, jamais du profil perso. Dans l’app LinkedIn Developers → Produits, ajoutez <strong>Community Management API</strong>. En mode Développement, LinkedIn l’ouvre tout de suite aux admins de l’app (vous + la page) — pas la review partenaire. « Share on LinkedIn » ne poste que sur un profil, on ne l’utilise pas.</div>
+  </div>
+  {% if linkedin_app_ready %}
+  <form method="GET" action="{{ url_for('admin.social_linkedin_login') }}" class="db-form" style="width:100%">
+    <button type="submit" class="admin-btn">Connecter avec LinkedIn</button>
+    <p class="admin-hint" style="margin:8px 0 0">URI de redirection à autoriser dans l’app LinkedIn : <code>{{ linkedin_oauth_redirect }}</code></p>
+  </form>
+  {% else %}
+  <p class="admin-hint" style="width:100%">Ajoutez <code>LINKEDIN_CLIENT_ID</code> et <code>LINKEDIN_CLIENT_SECRET</code> sur Scalingo pour activer le bouton LinkedIn.</p>
+  {% endif %}
+  {% if linkedin_list_error %}
+  <p class="admin-hint" style="width:100%">{{ linkedin_list_error }}</p>
+  {% endif %}
+  <details class="social-token-update" style="width:100%">
+    <summary class="admin-btn ghost tiny" style="display:inline-block;cursor:pointer">Coller un jeton + ID de page</summary>
+    <form method="POST" action="{{ url_for('admin.social_linkedin_connect') }}" class="db-form" style="margin-top:12px">
+      <div class="db-form-grid">
+        <label>Jeton d’accès (OAuth membre)<input type="text" name="token" required placeholder="Access token LinkedIn" autocomplete="off"></label>
+        <label>ID numérique de la page (optionnel si listable)<input type="text" name="org_id" placeholder="123456 — URL /company/123456/admin/"></label>
+      </div>
+      <button type="submit" class="admin-btn">Connecter LinkedIn</button>
+      <p class="admin-hint" style="margin:8px 0 0">L’ID se trouve dans l’URL d’administration de la page (<code>/company/123456/admin/</code>), pas dans le nom « PilotCore ». Un jeton collé sans refresh expire ~60 jours.</p>
+    </form>
+  </details>
+</div>
+{% endif %}
+
 <section class="social-autopost-card">
+  {% set any_connected = facebook_connected or linkedin_connected %}
   <form method="POST" action="{{ url_for('admin.social_autopost_save') }}" class="social-autopost-form">
     <div class="social-autopost-head">
       <div>
         <h2>Autopublication</h2>
-        <p class="admin-hint" style="margin:4px 0 0">Les envois sont calés sur les heures où les artisans regardent Facebook (pause midi, fin de chantier, samedi matin) — jamais au milieu de la nuit. Le prochain post est composé tout de suite, affiché ici, puis envoyé seulement à l’heure indiquée.</p>
+        <p class="admin-hint" style="margin:4px 0 0">Les envois sont calés sur les heures où les artisans regardent leur fil (pause midi, fin de chantier, samedi matin) — jamais au milieu de la nuit. Le prochain post est composé tout de suite, affiché ici, puis envoyé à l’heure indiquée sur <strong>chaque réseau connecté</strong> (Facebook et/ou LinkedIn).</p>
       </div>
       <label class="switch social-autopost-switch">
-        <input type="checkbox" name="enabled" value="1" {% if autopost.enabled %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <input type="checkbox" name="enabled" value="1" {% if autopost.enabled %}checked{% endif %} {% if not any_connected %}disabled{% endif %}>
         <span class="switch-track"></span>
         <span>{{ 'Activée' if autopost.enabled else 'Désactivée' }}</span>
       </label>
     </div>
-    {% if not facebook_connected %}
-    <p class="admin-hint">Connectez d’abord la page Facebook pour activer l’envoi automatique.</p>
+    {% if not any_connected %}
+    <p class="admin-hint">Connectez d’abord Facebook ou LinkedIn pour activer l’envoi automatique.</p>
     {% endif %}
 
     <p class="social-interval-label">Fréquence</p>
     <div class="social-interval" role="radiogroup">
       <label class="social-interval-opt">
-        <input type="radio" name="interval" value="6" {% if autopost.interval == 6 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <input type="radio" name="interval" value="6" {% if autopost.interval == 6 %}checked{% endif %} {% if not any_connected %}disabled{% endif %}>
         <span>6 h <small>pauses du jour</small></span>
       </label>
       <label class="social-interval-opt">
-        <input type="radio" name="interval" value="12" {% if autopost.interval == 12 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <input type="radio" name="interval" value="12" {% if autopost.interval == 12 %}checked{% endif %} {% if not any_connected %}disabled{% endif %}>
         <span>12 h <small>midi + soir</small></span>
       </label>
       <label class="social-interval-opt">
-        <input type="radio" name="interval" value="24" {% if autopost.interval == 24 %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
+        <input type="radio" name="interval" value="24" {% if autopost.interval == 24 %}checked{% endif %} {% if not any_connected %}disabled{% endif %}>
         <span>24 h <small>meilleur créneau</small></span>
       </label>
     </div>
@@ -161,8 +243,8 @@
 
     <label class="switch" style="margin-top:16px">
       <input type="checkbox" name="share_groups" value="1" {% if autopost.share_groups %}checked{% endif %} {% if not facebook_connected %}disabled{% endif %}>
-      <span class="switch-track"></span>
-      <span>Partager aussi dans les groupes sélectionnés (après la page)</span>
+        <span class="switch-track"></span>
+      <span>Partager aussi dans les groupes Facebook sélectionnés (après la page)</span>
     </label>
     <p class="admin-hint">Facebook n’expose pas les groupes « suivis » par une Page. On liste les groupes dont <strong>votre compte</strong> est membre. La permission <code>publish_to_groups</code> est souvent soumise à App Review.</p>
 
@@ -182,11 +264,11 @@
     {% endif %}
 
     <div class="form-actions" style="margin-top:16px">
-      <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled{% endif %}>Enregistrer l’autopublication</button>
+      <button type="submit" class="admin-btn" {% if not any_connected %}disabled{% endif %}>Enregistrer l’autopublication</button>
     </div>
   </form>
 
-  {% if facebook_connected and autopost.enabled %}
+  {% if any_connected and autopost.enabled %}
   <div class="social-queue-panel">
     <div class="social-queue-head">
       <h3>Prochain post — aperçu en attente</h3>
@@ -215,7 +297,7 @@
       </form>
       <div class="studio-preview">
         <div class="studio-preview-head">
-          <h2>Aperçu Facebook</h2>
+          <h2>Aperçu du post</h2>
           <span class="studio-preview-dot">en attente d’envoi</span>
         </div>
         {{ fb_card(facebook_config.page_name or 'PilotCore', 'q-body', 'q-img-wrap', 'q-img', 'q-img-link', queued.message or '', queued_image, 'Programmé · ' ~ (queued_when or ''), true) }}
@@ -238,7 +320,9 @@
 </section>
 
 <!-- Composer -->
-<form method="POST" action="{{ url_for('admin.social_publish') }}" id="social-form">
+<form method="POST" action="{{ url_for('admin.social_publish') }}" id="social-form"
+      data-facebook="{{ '1' if facebook_connected else '0' }}"
+      data-linkedin="{{ '1' if linkedin_connected else '0' }}">
   <input type="hidden" name="generated_by_ai" id="gen-ai-flag" value="0">
   <input type="hidden" name="target_key" id="f-target-key" value="home">
   <input type="hidden" name="link" id="f-link-tracked" value="">
@@ -304,14 +388,20 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord une page Facebook"{% endif %}>Publier sur Facebook</button>
-        {% if not facebook_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
+        {% if facebook_connected and linkedin_connected %}
+        <button type="submit" class="admin-btn">Publier sur Facebook et LinkedIn</button>
+        {% elif linkedin_connected %}
+        <button type="submit" class="admin-btn">Publier sur LinkedIn</button>
+        {% else %}
+        <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord Facebook ou LinkedIn"{% endif %}>Publier sur Facebook</button>
+        {% endif %}
+        {% if not facebook_connected and not linkedin_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
       </div>
     </div>
 
     <div class="studio-preview">
       <div class="studio-preview-head">
-        <h2>Aperçu Facebook</h2>
+          <h2>Aperçu</h2>
         <span class="studio-preview-dot">charte PilotCore</span>
       </div>
       {{ fb_card(facebook_config.page_name or 'PilotCore', 'fb-body', 'fb-image-wrap', 'fb-image', 'fb-image-link', 'Votre message apparaîtra ici…', '', "À l'instant · public", false) }}
@@ -323,7 +413,7 @@
 <div class="studio-list">
   {% for post in posts %}
   <div class="studio-item">
-    <div class="mail-dir">FB</div>
+    <div class="mail-dir">{% if post.platform == 'linkedin' %}LI{% else %}FB{% endif %}</div>
     <div class="studio-item-main">
       <div class="studio-item-title">
         {{ post.preview(80) or '(vide)' }}
@@ -371,6 +461,10 @@
   var fbImageLink = document.getElementById("fb-image-link");
   var confirmed = document.getElementById("f-confirmed");
   var form = document.getElementById("social-form");
+  var networks = "";
+  if (form) {
+    networks = [form.getAttribute("data-facebook") === "1" ? "Facebook" : "", form.getAttribute("data-linkedin") === "1" ? "LinkedIn" : ""].filter(Boolean).join(" et ");
+  }
 
   function setImage(url, path) {
     imagePath.value = path || "";
@@ -421,14 +515,14 @@
     confirmed.value = "0";
     if (!imagePath.value) {
       e.preventDefault();
-      alert("Générez d’abord le visuel. L’aperçu Facebook doit l’afficher avant l’envoi.");
+      alert("Générez d’abord le visuel. L’aperçu doit l’afficher avant l’envoi.");
       return;
     }
     if (!msg.value.trim()) {
       e.preventDefault();
       return;
     }
-    var ok = window.confirm("Publier ce post tel qu’affiché dans l’aperçu Facebook ?");
+    var ok = window.confirm("Publier ce post tel qu’affiché dans l’aperçu" + (networks ? " sur " + networks : "") + " ?");
     if (!ok) {
       e.preventDefault();
       return;

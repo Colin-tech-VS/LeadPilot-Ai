@@ -13,6 +13,8 @@ NEW_KEYS = (
     "landing.demo_audio_pause",
     "landing.demo_clip_1",
     "landing.demo_clip_4",
+    "landing.demo_dash_hint",
+    "landing.demo_dash_idle",
     "landing.problem_wait",
     "landing.solution_title",
     "landing.dir_honesty",
@@ -67,6 +69,7 @@ def test_pro_landing_english_copy(client):
     assert "try it free" in low
     assert "listen to a demo" in low
     assert "recorded sample call" in low
+    assert "not a live account" in low
     assert "/static/audio/demo/en/01-ai.mp3" in html
     assert "does not promise" in low
     assert "recruiting its first 50" in low or "first 50" in low
@@ -85,6 +88,12 @@ def test_pro_landing_plays_a_sample_call(client):
     assert html.count('"role": "ai"') == 2
     assert html.count('"role": "client"') == 2
     assert "/static/audio/demo/fr/01-ai.mp3" in html
+    assert "pro-demo-dash" in html
+    assert "pro-demo-map" in html
+    assert "Sophie Martin" in html
+    assert "Champs-Élysées" in html or "Champs-Elysées" in html
+    assert "exemple" in html.lower()
+    assert "pas un compte" in html.lower() or "not a live account" in html.lower()
 
 
 def test_pro_demo_playlist_uses_recorded_clips(app):

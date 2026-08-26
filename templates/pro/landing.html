@@ -102,13 +102,68 @@
         <strong>{{ _('landing.flow_5') }}</strong>
       </li>
     </ol>
-    <div class="cv-listen">
-      <audio id="pro-demo-audio" preload="none"></audio>
-      <button type="button" class="btn btn-outline btn-lg" data-demo-listen
-              data-label-play="{{ _('landing.cta_see_demo') }}"
-              data-label-pause="{{ _('landing.demo_audio_pause') }}">{{ _('landing.cta_see_demo') }}</button>
+    <div class="cv-demo-split">
+      <div class="cv-listen">
+        <audio id="pro-demo-audio" preload="none"></audio>
+        <button type="button" class="btn btn-outline btn-lg" data-demo-listen
+                data-label-play="{{ _('landing.cta_see_demo') }}"
+                data-label-pause="{{ _('landing.demo_audio_pause') }}">{{ _('landing.cta_see_demo') }}</button>
+        {% if demo_audio_playlist %}
+        <p class="cv-listen-hint">{{ _('landing.demo_audio_hint') }}</p>
+        {% else %}
+        <p class="cv-listen-hint">{{ _('landing.demo_audio_fallback') }}</p>
+        {% endif %}
+      </div>
+
+      <aside class="cv-live-dash" id="pro-demo-dash" data-stage="-1" aria-label="{{ _('landing.dash_board') }}">
+        <header class="cv-live-dash-top">
+          <div>
+            <p class="cv-live-dash-hi">{{ _('landing.dash_greeting') }}</p>
+            <h3>{{ _('landing.dash_company') }}</h3>
+          </div>
+          <span class="cv-live-dash-pill">{{ _('landing.dash_example') }}</span>
+        </header>
+        <p class="cv-live-dash-status" data-demo-status aria-live="polite">{{ _('landing.demo_dash_idle') }}</p>
+        <ol class="cv-live-kpis">
+          <li><strong data-demo-kpi="calls">0</strong><span>{{ _('landing.dash_kpi_calls') }}</span></li>
+          <li><strong data-demo-kpi="leads">0</strong><span>{{ _('landing.dash_kpi_leads') }}</span></li>
+          <li><strong data-demo-kpi="quotes">—</strong><span>{{ _('landing.dash_kpi_quotes') }}</span></li>
+          <li><strong data-demo-kpi="jobs">0</strong><span>{{ _('landing.dash_kpi_jobs') }}</span></li>
+        </ol>
+        <div class="cv-live-body">
+          <section class="cv-live-leads">
+            <h4>{{ _('landing.demo_dash_lead') }} <span class="cv-live-count" data-demo-lead-count hidden>1</span></h4>
+            <p class="cv-live-empty" data-only-idle>{{ _('landing.demo_dash_empty') }}</p>
+            <article class="cv-live-lead" data-from="1">
+              <div class="cv-live-lead-head">
+                <span class="cv-live-avatar" aria-hidden="true">S</span>
+                <div>
+                  <strong>{{ _('landing.demo_dash_client') }}</strong>
+                  <p>{{ _('landing.demo_dash_phone') }}</p>
+                </div>
+                <div class="cv-live-badges">
+                  <span class="cv-live-badge" data-from="1">{{ _('landing.demo_dash_new') }}</span>
+                  <span class="cv-live-badge cv-live-badge-urgent" data-from="2">{{ _('landing.demo_dash_urgent') }}</span>
+                </div>
+              </div>
+              <p class="cv-live-issue">{{ _('landing.demo_dash_issue') }}</p>
+              <p class="cv-live-address">{{ _('landing.demo_dash_address') }}</p>
+              <p class="cv-live-sms" data-from="3">{{ _('landing.demo_dash_sms') }}</p>
+            </article>
+            <div class="cv-live-day" data-from="3">
+              <h4>{{ _('landing.demo_dash_day') }}</h4>
+              <p><time>{{ _('landing.demo_dash_slot') }}</time> · {{ _('landing.demo_dash_client') }}<br>{{ _('landing.demo_dash_slot_status') }}</p>
+            </div>
+          </section>
+          <section class="cv-live-map-wrap">
+            <h4>{{ _('landing.demo_dash_map') }}</h4>
+            <div id="pro-demo-map" class="cv-live-map" role="img" aria-label="{{ _('landing.demo_dash_address') }}"></div>
+          </section>
+        </div>
+        <p class="cv-listen-hint">{{ _('landing.demo_dash_hint') }}</p>
+      </aside>
+
       {% if demo_audio_playlist %}
-      <p class="cv-listen-hint">{{ _('landing.demo_audio_hint') }}</p>
       <ol class="cv-transcript" id="pro-demo-transcript">
         {% for clip in demo_audio_playlist %}
         <li data-demo-turn="{{ loop.index0 }}" class="cv-transcript-{{ clip.role }}">
@@ -117,8 +172,6 @@
         </li>
         {% endfor %}
       </ol>
-      {% else %}
-      <p class="cv-listen-hint">{{ _('landing.demo_audio_fallback') }}</p>
       {% endif %}
     </div>
   </div>
@@ -552,6 +605,15 @@
 {% block scripts %}
 <script>
   window.PRO_DEMO_AUDIO = {{ (demo_audio_playlist or [])|tojson }};
+  window.PRO_DEMO_DASH = {
+    idle: {{ _('landing.demo_dash_idle')|tojson }},
+    live: {{ _('landing.demo_dash_live')|tojson }},
+    done: {{ _('landing.demo_dash_done')|tojson }},
+    pin: {{ _('landing.demo_dash_pin')|tojson }},
+    client: {{ _('landing.demo_dash_client')|tojson }},
+    issue: {{ _('landing.demo_dash_issue')|tojson }},
+    address: {{ _('landing.demo_dash_address')|tojson }},
+  };
   window.LANDING_I18N = {
     processing: {{ _('landing.demo_processing')|tojson }},
     run: {{ _('landing.demo_run')|tojson }},

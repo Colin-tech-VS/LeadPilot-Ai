@@ -651,40 +651,40 @@
   border-radius: 12px;
 }
 
-/* ── Artisan signup: viewport-fit slider, paper card ── */
+/* ── Artisan signup: paper card. The page must scroll on small screens —
+   locking body to 100dvh + overflow:hidden clipped the wizard (trade chips,
+   fields, submit) so artisans could not register on a phone. ── */
 .page-register {
-  overflow: hidden;
-  height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
+.page-register .zone-line {
+  display: none;
+}
+
 .page-register main {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
 .page-register .auth-pro--signup {
-  height: 100%;
   min-height: 0;
-  overflow: hidden;
   background: var(--lp-bg, #EFE9DC);
 }
 
 .page-register .auth-pro__panel {
   min-height: 0;
-  overflow: hidden;
   align-items: stretch;
-  padding: 20px 16px;
+  padding: 20px 16px 28px;
 }
 
 .page-register .auth-pro__card {
   width: min(100%, 520px);
-  max-height: 100%;
   margin: auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   padding: 22px 22px 18px;
   border-radius: 4px;
   background: #FBF7EE;
@@ -787,19 +787,30 @@
   min-height: 0;
 }
 
-.page-register .js-wizard .auth-pro__viewport {
-  flex: 1 1 auto;
+.js-wizard .page-register .auth-pro__viewport {
+  overflow: visible;
+  flex: none;
   min-height: 0;
 }
 
-.page-register .js-wizard .auth-pro__wizard-track {
-  height: 100%;
+.js-wizard .page-register .auth-pro__wizard-track {
+  display: block;
+  height: auto;
+  transform: none !important;
 }
 
-.page-register .js-wizard .auth-pro__form-step {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  height: 100%;
+.js-wizard .page-register .auth-pro__form-step {
+  display: none;
+  overflow: visible;
+  height: auto;
+  width: 100%;
+  min-width: 0;
+  flex: none;
+  padding-right: 0;
+}
+
+.js-wizard .page-register .auth-pro__form-step.is-active {
+  display: block;
 }
 
 .page-register .auth-field__input,
@@ -862,7 +873,11 @@
 
 .page-register .trade-picker-chip-label {
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .page-register .trade-picker-chip.is-active {
@@ -895,6 +910,33 @@
 
   .page-register .auth-pro--signup {
     grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .page-register .auth-form {
+    display: block;
+  }
+
+  .page-register .auth-pro__panel {
+    align-items: flex-start;
+    padding: 12px 12px 32px;
+  }
+
+  .page-register .auth-pro__card {
+    width: 100%;
+    margin: 0;
+  }
+
+  .page-register .auth-pro__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    background: #FBF7EE;
+    margin-top: 12px;
+    padding-top: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    /* Stick to the visual viewport even when a parent is a flex column. */
+    flex-shrink: 0;
   }
 }
 
@@ -914,14 +956,64 @@
 
   .page-register .trade-picker-chips {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
   }
 
   .page-register .trade-picker-chip {
-    min-height: 64px;
+    height: 54px;
+    min-height: 0;
+    padding: 6px 2px;
+    font-size: 10px;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  .page-register .trade-picker-chip-icon {
+    font-size: 16px;
   }
 
   .page-register .auth-pro__card {
-    padding: 16px 14px 14px;
+    padding: 14px 12px 16px;
+  }
+
+  .page-register .auth-pro__card-head h2 {
+    font-size: 1.25rem;
+  }
+
+  .page-register .auth-pro__card-sub {
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  .page-register .auth-pro__progress {
+    margin-bottom: 10px;
+  }
+
+  .page-register .auth-pro__step-hint {
+    margin-bottom: 10px;
+    font-size: 1.05rem;
+  }
+
+  .page-register .auth-field__input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .page-register.page-pro .v-header-inner {
+    display: flex;
+    min-height: 56px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .page-register.page-pro .v-brand-cluster {
+    display: flex;
+  }
+
+  .page-register .trade-picker-chip {
+    height: 50px;
+    min-height: 0;
   }
 }
 

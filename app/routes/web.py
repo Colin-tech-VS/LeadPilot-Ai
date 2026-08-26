@@ -25,6 +25,29 @@ from app.utils.validation import validate_email
 web_bp = Blueprint("web", __name__)
 
 
+def _pro_demo_audio_url(lang: str) -> str | None:
+    """Serve a localized demo recording if one exists in static/audio/.
+
+    Missing files are expected during launch: the landing falls back to the
+    text simulation instead of faking a player.
+    """
+    folder = Path(current_app.static_folder or "")
+    codes = []
+    if lang:
+        codes.append(lang)
+    codes.extend(["fr", "en"])
+    seen: set[str] = set()
+    for code in codes:
+        if code in seen:
+            continue
+        seen.add(code)
+        for ext in ("mp3", "wav", "ogg"):
+            rel = f"audio/demo-{code}.{ext}"
+            if (folder / rel).is_file():
+                return url_for("static", filename=rel)
+    return None
+
+
 @web_bp.context_processor
 def inject_tenant():
     from flask import current_app
@@ -683,6 +706,7 @@ def pro_landing():
         offers=offers or [],
         honest_offer_features=content_studio.honest_offer_features,
         founding=founding_program.landing_context(),
+        demo_audio_url=_pro_demo_audio_url(getattr(g, "lang", "fr")),
     )
 
 

@@ -60,7 +60,7 @@ def test_pro_landing_copy_is_honest(client):
     assert "8 clients sur 10" not in low
     assert "8 out of 10" not in low
     assert "ne promet ni" in low or "does not promise" in low
-    assert "commencer gratuitement" in low or "start for free" in low
+    assert "tester gratuitement" in low or "try it free" in low or "start for free" in low
     assert "sans carte" in low or "no credit card" in low
     assert "google agenda" not in low
     assert "/register" in html

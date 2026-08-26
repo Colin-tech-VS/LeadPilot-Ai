@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
   {% block head_extra %}{% endblock %}
 </head>
-<body class="zone-artisan {% block body_class %}{% endblock %}">
+<body class="zone-artisan {% block body_class %}{% endblock %}" {% block body_attrs %}{% endblock %}>
   <header class="topbar">
     <div class="container topbar-shell">
       <div class="topbar-inner">
@@ -141,6 +141,7 @@
   <script src="{{ url_for('static', filename='js/notifications.js') }}?v=4"></script>
   {% endif %}
   {{ address_autocomplete_scripts() }}
+  <script src="{{ url_for('static', filename='js/conversion.js') }}?v=1"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

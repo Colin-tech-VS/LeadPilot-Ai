@@ -32,7 +32,7 @@
     {
       "@type": "FAQPage",
       "mainEntity": [
-        {% for n in range(1, 9) %}
+        {% for n in range(1, 10) %}
         {
           "@type": "Question",
           "name": {{ _('landing.faq_%s_q'|format(n))|tojson }},
@@ -48,110 +48,94 @@
 {% endblock %}
 
 {% block content %}
-{% if founding and founding.enabled %}
-<section class="founding-spotlight" aria-labelledby="founding-spotlight-title">
-  <div class="container founding-spotlight-inner">
-    <div class="founding-spotlight-copy">
-      <p class="founding-spotlight-kicker">{{ _('founding.kicker') }}</p>
-      <p class="founding-spotlight-title" id="founding-spotlight-title">{{ _('founding.pro_spotlight_title') }}</p>
-      <p class="founding-spotlight-lead">{{ _('founding.pro_spotlight_lead') }}</p>
-      {% if founding.open %}
-      <p class="founding-spotlight-counter">{{ _('founding.counter', n=founding.occupied, max=founding.max) }}</p>
-      {% set meter_pct = ((founding.occupied / founding.max) * 100)|round(0, 'floor')|int %}
-      <div class="founding-meter" role="meter" aria-valuemin="0" aria-valuemax="{{ founding.max }}" aria-valuenow="{{ founding.occupied }}" aria-label="{{ _('founding.counter', n=founding.occupied, max=founding.max) }}">
-        <span class="founding-meter-fill" style="width: {{ [meter_pct, 100]|min }}%"></span>
-      </div>
-      {% else %}
-      <p class="founding-spotlight-counter">{{ _('founding.full_banner') }}</p>
-      {% endif %}
+<section class="v-hero v-hero--convert" id="top">
+  <div class="container cv-hero">
+    <p class="v-kicker cv-hero-badge">{{ _('landing.hero_badge') }}</p>
+    <h1>{{ _('landing.hero_title') }}</h1>
+    <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
+    <div class="v-hero-cta">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <a href="#demo-flow" class="btn btn-outline btn-lg" data-demo-listen>{{ _('landing.cta_see_demo') }}</a>
     </div>
-    <div class="founding-spotlight-actions">
-      {% if founding.open %}
-      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
-      <p class="founding-spotlight-hint">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
-      {% elif founding.waitlist_enabled %}
-      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
-      {% else %}
-      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.pro_banner_cta') }}</a>
-      {% endif %}
-    </div>
+    <ul class="v-trust">
+      <li>{{ _('landing.trust_1') }}</li>
+      <li>{{ _('landing.trust_2') }}</li>
+      <li>{{ _('landing.trust_3') }}</li>
+      <li>{{ _('landing.trust_4') }}</li>
+    </ul>
+    {% if founding and founding.enabled and founding.open %}
+    <p class="cv-hero-seats">{{ _('landing.hero_seats_remaining', n=founding.remaining, max=founding.max) }}</p>
+    {% elif founding and founding.enabled %}
+    <p class="cv-hero-seats">{{ _('founding.full_banner') }}</p>
+    {% else %}
+    <p class="cv-hero-seats">{{ _('landing.hero_seats_fallback') }}</p>
+    {% endif %}
   </div>
 </section>
-{% endif %}
-<section class="v-hero v-hero--split">
-  <div class="container v-hero-grid">
-    <div>
-      <p class="v-kicker">{{ _('landing.hero_badge') }}</p>
-      <h1>{{ _('landing.hero_title') }}</h1>
-      <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
-      <div class="v-hero-cta">
-        {% if founding and founding.enabled and founding.open %}
-        <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
-        <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg">{{ _('landing.cta_signup') }}</a>
-        {% else %}
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
-        <a href="#demo" class="btn btn-outline btn-lg">{{ _('landing.cta_see_demo') }}</a>
-        {% endif %}
-      </div>
-      <p class="v-search-hint v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
-      <ul class="v-trust">
-        <li>{{ _('landing.trust_1') }}</li>
-        <li>{{ _('landing.trust_2') }}</li>
-        <li>{{ _('landing.trust_3') }}</li>
-        <li>{{ _('landing.trust_4') }}</li>
-      </ul>
-      <ul class="v-hero-dual">
-        <li>
-          <span class="v-hero-dual-kicker">{{ _('landing.hero_acq_kicker') }}</span>
-          <strong>{{ _('landing.hero_acq_title') }}</strong>
-          <p>{{ _('landing.hero_acq_desc') }}</p>
-        </li>
-        <li>
-          <span class="v-hero-dual-kicker">{{ _('landing.hero_crm_kicker') }}</span>
-          <strong>{{ _('landing.hero_crm_title') }}</strong>
-          <p>{{ _('landing.hero_crm_desc') }}</p>
-        </li>
-      </ul>
+
+<section id="demo-flow" class="cv-flow-section">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <h2>{{ _('landing.flow_title') }}</h2>
     </div>
-    <div class="v-phone" aria-hidden="true">
-      <div class="v-phone-screen">
-        <p class="v-phone-status">{{ _('landing.demo_incoming') }}</p>
-        <p class="v-phone-number">{{ twilio_ai_phone_display }}</p>
-        <div class="v-phone-transcript">
-          <div class="v-bubble v-bubble--in">
-            <span class="v-bubble-label">{{ _('landing.demo_caller') }}</span>
-            {{ _('landing.scenario_paris_text') }}
-          </div>
-          <div class="v-bubble v-bubble--out">
-            <span class="v-bubble-label">{{ _('landing.demo_ai_voice') }}</span>
-            {{ _('landing.demo_reply_book') }}
-          </div>
-        </div>
-      </div>
+    <ol class="cv-flow">
+      <li>
+        <span class="cv-flow-icon" aria-hidden="true">📞</span>
+        <strong>{{ _('landing.flow_1') }}</strong>
+      </li>
+      <li>
+        <span class="cv-flow-icon" aria-hidden="true">🤖</span>
+        <strong>{{ _('landing.flow_2') }}</strong>
+      </li>
+      <li>
+        <span class="cv-flow-icon" aria-hidden="true">🔎</span>
+        <strong>{{ _('landing.flow_3') }}</strong>
+      </li>
+      <li>
+        <span class="cv-flow-icon" aria-hidden="true">📅</span>
+        <strong>{{ _('landing.flow_4') }}</strong>
+      </li>
+      <li>
+        <span class="cv-flow-icon" aria-hidden="true">📱</span>
+        <strong>{{ _('landing.flow_5') }}</strong>
+      </li>
+    </ol>
+    <div class="cv-listen">
+      <audio id="pro-demo-audio" preload="none"{% if demo_audio_url %} src="{{ demo_audio_url }}"{% endif %}></audio>
+      <button type="button" class="btn btn-outline btn-lg" data-demo-listen>{{ _('landing.cta_see_demo') }}</button>
+      {% if not demo_audio_url %}
+      <p class="cv-listen-hint">{{ _('landing.demo_audio_fallback') }}</p>
+      {% endif %}
     </div>
   </div>
 </section>
 
-<section class="v-problem-section">
+<section class="v-problem-section" id="problem">
   <div class="container">
     <div class="v-section-head v-section-head--center">
       <p class="v-kicker">{{ _('landing.problem_kicker') }}</p>
       <h2>{{ _('landing.problem_title') }}</h2>
       <p class="v-section-lead">{{ _('landing.problem_lead') }}</p>
+      <p class="cv-problem-wait"><strong>{{ _('landing.problem_wait') }}</strong> {{ _('landing.problem_competitor') }}</p>
     </div>
     <div class="v-problem-grid">
       <article class="v-problem-card v-reveal">
-        <h3>{{ _('landing.problem_1_title') }}</h3>
+        <h3>🔧 {{ _('landing.problem_1_title') }}</h3>
         <p>{{ _('landing.problem_1_desc') }}</p>
       </article>
       <article class="v-problem-card v-reveal v-reveal-delay-1">
-        <h3>{{ _('landing.problem_2_title') }}</h3>
+        <h3>🚗 {{ _('landing.problem_2_title') }}</h3>
         <p>{{ _('landing.problem_2_desc') }}</p>
       </article>
       <article class="v-problem-card v-reveal v-reveal-delay-2">
-        <h3>{{ _('landing.problem_3_title') }}</h3>
+        <h3>👷 {{ _('landing.problem_3_title') }}</h3>
         <p>{{ _('landing.problem_3_desc') }}</p>
       </article>
+    </div>
+    <div class="cv-solution">
+      <h2>{{ _('landing.solution_title') }}</h2>
+      <p>{{ _('landing.solution_lead') }}</p>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
     </div>
   </div>
 </section>
@@ -163,7 +147,7 @@
       <h2 class="v-steps-heading">{{ _('landing.steps_title') }}</h2>
       <p class="v-section-lead">{{ _('landing.steps_lead') }}</p>
     </div>
-    <ol class="v-timeline v-timeline--4">
+    <ol class="v-timeline">
       <li class="v-timeline-step v-reveal">
         <span class="v-timeline-dot">1</span>
         <strong>{{ _('landing.step_1_title') }}</strong>
@@ -178,11 +162,6 @@
         <span class="v-timeline-dot">3</span>
         <strong>{{ _('landing.step_3_title') }}</strong>
         <p>{{ _('landing.step_3_desc') }}</p>
-      </li>
-      <li class="v-timeline-step v-reveal v-reveal-delay-3">
-        <span class="v-timeline-dot">4</span>
-        <strong>{{ _('landing.step_4_title') }}</strong>
-        <p>{{ _('landing.step_4_desc') }}</p>
       </li>
     </ol>
   </div>
@@ -250,123 +229,50 @@
       </div>
     </div>
     <div class="v-mid-cta">
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
       <p class="v-hero-microtrust">{{ _('landing.hero_microtrust') }}</p>
     </div>
   </div>
 </section>
 
-<section class="v-section v-acq" id="acquisition">
+<section class="v-section" id="features">
   <div class="container">
-    <div class="v-section-head v-section-head--center v-reveal">
-      <p class="v-kicker">{{ _('landing.acq_kicker') }}</p>
-      <h2>{{ _('landing.acq_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.capabilities_kicker') }}</p>
+      <h2>{{ _('landing.capabilities_title') }}</h2>
     </div>
-    <div class="v-acq-grid">
-      <div class="v-acq-copy">
-        <ol class="v-acq-points">
-          <li>
-            <strong>{{ _('landing.acq_1_title') }}</strong>
-            <p>{{ _('landing.acq_1_desc') }}</p>
-          </li>
-          <li>
-            <strong>{{ _('landing.acq_2_title') }}</strong>
-            <p>{{ _('landing.acq_2_desc') }}</p>
-          </li>
-          <li>
-            <strong>{{ _('landing.acq_3_title') }}</strong>
-            <p>{{ _('landing.acq_3_desc') }}</p>
-          </li>
-        </ol>
-        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.acq_cta') }}</a>
-      </div>
-      <figure class="v-shot v-acq-mock v-reveal" aria-hidden="true">
-        <div class="v-shot-chrome">
-          <span></span><span></span><span></span>
-          <em>pilotcore.fr/artisans</em>
-        </div>
-        <div class="v-shot-screen dash-mock dash-mock--search">
-          <p class="dash-mock-label">{{ _('landing.acq_mock_found') }}</p>
-          <div class="v-acq-searchbar">{{ _('landing.acq_mock_query') }}</div>
-          <article class="v-acq-result">
-            <span class="v-acq-result-mark">1</span>
-            <div>
-              <strong>{{ _('landing.acq_mock_name') }}</strong>
-              <p>{{ _('landing.acq_mock_meta') }}</p>
-            </div>
-            <span class="v-acq-result-cta">{{ _('landing.acq_mock_cta') }}</span>
-          </article>
-          <article class="v-acq-result is-dim">
-            <span class="v-acq-result-mark">2</span>
-            <div>
-              <strong>{{ _('landing.acq_mock_name_alt') }}</strong>
-              <p>{{ _('landing.acq_mock_meta_alt') }}</p>
-            </div>
-          </article>
-        </div>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<section class="v-section v-fiche-preview" id="fiche">
-  <div class="container">
-    <div class="v-section-head v-section-head--center v-reveal">
-      <p class="v-kicker">{{ _('landing.fiche_kicker') }}</p>
-      <h2>{{ _('landing.fiche_title') }}</h2>
-      <p class="v-section-lead">{{ _('landing.fiche_lead') }}</p>
-    </div>
-    <ul class="v-fiche-points">
-      <li>{{ _('landing.fiche_got_1') }}</li>
-      <li>{{ _('landing.fiche_got_2') }}</li>
-      <li>{{ _('landing.fiche_got_3') }}</li>
-      <li>{{ _('landing.fiche_got_4') }}</li>
-    </ul>
-    <div class="v-fiche-grid">
-      <article class="dl-card dl-card--listed">
-        <div class="dl-card-media">
-          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
-          <span class="dl-card-flag dl-card-flag--listed">{{ _('landing.fiche_listed_flag') }}</span>
-        </div>
-        <div class="dl-card-header">
-          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
-          <div class="dl-card-head-text">
-            <h3 class="dl-card-name">{{ _('landing.fiche_listed_name') }}</h3>
-            <p class="dl-card-specialty">Plombier</p>
-          </div>
-        </div>
-        <div class="dl-card-body">
-          <p class="dl-card-blurb">{{ _('landing.fiche_listed_note') }}</p>
-        </div>
+    <div class="v-bento">
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📞</div>
+        <h3>{{ _('landing.cap_1_title') }}</h3>
+        <p>{{ _('landing.cap_1_desc') }}</p>
       </article>
-      <article class="dl-card dl-card--registry">
-        <div class="dl-card-media dl-card-media--registry">
-          <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
-          <span class="dl-card-flag dl-card-flag--registry">{{ _('landing.fiche_registry_flag') }}</span>
-        </div>
-        <div class="dl-card-header">
-          <div class="dl-card-avatar" aria-hidden="true">🔧</div>
-          <div class="dl-card-head-text">
-            <h3 class="dl-card-name">{{ _('landing.fiche_registry_name') }}</h3>
-            <p class="dl-card-specialty">Plombier</p>
-          </div>
-        </div>
-        <div class="dl-card-body">
-          <p class="dl-card-blurb dl-card-blurb--muted">{{ _('landing.fiche_registry_note') }}</p>
-        </div>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">🔎</div>
+        <h3>{{ _('landing.cap_2_title') }}</h3>
+        <p>{{ _('landing.cap_2_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📅</div>
+        <h3>{{ _('landing.cap_3_title') }}</h3>
+        <p>{{ _('landing.cap_3_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📋</div>
+        <h3>{{ _('landing.cap_4_title') }}</h3>
+        <p>{{ _('landing.cap_4_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📲</div>
+        <h3>{{ _('landing.cap_5_title') }}</h3>
+        <p>{{ _('landing.cap_5_desc') }}</p>
+      </article>
+      <article class="v-tool-card">
+        <div class="v-tool-icon" aria-hidden="true">📊</div>
+        <h3>{{ _('landing.cap_6_title') }}</h3>
+        <p>{{ _('landing.cap_6_desc') }}</p>
       </article>
     </div>
-  </div>
-</section>
-
-<section class="v-section v-claim-band">
-  <div class="container v-claim-inner">
-    <div>
-      <h2>{{ _('landing.claim_title') }}</h2>
-      <p>{{ _('landing.claim_body') }}</p>
-    </div>
-    <a href="{{ url_for('web.find_my_listing') }}" class="btn btn-outline btn-lg">{{ _('landing.claim_cta') }}</a>
   </div>
 </section>
 
@@ -408,43 +314,26 @@
   </div>
 </section>
 
-<section class="v-section" id="features">
+<section class="v-section v-acq" id="acquisition">
   <div class="container">
-    <div class="v-section-head v-section-head--center">
-      <p class="v-kicker">{{ _('landing.capabilities_kicker') }}</p>
-      <h2>{{ _('landing.capabilities_title') }}</h2>
+    <div class="v-section-head v-section-head--center v-reveal">
+      <p class="v-kicker">{{ _('landing.acq_kicker') }}</p>
+      <h2>{{ _('landing.acq_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
     </div>
-    <div class="v-bento">
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📞</div>
-        <h3>{{ _('landing.cap_1_title') }}</h3>
-        <p>{{ _('landing.cap_1_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">🔎</div>
-        <h3>{{ _('landing.cap_2_title') }}</h3>
-        <p>{{ _('landing.cap_2_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📅</div>
-        <h3>{{ _('landing.cap_3_title') }}</h3>
-        <p>{{ _('landing.cap_3_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">🧾</div>
-        <h3>{{ _('landing.cap_4_title') }}</h3>
-        <p>{{ _('landing.cap_4_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📲</div>
-        <h3>{{ _('landing.cap_5_title') }}</h3>
-        <p>{{ _('landing.cap_5_desc') }}</p>
-      </article>
-      <article class="v-tool-card">
-        <div class="v-tool-icon" aria-hidden="true">📊</div>
-        <h3>{{ _('landing.cap_6_title') }}</h3>
-        <p>{{ _('landing.cap_6_desc') }}</p>
-      </article>
+    <p class="cv-honesty">{{ _('landing.dir_honesty') }}</p>
+    <ul class="v-fiche-points">
+      <li>{{ _('landing.fiche_got_1') }}</li>
+      <li>{{ _('landing.fiche_got_2') }}</li>
+      <li>{{ _('landing.fiche_got_3') }}</li>
+      <li>{{ _('landing.fiche_got_4') }}</li>
+    </ul>
+    <div class="v-claim-inner cv-claim">
+      <div>
+        <h3>{{ _('landing.claim_title') }}</h3>
+        <p>{{ _('landing.claim_body') }}</p>
+      </div>
+      <a href="{{ url_for('web.find_my_listing') }}" class="btn btn-outline">{{ _('landing.claim_cta') }}</a>
     </div>
   </div>
 </section>
@@ -456,6 +345,13 @@
       <h2>{{ _('landing.value_title') }}</h2>
       <p class="v-section-lead">{{ _('landing.value_lead') }}</p>
     </div>
+
+    <ul class="cv-roi-items">
+      <li>{{ _('landing.roi_item_1') }}</li>
+      <li>{{ _('landing.roi_item_2') }}</li>
+      <li>{{ _('landing.roi_item_3') }}</li>
+      <li>{{ _('landing.roi_item_4') }}</li>
+    </ul>
 
     <div class="v-roi-compare">
       <div class="v-roi-col v-roi-col--before">
@@ -478,41 +374,55 @@
       </div>
     </div>
 
-    <div class="v-roi-calc" data-roi-calc
-         data-currency="{{ '€' if lang == 'fr' else '€' }}"
-         data-year-tpl="{{ _('landing.roi_calc_result_year', amount='{amount}') }}">
-      <div class="v-roi-calc-head">
-        <p class="v-kicker">{{ _('landing.roi_calc_kicker') }}</p>
-        <h3>{{ _('landing.roi_calc_title') }}</h3>
-        <p class="v-roi-calc-sub">{{ _('landing.roi_calc_sub') }}</p>
-      </div>
-      <div class="v-roi-calc-body">
-        <div class="v-roi-fields">
-          <label class="v-roi-field">
-            <span>{{ _('landing.roi_calc_missed') }}</span>
-            <input type="range" min="1" max="40" step="1" value="10" data-roi-missed>
-            <output data-roi-missed-out>10</output>
-          </label>
-          <label class="v-roi-field">
-            <span>{{ _('landing.roi_calc_basket') }}</span>
-            <input type="range" min="80" max="800" step="10" value="200" data-roi-basket>
-            <output data-roi-basket-out>200 €</output>
-          </label>
-          <label class="v-roi-field">
-            <span>{{ _('landing.roi_calc_rate') }}</span>
-            <input type="range" min="10" max="80" step="5" value="30" data-roi-rate>
-            <output data-roi-rate-out>30 %</output>
-          </label>
-        </div>
-        <div class="v-roi-result">
-          <span class="v-roi-result-label">{{ _('landing.roi_calc_result_label') }}</span>
-          <strong class="v-roi-result-value" data-roi-month>—</strong>
-          <span class="v-roi-result-year" data-roi-year></span>
-          <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block v-roi-cta">{{ _('landing.cta_signup') }}</a>
-        </div>
-      </div>
-      <p class="v-sources">{{ _('landing.roi_calc_note') }}</p>
+    <p class="cv-roi-price">{{ _('landing.roi_price_label') }}</p>
+    <p class="v-sources">{{ _('landing.roi_hypothesis') }}</p>
+    <div class="v-mid-cta">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
     </div>
+  </div>
+</section>
+
+{% if founding and founding.enabled %}
+<section class="founding-spotlight" aria-labelledby="founding-spotlight-title" id="founding">
+  <div class="container founding-spotlight-inner">
+    <div class="founding-spotlight-copy">
+      <p class="founding-spotlight-kicker">{{ _('founding.kicker') }}</p>
+      <p class="founding-spotlight-title" id="founding-spotlight-title">{{ _('founding.pro_spotlight_title') }}</p>
+      <p class="founding-spotlight-lead">{{ _('founding.pro_spotlight_lead') }}</p>
+      <ul class="cv-launch-points">
+        <li>{{ _('landing.launch_1') }}</li>
+        <li>{{ _('landing.launch_2') }}</li>
+        <li>{{ _('landing.launch_3') }}</li>
+        <li>{{ _('landing.launch_4') }}</li>
+      </ul>
+      {% if founding.open %}
+      <p class="founding-spotlight-counter">{{ _('founding.counter', n=founding.occupied, max=founding.max) }}</p>
+      {% set meter_pct = ((founding.occupied / founding.max) * 100)|round(0, 'floor')|int %}
+      <div class="founding-meter" role="meter" aria-valuemin="0" aria-valuemax="{{ founding.max }}" aria-valuenow="{{ founding.occupied }}" aria-label="{{ _('founding.counter', n=founding.occupied, max=founding.max) }}">
+        <span class="founding-meter-fill" style="width: {{ [meter_pct, 100]|min }}%"></span>
+      </div>
+      {% else %}
+      <p class="founding-spotlight-counter">{{ _('founding.full_banner') }}</p>
+      {% endif %}
+    </div>
+    <div class="founding-spotlight-actions">
+      {% if founding.open %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
+      <p class="founding-spotlight-hint">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
+      {% elif founding.waitlist_enabled %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta_waitlist') }}</a>
+      {% else %}
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.pro_banner_cta') }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="cv-trust-launch">
+  <div class="container">
+    <p class="cv-trust-launch-kicker">{{ _('landing.trust_launch') }}</p>
+    <p>{{ _('landing.trust_launch_body') }}</p>
   </div>
 </section>
 
@@ -524,6 +434,25 @@
       <p class="landing-pricing-trial-hint">{{ _('landing.pricing_trial_intro') }}</p>
     </div>
 
+    <article class="pricing-card pricing-card-trial cv-trial-lead">
+      <span class="pricing-badge pricing-badge-trial">{{ _('landing.pricing_trial_badge') }}</span>
+      <h3 class="pricing-name">{{ _('landing.pricing_trial_name') }}</h3>
+      <p class="pricing-price">
+        <strong>{{ _('landing.pricing_trial_price') }}</strong>
+        <span>{{ _('landing.pricing_trial_period') }}</span>
+      </p>
+      <p class="pricing-desc pricing-desc-trial">{{ _('landing.pricing_trial_desc') }}</p>
+      <ul class="pricing-features">
+        <li>{{ _('landing.pricing_trial_feat_1') }}</li>
+        <li>{{ _('landing.pricing_trial_feat_2') }}</li>
+        <li>{{ _('landing.pricing_trial_feat_3') }}</li>
+        <li>{{ _('landing.pricing_trial_feat_4') }}</li>
+      </ul>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block" data-track="cta_trial_click">{{ _('landing.pricing_trial_cta') }}</a>
+    </article>
+
+    <p class="cv-paid-kicker">{{ _('landing.pricing_paid_title') }}</p>
+
     <div class="pro-pricing-carousel v-reveal" data-pricing-carousel tabindex="0">
       <div class="pro-pricing-tabs" data-pricing-tabs role="tablist" aria-label="{{ _('landing.pricing_tabs_label') }}"></div>
 
@@ -532,26 +461,9 @@
 
         <div class="pro-pricing-viewport" data-pricing-viewport>
           <div class="pro-pricing-track" data-pricing-track>
-            <article class="pricing-card pricing-card-trial pro-pricing-slide" data-pricing-slide data-slide-label="{{ _('landing.pricing_trial_name') }}">
-              <span class="pricing-badge pricing-badge-trial">{{ _('landing.pricing_trial_badge') }}</span>
-              <h3 class="pricing-name">{{ _('landing.pricing_trial_name') }}</h3>
-              <p class="pricing-price">
-                <strong>{{ _('landing.pricing_trial_price') }}</strong>
-                <span>{{ _('landing.pricing_trial_period') }}</span>
-              </p>
-              <p class="pricing-desc pricing-desc-trial">{{ _('landing.pricing_trial_desc') }}</p>
-              <ul class="pricing-features">
-                <li>{{ _('landing.pricing_trial_feat_1') }}</li>
-                <li>{{ _('landing.pricing_trial_feat_2') }}</li>
-                <li>{{ _('landing.pricing_trial_feat_3') }}</li>
-                <li>{{ _('landing.pricing_trial_feat_4') }}</li>
-              </ul>
-              <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-block">{{ _('landing.pricing_trial_cta') }}</a>
-            </article>
-
             {% for offer in offers %}
-            <article class="pricing-card pro-pricing-slide{% if offer.featured %} pricing-card-featured{% endif %}" data-pricing-slide data-slide-label="{{ offer.name }}">
-              {% if offer.badge %}<span class="pricing-badge{% if offer.featured %} pricing-badge-featured{% endif %}">{{ offer.badge }}</span>{% endif %}
+            <article class="pricing-card pro-pricing-slide{% if offer.key == 'starter' %} pricing-card-featured{% endif %}" data-pricing-slide data-slide-label="{{ offer.name }}">
+              {% if offer.badge %}<span class="pricing-badge{% if offer.key == 'starter' %} pricing-badge-featured{% endif %}">{{ offer.badge }}</span>{% endif %}
               <h3 class="pricing-name">{{ offer.name }}</h3>
               <p class="pricing-price"><strong>{{ offer.price }}</strong> {% if offer.period %}<span>{{ offer.period }}</span>{% endif %}</p>
               {% if offer.calls %}<p class="pricing-calls"><span class="pricing-calls-dot">📞</span>{{ offer.calls }}</p>{% endif %}
@@ -559,7 +471,7 @@
               <ul class="pricing-features">
                 {% for feat in honest_offer_features(offer) %}<li>{{ feat }}</li>{% endfor %}
               </ul>
-              <a href="{{ url_for('web.register', plan=offer.key) }}" class="btn {% if offer.featured %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
+              <a href="{{ url_for('web.register', plan=offer.key) }}" class="btn {% if offer.key == 'starter' %}btn-primary{% else %}btn-outline{% endif %} btn-block" data-track="cta_trial_click">{{ offer.cta or _('landing.pricing_pro_cta') }}</a>
             </article>
             {% endfor %}
           </div>
@@ -593,7 +505,7 @@
       <h2>{{ _('landing.faq_title') }}</h2>
     </div>
     <div class="faq-list">
-      {% for n in range(1, 9) %}
+      {% for n in range(1, 10) %}
       <details class="faq-item"{% if n == 1 %} open{% endif %}>
         <summary>{{ _('landing.faq_%s_q'|format(n)) }}</summary>
         <p>{{ _('landing.faq_%s_a'|format(n)) }}</p>
@@ -609,11 +521,11 @@
     <p>{{ _('landing.cta_band_sub') }}</p>
     <div class="v-cta-band-actions">
       {% if founding and founding.enabled and founding.open %}
-      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('founding.cta') }}</a>
-      <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_signup') }}</a>
+      <a href="{{ url_for('web.founding_landing') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_founding') }}</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg v-cta-band-secondary" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
       {% else %}
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">{{ _('landing.cta_signup') }}</a>
-      <a href="#demo" class="btn btn-outline btn-lg v-cta-band-secondary">{{ _('landing.cta_see_demo') }}</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <a href="#demo-flow" class="btn btn-outline btn-lg v-cta-band-secondary" data-demo-listen>{{ _('landing.cta_see_demo') }}</a>
       {% endif %}
     </div>
     <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
@@ -653,6 +565,5 @@
   };
 </script>
 <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pro-pricing.js') }}?v=2"></script>
-<script src="{{ url_for('static', filename='js/roi-calc.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/pro-pricing.js') }}?v=3"></script>
 {% endblock %}

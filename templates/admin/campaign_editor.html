@@ -6,6 +6,8 @@
 {% block topbar_actions %}
 <span class="camp-status camp-status--{{ campaign.status }}">{{ campaign.status_label }}</span>
 <span class="camp-save" id="camp-save-state">Enregistré</span>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_preview', campaign_id=campaign.id) }}"
+   target="_blank" rel="noopener">Voir l'e-mail</a>
 <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_report', campaign_id=campaign.id) }}">Rapport</a>
 <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaigns') }}">← Campagnes</a>
 {% endblock %}
@@ -25,11 +27,21 @@
      data-send-url="{{ url_for('admin.api_campaign_send_batch', campaign_id=campaign.id) }}">
 
   {% if not campaign.is_editable %}
-  <div class="camp-locked">
+  <p class="camp-alert camp-alert--warn">
     Cette campagne a commencé à partir : le contenu est verrouillé pour que le rapport reflète
     ce qui a réellement été envoyé. <strong>Dupliquez-la</strong> pour repartir de ce design.
-  </div>
+  </p>
   {% endif %}
+
+  <!-- ── Steps: what the page asks of you, in order ──────────────────── -->
+  <ol class="camp-steps">
+    <li class="camp-step"><span class="camp-step-num">1</span>
+      <span><strong>Le message</strong><small>objet, contenu, style</small></span></li>
+    <li class="camp-step"><span class="camp-step-num">2</span>
+      <span><strong>L'audience</strong><small>{{ audience.will_receive }} destinataires retenus</small></span></li>
+    <li class="camp-step"><span class="camp-step-num">3</span>
+      <span><strong>L'envoi</strong><small>test, lancement ou programmation</small></span></li>
+  </ol>
 
   <!-- ── Header: identity of the message ─────────────────────────────── -->
   <section class="admin-panel camp-head">
@@ -188,8 +200,12 @@
   <!-- ── Audience & send ─────────────────────────────────────────────── -->
   <div class="camp-bottom">
     <section class="admin-panel camp-audience">
-      <h2>Audience</h2>
-      <p class="admin-panel-lead">Choisie parmi vos prospects artisans. Les désinscrits sont toujours exclus.</p>
+      <header class="camp-panel-head">
+        <div>
+          <h2>Audience</h2>
+          <p class="camp-panel-lead">Choisie parmi vos prospects artisans. Les désinscrits sont toujours exclus.</p>
+        </div>
+      </header>
       <div class="camp-audience-grid">
         <label class="field">
           <span>Métiers</span>
@@ -233,10 +249,16 @@
     </section>
 
     <section class="admin-panel camp-send">
-      <h2>Envoi</h2>
+      <header class="camp-panel-head">
+        <div>
+          <h2>Envoi</h2>
+          <p class="camp-panel-lead">Un lot part sur une seule connexion, à débit maîtrisé.</p>
+        </div>
+      </header>
+
       {% if not smtp_configured %}
-      <p class="camp-warn">SMTP non configuré : les envois seront <strong>simulés</strong> et enregistrés,
-        mais aucun e-mail ne partira réellement.</p>
+      <p class="camp-alert camp-alert--warn">SMTP non configuré : les envois seront
+        <strong>simulés</strong> et enregistrés, mais aucun e-mail ne partira réellement.</p>
       {% endif %}
 
       <form method="POST" action="{{ url_for('admin.campaign_test', campaign_id=campaign.id) }}" class="camp-test">
@@ -244,22 +266,31 @@
           <span>Envoyer un test à</span>
           <input type="email" name="to" class="admin-input" value="{{ default_from }}" required>
         </label>
-        <button type="submit" class="admin-btn ghost">Envoyer un test</button>
+        <button type="submit" class="admin-btn ghost">Tester</button>
       </form>
 
-      <div class="camp-send-progress">
-        <div class="camp-progress-track"><div class="camp-progress-bar" id="camp-progress"></div></div>
-        <p class="camp-send-stats" id="camp-send-stats">
-          {{ stats.sent }} envoyés · {{ stats.pending }} en attente · {{ stats.failed }} en échec
-        </p>
+      <div class="camp-gauge">
+        <div class="camp-gauge-figure">
+          <strong id="camp-gauge-pct">{{ stats.progress_pct }}%</strong>
+          <span>de l'audience traitée</span>
+        </div>
+        <span class="camp-bar camp-bar--ink camp-bar--lg">
+          <i id="camp-progress" style="width: {{ stats.progress_pct }}%"></i>
+        </span>
+        <ul class="camp-gauge-legend" id="camp-send-stats"
+            data-sent="{{ stats.sent }}" data-pending="{{ stats.pending }}" data-failed="{{ stats.failed }}">
+          <li><span class="camp-dot camp-dot--sent"></span><strong data-k="sent">{{ stats.sent }}</strong> envoyés</li>
+          <li><span class="camp-dot camp-dot--pending"></span><strong data-k="pending">{{ stats.pending }}</strong> en attente</li>
+          <li><span class="camp-dot camp-dot--failed"></span><strong data-k="failed">{{ stats.failed }}</strong> en échec</li>
+        </ul>
       </div>
 
       <div class="camp-send-actions">
-        <button type="button" class="admin-btn ghost" id="camp-prepare">1. Préparer l'audience</button>
-        <button type="button" class="admin-btn camp-send-btn" id="camp-send">2. Lancer l'envoi</button>
+        <button type="button" class="admin-btn ghost" id="camp-prepare">1 · Préparer l'audience</button>
+        <button type="button" class="admin-btn camp-send-btn" id="camp-send">2 · Lancer l'envoi</button>
         <button type="button" class="admin-btn ghost" id="camp-pause" hidden>Interrompre</button>
       </div>
-      <p class="camp-send-note" id="camp-send-note"></p>
+      <p class="camp-alert camp-alert--info" id="camp-send-note" hidden></p>
 
       <form method="POST" action="{{ url_for('admin.campaign_schedule', campaign_id=campaign.id) }}" class="camp-schedule">
         <label class="field camp-field--grow">
@@ -269,7 +300,10 @@
         </label>
         <button type="submit" class="admin-btn ghost">Programmer</button>
       </form>
-      <p class="camp-send-note">L'envoi programmé part par lots via la tâche planifiée du serveur.</p>
+      <p class="camp-footnote">
+        L'envoi programmé part par lots via la tâche planifiée du serveur, et reprend tout seul
+        si le serveur d'e-mails demande à ralentir.
+      </p>
     </section>
   </div>
 </div>
@@ -278,5 +312,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='admin/campaign-designer.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='admin/campaign-designer.js') }}?v=2"></script>
 {% endblock %}

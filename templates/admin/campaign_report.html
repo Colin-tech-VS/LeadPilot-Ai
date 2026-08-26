@@ -6,73 +6,105 @@
 <span class="camp-status camp-status--{{ campaign.status }}">{{ campaign.status_label }}</span>
 <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_editor', campaign_id=campaign.id) }}">Éditeur</a>
 <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_preview', campaign_id=campaign.id) }}" target="_blank" rel="noopener">Voir l'e-mail</a>
+<a class="admin-btn ghost tiny" href="{{ url_for('admin.campaigns') }}">← Campagnes</a>
 {% endblock %}
 
 {% block content %}
-<p class="dash-intro">
-  Objet envoyé : <strong>{{ campaign.subject or '—' }}</strong>
-  {% if campaign.started_at %} · démarrée le {{ campaign.started_at.strftime('%d/%m/%Y à %H:%M') }}{% endif %}
-  {% if campaign.finished_at %} · terminée le {{ campaign.finished_at.strftime('%d/%m/%Y à %H:%M') }}{% endif %}
-</p>
 
-<div class="prospect-kpi-row">
-  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--total">
-    <span class="kpi-label">Destinataires</span>
-    <span class="kpi-value">{{ stats.recipients }}</span>
-    <span class="kpi-sub">{{ stats.pending }} encore en attente</span>
+<section class="camp-hero camp-hero--report">
+  <div class="camp-hero-main">
+    <span class="camp-eyebrow">Objet envoyé</span>
+    <p class="camp-hero-subject">{{ campaign.subject or '—' }}</p>
+    <ul class="camp-timeline">
+      <li>
+        <span class="camp-timeline-label">Démarrée</span>
+        <strong>{{ campaign.started_at.strftime('%d/%m/%Y à %H:%M') if campaign.started_at else '—' }}</strong>
+      </li>
+      <li>
+        <span class="camp-timeline-label">Terminée</span>
+        <strong>{{ campaign.finished_at.strftime('%d/%m/%Y à %H:%M') if campaign.finished_at else 'en cours' }}</strong>
+      </li>
+      <li>
+        <span class="camp-timeline-label">Destinataires</span>
+        <strong>{{ stats.recipients }}</strong>
+      </li>
+    </ul>
   </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">Remis</span>
-    <span class="kpi-value">{{ stats.delivered }}</span>
-    <span class="kpi-sub">{{ stats.delivery_rate }} des envois · {{ stats.failed }} échecs</span>
+
+  <div class="camp-hero-funnel">
+    {% set rows = [
+      ('Remis',      stats.delivery_rate, stats.delivery_pct, stats.delivered ~ ' e-mails acceptés', 'ok'),
+      ('Ouvertures', stats.open_rate,     stats.open_pct,     stats.unique_opens ~ ' uniques · ' ~ stats.total_opens ~ ' au total', 'ink'),
+      ('Clics',      stats.click_rate,    stats.click_pct,    stats.unique_clicks ~ ' cliqueurs · CTOR ' ~ stats.ctor, 'win'),
+      ('Désinscriptions', stats.unsubscribed, stats.unsub_pct, stats.unsub_rate ~ ' des envois', 'warn')
+    ] %}
+    {% for label, value, pct, sub, tone in rows %}
+    <div class="camp-funnel-row">
+      <span class="camp-funnel-label">{{ label }}</span>
+      <span class="camp-bar camp-bar--{{ tone }}"><i style="width: {{ pct }}%"></i></span>
+      <span class="camp-funnel-value">{{ value }}</span>
+      <span class="camp-funnel-sub">{{ sub }}</span>
+    </div>
+    {% endfor %}
   </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">Ouvertures</span>
-    <span class="kpi-value">{{ stats.open_rate }}</span>
-    <span class="kpi-sub">{{ stats.unique_opens }} uniques · {{ stats.total_opens }} au total</span>
+</section>
+
+<div class="camp-health">
+  <div class="camp-health-item">
+    <span class="camp-health-value">{{ stats.pending }}</span>
+    <span class="camp-health-label">encore en attente</span>
   </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--win">
-    <span class="kpi-label">Clics</span>
-    <span class="kpi-value">{{ stats.click_rate }}</span>
-    <span class="kpi-sub">{{ stats.unique_clicks }} cliqueurs · CTOR {{ stats.ctor }}</span>
+  <div class="camp-health-item{% if stats.failed %} camp-health-item--alert{% endif %}">
+    <span class="camp-health-value">{{ stats.failed }}</span>
+    <span class="camp-health-label">échecs d'envoi</span>
   </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">Désinscriptions</span>
-    <span class="kpi-value">{{ stats.unsubscribed }}</span>
-    <span class="kpi-sub">{{ stats.unsub_rate }} des envois</span>
+  <div class="camp-health-item">
+    <span class="camp-health-value">{{ stats.skipped }}</span>
+    <span class="camp-health-label">adresses écartées</span>
+  </div>
+  <div class="camp-health-item">
+    <span class="camp-health-value">{{ stats.progress }}</span>
+    <span class="camp-health-label">de l'audience traitée</span>
   </div>
 </div>
 
 {% if stats.top_links %}
 <section class="admin-panel">
-  <h2>Liens les plus cliqués</h2>
-  <table class="admin-table camp-links">
-    <thead><tr><th>Destination</th><th class="num">Clics</th></tr></thead>
-    <tbody>
-      {% for link in stats.top_links %}
-      <tr><td class="camp-link-url">{{ link.url }}</td><td class="num">{{ link.count }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <header class="camp-panel-head">
+    <div>
+      <h2>Liens les plus cliqués</h2>
+      <p class="camp-panel-lead">Ce que les destinataires sont allés voir après l'e-mail.</p>
+    </div>
+  </header>
+  {% set top = stats.top_links[0].count or 1 %}
+  <ul class="camp-links">
+    {% for link in stats.top_links %}
+    <li class="camp-link">
+      <span class="camp-link-url" title="{{ link.url }}">{{ link.url }}</span>
+      <span class="camp-bar camp-bar--win"><i style="width: {{ (100 * link.count / top)|round|int }}%"></i></span>
+      <span class="camp-link-count">{{ link.count }}</span>
+    </li>
+    {% endfor %}
+  </ul>
 </section>
 {% endif %}
 
-<div class="prospect-toolbar">
-  <nav class="prospect-tabs" aria-label="Filtrer les destinataires">
+<div class="camp-list-head">
+  <nav class="camp-filters" aria-label="Filtrer les destinataires">
     <a href="{{ url_for('admin.campaign_report', campaign_id=campaign.id) }}"
-       class="prospect-tab{% if not status_filter %} active{% endif %}">
-      Tous <span class="prospect-tab-count">{{ stats.recipients }}</span>
+       class="camp-filter{% if not status_filter %} active{% endif %}">
+      Tous <span class="camp-filter-count">{{ stats.recipients }}</span>
     </a>
     {% for code, label in status_labels.items() %}
     <a href="{{ url_for('admin.campaign_report', campaign_id=campaign.id, r=code) }}"
-       class="prospect-tab{% if status_filter == code %} active{% endif %}">{{ label }}</a>
+       class="camp-filter{% if status_filter == code %} active{% endif %}">{{ label }}</a>
     {% endfor %}
   </nav>
 </div>
 
 {% if recipients %}
 <div class="admin-table-wrap">
-  <table class="admin-table table-stack">
+  <table class="data-table accounts-table camp-recipients table-stack">
     <thead>
       <tr>
         <th>Contact</th><th>E-mail</th><th>Ville</th><th>Statut</th>
@@ -82,12 +114,12 @@
     <tbody>
       {% for r in recipients %}
       <tr>
-        <td data-label="Contact">{{ r.name }}</td>
+        <td data-label="Contact"><strong>{{ r.name }}</strong></td>
         <td class="camp-mono" data-label="E-mail">{{ r.email }}</td>
         <td data-label="Ville">{{ r.city or '—' }}</td>
         <td data-label="Statut"><span class="camp-rstatus camp-rstatus--{{ r.status }}">{{ r.status_label }}</span></td>
-        <td class="num" data-label="Ouvertures">{% if r.opened %}{{ r.opens }}{% else %}—{% endif %}</td>
-        <td class="num" data-label="Clics">{% if r.clicked %}{{ r.clicks }}{% else %}—{% endif %}</td>
+        <td class="num" data-label="Ouvertures">{% if r.opened %}{{ r.opens }}{% else %}<span class="camp-nil">—</span>{% endif %}</td>
+        <td class="num" data-label="Clics">{% if r.clicked %}{{ r.clicks }}{% else %}<span class="camp-nil">—</span>{% endif %}</td>
         <td class="camp-error" data-label="Détail">{{ r.error or '' }}</td>
       </tr>
       {% endfor %}
@@ -95,6 +127,8 @@
   </table>
 </div>
 {% else %}
-<div class="admin-empty"><p>Aucun destinataire pour ce filtre.</p></div>
+<div class="camp-empty">
+  <p class="camp-empty-title">Aucun destinataire pour ce filtre.</p>
+</div>
 {% endif %}
 {% endblock %}

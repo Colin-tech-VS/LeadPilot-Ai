@@ -141,6 +141,22 @@ class Config:
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
     SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "1") not in ("0", "false", "False", "")
     SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "0") not in ("0", "false", "False", "")
+    # Débit sortant. LWS (mail96.lwspanel.com) refuse par « 421 4.7.0 … too many
+    # connections from <ip> » dès que la même IP ouvre trop de connexions
+    # simultanées ou trop rapprochées. Une connexion par message — ce que
+    # faisait l'envoi de campagne — atteint cette limite en quelques secondes.
+    # Ces réglages bornent le nombre de connexions ouvertes, réutilisent la même
+    # connexion pour tout un lot et espacent les messages.
+    SMTP_MAX_CONNECTIONS = int(os.environ.get("SMTP_MAX_CONNECTIONS", "1"))
+    SMTP_SEND_INTERVAL = float(os.environ.get("SMTP_SEND_INTERVAL", "1.2"))
+    SMTP_MAX_PER_CONNECTION = int(os.environ.get("SMTP_MAX_PER_CONNECTION", "25"))
+    SMTP_MAX_RETRIES = int(os.environ.get("SMTP_MAX_RETRIES", "2"))
+    SMTP_RETRY_BACKOFF = float(os.environ.get("SMTP_RETRY_BACKOFF", "5"))
+    # Attente maximale pour obtenir un créneau de connexion (un envoi
+    # transactionnel pendant qu'un lot de campagne tourne).
+    SMTP_SLOT_TIMEOUT = float(os.environ.get("SMTP_SLOT_TIMEOUT", "60"))
+    # Taille de lot d'envoi campagne (destinataires par requête/passage cron).
+    CAMPAIGN_BATCH_SIZE = int(os.environ.get("CAMPAIGN_BATCH_SIZE", "20"))
     EMAIL_FROM = os.environ.get("EMAIL_FROM", "contact@pilotcore.fr")
     EMAIL_INBOUND_SECRET = os.environ.get("EMAIL_INBOUND_SECRET", "")
     # Comma-separated addresses that never get open/click tracking (operator mailbox).

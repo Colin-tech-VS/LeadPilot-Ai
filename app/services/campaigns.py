@@ -1,18 +1,25 @@
 """Mailing campaigns: audience, sending, reporting.
 
-The send is deliberately *batched* rather than one long request. Each message
-opens an SMTP connection that takes seconds, and the host caps hourly volume;
-a 200-recipient loop inside one request would hit the gunicorn timeout long
-before it hit the mail server. So ``send_batch`` sends a bounded slice and
-reports what is left, and the caller — the admin UI or the cron worker — comes
-back for the next slice. That also makes an interrupted send resumable: the
-recipient rows carry the state, not the request.
+The send is deliberately *batched* rather than one long request. The host caps
+hourly volume, and a 200-recipient loop inside one request would hit the
+gunicorn timeout long before it hit the mail server. So ``send_batch`` sends a
+bounded slice and reports what is left, and the caller — the admin UI or the
+cron worker — comes back for the next slice. That also makes an interrupted
+send resumable: the recipient rows carry the state, not the request.
+
+One batch = one SMTP connection. Opening a connection per message is what made
+LWS answer ``421 4.7.0 … too many connections from <ip>`` mid-campaign, so the
+batch opens an :class:`~app.services.admin_email.SmtpSession` up front and every
+message rides it. When the server asks for patience anyway, the recipient stays
+``pending`` and the batch stops early with ``throttled``: nobody is marked as
+failed for a queue problem, and the next pass picks up exactly where this one
+left off.
 """
 from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import current_app
 from sqlalchemy import func
@@ -46,12 +53,28 @@ from app.services.email_validation import check_recipient
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BATCH = 25
+DEFAULT_BATCH = 20
 MAX_BATCH = 100
+
+# How long a caller should wait after a throttled batch, when the server did
+# not say. Long enough for LWS's per-IP connection window to clear.
+THROTTLE_PAUSE = 120
+
+# A campaign the admin console is actively sending must not also be advanced by
+# the cron worker: two senders mean two SMTP connections and twice the rate.
+CRON_QUIET_PERIOD = 180
 
 
 class CampaignError(Exception):
     """Raised for anything the admin should read as a sentence, not a 500."""
+
+
+def default_batch_size() -> int:
+    """Recipients per slice — overridable per environment (CAMPAIGN_BATCH_SIZE)."""
+    try:
+        return max(1, min(int(current_app.config.get("CAMPAIGN_BATCH_SIZE", DEFAULT_BATCH)), MAX_BATCH))
+    except (RuntimeError, TypeError, ValueError):
+        return DEFAULT_BATCH
 
 
 def _base_url() -> str:
@@ -378,7 +401,7 @@ def send_test(campaign_id, to_addr: str) -> dict:
     return {"status": row.status, "error": row.error}
 
 
-def send_batch(campaign_id, *, batch_size: int = DEFAULT_BATCH) -> dict:
+def send_batch(campaign_id, *, batch_size: int | None = None) -> dict:
     """Send the next slice of pending recipients. Returns progress for the caller."""
     campaign = get_campaign(campaign_id)
     if campaign.status == STATUS_PAUSED:
@@ -388,7 +411,7 @@ def send_batch(campaign_id, *, batch_size: int = DEFAULT_BATCH) -> dict:
     if not campaign_render.blocks_of(campaign.design()):
         raise CampaignError("La campagne est vide — ajoutez au moins un bloc.")
 
-    batch_size = max(1, min(int(batch_size or DEFAULT_BATCH), MAX_BATCH))
+    batch_size = max(1, min(int(batch_size or default_batch_size()), MAX_BATCH))
     pending = (
         CampaignRecipient.query.filter(
             CampaignRecipient.campaign_id == campaign.id,
@@ -407,73 +430,127 @@ def send_batch(campaign_id, *, batch_size: int = DEFAULT_BATCH) -> dict:
         db.session.commit()
 
     sent = failed = skipped = 0
+    throttled_reason = None
+    retry_after = 0
     unsubscribe_mailto = admin_email.default_from_addr()
 
-    for recipient in pending:
-        prospect = (
-            db.session.get(OutreachProspect, recipient.prospect_id)
-            if recipient.prospect_id
-            else None
-        )
-        # Somebody may have unsubscribed between the snapshot and this batch.
-        if prospect is not None and prospect.opted_out_at is not None:
-            recipient.status = R_UNSUBSCRIBED
-            recipient.unsubscribed_at = prospect.opted_out_at
-            skipped += 1
-            continue
-        deliverable, reason = check_recipient(recipient.email)
-        if not deliverable:
-            recipient.status = R_SKIPPED
-            recipient.error = f"Adresse non délivrable ({reason})."[:500]
-            skipped += 1
-            continue
-
+    # One connection for the whole slice. Opened here rather than lazily so a
+    # server that is refusing connections costs nothing: no message row, no
+    # recipient touched, just a "come back later" for the caller.
+    session = admin_email.smtp_session() if admin_email.is_configured() else None
+    if session is not None:
         try:
-            subject, html, plain = _render_for(campaign, recipient)
-            row = admin_email.send_email(
-                recipient.email,
-                subject,
-                plain,
-                is_html=True,
-                html_body=html,
-                reply_to=campaign.reply_to or unsubscribe_mailto,
-                list_unsubscribe=(
-                    f"<mailto:{unsubscribe_mailto}?subject=desinscription>, "
-                    f"<{unsubscribe_url(recipient)}>"
-                ),
+            # One attempt only: this runs inside a request, and a host that is
+            # refusing connections is answered with "later", not with a minute
+            # of backoff behind an unanswered socket.
+            session.open(retries=0)
+        except admin_email.SmtpTransientError as exc:
+            logger.warning("Campagne %s — connexion SMTP différée : %s", campaign.id, exc)
+            return _batch_report(
+                campaign, sent=0, failed=0, skipped=0,
+                throttled=str(exc), retry_after=getattr(exc, "retry_after", THROTTLE_PAUSE),
             )
-        except Exception as exc:  # noqa: BLE001 — one bad address never kills a batch
-            db.session.rollback()
-            logger.exception("Campaign send failed for %s", recipient.email)
-            recipient = db.session.get(CampaignRecipient, recipient.id)
-            if recipient:
+
+    try:
+        for recipient in pending:
+            prospect = (
+                db.session.get(OutreachProspect, recipient.prospect_id)
+                if recipient.prospect_id
+                else None
+            )
+            # Somebody may have unsubscribed between the snapshot and this batch.
+            if prospect is not None and prospect.opted_out_at is not None:
+                recipient.status = R_UNSUBSCRIBED
+                recipient.unsubscribed_at = prospect.opted_out_at
+                skipped += 1
+                # Committed as we go: a rollback further down the slice — a
+                # saturated server, a broken address — must not undo a decision
+                # already taken about somebody else.
+                db.session.commit()
+                continue
+            deliverable, reason = check_recipient(recipient.email)
+            if not deliverable:
+                recipient.status = R_SKIPPED
+                recipient.error = f"Adresse non délivrable ({reason})."[:500]
+                skipped += 1
+                db.session.commit()
+                continue
+
+            try:
+                subject, html, plain = _render_for(campaign, recipient)
+                row = admin_email.send_email(
+                    recipient.email,
+                    subject,
+                    plain,
+                    is_html=True,
+                    html_body=html,
+                    reply_to=campaign.reply_to or unsubscribe_mailto,
+                    list_unsubscribe=(
+                        f"<mailto:{unsubscribe_mailto}?subject=desinscription>, "
+                        f"<{unsubscribe_url(recipient)}>"
+                    ),
+                    session=session,
+                )
+            except admin_email.SmtpTransientError as exc:
+                # The server is saturated, not the address. Leave this recipient
+                # pending — marking it failed would quietly drop a prospect who
+                # was never actually mailed — and stop the slice here.
+                db.session.rollback()
+                throttled_reason = str(exc)
+                retry_after = getattr(exc, "retry_after", THROTTLE_PAUSE)
+                logger.warning(
+                    "Campagne %s — lot interrompu après %s envois : %s",
+                    campaign.id, sent, throttled_reason,
+                )
+                break
+            except Exception as exc:  # noqa: BLE001 — one bad address never kills a batch
+                db.session.rollback()
+                logger.exception("Campaign send failed for %s", recipient.email)
+                recipient = db.session.get(CampaignRecipient, recipient.id)
+                if recipient:
+                    recipient.status = R_FAILED
+                    recipient.error = f"{type(exc).__name__}: {exc}"[:500]
+                failed += 1
+                db.session.commit()
+                continue
+
+            recipient.email_message_id = row.id
+            recipient.sent_at = utcnow()
+            if row.status == "failed":
                 recipient.status = R_FAILED
-                recipient.error = f"{type(exc).__name__}: {exc}"[:500]
-            failed += 1
+                recipient.error = (row.error or "erreur SMTP")[:500]
+                failed += 1
+            else:
+                recipient.status = R_SENT
+                recipient.error = None
+                sent += 1
+                if prospect is not None:
+                    prospect.status = "contacted"
+                    prospect.last_contacted_at = recipient.sent_at
+                    prospect.updated_at = utcnow()
             db.session.commit()
-            continue
+    finally:
+        if session is not None:
+            session.close()
 
-        recipient.email_message_id = row.id
-        recipient.sent_at = utcnow()
-        if row.status == "failed":
-            recipient.status = R_FAILED
-            recipient.error = (row.error or "erreur SMTP")[:500]
-            failed += 1
-        else:
-            recipient.status = R_SENT
-            recipient.error = None
-            sent += 1
-            if prospect is not None:
-                prospect.status = "contacted"
-                prospect.last_contacted_at = recipient.sent_at
-                prospect.updated_at = utcnow()
-        db.session.commit()
+    return _batch_report(
+        campaign, sent=sent, failed=failed, skipped=skipped,
+        throttled=throttled_reason, retry_after=retry_after,
+    )
 
+
+def _batch_report(campaign, *, sent, failed, skipped, throttled=None, retry_after=0) -> dict:
+    """Close the slice: recount what is left and settle the campaign status.
+
+    A throttled slice never marks the campaign finished, and never leaves it in
+    a state the admin has to rescue by hand — it stays ``sending`` so both the
+    console and the cron worker resume it on their own.
+    """
     remaining = CampaignRecipient.query.filter(
         CampaignRecipient.campaign_id == campaign.id,
         CampaignRecipient.status == R_PENDING,
     ).count()
-    if remaining == 0:
+    if remaining == 0 and not throttled:
         campaign.status = STATUS_SENT
         campaign.finished_at = utcnow()
     campaign.updated_at = utcnow()
@@ -486,11 +563,14 @@ def send_batch(campaign_id, *, batch_size: int = DEFAULT_BATCH) -> dict:
         "skipped": skipped,
         "remaining": remaining,
         "status": campaign.status,
-        "done": remaining == 0,
+        "done": remaining == 0 and not throttled,
+        "throttled": bool(throttled),
+        "throttle_reason": throttled or None,
+        "retry_after": int(retry_after or (THROTTLE_PAUSE if throttled else 0)),
     }
 
 
-def run_due_campaigns(*, batch_size: int = DEFAULT_BATCH) -> list[dict]:
+def run_due_campaigns(*, batch_size: int | None = None) -> list[dict]:
     """Cron entry point: start scheduled campaigns and advance in-flight ones."""
     now = datetime.now(timezone.utc)
     due = EmailCampaign.query.filter(
@@ -513,11 +593,38 @@ def run_due_campaigns(*, batch_size: int = DEFAULT_BATCH) -> list[dict]:
     ).all()
     reports = []
     for campaign in in_flight:
+        if _recently_advanced(campaign.id, now=now):
+            # The admin console is driving this one right now. Two senders would
+            # mean two SMTP connections and twice the rate — the exact recipe
+            # for the host's "too many connections".
+            logger.info("Campagne %s déjà en cours d'envoi depuis la console — passée", campaign.id)
+            continue
         try:
-            reports.append(send_batch(campaign.id, batch_size=batch_size))
+            report = send_batch(campaign.id, batch_size=batch_size)
         except CampaignError as exc:
             logger.warning("Campaign %s batch skipped: %s", campaign.id, exc)
+            continue
+        reports.append(report)
+        if report.get("throttled"):
+            # The server is refusing volume: the next campaign in the list would
+            # only collect the same refusal. Stop this pass.
+            logger.warning("Envoi suspendu pour ce passage : %s", report.get("throttle_reason"))
+            break
     return reports
+
+
+def _recently_advanced(campaign_id, *, now: datetime | None = None) -> bool:
+    """True when a message went out for this campaign moments ago."""
+    last = (
+        db.session.query(func.max(CampaignRecipient.sent_at))
+        .filter(CampaignRecipient.campaign_id == _coerce_id(campaign_id))
+        .scalar()
+    )
+    if last is None:
+        return False
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    return (now or datetime.now(timezone.utc)) - last < timedelta(seconds=CRON_QUIET_PERIOD)
 
 
 # --------------------------------------------------------------------------- #
@@ -551,6 +658,13 @@ def unsubscribe(token: str) -> CampaignRecipient | None:
 # --------------------------------------------------------------------------- #
 # Reporting
 # --------------------------------------------------------------------------- #
+def _pct(n: int, d: int) -> int:
+    """Whole-percent share, for a progress bar width. Never above 100."""
+    if not d:
+        return 0
+    return max(0, min(100, int(round(100.0 * n / d))))
+
+
 def _recipient_counts(campaign_id) -> dict:
     rows = (
         db.session.query(CampaignRecipient.status, func.count())
@@ -566,6 +680,9 @@ def campaign_stats(campaign_id) -> dict:
     counts = _recipient_counts(campaign.id)
     recipients = sum(counts.values())
     sent = counts.get(R_SENT, 0)
+    processed = sent + counts.get(R_FAILED, 0) + counts.get(R_SKIPPED, 0) + counts.get(
+        R_UNSUBSCRIBED, 0
+    )
 
     joined = db.session.query(EmailMessage).join(
         CampaignRecipient, CampaignRecipient.email_message_id == EmailMessage.id
@@ -615,7 +732,14 @@ def campaign_stats(campaign_id) -> dict:
         "click_rate": format_rate(clicked, delivered),
         "ctor": format_rate(clicked, opened),
         "unsub_rate": format_rate(counts.get(R_UNSUBSCRIBED, 0), sent),
-        "progress": format_rate(sent + counts.get(R_FAILED, 0) + counts.get(R_SKIPPED, 0), recipients),
+        "progress": format_rate(processed, recipients),
+        # Whole percents for the bars the console draws; the "…_rate" strings
+        # above stay the ones a human reads.
+        "progress_pct": _pct(processed, recipients),
+        "delivery_pct": _pct(delivered, sent),
+        "open_pct": _pct(opened, delivered),
+        "click_pct": _pct(clicked, delivered),
+        "unsub_pct": _pct(counts.get(R_UNSUBSCRIBED, 0), sent),
         "top_links": top_links,
     }
 
@@ -656,6 +780,10 @@ def overview_stats() -> dict:
         "open_rate": format_rate(opened, delivered),
         "click_rate": format_rate(clicked, delivered),
         "delivery_rate": format_rate(delivered, sent),
+        "open_pct": _pct(opened, delivered),
+        "click_pct": _pct(clicked, delivered),
+        "delivery_pct": _pct(delivered, sent),
+        "unsub_pct": _pct(unsubscribed, sent),
     }
 
 

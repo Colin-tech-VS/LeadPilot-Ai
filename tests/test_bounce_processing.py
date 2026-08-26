@@ -223,3 +223,52 @@ def test_campaign_tables_are_browsable_in_the_console(app, client):
     _login_admin(client)
     for table in ("email_campaigns", "campaign_recipients"):
         assert client.get(f"/admin/database/{table}").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Tâche planifiée
+# --------------------------------------------------------------------------- #
+def test_cron_stays_within_the_host_limit(app):
+    """Scalingo caps this plan at five scheduled tasks; a sixth fails the build."""
+    import json
+    import pathlib
+
+    jobs = json.loads(pathlib.Path("cron.json").read_text())["jobs"]
+    assert len(jobs) <= 5, f"{len(jobs)} tâches planifiées — le déploiement échouera"
+    for job in jobs:
+        script = job["command"].split()[-1]
+        assert pathlib.Path(script).exists(), f"tâche planifiée vers un script absent : {script}"
+
+
+def test_the_mailing_tick_pulls_mail_before_it_sends(app, monkeypatch):
+    """Sending ahead of the bounce sweep is what burns a sending domain."""
+    order = []
+
+    from app.services import imap_mailbox
+
+    monkeypatch.setattr(imap_mailbox, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        imap_mailbox, "sync_inbox",
+        lambda *a, **k: order.append("inbox") or {"synced": 0, "skipped": 0},
+    )
+    monkeypatch.setattr(
+        bounce_processing, "process_bounces",
+        lambda *a, **k: order.append("bounces") or {"reports": 0, "marked": 0},
+    )
+    monkeypatch.setattr(campaigns, "run_due_campaigns", lambda *a, **k: order.append("send") or [])
+
+    import importlib.util
+    import pathlib
+
+    spec = importlib.util.spec_from_file_location(
+        "tick_mailing", pathlib.Path("scripts/tick_mailing.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.imap_mailbox = imap_mailbox
+    module.bounce_processing = bounce_processing
+    module.campaigns = campaigns
+    monkeypatch.setattr(module, "create_app", lambda: app)
+
+    assert module.main() == 0
+    assert order == ["inbox", "bounces", "send"]

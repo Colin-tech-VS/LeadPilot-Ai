@@ -1011,6 +1011,27 @@ def site_page(slug):
     return render_template("public/site_page.html", page=page, preview=False)
 
 
+@web_bp.route("/verification-linkedin", methods=["GET"])
+def linkedin_verification():
+    """Public page hosting the LinkedIn developer-app verification URL.
+
+    A Page super admin opens this link to associate the PilotCore developer
+    app with the company Page. It does not unlock extra API products.
+    """
+    from app.services.linkedin_social import APP_VERIFICATION_URL
+
+    return render_template(
+        "public/legal/linkedin_verification.html",
+        verification_url=APP_VERIFICATION_URL,
+        updated="26 août 2026",
+    )
+
+
+@web_bp.route("/linkedin-verification", methods=["GET"])
+def linkedin_verification_alias():
+    return redirect(url_for("web.linkedin_verification"), code=301)
+
+
 # --- Legal / RGPD pages -----------------------------------------------------
 @web_bp.route("/mentions-legales", methods=["GET"])
 def legal_notice():

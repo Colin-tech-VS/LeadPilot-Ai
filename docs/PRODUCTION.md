@@ -85,7 +85,11 @@ Redirect URIs à autoriser **à l'identique** (prod + local) :
 | Facebook | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | `https://www.pilotcore.fr/admin/social/facebook/callback` |
 | LinkedIn | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | `https://www.pilotcore.fr/admin/social/linkedin/callback` |
 
-LinkedIn : créer une app sur [LinkedIn Developers](https://www.linkedin.com/developers/apps), ajouter **Community Management API**. En **mode Développement**, les admins de l’app peuvent publier **au nom de la page** qu’ils administrent, sans attendre la review partenaire. « Share on LinkedIn » ne poste que sur un profil personnel — PilotCore ne l’utilise pas. Scopes : `openid`, `profile`, `w_organization_social`, `r_organization_social`, `rw_organization_admin`.
+LinkedIn : créer une app sur [LinkedIn Developers](https://www.linkedin.com/developers/apps). Produits ouverts ici : **Sign In with LinkedIn** + **Share on LinkedIn** (+ Ad Library). **Community Management API** n'est pas demandable — les posts partent donc sur le **profil du compte qui autorise**, pas au nom de la page. Scopes OAuth : `openid`, `profile`, `w_member_social`. Demander `w_organization_social` sans le produit fait échouer OAuth (« Bummer, something went wrong ») et LinkedIn renvoie vers l'URL du site au lieu du callback.
+
+Redirect URI à coller **à l'identique** dans Auth → Authorized redirect URLs : `https://www.pilotcore.fr/admin/social/linkedin/callback` (pas seulement `www.pilotcore.fr`).
+
+Lien de vérification page (super admin) : [https://www.pilotcore.fr/verification-linkedin](https://www.pilotcore.fr/verification-linkedin) — URL LinkedIn `https://www.linkedin.com/developers/apps/verification/a7910099-0f14-415c-b7a4-9850c46a4380`.
 
 L'autopublication (cron `scripts/publish_queued_social.py`, toutes les 15 min) envoie le même aperçu sur **chaque** réseau connecté.
 

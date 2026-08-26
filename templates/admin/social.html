@@ -125,12 +125,12 @@
 </div>
 {% endif %}
 
-{% if linkedin_org_choices and not linkedin_connected %}
+{% if linkedin_org_choices and not linkedin_config.org_id %}
 <div class="connect-banner social-token-banner">
   <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:0">
     <strong>Choisissez la page entreprise LinkedIn</strong>
-    <div class="studio-item-meta">Le compte est autorisé. Sélectionnez la page sur laquelle publier — pas un profil personnel.</div>
+    <div class="studio-item-meta">Le compte est autorisé. Sélectionnez la page sur laquelle publier — uniquement si Community Management API est ouvert sur l’app.</div>
   </div>
   <form method="POST" action="{{ url_for('admin.social_linkedin_pick_org') }}" class="db-form" style="width:100%">
     <div class="social-groups">
@@ -151,8 +151,13 @@
 <div class="connect-banner ok social-token-banner">
   <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:0">
+    {% if linkedin_config.org_id %}
     <strong>Page LinkedIn connectée</strong>
     <div class="studio-item-meta">{{ linkedin_config.org_name or linkedin_config.org_id }}{% if linkedin_config.member_name %} · compte {{ linkedin_config.member_name }}{% endif %}</div>
+    {% else %}
+    <strong>Profil LinkedIn connecté</strong>
+    <div class="studio-item-meta">{{ linkedin_config.member_name or linkedin_config.member_id }} — les posts partent sur ce profil, pas au nom de la page entreprise (Community Management API n’est pas ouvert sur l’app).</div>
+    {% endif %}
     <div class="social-token-meta">
       <span class="pill {% if linkedin_status.has_refresh %}pill-published{% else %}pill-draft{% endif %}">
         {% if linkedin_status.has_refresh %}jeton renouvelé auto.{% else %}jeton ~60 jours{% endif %}
@@ -166,7 +171,7 @@
     {% if linkedin_app_ready %}
     <form method="GET" action="{{ url_for('admin.social_linkedin_login') }}" class="db-form social-oauth-form">
       <button type="submit" class="admin-btn">Reconnecter avec LinkedIn</button>
-      <p class="admin-hint" style="margin:8px 0 0">Ouvre LinkedIn, enregistre un jeton renouvelable, puis republie au nom de la page entreprise.</p>
+      <p class="admin-hint" style="margin:8px 0 0">Ouvre LinkedIn, enregistre un jeton renouvelable, puis republie.</p>
     </form>
     {% endif %}
     <form method="POST" action="{{ url_for('admin.social_linkedin_disconnect') }}" style="margin-top:12px">
@@ -178,13 +183,16 @@
 <div class="connect-banner">
   <div class="social-token-mark" aria-hidden="true"></div>
   <div style="flex:1;min-width:260px">
-    <strong>Connectez votre page entreprise LinkedIn</strong>
-    <div class="studio-item-meta">Les posts partent <strong>au nom de la page entreprise</strong>, jamais du profil perso. Dans l’app LinkedIn Developers → Produits, ajoutez <strong>Community Management API</strong>. En mode Développement, LinkedIn l’ouvre tout de suite aux admins de l’app (vous + la page) — pas la review partenaire. « Share on LinkedIn » ne poste que sur un profil, on ne l’utilise pas.</div>
+    <strong>Connectez LinkedIn</strong>
+    <div class="studio-item-meta">Produits ouverts sur l’app : <strong>Sign In with LinkedIn</strong> et <strong>Share on LinkedIn</strong>. Community Management API n’est pas demandable — les posts partent donc sur le <strong>profil du compte qui autorise</strong>, pas au nom de la page entreprise. Le « Bummer, something went wrong » venait des droits page qu’on demandait sans les avoir.</div>
   </div>
   {% if linkedin_app_ready %}
   <form method="GET" action="{{ url_for('admin.social_linkedin_login') }}" class="db-form" style="width:100%">
     <button type="submit" class="admin-btn">Connecter avec LinkedIn</button>
-    <p class="admin-hint" style="margin:8px 0 0">URI de redirection à autoriser dans l’app LinkedIn : <code>{{ linkedin_oauth_redirect }}</code></p>
+    <p class="admin-hint" style="margin:8px 0 0">URI de redirection à coller <strong>à l’identique</strong> dans Auth → Authorized redirect URLs (pas seulement www.pilotcore.fr) : <code>{{ linkedin_oauth_redirect }}</code></p>
+    {% if linkedin_verification_url %}
+    <p class="admin-hint" style="margin:8px 0 0">Lien de vérification page (super admin) : <a href="{{ linkedin_verification_url }}" target="_blank" rel="noopener">{{ linkedin_verification_url }}</a> — aussi sur <a href="{{ url_for('web.linkedin_verification') }}" target="_blank" rel="noopener">/verification-linkedin</a>.</p>
+    {% endif %}
   </form>
   {% else %}
   <p class="admin-hint" style="width:100%">Ajoutez <code>LINKEDIN_CLIENT_ID</code> et <code>LINKEDIN_CLIENT_SECRET</code> sur Scalingo pour activer le bouton LinkedIn.</p>
@@ -197,10 +205,10 @@
     <form method="POST" action="{{ url_for('admin.social_linkedin_connect') }}" class="db-form" style="margin-top:12px">
       <div class="db-form-grid">
         <label>Jeton d’accès (OAuth membre)<input type="text" name="token" required placeholder="Access token LinkedIn" autocomplete="off"></label>
-        <label>ID numérique de la page (optionnel si listable)<input type="text" name="org_id" placeholder="123456 — URL /company/123456/admin/"></label>
+        <label>ID numérique de la page (optionnel — Community Management seulement)<input type="text" name="org_id" placeholder="123456 — URL /company/123456/admin/"></label>
       </div>
       <button type="submit" class="admin-btn">Connecter LinkedIn</button>
-      <p class="admin-hint" style="margin:8px 0 0">L’ID se trouve dans l’URL d’administration de la page (<code>/company/123456/admin/</code>), pas dans le nom « PilotCore ». Un jeton collé sans refresh expire ~60 jours.</p>
+      <p class="admin-hint" style="margin:8px 0 0">Sans Community Management API, laissez l’ID de page vide : le jeton connecte le profil. Un jeton collé sans refresh expire ~60 jours.</p>
     </form>
   </details>
 </div>
@@ -395,7 +403,7 @@
         {% else %}
         <button type="submit" class="admin-btn" {% if not facebook_connected %}disabled title="Connectez d'abord Facebook ou LinkedIn"{% endif %}>Publier sur Facebook</button>
         {% endif %}
-        {% if not facebook_connected and not linkedin_connected %}<span class="admin-hint">Connectez une page pour activer la publication.</span>{% endif %}
+        {% if not facebook_connected and not linkedin_connected %}<span class="admin-hint">Connectez Facebook ou LinkedIn pour activer la publication.</span>{% endif %}
       </div>
     </div>
 

@@ -214,6 +214,7 @@ def test_sitemap_core_includes_key_pages(client):
     assert "/pro</loc>" in body
     assert "/50-artisans</loc>" in body
     assert "/contact</loc>" in body
+    assert "/verification-linkedin</loc>" in body
     assert "/artisans</loc>" in body
     assert "<lastmod>" in body
 

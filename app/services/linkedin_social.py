@@ -1,11 +1,12 @@
-"""LinkedIn Company Page publishing (admin /admin/social).
+"""LinkedIn publishing (admin /admin/social).
 
-Posts are always authored as the connected organization
-(``urn:li:organization:{id}``), never as a personal profile.
-
-That requires the Community Management API product on the LinkedIn developer
-app. Development access is enough when the OAuth user is both an app developer
-and a Page admin — no partner-production review, but the product must be added.
+Default products on a new LinkedIn developer app are Sign In with LinkedIn
+and Share on LinkedIn. Those scopes post as the authenticated member
+(``urn:li:person:{id}``). Company-page posting
+(``urn:li:organization:{id}``) needs Community Management API, which LinkedIn
+often leaves behind « Request access » — we never request those scopes unless
+the app actually has them, or OAuth fails with LinkedIn's generic
+« Bummer, something went wrong » page.
 """
 from __future__ import annotations
 
@@ -31,33 +32,32 @@ V2_BASE = "https://api.linkedin.com/v2"
 USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 LINKEDIN_VERSION = "202605"
 
-# Company-page posting. openid/profile identify the member; org scopes publish
-# as the Page. w_member_social is intentionally omitted — that would post on
-# a personal profile, which is not what PilotCore publishes.
-OAUTH_SCOPES = " ".join(
-    (
-        "openid",
-        "profile",
-        "w_organization_social",
-        "r_organization_social",
-        "rw_organization_admin",
-    )
-)
+# Products actually granted on the PilotCore app: Sign In with LinkedIn (OpenID)
+# + Share on LinkedIn. Requesting w_organization_social without Community
+# Management API makes LinkedIn abort OAuth (« Bummer… ») and send the user
+# back to the app website URL instead of the callback.
+OAUTH_SCOPES = "openid profile w_member_social"
 
 SETTING_ORG_ID = "linkedin_org_id"
 SETTING_ORG_NAME = "linkedin_org_name"
 SETTING_ACCESS_TOKEN = "linkedin_access_token"
 SETTING_REFRESH_TOKEN = "linkedin_refresh_token"
 SETTING_TOKEN_EXPIRES = "linkedin_token_expires_at"
+SETTING_MEMBER_ID = "linkedin_member_id"
 SETTING_MEMBER_NAME = "linkedin_member_name"
 
-COMMUNITY_API_HINT = (
-    "Les posts partent au nom de la page entreprise, pas du profil. "
-    "Dans LinkedIn Developers → Produits, ajoutez « Community Management API ». "
-    "En mode Développement, c’est immédiat si vous êtes admin de l’app et de la page "
-    "— pas besoin d’attendre la review partenaire. « Share on LinkedIn » ne poste "
-    "que sur un profil personnel, on ne l’utilise pas."
+APP_VERIFICATION_URL = (
+    "https://www.linkedin.com/developers/apps/verification/"
+    "a7910099-0f14-415c-b7a4-9850c46a4380"
 )
+
+SHARE_ON_LINKEDIN_HINT = (
+    "L'app LinkedIn a Sign In with LinkedIn et Share on LinkedIn — pas "
+    "Community Management API (Request access est bloqué). Les posts partent "
+    "donc sur le profil du compte qui autorise, pas au nom de la page entreprise."
+)
+
+COMMUNITY_API_HINT = SHARE_ON_LINKEDIN_HINT
 
 _ORG_ID_RE = re.compile(
     r"(?:urn:li:organization:|/company/|organization[:/])(\d+)",
@@ -101,11 +101,15 @@ def oauth_url(state: str, redirect_uri: str | None = None) -> str:
 
 
 def get_config() -> dict:
+    org_id = content.get_setting(SETTING_ORG_ID, "") or ""
+    member_id = content.get_setting(SETTING_MEMBER_ID, "") or ""
     return {
-        "org_id": content.get_setting(SETTING_ORG_ID, "") or "",
+        "org_id": org_id,
         "org_name": content.get_setting(SETTING_ORG_NAME, "") or "",
+        "member_id": member_id,
         "member_name": content.get_setting(SETTING_MEMBER_NAME, "") or "",
         "has_refresh": bool((content.get_setting(SETTING_REFRESH_TOKEN, "") or "").strip()),
+        "publish_as": "organization" if org_id else ("member" if member_id else ""),
     }
 
 
@@ -118,7 +122,7 @@ def has_token() -> bool:
 
 def is_configured() -> bool:
     cfg = get_config()
-    return bool(cfg["org_id"] and has_token())
+    return bool(has_token() and (cfg["org_id"] or cfg["member_id"]))
 
 
 def normalize_org_id(raw: str) -> str:
@@ -138,6 +142,19 @@ def org_urn(org_id: str) -> str:
     return f"urn:li:organization:{normalize_org_id(org_id) or org_id}"
 
 
+def person_urn(member_id: str) -> str:
+    return f"urn:li:person:{(member_id or '').strip()}"
+
+
+def author_urn() -> str | None:
+    cfg = get_config()
+    if cfg["org_id"]:
+        return org_urn(cfg["org_id"])
+    if cfg["member_id"]:
+        return person_urn(cfg["member_id"])
+    return None
+
+
 def disconnect() -> None:
     for key in (
         SETTING_ORG_ID,
@@ -145,6 +162,7 @@ def disconnect() -> None:
         SETTING_ACCESS_TOKEN,
         SETTING_REFRESH_TOKEN,
         SETTING_TOKEN_EXPIRES,
+        SETTING_MEMBER_ID,
         SETTING_MEMBER_NAME,
     ):
         content.set_setting(key, "")
@@ -301,7 +319,10 @@ def save_pasted_token(token: str) -> None:
     )
 
 
-def _fetch_member_name(token: str) -> str | None:
+def fetch_member_profile(token: str) -> dict:
+    """Person id + display name. OpenID userinfo first, then GET /v2/me."""
+    member_id = ""
+    name = ""
     try:
         resp = requests.get(
             USERINFO_URL,
@@ -310,13 +331,36 @@ def _fetch_member_name(token: str) -> str | None:
         )
         if resp.ok:
             data = resp.json() or {}
+            member_id = str(data.get("sub") or "").strip()
             name = (data.get("name") or "").strip()
-            given = (data.get("given_name") or "").strip()
-            family = (data.get("family_name") or "").strip()
-            return name or f"{given} {family}".strip() or None
+            if not name:
+                given = (data.get("given_name") or "").strip()
+                family = (data.get("family_name") or "").strip()
+                name = f"{given} {family}".strip()
     except requests.RequestException:
         logger.exception("LinkedIn userinfo failed")
-    return None
+    if not member_id:
+        try:
+            resp = requests.get(
+                f"{V2_BASE}/me",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=12,
+            )
+            data = _safe_json(resp)
+            if resp.ok:
+                member_id = str(data.get("id") or "").strip()
+                if not name:
+                    given = (data.get("localizedFirstName") or "").strip()
+                    family = (data.get("localizedLastName") or "").strip()
+                    name = f"{given} {family}".strip()
+        except requests.RequestException:
+            logger.exception("LinkedIn /me failed")
+    return {"id": member_id, "name": name}
+
+
+def _fetch_member_name(token: str) -> str | None:
+    profile = fetch_member_profile(token)
+    return profile.get("name") or None
 
 
 def fetch_org_name(token: str, org_id: str) -> str | None:
@@ -436,12 +480,45 @@ def connect_organization(org_id: str, *, known_name: str = "") -> dict:
     except LinkedInError as exc:
         return {"ok": False, "message": str(exc)}
     name = (known_name or "").strip() or fetch_org_name(token, org_id) or f"Page {org_id}"
-    member = _fetch_member_name(token)
+    profile = fetch_member_profile(token)
     content.set_setting(SETTING_ORG_ID, org_id)
     content.set_setting(SETTING_ORG_NAME, name)
-    if member:
-        content.set_setting(SETTING_MEMBER_NAME, member)
-    return {"ok": True, "message": name, "org_id": org_id}
+    if profile.get("id"):
+        content.set_setting(SETTING_MEMBER_ID, profile["id"])
+    if profile.get("name"):
+        content.set_setting(SETTING_MEMBER_NAME, profile["name"])
+    return {
+        "ok": True,
+        "message": name,
+        "org_id": org_id,
+        "publish_as": "organization",
+    }
+
+
+def connect_member(token: str | None = None) -> dict:
+    try:
+        token = (token or "").strip() or ensure_access_token()
+    except LinkedInError as exc:
+        return {"ok": False, "message": str(exc)}
+    profile = fetch_member_profile(token)
+    if not profile.get("id"):
+        return {
+            "ok": False,
+            "message": (
+                "Impossible d'identifier le profil LinkedIn. "
+                "Vérifiez Sign In with LinkedIn (OpenID) sur l'app Developers."
+            ),
+        }
+    content.set_setting(SETTING_MEMBER_ID, profile["id"])
+    if profile.get("name"):
+        content.set_setting(SETTING_MEMBER_NAME, profile["name"])
+    name = profile.get("name") or profile["id"]
+    return {
+        "ok": True,
+        "message": name,
+        "member_id": profile["id"],
+        "publish_as": "member",
+    }
 
 
 def complete_oauth(code: str, redirect_uri: str) -> dict:
@@ -450,15 +527,13 @@ def complete_oauth(code: str, redirect_uri: str) -> dict:
         return {"ok": False, "message": err or "Connexion LinkedIn impossible."}
     _save_token_payload(payload, keep_refresh=False)
     token = payload["access_token"]
-    member = _fetch_member_name(token)
-    if member:
-        content.set_setting(SETTING_MEMBER_NAME, member)
     orgs, list_err = list_admin_orgs(token)
     if len(orgs) == 1:
         result = connect_organization(orgs[0]["id"], known_name=orgs[0].get("name") or "")
         result["orgs"] = orgs
         return result
     if len(orgs) > 1:
+        connect_member(token)
         return {
             "ok": False,
             "needs_org_choice": True,
@@ -468,14 +543,19 @@ def complete_oauth(code: str, redirect_uri: str) -> dict:
                 "choisissez celle sur laquelle publier."
             ),
         }
+    member = connect_member(token)
+    if member.get("ok"):
+        member["message"] = (
+            f"Profil LinkedIn « {member['message']} » connecté. "
+            f"{SHARE_ON_LINKEDIN_HINT}"
+        )
+        member["orgs"] = []
+        return member
     return {
         "ok": False,
         "needs_org_choice": False,
         "orgs": [],
-        "message": list_err or (
-            "Aucune page entreprise administrée n'a été trouvée. "
-            f"{COMMUNITY_API_HINT}"
-        ),
+        "message": member.get("message") or list_err or "Connexion LinkedIn impossible.",
     }
 
 
@@ -487,9 +567,6 @@ def connect_with_token(token: str, org_id: str = "") -> dict:
         save_pasted_token(token)
     except LinkedInError as exc:
         return {"ok": False, "message": str(exc)}
-    member = _fetch_member_name(token)
-    if member:
-        content.set_setting(SETTING_MEMBER_NAME, member)
     asked = normalize_org_id(org_id)
     if asked:
         return connect_organization(asked)
@@ -497,6 +574,7 @@ def connect_with_token(token: str, org_id: str = "") -> dict:
     if len(orgs) == 1:
         return connect_organization(orgs[0]["id"], known_name=orgs[0].get("name") or "")
     if len(orgs) > 1:
+        connect_member(token)
         return {
             "ok": False,
             "needs_org_choice": True,
@@ -506,13 +584,19 @@ def connect_with_token(token: str, org_id: str = "") -> dict:
                 "choisissez celle sur laquelle publier."
             ),
         }
+    member = connect_member(token)
+    if member.get("ok"):
+        member["message"] = (
+            f"Profil LinkedIn « {member['message']} » connecté. "
+            f"{SHARE_ON_LINKEDIN_HINT}"
+        )
+        member["orgs"] = []
+        return member
     return {
         "ok": False,
         "orgs": [],
-        "message": list_err or (
-            "Jeton accepté, mais aucune page entreprise n'apparaît. "
-            "Collez l'ID numérique de la page, ou vérifiez Community Management API. "
-            f"{COMMUNITY_API_HINT}"
+        "message": member.get("message") or list_err or (
+            "Jeton accepté, mais le profil n'a pas pu être identifié."
         ),
     }
 
@@ -537,24 +621,32 @@ def connection_status() -> dict:
             "connected": False,
             "org_id": cfg["org_id"],
             "org_name": cfg["org_name"],
+            "member_id": cfg["member_id"],
             "member_name": cfg["member_name"],
+            "publish_as": cfg["publish_as"],
             "has_refresh": cfg["has_refresh"],
             "app_ready": app_credentials_ready(),
             "has_token": has_token(),
-            "message": "Aucune page LinkedIn connectée.",
+            "message": "LinkedIn non connecté.",
             "expires_at": None,
         }
     expires = token_expires_at()
-    message = "Prêt à publier."
+    if cfg["org_id"]:
+        message = f"Prêt à publier au nom de la page {cfg['org_name'] or cfg['org_id']}."
+    else:
+        who = cfg["member_name"] or cfg["member_id"]
+        message = f"Prêt à publier sur le profil {who}. {SHARE_ON_LINKEDIN_HINT}"
     if expires and expires <= datetime.now(timezone.utc) and not cfg["has_refresh"]:
-        message = "Le jeton LinkedIn a probablement expiré — reconnectez la page."
+        message = "Le jeton LinkedIn a probablement expiré — reconnectez LinkedIn."
     elif not cfg["has_refresh"]:
         message = "Jeton sans renouvellement automatique — reconnectez avant 60 jours."
     return {
         "connected": True,
         "org_id": cfg["org_id"],
         "org_name": cfg["org_name"],
+        "member_id": cfg["member_id"],
         "member_name": cfg["member_name"],
+        "publish_as": cfg["publish_as"],
         "has_refresh": cfg["has_refresh"],
         "app_ready": app_credentials_ready(),
         "has_token": True,
@@ -580,8 +672,10 @@ def _article_title(message: str, target_key: str | None) -> str:
     return (first or "PilotCore")[:70]
 
 
-def _upload_image(token: str, org_id: str, image_path) -> str | None:
-    owner = org_urn(org_id)
+def _upload_image(token: str, owner: str, image_path) -> str | None:
+    owner = (owner or "").strip()
+    if not owner:
+        return None
     try:
         init = requests.post(
             f"{REST_BASE}/images?action=initializeUpload",
@@ -631,9 +725,50 @@ def _create_post(token: str, payload: dict) -> tuple[int, dict, str | None]:
     return resp.status_code, data if isinstance(data, dict) else {}, urn or None
 
 
-def _base_post(org_id: str, commentary: str) -> dict:
+def _create_ugc_share(
+    token: str, author: str, message: str, link: str, title: str
+) -> tuple[int, dict, str | None]:
+    """Share on LinkedIn (ugcPosts) — works with w_member_social, no Images API."""
+    share: dict = {
+        "shareCommentary": {"text": (message or "")[:2600]},
+        "shareMediaCategory": "NONE",
+    }
+    if link:
+        share["shareMediaCategory"] = "ARTICLE"
+        share["media"] = [
+            {
+                "status": "READY",
+                "originalUrl": link,
+                "title": {"text": (title or "PilotCore")[:400]},
+                "description": {"text": (message or "")[:200]},
+            }
+        ]
+    payload = {
+        "author": author,
+        "lifecycleState": "PUBLISHED",
+        "specificContent": {"com.linkedin.ugc.ShareContent": share},
+        "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+    }
+    resp = requests.post(
+        f"{V2_BASE}/ugcPosts",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Restli-Protocol-Version": "2.0.0",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=30,
+    )
+    data = _safe_json(resp)
+    urn = (resp.headers.get("x-restli-id") or resp.headers.get("X-RestLi-Id") or "").strip()
+    if not urn and isinstance(data, dict):
+        urn = (data.get("id") or "").strip()
+    return resp.status_code, data if isinstance(data, dict) else {}, urn or None
+
+
+def _base_post(author: str, commentary: str) -> dict:
     return {
-        "author": org_urn(org_id),
+        "author": author,
         "commentary": commentary[:2900],
         "visibility": "PUBLIC",
         "distribution": {
@@ -654,7 +789,7 @@ def publish_post(
     image_blob=None,
     target_key=None,
 ) -> SocialPost:
-    """Publish as the connected company page (article+thumbnail, else image)."""
+    """Publish as the connected org Page if set, otherwise as the member profile."""
     from app.services.social_image import resolve_image_path, write_image_bytes
 
     message = (message or "").strip()
@@ -676,10 +811,10 @@ def publish_post(
         status="draft",
     )
 
-    cfg = get_config()
-    if not (cfg["org_id"] and has_token()):
+    author = author_urn()
+    if not (author and has_token()):
         post.status = "failed"
-        post.error = "Page LinkedIn non connectée."
+        post.error = "LinkedIn non connectée."
         db.session.add(post)
         db.session.commit()
         return post
@@ -700,35 +835,32 @@ def publish_post(
 
     try:
         token = ensure_access_token()
-        image_urn = _upload_image(token, cfg["org_id"], resolved)
-        if not image_urn:
-            post.status = "failed"
-            post.error = (
-                "Impossible d'envoyer le visuel à LinkedIn. "
-                f"{COMMUNITY_API_HINT}"
-            )[:500]
-            log_event(CAT_ADMIN, "linkedin_publish_failed", summary=post.error, level=LEVEL_ERROR)
-            db.session.add(post)
-            db.session.commit()
-            return post
-
         title = _article_title(message, target_key)
-        article_payload = _base_post(cfg["org_id"], message)
-        article_payload["content"] = {
-            "article": {
-                "source": link,
-                "thumbnail": image_urn,
-                "title": title,
-                "description": message[:200],
+        image_urn = _upload_image(token, author, resolved)
+        status, data, urn = 0, {}, None
+        mode = "ugc"
+
+        if image_urn:
+            article_payload = _base_post(author, message)
+            article_payload["content"] = {
+                "article": {
+                    "source": link,
+                    "thumbnail": image_urn,
+                    "title": title,
+                    "description": message[:200],
+                }
             }
-        }
-        status, data, urn = _create_post(token, article_payload)
-        mode = "article"
+            status, data, urn = _create_post(token, article_payload)
+            mode = "article"
+            if not (status < 300 and urn):
+                media_payload = _base_post(author, f"{message}\n{link}")
+                media_payload["content"] = {"media": {"title": title, "id": image_urn}}
+                status, data, urn = _create_post(token, media_payload)
+                mode = "media"
+
         if not (status < 300 and urn):
-            media_payload = _base_post(cfg["org_id"], f"{message}\n{link}")
-            media_payload["content"] = {"media": {"title": title, "id": image_urn}}
-            status, data, urn = _create_post(token, media_payload)
-            mode = "media"
+            status, data, urn = _create_ugc_share(token, author, message, link, title)
+            mode = "ugc"
 
         if status < 300 and urn:
             post.status = "published"
@@ -745,7 +877,7 @@ def publish_post(
             post.status = "failed"
             err = _api_error(data, "Réponse LinkedIn invalide.")
             if _is_community_denied(status, data):
-                err = f"{err} {COMMUNITY_API_HINT}"
+                err = f"{err} {SHARE_ON_LINKEDIN_HINT}"
             post.error = err[:500]
             log_event(
                 CAT_ADMIN,

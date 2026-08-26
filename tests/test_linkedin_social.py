@@ -1,4 +1,4 @@
-"""LinkedIn company-page OAuth + publish (Community Management API)."""
+"""LinkedIn OAuth (Share on LinkedIn) + publish."""
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -19,6 +19,7 @@ def _wipe_li():
         linkedin_social.SETTING_ACCESS_TOKEN,
         linkedin_social.SETTING_REFRESH_TOKEN,
         linkedin_social.SETTING_TOKEN_EXPIRES,
+        linkedin_social.SETTING_MEMBER_ID,
         linkedin_social.SETTING_MEMBER_NAME,
     ):
         content_studio.set_setting(key, "")
@@ -51,7 +52,7 @@ def test_normalize_org_id():
     assert linkedin_social.normalize_org_id("pilotcore") == ""
 
 
-def test_oauth_url_includes_callback_and_org_scopes(app):
+def test_oauth_url_includes_callback_and_share_scopes(app):
     with app.app_context():
         app.config["LINKEDIN_CLIENT_ID"] = "li-app"
         app.config["LINKEDIN_CLIENT_SECRET"] = "secret"
@@ -61,10 +62,12 @@ def test_oauth_url_includes_callback_and_org_scopes(app):
         )
         assert "client_id=li-app" in url
         assert "state=st" in url
-        assert "w_organization_social" in url
+        assert "w_member_social" in url
+        assert "openid" in url
         assert "linkedin.com/oauth" in url
         assert "callback" in url
-        assert "w_member_social" not in url
+        assert "w_organization_social" not in url
+        assert "rw_organization_admin" not in url
 
 
 def test_linkedin_login_redirects(client, app):
@@ -135,7 +138,11 @@ def test_complete_oauth_picks_single_org(app, monkeypatch):
             "exchange_oauth_code",
             lambda code, uri: ({"access_token": "tok", "expires_in": 3600, "refresh_token": "ref"}, None),
         )
-        monkeypatch.setattr(linkedin_social, "_fetch_member_name", lambda t: "Colin")
+        monkeypatch.setattr(
+            linkedin_social,
+            "fetch_member_profile",
+            lambda t: {"id": "mem1", "name": "Colin"},
+        )
         monkeypatch.setattr(
             linkedin_social,
             "list_admin_orgs",
@@ -145,6 +152,107 @@ def test_complete_oauth_picks_single_org(app, monkeypatch):
         assert result["ok"] is True
         assert content_studio.get_setting(linkedin_social.SETTING_ORG_ID) == "5515715"
         assert content_studio.get_setting(linkedin_social.SETTING_REFRESH_TOKEN) == "ref"
+
+
+def test_complete_oauth_connects_member_without_org(app, monkeypatch):
+    with app.app_context():
+        _wipe_li()
+        monkeypatch.setattr(
+            linkedin_social,
+            "exchange_oauth_code",
+            lambda code, uri: ({"access_token": "tok", "expires_in": 3600, "refresh_token": "ref"}, None),
+        )
+        monkeypatch.setattr(
+            linkedin_social,
+            "fetch_member_profile",
+            lambda t: {"id": "abc123", "name": "Colin"},
+        )
+        monkeypatch.setattr(
+            linkedin_social,
+            "list_admin_orgs",
+            lambda token=None: ([], "ACCESS_DENIED"),
+        )
+        result = linkedin_social.complete_oauth(
+            "code", "https://www.pilotcore.fr/admin/social/linkedin/callback"
+        )
+        assert result["ok"] is True
+        assert result["publish_as"] == "member"
+        assert content_studio.get_setting(linkedin_social.SETTING_MEMBER_ID) == "abc123"
+        assert not (content_studio.get_setting(linkedin_social.SETTING_ORG_ID) or "")
+        assert content_studio.get_setting(linkedin_social.SETTING_REFRESH_TOKEN) == "ref"
+        assert linkedin_social.is_configured()
+
+
+def test_publish_post_member_uses_person_urn(app, monkeypatch, tmp_path):
+    png = tmp_path / "post.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 40)
+
+    def fake_create(token, payload):
+        assert payload["author"] == "urn:li:person:abc123"
+        return 201, {}, "urn:li:share:77"
+
+    with app.app_context():
+        _wipe_li()
+        _wipe_posts()
+        content_studio.set_setting(linkedin_social.SETTING_MEMBER_ID, "abc123")
+        content_studio.set_setting(linkedin_social.SETTING_MEMBER_NAME, "Colin")
+        content_studio.set_setting(linkedin_social.SETTING_ACCESS_TOKEN, "li-token")
+        later = datetime.now(timezone.utc) + timedelta(days=20)
+        content_studio.set_setting(linkedin_social.SETTING_TOKEN_EXPIRES, later.isoformat())
+        monkeypatch.setattr("app.services.social_image.resolve_image_path", lambda p: png)
+        monkeypatch.setattr(linkedin_social, "_upload_image", lambda *a, **k: "urn:li:image:abc")
+        monkeypatch.setattr(linkedin_social, "_create_post", fake_create)
+
+        post = linkedin_social.publish_post(
+            "Essai 14 jours",
+            link="https://www.pilotcore.fr/pro?utm_source=linkedin",
+            image_path="uploads/social/post.png",
+            target_key="pro",
+        )
+        assert post.status == "published"
+        assert post.external_id == "urn:li:share:77"
+
+
+def test_publish_post_falls_back_to_ugc_when_images_api_unavailable(app, monkeypatch, tmp_path):
+    png = tmp_path / "post.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 40)
+
+    def fake_ugc(token, author, message, link, title):
+        assert author == "urn:li:person:abc123"
+        assert "pilotcore.fr" in (link or "")
+        return 201, {"id": "urn:li:share:ugc"}, "urn:li:share:ugc"
+
+    with app.app_context():
+        _wipe_li()
+        _wipe_posts()
+        content_studio.set_setting(linkedin_social.SETTING_MEMBER_ID, "abc123")
+        content_studio.set_setting(linkedin_social.SETTING_ACCESS_TOKEN, "li-token")
+        later = datetime.now(timezone.utc) + timedelta(days=20)
+        content_studio.set_setting(linkedin_social.SETTING_TOKEN_EXPIRES, later.isoformat())
+        monkeypatch.setattr("app.services.social_image.resolve_image_path", lambda p: png)
+        monkeypatch.setattr(linkedin_social, "_upload_image", lambda *a, **k: None)
+        monkeypatch.setattr(linkedin_social, "_create_ugc_share", fake_ugc)
+
+        post = linkedin_social.publish_post(
+            "Essai 14 jours",
+            link="https://www.pilotcore.fr/pro?utm_source=linkedin",
+            image_path="uploads/social/post.png",
+            target_key="pro",
+        )
+        assert post.status == "published"
+        assert post.external_id == "urn:li:share:ugc"
+
+
+def test_linkedin_verification_page(client):
+    resp = client.get("/verification-linkedin")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "a7910099-0f14-415c-b7a4-9850c46a4380" in html
+    assert "linkedin.com/developers/apps/verification" in html
+    home = client.get("/").data.decode()
+    assert "verification-linkedin" in home
+    alias = client.get("/linkedin-verification", follow_redirects=False)
+    assert alias.status_code == 301
 
 
 def test_tick_not_configured_without_any_network(app):

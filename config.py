@@ -179,7 +179,8 @@ class Config:
     FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "")
     FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "")
 
-    # LinkedIn Community Management (admin /admin/social). Posts as the Company Page.
+    # LinkedIn Sign In + Share on LinkedIn (admin /admin/social).
+    # Company-page posting needs Community Management API (often locked).
     LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
     LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
 

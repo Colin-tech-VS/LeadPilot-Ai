@@ -63,6 +63,7 @@ def core_urls() -> list[Url]:
         ("/contact", "monthly", "0.5", today),
         ("/blog", "daily", "0.85", today),
         ("/mentions-legales", "yearly", "0.3", None),
+        ("/verification-linkedin", "yearly", "0.3", None),
         ("/confidentialite", "yearly", "0.3", None),
         ("/cgu", "yearly", "0.3", None),
         ("/cookies", "yearly", "0.3", None),

@@ -1831,12 +1831,14 @@ def social_page():
         from datetime import datetime, timezone as tz
 
         li_expires_label = datetime.fromtimestamp(int(li_status["expires_at"]), tz=tz.utc).strftime("%d/%m/%Y %H:%M UTC")
-    if linkedin_social.has_token() and not linkedin_social.is_configured():
+    if linkedin_social.has_token() and not (linkedin_social.get_config() or {}).get("org_id"):
         try:
             li_org_choices, li_list_error = linkedin_social.list_admin_orgs()
         except Exception:
             logging.getLogger(__name__).exception("LinkedIn organization listing failed")
             li_list_error = "Impossible de lister les pages entreprise LinkedIn."
+        if linkedin_social.is_configured():
+            li_list_error = None
     return render_template(
         "admin/social.html",
         posts=social.recent_posts(),
@@ -1855,6 +1857,7 @@ def social_page():
         linkedin_expires_label=li_expires_label,
         linkedin_org_choices=li_org_choices,
         linkedin_list_error=li_list_error,
+        linkedin_verification_url=linkedin_social.APP_VERIFICATION_URL,
         ai_available=content_ai.is_available(),
         link_targets=targets_for_admin(),
         autopost=social_autopost.get_settings(),
@@ -2010,8 +2013,11 @@ def social_linkedin_callback():
     redirect_uri = session.pop("li_oauth_redirect_uri", None) or linkedin_social.linkedin_oauth_redirect_uri()
     result = linkedin_social.complete_oauth(code, redirect_uri)
     if result.get("ok"):
-        flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
-        log_event(CAT_ADMIN, "linkedin_oauth", summary=f"Page LinkedIn connectée: {result['message']}", level=LEVEL_SUCCESS)
+        if result.get("publish_as") == "member":
+            flash(result.get("message") or "Profil LinkedIn connecté.", "success")
+        else:
+            flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
+        log_event(CAT_ADMIN, "linkedin_oauth", summary=result.get("message") or "LinkedIn connecté", level=LEVEL_SUCCESS)
     elif result.get("needs_org_choice"):
         flash(result.get("message") or "Choisissez une page entreprise ci-dessous.", "success")
         log_event(CAT_ADMIN, "linkedin_oauth", summary="Token LinkedIn reçu — choix de page", level=LEVEL_SUCCESS)
@@ -2030,8 +2036,11 @@ def social_linkedin_connect():
         return redirect(url_for("admin.social"))
     result = linkedin_social.connect_with_token(token, org_id)
     if result.get("ok"):
-        flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
-        log_event(CAT_ADMIN, "linkedin_connect", summary=f"Page LinkedIn connectée: {result['message']}", level=LEVEL_SUCCESS)
+        if result.get("publish_as") == "member":
+            flash(result.get("message") or "Profil LinkedIn connecté.", "success")
+        else:
+            flash(f"Page LinkedIn « {result['message']} » connectée.", "success")
+        log_event(CAT_ADMIN, "linkedin_connect", summary=result.get("message") or "LinkedIn connecté", level=LEVEL_SUCCESS)
     elif result.get("needs_org_choice"):
         flash(result.get("message") or "Choisissez une page entreprise ci-dessous.", "success")
     else:

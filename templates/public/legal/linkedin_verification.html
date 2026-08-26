@@ -1,0 +1,18 @@
+{% extends "public/legal/base.html" %}
+{% block title %}Vérification LinkedIn — {{ _('app.name') }}{% endblock %}
+{% block legal_title %}Vérification LinkedIn{% endblock %}
+
+{% block legal_content %}
+<p>
+  Cette page héberge le lien officiel de vérification de l’application LinkedIn
+  Developers utilisée par PilotCore. Un super administrateur de la page entreprise
+  l’ouvre pour associer l’app à la page.
+</p>
+<p>
+  <a href="{{ verification_url }}" rel="noopener" target="_blank">{{ verification_url }}</a>
+</p>
+<p>
+  Ce lien associe l’app à la page. Il n’ouvre pas d’autres produits LinkedIn
+  (Community Management API reste soumis à une demande d’accès LinkedIn).
+</p>
+{% endblock %}

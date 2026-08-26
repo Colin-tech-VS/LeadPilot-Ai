@@ -253,12 +253,11 @@ def collect():
                        hint="FACEBOOK_APP_ID — OAuth page Facebook"),
                 _check("Facebook App Secret", "FACEBOOK_APP_SECRET", secret=True),
                 _check("LinkedIn Client ID", "LINKEDIN_CLIENT_ID", show_value=True,
-                       hint="LINKEDIN_CLIENT_ID — OAuth page entreprise"),
+                       hint="LINKEDIN_CLIENT_ID — OAuth Sign In + Share on LinkedIn"),
                 _check("LinkedIn Client Secret", "LINKEDIN_CLIENT_SECRET", secret=True),
             ],
-            note="Les posts LinkedIn partent au nom de la page entreprise. "
-                 "Ajoutez Community Management API sur l'app (mode Développement "
-                 "si vous êtes admin de l'app et de la page).",
+            note="Les posts LinkedIn partent sur le profil qui autorise (Share on LinkedIn) "
+                 "tant que Community Management API n'est pas ouvert sur l'app.",
         )
     )
 

@@ -5,6 +5,10 @@
   <form method="POST" action="{{ url_for('admin.emails_sync') }}" class="mail-sync-form">
     <button type="submit" class="admin-btn ghost" {% if not imap_configured %}disabled title="Configurez IMAP_HOST / IMAP_USER / IMAP_PASSWORD"{% endif %}>🔄 Sync IMAP</button>
   </form>
+  <form method="POST" action="{{ url_for('admin.emails_process_bounces') }}" class="mail-sync-form">
+    <button type="submit" class="admin-btn ghost"
+            title="Lit les rapports de non-remise et retire les adresses définitivement mortes">↩️ Traiter les rebonds</button>
+  </form>
   <button class="admin-btn" onclick="document.getElementById('compose').classList.toggle('open')">✉️ Composer</button>
 {% endblock %}
 

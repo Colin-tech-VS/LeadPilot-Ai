@@ -33,6 +33,7 @@ from app.core.admin_auth import (
 from app.core.extensions import db
 from app.core.security import rate_limit
 from app.models.appointment import Appointment
+from app.models.email_campaign import CampaignRecipient, EmailCampaign
 from app.models.email_message import EmailMessage
 from app.models.event import Event
 from app.models.lead import Lead
@@ -111,6 +112,12 @@ TABLES = {
         OutreachProspect, "Prospection B2B",
         ["first_name", "last_name", "company_name", "email", "phone", "trade_type",
          "city", "status", "notes"]),
+    "email_campaigns": TableSpec(
+        EmailCampaign, "Campagnes e-mail",
+        ["name", "subject", "status", "scheduled_at", "started_at", "finished_at"]),
+    "campaign_recipients": TableSpec(
+        CampaignRecipient, "Destinataires de campagne",
+        ["campaign_id", "email", "company_name", "city", "status", "sent_at", "error"]),
 }
 
 
@@ -1019,6 +1026,42 @@ def emails_sync():
         )
     else:
         flash(f"Échec sync IMAP : {result.get('error', 'erreur inconnue')}", "error")
+    return redirect(url_for("admin.emails", box="inbox"))
+
+
+@admin_bp.route("/emails/process-bounces", methods=["POST"])
+@admin_required
+def emails_process_bounces():
+    """Read delivery reports sitting in the inbox and quarantine dead addresses."""
+    from app.services import bounce_processing
+
+    try:
+        result = bounce_processing.process_bounces()
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        current_app.logger.exception("bounce processing failed")
+        flash(f"Traitement des rebonds impossible : {exc}", "error")
+        return redirect(url_for("admin.emails", box="inbox"))
+
+    if result["marked"]:
+        log_event(
+            CAT_ADMIN,
+            "bounces_processed",
+            summary=f"{result['marked']} adresse(s) retirée(s) après rebond définitif",
+            level=LEVEL_WARNING,
+        )
+        flash(
+            f"{result['reports']} rapport(s) lus — {result['marked']} adresse(s) "
+            f"retirée(s) des envois ({result['already_marked']} déjà traitées, "
+            f"{result['temporary_ignored']} rebond(s) temporaire(s) ignoré(s)).",
+            "success",
+        )
+    else:
+        flash(
+            f"{result['reports']} rapport(s) lus — aucune nouvelle adresse à retirer "
+            f"({result['already_marked']} déjà traitées).",
+            "success",
+        )
     return redirect(url_for("admin.emails", box="inbox"))
 
 

@@ -19,6 +19,10 @@
     {
       "command": "*/10 * * * * python scripts/send_due_campaigns.py",
       "size": "S"
+    },
+    {
+      "command": "30 5 * * * python scripts/process_bounces.py",
+      "size": "S"
     }
   ]
 }

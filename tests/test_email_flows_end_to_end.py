@@ -358,3 +358,118 @@ def test_boot_creates_tables_the_database_is_missing(app):
 
     # Idempotent: a second pass over a complete schema is a no-op.
     _ensure_missing_tables()
+
+
+# --------------------------------------------------------------------------- #
+# Rendez-vous, devis, vocal, fondateurs — le reste des e-mails transactionnels
+# --------------------------------------------------------------------------- #
+def _tenant(app):
+    from app.models.tenant import Tenant
+
+    tenant = Tenant.query.first()
+    assert tenant is not None, "la fixture n'a produit aucun artisan"
+    return tenant
+
+
+def test_appointment_confirmation_reaches_the_customer(app):
+    from app.services.transactional_email import send_appointment_confirmation
+
+    email = _addr()
+    send_appointment_confirmation(
+        email, "mardi 8 septembre à 9h00", "Plomberie Flux", customer_name="Claire"
+    )
+    mails = _mails_to(email)
+    assert mails, "aucune confirmation de rendez-vous"
+    _assert_real_email(mails[-1], must_contain="mardi 8 septembre")
+
+
+def test_new_booking_notifies_the_artisan(app):
+    from app.services.transactional_email import send_new_booking_to_artisan
+
+    email = _addr()
+    send_new_booking_to_artisan(email, "mardi 8 septembre à 9h00", "Claire Dubois")
+    mails = _mails_to(email)
+    assert mails, "l'artisan n'est pas prévenu du nouveau rendez-vous"
+    _assert_real_email(mails[-1], must_contain="Claire Dubois")
+
+
+def test_quote_email_lands_with_its_signature_link(app):
+    """Driven through the delivery service the dashboard actually calls."""
+    from app.models.quote import Quote
+    from app.services import quote_delivery, quote_engine
+
+    tenant = _tenant(app)
+    email = _addr()
+    quote = quote_engine.build_draft_from_lead(None, tenant)
+    quote.number = "DEV-FLUX-001"
+    quote.client_email = email
+    quote.client_name = "Jean Dupont"
+
+    with app.test_request_context(base_url="https://www.pilotcore.fr"):
+        result = quote_delivery.send_quote(quote, tenant, channels=["email"])
+    assert result["email"] is True
+
+    mails = _mails_to(email)
+    assert mails, "le devis n'est pas parti par e-mail"
+    _assert_real_email(mails[-1], must_contain="DEV-FLUX-001")
+    assert isinstance(quote, Quote)
+
+
+def test_voice_created_account_receives_its_credentials(app):
+    """A caller who gets an account over the phone must be told how to log in."""
+    from app.models.user import User
+    from app.services.voice.customer_account import send_credentials_email
+
+    email = _addr()
+    user = User(email=email, role="customer", first_name="Claire")
+    user.set_password("MotDePasse123")
+    db.session.add(user)
+    db.session.commit()
+
+    send_credentials_email(user, "MotDePasse123")
+    mails = _mails_to(email)
+    assert mails, "aucun e-mail d'identifiants après création de compte au téléphone"
+    _assert_real_email(mails[-1], must_contain="MotDePasse123")
+
+
+def test_founding_welcome_is_sent_on_enrolment(app):
+    """Driven through the real enrolment, not a hand-built participant."""
+    from app.services import founding_program
+
+    email = _addr()
+    user, tenant, participant = founding_program.enroll(
+        email=email,
+        password="MotDePasse123",
+        first_name="Julien",
+        last_name="Martin",
+        phone="0478000000",
+        city="Flux-les-Bains",
+        trade_type="plombier",
+        company_name="Plomberie Fondatrice",
+        source="test",
+    )
+    assert participant.place_number >= 1
+
+    mails = _mails_to(email)
+    assert mails, "aucun e-mail de bienvenue au programme fondateurs"
+    _assert_real_email(mails[-1])
+    # The programme records that the welcome went out, so a nudge never doubles it.
+    assert participant.emails_sent_json is None or "welcome" in participant.emails_sent_json
+
+
+def test_every_transactional_sender_is_reachable_from_the_app(app):
+    """No sender may become dead code: each one must have a caller outside its module."""
+    import pathlib
+    import re
+
+    src = pathlib.Path("app/services/transactional_email.py").read_text()
+    senders = re.findall(r"^def (send_\w+)", src, re.MULTILINE)
+    assert len(senders) >= 20, "l'inventaire des expéditeurs semble incomplet"
+
+    tree = " ".join(
+        p.read_text() for p in pathlib.Path("app").rglob("*.py")
+        if p.name != "transactional_email.py"
+    ) + " ".join(p.read_text() for p in pathlib.Path("scripts").rglob("*.py"))
+
+    orphans = [fn for fn in senders if fn not in tree]
+    assert not orphans, f"expéditeurs jamais appelés : {orphans}"

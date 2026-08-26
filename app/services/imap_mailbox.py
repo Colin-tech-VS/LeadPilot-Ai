@@ -232,7 +232,18 @@ def sync_inbox(limit: int = 50) -> dict:
         logger.exception("IMAP sync failed")
         return {"ok": False, "error": str(exc), "synced": synced, "skipped": skipped}
 
-    return {"ok": True, "synced": synced, "skipped": skipped, "errors": errors}
+    # Delivery reports arrive like any other mail; read them now so a dead
+    # address is quarantined before the next campaign picks it up.
+    bounces = {}
+    try:
+        from app.services import bounce_processing
+
+        bounces = bounce_processing.process_bounces()
+    except Exception:
+        logger.exception("bounce processing failed — inbox sync still succeeded")
+
+    return {"ok": True, "synced": synced, "skipped": skipped, "errors": errors,
+            "bounces": bounces}
 
 
 def list_attachments(row: EmailMessage) -> list[dict]:

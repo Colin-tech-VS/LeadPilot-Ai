@@ -242,7 +242,11 @@ def audience_query(segment: dict):
         OutreachProspect.email.isnot(None),
         OutreachProspect.email != "",
         OutreachProspect.opted_out_at.is_(None),
-        OutreachProspect.status != "unsubscribed",
+        # Unconditional, never a segment choice: someone who opted out, and an
+        # address a mail server has already refused for good ("skipped"), are
+        # both off-limits. Re-sending to a known-dead address is what turns a
+        # sending domain into a spam domain.
+        OutreachProspect.status.notin_(("unsubscribed", "skipped")),
     )
     if segment["trades"]:
         q = q.filter(OutreachProspect.trade_type.in_(segment["trades"]))

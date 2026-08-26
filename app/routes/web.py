@@ -164,7 +164,17 @@ def campaign_unsubscribe(token):
     """
     from app.services import campaigns
 
-    recipient = campaigns.unsubscribe(token)
+    try:
+        recipient = campaigns.unsubscribe(token)
+    except Exception:
+        # An opt-out page that errors is worse than one that cannot find the
+        # token: the visitor is left with no way to stop the mail. Never 500 —
+        # fall through to the page that gives them a working address to write
+        # to, and shout in the logs so it gets fixed.
+        current_app.logger.exception("Unsubscribe failed for token=%s", token[:8])
+        db.session.rollback()
+        recipient = None
+
     return (
         render_template("public/unsubscribe.html", recipient=recipient),
         200 if recipient else 404,

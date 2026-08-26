@@ -60,6 +60,16 @@ def create_app(config_object=None):
     with app.app_context():
         if app.config.get("ENV") != "production":
             db.create_all()
+        # Production skips ``create_all`` because schema is Alembic's job — but
+        # this database predates the migration chain, whose first revision
+        # recreates tables that already exist, so ``upgrade head`` cannot replay
+        # and a newly added table never lands. Creating only the *missing*
+        # tables is idempotent (it never touches an existing one) and keeps a
+        # new feature from 500-ing on its first request after deploy.
+        try:
+            _ensure_missing_tables()
+        except Exception:
+            logging.getLogger(__name__).exception("table creation failed — app continues")
         # Idempotent column patches — must run in production too when Alembic
         # lags behind the ORM (otherwise /dashboard 500s after deploy).
         try:
@@ -185,6 +195,24 @@ def _backfill_completed_appointments():
             conn.execute(text(sql))
     except Exception:
         logging.getLogger(__name__).exception("completed appointments backfill failed")
+
+
+def _ensure_missing_tables():
+    """Create tables the ORM declares and the database does not have yet.
+
+    Deliberately narrow: it adds absent tables and nothing else. Columns added
+    to an existing table are still :func:`_ensure_schema_updates`'s job.
+    """
+    from sqlalchemy import inspect
+
+    existing = set(inspect(db.engine).get_table_names())
+    missing = [t for name, t in db.metadata.tables.items() if name not in existing]
+    if not missing:
+        return
+    db.metadata.create_all(bind=db.engine, tables=missing)
+    logging.getLogger(__name__).info(
+        "Created missing tables: %s", ", ".join(sorted(t.name for t in missing))
+    )
 
 
 def _ensure_schema_updates():

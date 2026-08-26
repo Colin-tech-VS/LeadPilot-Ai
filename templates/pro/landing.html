@@ -55,7 +55,9 @@
     <p class="v-hero-lead">{{ _('landing.hero_subtitle') }}</p>
     <div class="v-hero-cta">
       <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
-      <a href="#demo-flow" class="btn btn-outline btn-lg" data-demo-listen>{{ _('landing.cta_see_demo') }}</a>
+      <a href="#demo-flow" class="btn btn-outline btn-lg" data-demo-listen
+         data-label-play="{{ _('landing.cta_see_demo') }}"
+         data-label-pause="{{ _('landing.demo_audio_pause') }}">{{ _('landing.cta_see_demo') }}</a>
     </div>
     <ul class="v-trust">
       <li>{{ _('landing.trust_1') }}</li>
@@ -101,9 +103,21 @@
       </li>
     </ol>
     <div class="cv-listen">
-      <audio id="pro-demo-audio" preload="none"{% if demo_audio_url %} src="{{ demo_audio_url }}"{% endif %}></audio>
-      <button type="button" class="btn btn-outline btn-lg" data-demo-listen>{{ _('landing.cta_see_demo') }}</button>
-      {% if not demo_audio_url %}
+      <audio id="pro-demo-audio" preload="none"></audio>
+      <button type="button" class="btn btn-outline btn-lg" data-demo-listen
+              data-label-play="{{ _('landing.cta_see_demo') }}"
+              data-label-pause="{{ _('landing.demo_audio_pause') }}">{{ _('landing.cta_see_demo') }}</button>
+      {% if demo_audio_playlist %}
+      <p class="cv-listen-hint">{{ _('landing.demo_audio_hint') }}</p>
+      <ol class="cv-transcript" id="pro-demo-transcript">
+        {% for clip in demo_audio_playlist %}
+        <li data-demo-turn="{{ loop.index0 }}" class="cv-transcript-{{ clip.role }}">
+          <span>{{ _('landing.demo_ai_voice') if clip.role == 'ai' else _('landing.demo_caller') }}</span>
+          <p>{{ clip.text }}</p>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
       <p class="cv-listen-hint">{{ _('landing.demo_audio_fallback') }}</p>
       {% endif %}
     </div>
@@ -525,7 +539,9 @@
       <a href="{{ url_for('web.register') }}" class="btn btn-outline btn-lg v-cta-band-secondary" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
       {% else %}
       <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
-      <a href="#demo-flow" class="btn btn-outline btn-lg v-cta-band-secondary" data-demo-listen>{{ _('landing.cta_see_demo') }}</a>
+      <a href="#demo-flow" class="btn btn-outline btn-lg v-cta-band-secondary" data-demo-listen
+         data-label-play="{{ _('landing.cta_see_demo') }}"
+         data-label-pause="{{ _('landing.demo_audio_pause') }}">{{ _('landing.cta_see_demo') }}</a>
       {% endif %}
     </div>
     <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
@@ -535,6 +551,7 @@
 
 {% block scripts %}
 <script>
+  window.PRO_DEMO_AUDIO = {{ (demo_audio_playlist or [])|tojson }};
   window.LANDING_I18N = {
     processing: {{ _('landing.demo_processing')|tojson }},
     run: {{ _('landing.demo_run')|tojson }},

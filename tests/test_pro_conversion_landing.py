@@ -9,6 +9,10 @@ NEW_KEYS = (
     "landing.flow_1",
     "landing.flow_5",
     "landing.demo_audio_fallback",
+    "landing.demo_audio_hint",
+    "landing.demo_audio_pause",
+    "landing.demo_clip_1",
+    "landing.demo_clip_4",
     "landing.problem_wait",
     "landing.solution_title",
     "landing.dir_honesty",
@@ -62,5 +66,35 @@ def test_pro_landing_english_copy(client):
     assert "never miss another call" in low
     assert "try it free" in low
     assert "listen to a demo" in low
+    assert "recorded sample call" in low
+    assert "/static/audio/demo/en/01-ai.mp3" in html
     assert "does not promise" in low
     assert "recruiting its first 50" in low or "first 50" in low
+
+
+def test_pro_landing_plays_a_sample_call(client):
+    html = client.get("/pro").data.decode()
+    assert "PRO_DEMO_AUDIO" in html
+    assert "Léa" in html
+    assert "fuite" in html.lower()
+    assert "enregistr" in html.lower()
+    assert "standard pilotcore" in html.lower()
+    assert "pro-demo-transcript" in html
+    assert html.count("data-demo-turn=") == 4
+    assert "Mettre en pause" in html
+    assert html.count('"role": "ai"') == 2
+    assert html.count('"role": "client"') == 2
+    assert "/static/audio/demo/fr/01-ai.mp3" in html
+
+
+def test_pro_demo_playlist_uses_recorded_clips(app):
+    from app.routes.web import _pro_demo_playlist
+
+    with app.test_request_context("/pro"):
+        fr = _pro_demo_playlist("fr")
+        en = _pro_demo_playlist("en")
+    assert len(fr) == 4 and len(en) == 4
+    assert all(clip["text"] for clip in fr + en)
+    assert fr[0]["src"] and fr[0]["src"].endswith("/static/audio/demo/fr/01-ai.mp3")
+    assert en[0]["src"] and en[0]["src"].endswith("/static/audio/demo/en/01-ai.mp3")
+    assert TRANSLATIONS["en"]["landing.demo_audio_hint"].lower().startswith("a recorded sample call")

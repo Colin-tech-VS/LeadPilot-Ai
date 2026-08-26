@@ -4,12 +4,25 @@ Outbound: sent over SMTP when configured (SMTP_HOST…). Supports SSL (465) and
 STARTTLS (587). Without SMTP the message is still recorded with status
 "simulated" so the console works end-to-end in dev.
 
+Sending goes through :class:`SmtpSession`, never through a bare ``smtplib``
+call. The reason is a production failure: LWS answered
+``421 4.7.0 mail96.lwspanel.com Error: too many connections from <ip>`` in the
+middle of a campaign, because every single message opened its own connection
+(connect → STARTTLS/SSL → LOGIN → QUIT). Twenty-five recipients meant
+twenty-five connections in a few seconds, and the host caps both the number of
+simultaneous connections per IP and how fast they may be opened. A session
+holds *one* connection open for a whole batch, paces the messages, recycles the
+connection every ``SMTP_MAX_PER_CONNECTION`` messages, and retries a temporary
+4xx after a backoff instead of turning it into a delivery failure.
+
 Inbound: IMAP sync (LWS mailbox) and/or provider webhook at /admin/email/inbound.
 """
 import html as html_lib
 import logging
 import re
 import smtplib
+import threading
+import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr, formatdate, make_msgid
@@ -28,6 +41,88 @@ from app.models.email_message import (
 )
 
 logger = logging.getLogger(__name__)
+
+# One process must never hold more SMTP connections than the host tolerates,
+# and two threads opening one each is exactly how the 421 was reached. The
+# semaphore is sized from config on first use; the pacing clock is shared by
+# every session so the *total* rate leaving this process stays under the cap.
+_SLOTS_LOCK = threading.Lock()
+_slots: threading.BoundedSemaphore | None = None
+_slots_size = 0
+_PACE_LOCK = threading.Lock()
+_last_send_at = 0.0
+
+
+class SmtpTransientError(RuntimeError):
+    """The server said "not now" (4xx, dropped connection, timeout).
+
+    The message did not go out and nothing is wrong with the address: the
+    caller should come back later rather than record a delivery failure.
+    """
+
+    def __init__(self, message: str, retry_after: int = 60):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _int_cfg(key: str, default):
+    try:
+        return int(current_app.config.get(key, default))
+    except (RuntimeError, TypeError, ValueError):
+        return int(default)
+
+
+def _float_cfg(key: str, default):
+    try:
+        return float(current_app.config.get(key, default))
+    except (RuntimeError, TypeError, ValueError):
+        return float(default)
+
+
+def _connection_slots() -> threading.BoundedSemaphore:
+    global _slots, _slots_size
+    size = max(1, _int_cfg("SMTP_MAX_CONNECTIONS", 1))
+    with _SLOTS_LOCK:
+        if _slots is None or _slots_size != size:
+            _slots = threading.BoundedSemaphore(size)
+            _slots_size = size
+        return _slots
+
+
+def _response_codes(exc: Exception) -> list[int]:
+    """Every SMTP status code an exception carries, whatever its shape."""
+    codes = []
+    code = getattr(exc, "smtp_code", None)
+    if isinstance(code, int):
+        codes.append(code)
+    payload = getattr(exc, "recipients", None)
+    if isinstance(payload, dict):
+        for answer in payload.values():
+            code = answer[0] if isinstance(answer, (tuple, list)) and answer else None
+            if isinstance(code, int):
+                codes.append(code)
+    return codes
+
+
+def transient_reason(exc: Exception) -> str | None:
+    """``None`` when the failure is permanent, else why it is worth retrying.
+
+    A 4xx is the server asking for patience — a full mailbox, a rate limit, or
+    the ``too many connections`` that started all this. A 5xx is a refusal, and
+    retrying it only tells the host we do not listen. Codes decide first:
+    ``smtplib.SMTPException`` derives from ``OSError``, so the connection-level
+    test below would otherwise swallow a permanent rejection.
+    """
+    codes = _response_codes(exc)
+    if codes:
+        if all(400 <= c < 500 for c in codes):
+            return f"{type(exc).__name__}: {exc}"
+        return None
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+        # No code at all: the conversation never got far enough to have one —
+        # refused connection, dropped socket, timeout. All worth another try.
+        return f"{type(exc).__name__}: {exc}"
+    return None
 
 
 def is_configured():
@@ -71,8 +166,17 @@ def send_email(
     html_body=None,
     reply_to=None,
     list_unsubscribe=None,
+    session=None,
 ):
-    """Send (or simulate) an email and record it. Returns the EmailMessage."""
+    """Send (or simulate) an email and record it. Returns the EmailMessage.
+
+    ``session`` — an open :class:`SmtpSession` — puts the send in *batch mode*:
+    the message travels on the caller's shared connection, and a temporary
+    refusal (4xx, dropped socket) raises :class:`SmtpTransientError` instead of
+    being recorded as a delivery failure, so the caller can leave the recipient
+    pending and come back later. Without a session the historical behaviour is
+    unchanged: one connection for this message, and any error is recorded.
+    """
     header_from = smtp_from_addr(from_addr)
     from_addr = header_from
 
@@ -152,10 +256,24 @@ def send_email(
         if cc_addrs:
             recipients.extend(a.strip() for a in cc_addrs.split(",") if a.strip())
 
-        _smtp_send(from_addr, recipients, mime.as_string())
+        _smtp_send(from_addr, recipients, mime.as_string(), session=session)
         msg_row.status = STATUS_SENT
         db.session.commit()
         _log(msg_row)
+    except SmtpTransientError as exc:
+        # Nothing left the building. In batch mode the row would otherwise sit
+        # in the outbox as a phantom failure and the retry would create a second
+        # one, so it is dropped and the caller decides when to try again.
+        if session is not None:
+            db.session.delete(msg_row)
+            db.session.commit()
+            logger.warning("Email différé to=%s: %s", to_addr, exc)
+            raise
+        msg_row.status = STATUS_FAILED
+        msg_row.error = str(exc)[:500]
+        db.session.commit()
+        logger.warning("Email différé (hors lot) to=%s: %s", to_addr, exc)
+        _log(msg_row, error=str(exc))
     except Exception as exc:  # pragma: no cover - depends on live SMTP
         msg_row.status = STATUS_FAILED
         msg_row.error = str(exc)[:500]
@@ -240,6 +358,8 @@ def smtp_test():
 
     Opens the connection (SSL or STARTTLS) and, when credentials are present,
     performs a LOGIN — the exact same steps a real send does, minus the message.
+    It borrows a connection slot like any send, so probing while a campaign is
+    running can never be the connection that trips the host's limit.
     Returns ``{"ok": bool, "detail": str}`` and never raises.
     """
     cfg = current_app.config
@@ -247,36 +367,28 @@ def smtp_test():
     if not host:
         return {"ok": False, "detail": "SMTP_HOST non configuré — les envois sont simulés."}
     port = int(cfg.get("SMTP_PORT", 587))
-    use_ssl = cfg.get("SMTP_USE_SSL", False)
-    use_tls = cfg.get("SMTP_USE_TLS", True)
     user = cfg.get("SMTP_USER")
     pwd = cfg.get("SMTP_PASSWORD")
+    session = SmtpSession(max_retries=0, slot_timeout=8)
     try:
-        if use_ssl:
-            server = smtplib.SMTP_SSL(host, port, timeout=15)
-        else:
-            server = smtplib.SMTP(host, port, timeout=15)
-        try:
-            if not use_ssl and use_tls:
-                server.starttls()
-            if user and pwd:
-                server.login(user, pwd)
-                return {"ok": True, "detail": f"Connexion et authentification OK ({host}:{port})."}
-            if user and not pwd:
-                return {"ok": False,
-                        "detail": f"Connexion OK ({host}:{port}) mais SMTP_PASSWORD manquant."}
-            return {"ok": True, "detail": f"Connexion OK ({host}:{port}) — sans authentification."}
-        finally:
-            try:
-                server.quit()
-            except Exception:
-                pass
+        session.open()
+    except SmtpTransientError as exc:
+        logger.warning("SMTP test différé host=%s port=%s: %s", host, port, exc)
+        return {"ok": False, "detail": str(exc)[:250]}
     except Exception as exc:  # pragma: no cover - depends on live SMTP
         logger.warning("SMTP test failed host=%s port=%s: %s", host, port, exc)
         return {"ok": False, "detail": f"{type(exc).__name__}: {str(exc)[:250]}"}
+    finally:
+        session.close()
+    if user and pwd:
+        return {"ok": True, "detail": f"Connexion et authentification OK ({host}:{port})."}
+    if user and not pwd:
+        return {"ok": False, "detail": f"Connexion OK ({host}:{port}) mais SMTP_PASSWORD manquant."}
+    return {"ok": True, "detail": f"Connexion OK ({host}:{port}) — sans authentification."}
 
 
-def _smtp_send(from_addr, recipients, raw_message):
+def _connect():
+    """Open and authenticate one SMTP connection. Raises like ``smtplib`` does."""
     cfg = current_app.config
     host = cfg["SMTP_HOST"]
     port = int(cfg.get("SMTP_PORT", 587))
@@ -294,10 +406,197 @@ def _smtp_send(from_addr, recipients, raw_message):
         pwd = cfg.get("SMTP_PASSWORD")
         if user and pwd:
             server.login(user, pwd)
+    except Exception:
+        try:
+            server.close()
+        except Exception:
+            pass
+        raise
+    return server
+
+
+class SmtpSession:
+    """One SMTP connection, reused for many messages.
+
+    Open it once around a batch and hand it to :func:`send_email`; every message
+    then travels on the same connection instead of dialling the server again.
+    The session also owns the three things that keep LWS from answering 421:
+    a bounded number of connections per process, a minimum delay between
+    messages, and a recycle after ``SMTP_MAX_PER_CONNECTION`` messages (hosts
+    that cap messages-per-connection drop the socket silently otherwise).
+    """
+
+    def __init__(self, *, pace: float | None = None, max_messages: int | None = None,
+                 max_retries: int | None = None, slot_timeout: float | None = None):
+        self.pace = _float_cfg("SMTP_SEND_INTERVAL", 1.2) if pace is None else float(pace)
+        self.max_messages = (
+            _int_cfg("SMTP_MAX_PER_CONNECTION", 25) if max_messages is None else int(max_messages)
+        )
+        self.max_retries = (
+            _int_cfg("SMTP_MAX_RETRIES", 2) if max_retries is None else int(max_retries)
+        )
+        self.backoff = _float_cfg("SMTP_RETRY_BACKOFF", 5)
+        self.slot_timeout = (
+            _float_cfg("SMTP_SLOT_TIMEOUT", 60) if slot_timeout is None else float(slot_timeout)
+        )
+        self.sent = 0
+        self._server = None
+        self._on_connection = 0
+        self._slot = None
+
+    # ------------------------------------------------------------- lifecycle
+    def __enter__(self) -> "SmtpSession":
+        return self
+
+    def __exit__(self, *_exc):
+        self.close()
+        return False
+
+    def _acquire_slot(self):
+        if self._slot is not None:
+            return
+        slots = _connection_slots()
+        if not slots.acquire(timeout=self.slot_timeout):
+            raise SmtpTransientError(
+                "Toutes les connexions SMTP autorisées sont occupées — réessayez dans un instant.",
+                retry_after=60,
+            )
+        self._slot = slots
+
+    def _release_slot(self):
+        if self._slot is None:
+            return
+        try:
+            self._slot.release()
+        except ValueError:  # pragma: no cover - only if released twice
+            pass
+        self._slot = None
+
+    def open(self, *, retries: int | None = None):
+        """Connect now, so a host that is refusing connections is known before
+        a single message row is written.
+
+        ``retries`` bounds how long this may block: a caller inside a web
+        request wants ``0`` — one attempt, then a "come back later" — rather
+        than a minute of backoff behind an unanswered socket.
+        """
+        if self._server is not None:
+            return
+        tries = self.max_retries if retries is None else max(0, int(retries))
+        self._acquire_slot()
+        last_exc = None
+        for attempt in range(tries + 1):
+            try:
+                self._server = _connect()
+                self._on_connection = 0
+                return
+            except Exception as exc:  # noqa: BLE001 — classified just below
+                last_exc = exc
+                reason = transient_reason(exc)
+                if reason is None or attempt >= tries:
+                    break
+                logger.warning(
+                    "SMTP connexion refusée (essai %s/%s) : %s",
+                    attempt + 1, tries + 1, reason,
+                )
+                time.sleep(self.backoff * (attempt + 1))
+        self._release_slot()
+        if transient_reason(last_exc) is not None:
+            raise SmtpTransientError(
+                f"Serveur SMTP indisponible — {last_exc}", retry_after=120
+            ) from last_exc
+        raise last_exc
+
+    def _drop(self):
+        """Forget the connection. A socket that just failed is never reused."""
+        server, self._server = self._server, None
+        if server is None:
+            return
+        try:
+            server.quit()
+        except Exception:
+            try:
+                server.close()
+            except Exception:
+                pass
+
+    def close(self):
+        self._drop()
+        self._release_slot()
+
+    # ---------------------------------------------------------------- pacing
+    def _wait_turn(self):
+        """Space messages out, counting from the last one *any* session sent."""
+        global _last_send_at
+        if self.pace <= 0:
+            return
+        with _PACE_LOCK:
+            wait = self.pace - (time.monotonic() - _last_send_at)
+            if wait > 0:
+                time.sleep(wait)
+            _last_send_at = time.monotonic()
+
+    # ------------------------------------------------------------------ send
+    def send(self, from_addr, recipients, raw_message):
+        """Send one message, reconnecting and retrying on a temporary refusal.
+
+        Raises :class:`SmtpTransientError` when the server keeps saying "later",
+        and the original ``smtplib`` exception when the refusal is permanent.
+        """
+        last_exc = None
         envelope_from = smtp_from_addr(from_addr)
-        server.sendmail(envelope_from, recipients, raw_message)
-    finally:
-        server.quit()
+        for attempt in range(self.max_retries + 1):
+            try:
+                if self._server is None or (
+                    self.max_messages and self._on_connection >= self.max_messages
+                ):
+                    self._drop()
+                    # No inner backoff: this loop already owns the retries.
+                    self.open(retries=0)
+                self._wait_turn()
+                self._server.sendmail(envelope_from, recipients, raw_message)
+                self._on_connection += 1
+                self.sent += 1
+                return
+            except SmtpTransientError:
+                raise
+            except Exception as exc:  # noqa: BLE001 — classified just below
+                last_exc = exc
+                reason = transient_reason(exc)
+                if reason is None:
+                    # A refusal with a status code leaves the connection in a
+                    # known state — ``smtplib`` has already sent RSET — so it is
+                    # kept: dropping it would open a fresh connection for every
+                    # bad address, which is the churn this class exists to stop.
+                    if not _response_codes(exc):
+                        self._drop()
+                    raise
+                # A temporary refusal or a dropped socket leaves the session out
+                # of step with the server. Start the next attempt clean.
+                self._drop()
+                if attempt >= self.max_retries:
+                    break
+                logger.warning(
+                    "SMTP envoi différé (essai %s/%s) : %s",
+                    attempt + 1, self.max_retries + 1, reason,
+                )
+                time.sleep(self.backoff * (attempt + 1))
+        raise SmtpTransientError(
+            f"Serveur SMTP saturé — {last_exc}", retry_after=120
+        ) from last_exc
+
+
+def smtp_session(**kwargs) -> SmtpSession:
+    """A session to wrap around a batch: ``with admin_email.smtp_session() as s``."""
+    return SmtpSession(**kwargs)
+
+
+def _smtp_send(from_addr, recipients, raw_message, session: SmtpSession | None = None):
+    if session is not None:
+        session.send(from_addr, recipients, raw_message)
+        return
+    with SmtpSession() as one_shot:
+        one_shot.send(from_addr, recipients, raw_message)
 
 
 def store_inbound(

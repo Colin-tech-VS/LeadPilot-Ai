@@ -347,7 +347,7 @@ def generate_outreach_email(prospect_id, *, tone: str = "professionnel", angle: 
     return prospect
 
 
-def send_outreach_email(prospect_id) -> dict:
+def send_outreach_email(prospect_id, *, session=None) -> dict:
     prospect = _get_prospect(prospect_id)
     if not prospect:
         raise ProspectingError("Prospect introuvable.")
@@ -396,6 +396,7 @@ def send_outreach_email(prospect_id) -> dict:
         html_body=html,
         reply_to=admin_email.default_from_addr(),
         list_unsubscribe=f"<mailto:contact@pilotcore.fr?subject=desinscription>, <{unsubscribe}>",
+        session=session,
     )
     prospect.status = "contacted"
     prospect.last_contacted_at = datetime.now(timezone.utc)
@@ -432,43 +433,60 @@ def resend_outreach_emails(*, only_failed: bool = True, max_batch: int = 20) -> 
         .all()
     )
     sent, skipped, failed, remaining = 0, 0, [], 0
-    for prospect in prospects:
-        if only_failed:
-            last = (
-                EmailMessage.query.filter_by(
-                    direction=DIRECTION_OUTBOUND, to_addr=prospect.email
+    throttled = None
+    # Une seule connexion SMTP pour tout le lot : ouvrir une connexion par
+    # message est ce qui déclenche « 421 … too many connections » chez LWS.
+    session = admin_email.smtp_session() if admin_email.is_configured() else None
+    try:
+        for prospect in prospects:
+            if only_failed:
+                last = (
+                    EmailMessage.query.filter_by(
+                        direction=DIRECTION_OUTBOUND, to_addr=prospect.email
+                    )
+                    .order_by(EmailMessage.created_at.desc())
+                    .first()
                 )
-                .order_by(EmailMessage.created_at.desc())
-                .first()
-            )
-            if last is not None and last.status == STATUS_SENT:
-                skipped += 1
+                if last is not None and last.status == STATUS_SENT:
+                    skipped += 1
+                    continue
+            if sent + len(failed) >= max_batch:
+                # Le lot reste borné : au-delà, la requête dépasserait le timeout
+                # gunicorn et les quotas horaires LWS.
+                remaining += 1
                 continue
-        if sent + len(failed) >= max_batch:
-            # Chaque envoi ouvre une connexion SMTP (2-5 s) : un lot illimité
-            # dépasserait le timeout gunicorn et les quotas horaires LWS.
-            remaining += 1
-            continue
-        try:
-            result = send_outreach_email(prospect.id)
-        except ProspectingError as exc:
-            failed.append(f"{prospect.email} — {exc}")
-            continue
-        except Exception as exc:  # noqa: BLE001 — un prospect cassé ne doit pas faire un 500 sur tout le lot
-            db.session.rollback()
-            logger.exception("Resend outreach failed for %s", prospect.email)
-            failed.append(f"{prospect.email} — {type(exc).__name__}: {exc}")
-            continue
-        if result["email_status"] == "failed":
-            failed.append(f"{prospect.email} — {result.get('email_error') or 'erreur SMTP inconnue'}")
-        else:
-            sent += 1
+            try:
+                result = send_outreach_email(prospect.id, session=session)
+            except admin_email.SmtpTransientError as exc:
+                # Serveur saturé (« too many connections ») : on arrête le lot au
+                # lieu de marquer en échec des prospects jamais contactés.
+                db.session.rollback()
+                throttled = str(exc)
+                remaining += 1
+                logger.warning("Relance prospection suspendue : %s", throttled)
+                break
+            except ProspectingError as exc:
+                failed.append(f"{prospect.email} — {exc}")
+                continue
+            except Exception as exc:  # noqa: BLE001 — un prospect cassé ne doit pas faire un 500 sur tout le lot
+                db.session.rollback()
+                logger.exception("Resend outreach failed for %s", prospect.email)
+                failed.append(f"{prospect.email} — {type(exc).__name__}: {exc}")
+                continue
+            if result["email_status"] == "failed":
+                failed.append(f"{prospect.email} — {result.get('email_error') or 'erreur SMTP inconnue'}")
+            else:
+                sent += 1
+    finally:
+        if session is not None:
+            session.close()
     return {
         "total": len(prospects),
         "sent": sent,
         "skipped": skipped,
         "failed": failed,
         "remaining": remaining,
+        "throttled": throttled,
     }
 
 

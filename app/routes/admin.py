@@ -2972,7 +2972,7 @@ def api_campaign_send_batch(campaign_id):
     data = request.get_json(silent=True) or {}
     try:
         result = campaigns.send_batch(
-            campaign_id, batch_size=int(data.get("batch_size") or campaigns.DEFAULT_BATCH)
+            campaign_id, batch_size=int(data.get("batch_size") or campaigns.default_batch_size())
         )
     except campaigns.CampaignError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -2986,6 +2986,15 @@ def api_campaign_send_batch(campaign_id):
             "campaign_sent",
             summary=f"Campagne terminée — {result['sent']} envoyés sur le dernier lot",
             level=LEVEL_SUCCESS,
+        )
+    elif result.get("throttled"):
+        log_event(
+            CAT_ADMIN,
+            "campaign_throttled",
+            summary=(
+                f"Envoi mis en attente par le serveur d'e-mails après {result['sent']} messages — "
+                f"reprise automatique dans {result['retry_after']} s"
+            ),
         )
     return jsonify({**result, "stats": campaigns.campaign_stats(campaign_id)})
 

@@ -767,36 +767,62 @@
   document.getElementById('seg-refresh').addEventListener('click', refreshAudience);
 
   // ── send ─────────────────────────────────────────────────────────────────
+  // The server sends one batch per request and answers with what is left. It
+  // may also answer "throttled": the mail host asked for a pause (LWS replies
+  // « 421 … too many connections » when it has had enough). That is not an
+  // error — nothing was lost, the remaining recipients are still pending — so
+  // the loop waits the delay the server named and picks up on its own.
   var prepareBtn = document.getElementById('camp-prepare');
   var sendBtn = document.getElementById('camp-send');
   var pauseBtn = document.getElementById('camp-pause');
   var sendNote = document.getElementById('camp-send-note');
   var sendStats = document.getElementById('camp-send-stats');
   var progressBar = document.getElementById('camp-progress');
+  var gaugePct = document.getElementById('camp-gauge-pct');
+  var waitTimer = null;
+
+  function note(text, tone) {
+    if (!sendNote) return;
+    sendNote.hidden = !text;
+    sendNote.textContent = text || '';
+    sendNote.className = 'camp-alert camp-alert--' + (tone || 'info');
+  }
 
   function paintStats(s) {
-    if (!s) return;
-    sendStats.textContent = s.sent + ' envoyés · ' + s.pending + ' en attente · ' +
-      s.failed + ' en échec · ' + s.unique_opens + ' ouvertures · ' + s.unique_clicks + ' clics';
-    var done = s.recipients ? Math.round(100 * (s.recipients - s.pending) / s.recipients) : 0;
-    progressBar.style.width = done + '%';
+    if (!s || !sendStats) return;
+    ['sent', 'pending', 'failed'].forEach(function (key) {
+      var cell = sendStats.querySelector('[data-k="' + key + '"]');
+      if (cell) cell.textContent = s[key];
+    });
+    var done = typeof s.progress_pct === 'number'
+      ? s.progress_pct
+      : (s.recipients ? Math.round(100 * (s.recipients - s.pending) / s.recipients) : 0);
+    if (progressBar) progressBar.style.width = done + '%';
+    if (gaugePct) gaugePct.textContent = done + '%';
+  }
+
+  function stopSending() {
+    state.sending = false;
+    if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
+    sendBtn.disabled = false;
+    pauseBtn.hidden = true;
   }
 
   prepareBtn.addEventListener('click', function () {
     prepareBtn.disabled = true;
-    sendNote.textContent = 'Constitution de la liste…';
+    note('Constitution de la liste…');
     save();
     setTimeout(function () {
       fetch(root.dataset.prepareUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
         .then(function (res) {
           prepareBtn.disabled = false;
-          if (!res.ok) { sendNote.textContent = res.data.error || 'Préparation impossible.'; return; }
-          sendNote.textContent = res.data.added + ' destinataires ajoutés — ' +
-            res.data.total + ' au total, prêts à recevoir.';
+          if (!res.ok) { note(res.data.error || 'Préparation impossible.', 'danger'); return; }
+          note(res.data.added + ' destinataires ajoutés — ' + res.data.total +
+               ' au total, prêts à recevoir.', 'ok');
           paintStats(res.data.stats);
         })
-        .catch(function (e) { prepareBtn.disabled = false; sendNote.textContent = 'Préparation impossible : ' + e; });
+        .catch(function (e) { prepareBtn.disabled = false; note('Préparation impossible : ' + e, 'danger'); });
     }, 400);
   });
 
@@ -810,41 +836,58 @@
   });
 
   pauseBtn.addEventListener('click', function () {
-    state.sending = false;
-    pauseBtn.hidden = true;
-    sendBtn.disabled = false;
-    sendNote.textContent = 'Envoi interrompu. Relancez quand vous voulez : la reprise part des destinataires restants.';
+    stopSending();
+    note('Envoi interrompu. Relancez quand vous voulez : la reprise part des destinataires restants.', 'warn');
   });
+
+  /** Wait `seconds`, counting down in the note, then resume the loop. */
+  function holdThenResume(seconds, sent, failed, reason) {
+    var left = Math.max(5, seconds || 60);
+    (function tick() {
+      if (!state.sending) return;
+      note('Le serveur d’e-mails limite le débit — ' + sent + ' e-mails déjà partis. ' +
+           'Reprise automatique dans ' + left + ' s.' + (reason ? ' (' + reason + ')' : ''), 'warn');
+      if (left <= 0) { sendLoop(sent, failed); return; }
+      left -= 1;
+      waitTimer = setTimeout(tick, 1000);
+    })();
+  }
 
   function sendLoop(sentSoFar, failedSoFar) {
     if (!state.sending) return;
-    sendNote.textContent = 'Envoi en cours — ' + sentSoFar + ' e-mails partis…';
+    note('Envoi en cours — ' + sentSoFar + ' e-mails partis…');
     fetch(root.dataset.sendUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ batch_size: 25 })
+      body: JSON.stringify({})
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (!res.ok) {
-          state.sending = false; sendBtn.disabled = false; pauseBtn.hidden = true;
-          sendNote.textContent = res.data.error || 'Envoi interrompu.';
+          stopSending();
+          note(res.data.error || 'Envoi interrompu.', 'danger');
           return;
         }
         var d = res.data;
         paintStats(d.stats);
         var sent = sentSoFar + d.sent;
         var failed = failedSoFar + d.failed;
-        if (d.done || !state.sending) {
-          state.sending = false; sendBtn.disabled = false; pauseBtn.hidden = true;
-          sendNote.textContent = 'Campagne envoyée : ' + sent + ' e-mails partis' +
-            (failed ? ', ' + failed + ' en échec' : '') + '. Le rapport se remplit au fil des ouvertures.';
+        if (!state.sending) return;
+        if (d.throttled) {
+          holdThenResume(d.retry_after, sent, failed, d.throttle_reason);
+          return;
+        }
+        if (d.done) {
+          stopSending();
+          note('Campagne envoyée : ' + sent + ' e-mails partis' +
+               (failed ? ', ' + failed + ' en échec' : '') +
+               '. Le rapport se remplit au fil des ouvertures.', 'ok');
           return;
         }
         setTimeout(function () { sendLoop(sent, failed); }, 600);
       })
       .catch(function (e) {
-        state.sending = false; sendBtn.disabled = false; pauseBtn.hidden = true;
-        sendNote.textContent = 'Envoi interrompu : ' + e;
+        stopSending();
+        note('Envoi interrompu : ' + e, 'danger');
       });
   }
 

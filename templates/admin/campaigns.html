@@ -9,169 +9,212 @@
 <span class="prospect-chip {% if ai_available %}prospect-chip--ok{% else %}prospect-chip--warn{% endif %}">
   {% if ai_available %}✓ IA{% else %}⚠ IA off{% endif %}
 </span>
+<a class="admin-btn tiny" href="#camp-new">Nouvelle campagne</a>
 {% endblock %}
 
 {% block content %}
-<p class="dash-intro">Concevez un e-mail, choisissez l'audience parmi vos prospects artisans, envoyez et mesurez.</p>
 
-<div class="prospect-kpi-row">
-  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--total">
-    <span class="kpi-label">Contacts joignables</span>
-    <span class="kpi-value">{{ stats.contactable }}</span>
-    <span class="kpi-sub">avec e-mail, non désinscrits</span>
-  </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">E-mails envoyés</span>
-    <span class="kpi-value">{{ stats.sent }}</span>
-    <span class="kpi-sub">toutes campagnes</span>
-  </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">Taux d'ouverture</span>
-    <span class="kpi-value">{{ stats.open_rate }}</span>
-    <span class="kpi-sub">{{ stats.unique_opens }} ouvertures uniques</span>
-  </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi prospect-kpi--win">
-    <span class="kpi-label">Taux de clic</span>
-    <span class="kpi-value">{{ stats.click_rate }}</span>
-    <span class="kpi-sub">{{ stats.unique_clicks }} cliqueurs</span>
-  </div>
-  <div class="kpi-card kpi-card--sm prospect-kpi">
-    <span class="kpi-label">Désinscriptions</span>
-    <span class="kpi-value">{{ stats.unsubscribed }}</span>
-    <span class="kpi-sub">opt-out définitifs</span>
-  </div>
-</div>
-
-<section class="admin-panel camp-new">
-  <div class="camp-new-head">
-    <div>
-      <h2>Nouvelle campagne</h2>
-      <p class="admin-panel-lead">Partez d'un modèle, puis laissez l'IA rédiger ou écrivez vous-même.</p>
+<!-- ── Vue d'ensemble ──────────────────────────────────────────────────── -->
+<section class="camp-hero">
+  <div class="camp-hero-main">
+    <span class="camp-eyebrow">Vue d'ensemble</span>
+    <p class="camp-hero-figure">
+      <strong>{{ stats.sent }}</strong>
+      <span>e-mails partis, toutes campagnes confondues</span>
+    </p>
+    <div class="camp-hero-facts">
+      <div class="camp-fact">
+        <span class="camp-fact-value">{{ stats.contactable }}</span>
+        <span class="camp-fact-label">contacts joignables</span>
+      </div>
+      <div class="camp-fact">
+        <span class="camp-fact-value">{{ stats.campaigns }}</span>
+        <span class="camp-fact-label">campagnes créées</span>
+      </div>
+      <div class="camp-fact">
+        <span class="camp-fact-value">{{ stats.active }}</span>
+        <span class="camp-fact-label">en cours ou programmées</span>
+      </div>
     </div>
   </div>
-  <form method="POST" action="{{ url_for('admin.campaign_new') }}" class="camp-new-form">
-    <label class="field prospect-field prospect-field--grow">
-      <span>Nom interne</span>
-      <input type="text" name="name" class="admin-input" placeholder="Ex : Prospection plombiers Rhône — septembre">
-    </label>
-    <label class="field prospect-field">
-      <span>Modèle de départ</span>
-      <select name="template" class="admin-select">
-        <option value="offre">Acquisition — présenter l'offre</option>
-        <option value="relance">Relance — deuxième contact</option>
-        <option value="annonce">Annonce — nouveauté produit</option>
-        <option value="blank">Vierge</option>
-      </select>
-    </label>
-    <div class="prospect-search-action">
-      <button type="submit" class="admin-btn prospect-search-btn">✉️ Créer la campagne</button>
+
+  <div class="camp-hero-funnel" aria-label="Performance des envois">
+    {% set rows = [
+      ('Remis',           stats.delivery_rate, stats.delivery_pct, stats.delivered ~ ' e-mails acceptés',   'ok'),
+      ('Ouvertures',      stats.open_rate,     stats.open_pct,     stats.unique_opens ~ ' lecteurs uniques', 'ink'),
+      ('Clics',           stats.click_rate,    stats.click_pct,    stats.unique_clicks ~ ' cliqueurs',       'win'),
+      ('Désinscriptions', stats.unsubscribed,  stats.unsub_pct,    'opt-out définitifs',                     'warn')
+    ] %}
+    {% for label, value, pct, sub, tone in rows %}
+    <div class="camp-funnel-row">
+      <span class="camp-funnel-label">{{ label }}</span>
+      <span class="camp-bar camp-bar--{{ tone }}"><i style="width: {{ pct }}%"></i></span>
+      <span class="camp-funnel-value">{{ value }}</span>
+      <span class="camp-funnel-sub">{{ sub }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ── Nouvelle campagne ───────────────────────────────────────────────── -->
+<section class="admin-panel camp-start" id="camp-new">
+  <header class="camp-panel-head">
+    <div>
+      <h2>Nouvelle campagne</h2>
+      <p class="camp-panel-lead">Partez d'un modèle, puis laissez l'IA rédiger ou écrivez vous-même.</p>
+    </div>
+  </header>
+
+  <form method="POST" action="{{ url_for('admin.campaign_new') }}" class="camp-start-form">
+    <div class="camp-templates" role="radiogroup" aria-label="Modèle de départ">
+      {% set templates = [
+        ('offre',   'Acquisition', 'Présenter l’offre à un artisan qui ne vous connaît pas encore.'),
+        ('relance', 'Relance',     'Deuxième contact, plus court, pour ceux qui n’ont pas répondu.'),
+        ('annonce', 'Annonce',     'Annoncer une nouveauté à des contacts déjà informés.'),
+        ('blank',   'Vierge',      'Page blanche : vous composez bloc par bloc.')
+      ] %}
+      {% for key, label, desc in templates %}
+      <label class="camp-template">
+        <input type="radio" name="template" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+        <span class="camp-template-face">
+          <span class="camp-template-mark" aria-hidden="true">{{ loop.index }}</span>
+          <strong>{{ label }}</strong>
+          <small>{{ desc }}</small>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="camp-start-foot">
+      <label class="field camp-start-name">
+        <span>Nom interne</span>
+        <input type="text" name="name" class="admin-input"
+               placeholder="Ex : Prospection plombiers Rhône — septembre">
+      </label>
+      <button type="submit" class="admin-btn camp-start-btn">Créer la campagne</button>
     </div>
   </form>
 </section>
 
-<section class="admin-panel camp-source" id="rge-import"
+<!-- ── Alimenter la base ───────────────────────────────────────────────── -->
+<details class="admin-panel camp-source" id="rge-import"
          data-url="{{ url_for('admin.api_prospecting_import_rge') }}">
-  <div class="camp-new-head">
-    <div>
-      <h2>Alimenter la base d'artisans</h2>
-      <p class="admin-panel-lead">
-        Import depuis le registre public RGE de l'ADEME (Licence Ouverte) : entreprises du bâtiment
-        certifiées, en activité, déclarant intervenir chez les particuliers — avec l'e-mail
-        professionnel qu'elles ont elles-mêmes publié.
-      </p>
+  <summary class="camp-source-summary">
+    <span class="camp-source-title">Alimenter la base d'artisans</span>
+    <span class="camp-source-hint">Import du registre public RGE (ADEME) — entreprises avec e-mail publié</span>
+  </summary>
+  <div class="camp-source-body">
+    <p class="camp-panel-lead">
+      Registre public RGE de l'ADEME (Licence Ouverte) : entreprises du bâtiment certifiées,
+      en activité, déclarant intervenir chez les particuliers — avec l'e-mail professionnel
+      qu'elles ont elles-mêmes publié.
+    </p>
+    <div class="camp-source-form">
+      <label class="field">
+        <span>Métiers</span>
+        <select id="rge-trades" class="admin-select" multiple size="6">
+          {% for t in trades %}{% if t.key != 'autre' %}
+          <option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>
+          {% endif %}{% endfor %}
+        </select>
+      </label>
+      <label class="field camp-source-grow">
+        <span>Départements (optionnel)</span>
+        <input type="text" id="rge-depts" class="admin-input" placeholder="Ex : 69, 33, 75 — vide = toute la France">
+      </label>
+      <label class="field camp-source-narrow">
+        <span>Nombre</span>
+        <input type="number" id="rge-target" class="admin-input" min="10" max="1000" value="200">
+      </label>
+      <button type="button" class="admin-btn" id="rge-btn">Importer</button>
     </div>
-  </div>
-  <div class="camp-source-form">
-    <label class="field prospect-field">
-      <span>Métiers</span>
-      <select id="rge-trades" class="admin-select" multiple size="6">
-        {% for t in trades %}{% if t.key != 'autre' %}
-        <option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>
-        {% endif %}{% endfor %}
-      </select>
-    </label>
-    <label class="field prospect-field prospect-field--grow">
-      <span>Départements (optionnel)</span>
-      <input type="text" id="rge-depts" class="admin-input" placeholder="Ex : 69, 33, 75 — vide = toute la France">
-    </label>
-    <label class="field prospect-field prospect-field--narrow">
-      <span>Nombre</span>
-      <input type="number" id="rge-target" class="admin-input" min="10" max="1000" value="200">
-    </label>
-    <div class="prospect-search-action">
-      <button type="button" class="admin-btn prospect-search-btn" id="rge-btn">📥 Importer</button>
+    <div class="camp-source-foot">
+      <span class="camp-alert camp-alert--danger" id="rge-error" hidden></span>
+      <p class="camp-alert camp-alert--info" id="rge-summary" hidden></p>
     </div>
+    <p class="camp-legal">
+      Données professionnelles publiques · un e-mail est obligatoire pour être importé ·
+      lien de désinscription ajouté automatiquement à chaque envoi.
+    </p>
   </div>
-  <div class="prospect-search-foot">
-    <span class="mail-error" id="rge-error" hidden></span>
-    <p class="admin-hint" id="rge-summary" hidden></p>
-  </div>
-  <p class="prospect-legal-hint">
-    ⚖️ Données professionnelles publiques · un e-mail est obligatoire pour être importé ·
-    lien de désinscription ajouté automatiquement à chaque envoi.
-  </p>
-</section>
+</details>
 
-<div class="prospect-toolbar">
-  <nav class="prospect-tabs" aria-label="Filtrer par statut">
-    <a href="{{ url_for('admin.campaigns') }}" class="prospect-tab{% if not status_filter %} active{% endif %}">
-      Toutes <span class="prospect-tab-count">{{ stats.campaigns }}</span>
+<!-- ── Liste ───────────────────────────────────────────────────────────── -->
+<div class="camp-list-head">
+  <nav class="camp-filters" aria-label="Filtrer par statut">
+    <a href="{{ url_for('admin.campaigns') }}" class="camp-filter{% if not status_filter %} active{% endif %}">
+      Toutes <span class="camp-filter-count">{{ stats.campaigns }}</span>
     </a>
     {% for code, label in {'draft':'Brouillons','scheduled':'Programmées','sending':'En cours','sent':'Envoyées','paused':'En pause'}.items() %}
     <a href="{{ url_for('admin.campaigns', status=code) }}"
-       class="prospect-tab{% if status_filter == code %} active{% endif %}">{{ label }}</a>
+       class="camp-filter{% if status_filter == code %} active{% endif %}">{{ label }}</a>
     {% endfor %}
   </nav>
 </div>
 
 {% if campaigns %}
-<div class="admin-table-wrap">
-  <table class="admin-table camp-table table-stack">
-    <thead>
-      <tr>
-        <th>Campagne</th>
-        <th>Statut</th>
-        <th class="num">Destinataires</th>
-        <th class="num">Envoyés</th>
-        <th class="num">Ouvertures</th>
-        <th class="num">Clics</th>
-        <th class="num">Désinsc.</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in campaigns %}
-      {% set s = campaign_stats[c.id|string] %}
-      <tr>
-        <td data-label="Campagne">
-          <a class="camp-name" href="{{ url_for('admin.campaign_editor', campaign_id=c.id) }}">{{ c.name }}</a>
-          <span class="camp-subject">{{ c.subject or 'Sans objet' }}</span>
-        </td>
-        <td data-label="Statut"><span class="camp-status camp-status--{{ c.status }}">{{ c.status_label }}</span></td>
-        <td class="num" data-label="Destinataires">{{ s.recipients }}</td>
-        <td class="num" data-label="Envoyés">{{ s.sent }}{% if s.pending %} <span class="camp-pending">+{{ s.pending }} en attente</span>{% endif %}</td>
-        <td class="num" data-label="Ouvertures">{{ s.open_rate }}<span class="camp-sub">{{ s.unique_opens }}</span></td>
-        <td class="num" data-label="Clics">{{ s.click_rate }}<span class="camp-sub">{{ s.unique_clicks }}</span></td>
-        <td class="num" data-label="Désinscriptions">{{ s.unsubscribed }}</td>
-        <td class="camp-actions">
-          <a class="admin-btn ghost tiny"
-             href="{{ url_for('admin.campaign_report', campaign_id=c.id) }}">Rapport</a>
-          <form method="POST" action="{{ url_for('admin.campaign_duplicate', campaign_id=c.id) }}">
-            <button class="admin-btn ghost tiny" type="submit">Dupliquer</button>
-          </form>
-          <form method="POST" action="{{ url_for('admin.campaign_delete', campaign_id=c.id) }}"
-                onsubmit="return confirm('Supprimer cette campagne et son historique de destinataires ?');">
-            <button class="admin-btn danger tiny" type="submit">Supprimer</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="camp-cards">
+  {% for c in campaigns %}
+  {% set s = campaign_stats[c.id|string] %}
+  <article class="camp-card">
+    <header class="camp-card-head">
+      <div class="camp-card-id">
+        <a class="camp-card-name" href="{{ url_for('admin.campaign_editor', campaign_id=c.id) }}">{{ c.name }}</a>
+        <p class="camp-card-subject">{{ c.subject or 'Sans objet' }}</p>
+      </div>
+      <span class="camp-status camp-status--{{ c.status }}">{{ c.status_label }}</span>
+    </header>
+
+    <div class="camp-card-progress">
+      <span class="camp-bar camp-bar--ink"><i style="width: {{ s.progress_pct }}%"></i></span>
+      <p class="camp-card-progress-note">
+        <strong>{{ s.sent }}</strong> envoyés sur {{ s.recipients }}
+        {%- if s.pending %} · <span class="camp-pending">{{ s.pending }} en attente</span>{% endif %}
+        {%- if s.failed %} · <span class="camp-danger">{{ s.failed }} en échec</span>{% endif %}
+      </p>
+    </div>
+
+    <dl class="camp-card-stats">
+      <div>
+        <dt>Ouvertures</dt>
+        <dd>{{ s.open_rate }}</dd>
+        <small>{{ s.unique_opens }} uniques</small>
+      </div>
+      <div>
+        <dt>Clics</dt>
+        <dd>{{ s.click_rate }}</dd>
+        <small>{{ s.unique_clicks }} cliqueurs</small>
+      </div>
+      <div>
+        <dt>Désinsc.</dt>
+        <dd>{{ s.unsubscribed }}</dd>
+        <small>{{ s.unsub_rate }} des envois</small>
+      </div>
+    </dl>
+
+    <footer class="camp-card-actions">
+      <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_editor', campaign_id=c.id) }}">
+        {% if c.is_editable %}Éditer{% else %}Ouvrir{% endif %}
+      </a>
+      <a class="admin-btn ghost tiny" href="{{ url_for('admin.campaign_report', campaign_id=c.id) }}">Rapport</a>
+      <form method="POST" action="{{ url_for('admin.campaign_duplicate', campaign_id=c.id) }}">
+        <button class="admin-btn ghost tiny" type="submit">Dupliquer</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin.campaign_delete', campaign_id=c.id) }}"
+            onsubmit="return confirm('Supprimer cette campagne et son historique de destinataires ?');">
+        <button class="admin-btn ghost tiny camp-btn-danger" type="submit">Supprimer</button>
+      </form>
+    </footer>
+  </article>
+  {% endfor %}
 </div>
 {% else %}
-<div class="admin-empty">
-  <p>Aucune campagne pour l'instant. Créez-en une ci-dessus.</p>
+<div class="camp-empty">
+  <p class="camp-empty-title">
+    {% if status_filter %}Aucune campagne dans ce statut.{% else %}Aucune campagne pour l'instant.{% endif %}
+  </p>
+  <p class="camp-empty-lead">Choisissez un modèle ci-dessus : la première version de l'e-mail est déjà écrite.</p>
+  <a class="admin-btn" href="#camp-new">Créer une campagne</a>
 </div>
 {% endif %}
 {% endblock %}

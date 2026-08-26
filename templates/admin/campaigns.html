@@ -126,7 +126,7 @@
 
 {% if campaigns %}
 <div class="admin-table-wrap">
-  <table class="admin-table camp-table">
+  <table class="admin-table camp-table table-stack">
     <thead>
       <tr>
         <th>Campagne</th>
@@ -143,16 +143,16 @@
       {% for c in campaigns %}
       {% set s = campaign_stats[c.id|string] %}
       <tr>
-        <td>
+        <td data-label="Campagne">
           <a class="camp-name" href="{{ url_for('admin.campaign_editor', campaign_id=c.id) }}">{{ c.name }}</a>
           <span class="camp-subject">{{ c.subject or 'Sans objet' }}</span>
         </td>
-        <td><span class="camp-status camp-status--{{ c.status }}">{{ c.status_label }}</span></td>
-        <td class="num">{{ s.recipients }}</td>
-        <td class="num">{{ s.sent }}{% if s.pending %} <span class="camp-pending">+{{ s.pending }} en attente</span>{% endif %}</td>
-        <td class="num">{{ s.open_rate }}<span class="camp-sub">{{ s.unique_opens }}</span></td>
-        <td class="num">{{ s.click_rate }}<span class="camp-sub">{{ s.unique_clicks }}</span></td>
-        <td class="num">{{ s.unsubscribed }}</td>
+        <td data-label="Statut"><span class="camp-status camp-status--{{ c.status }}">{{ c.status_label }}</span></td>
+        <td class="num" data-label="Destinataires">{{ s.recipients }}</td>
+        <td class="num" data-label="Envoyés">{{ s.sent }}{% if s.pending %} <span class="camp-pending">+{{ s.pending }} en attente</span>{% endif %}</td>
+        <td class="num" data-label="Ouvertures">{{ s.open_rate }}<span class="camp-sub">{{ s.unique_opens }}</span></td>
+        <td class="num" data-label="Clics">{{ s.click_rate }}<span class="camp-sub">{{ s.unique_clicks }}</span></td>
+        <td class="num" data-label="Désinscriptions">{{ s.unsubscribed }}</td>
         <td class="camp-actions">
           <a class="admin-btn ghost tiny"
              href="{{ url_for('admin.campaign_report', campaign_id=c.id) }}">Rapport</a>

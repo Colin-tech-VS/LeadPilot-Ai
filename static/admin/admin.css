@@ -2653,6 +2653,12 @@ body.admin {
   .promo-actions { justify-content: flex-start; }
 }
 
+/* The console styles many elements with an explicit ``display``, and an author
+   rule beats the user-agent's ``[hidden] { display: none }``. Without this,
+   anything the markup ships hidden — a pause button, a device switch — shows up
+   anyway. Stated once, globally, rather than remembered per component. */
+[hidden] { display: none !important; }
+
 /* ------------------------------------------------------------- campagnes */
 /* Mailing campaigns: list, block designer and report. The designer canvas is
    a deliberate approximation of the e-mail — the "Aperçu réel" iframe is the

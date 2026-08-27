@@ -34,6 +34,20 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
+    # A caller (the schema-drift tests) can hand us the connection to migrate,
+    # so the chain can be replayed against a throwaway database instead of
+    # whichever one the app config points at.
+    connection = config.attributes.get("connection")
+    if connection is not None:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(

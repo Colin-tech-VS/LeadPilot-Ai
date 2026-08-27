@@ -93,8 +93,38 @@ document.documentElement.classList.add("js-enabled");
 
     document.documentElement.classList.add("js-wizard");
 
+    /* Reaching the last step means the visitor is looking at the fields that
+       create the account. Told to the server once per page, so the funnel can
+       separate « personne n'a commencé le formulaire » (a page/offer problem)
+       from « beaucoup l'ont commencé, aucun ne l'a fini » (a form problem).
+       Fire-and-forget: a failed beacon must never disturb the sign-up. */
+    var startReported = false;
+    function reportStarted() {
+      if (startReported || steps.length < 2) return;
+      startReported = true;
+      var form = registerForm.getAttribute("data-funnel-form");
+      if (!form) return;
+      var body = JSON.stringify({ form: form });
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(
+            "/api/signup/started",
+            new Blob([body], { type: "application/json" })
+          );
+          return;
+        }
+        fetch("/api/signup/started", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body,
+          keepalive: true
+        }).catch(function () {});
+      } catch (err) { /* measurement is never worth an exception here */ }
+    }
+
     function showStep(n, animate) {
       current = n;
+      if (n === steps.length - 1) reportStarted();
       if (track) {
         track.style.transform = "translateX(-" + n * 100 + "%)";
       }
@@ -114,6 +144,15 @@ document.documentElement.classList.add("js-enabled");
         btnNext.textContent = n === steps.length - 1 ? btnNext.dataset.submitLabel : btnNext.dataset.nextLabel;
         btnNext.type = n === steps.length - 1 ? "submit" : "button";
       }
+
+      /* Changing step re-flows the card, so the submit button may have just
+         moved under the fixed cookie banner. Ask it to lift the button clear
+         once this step has been laid out. */
+      try {
+        window.setTimeout(function () {
+          document.dispatchEvent(new CustomEvent("pc-consent-recheck"));
+        }, 60);
+      } catch (err) { /* older browsers: the banner's own observer covers it */ }
 
       if (animate) {
         var active = steps[n];

@@ -353,6 +353,41 @@ def heatmap_collect():
     return ("", 204)
 
 
+@web_bp.route("/api/signup/started", methods=["POST"])
+def signup_started():
+    """The visitor reached the account step of a sign-up form.
+
+    Same trust model and same contract as :func:`heatmap_collect`: the visitor
+    is identified by the httpOnly ``lp_vid`` cookie rather than by anything the
+    page sends, bots are dropped, and it always answers 204 so a measurement
+    can never surface an error on the form it is measuring. No PII: the form
+    key and the device, nothing typed into the fields.
+    """
+    from app.core.tracking import VISITOR_COOKIE, is_bot
+    from app.services import signup_funnel
+
+    try:
+        if is_bot(request.headers.get("User-Agent", "")):
+            return ("", 204)
+        if not request.cookies.get(VISITOR_COOKIE):
+            return ("", 204)  # no cookie yet → nothing to attach the step to
+        form = (request.get_json(silent=True) or {}).get("form")
+        if form not in (
+            signup_funnel.FORM_ARTISAN,
+            signup_funnel.FORM_CUSTOMER,
+            signup_funnel.FORM_FOUNDING,
+        ):
+            return ("", 204)
+        signup_funnel.record_start(form)
+    except Exception:
+        current_app.logger.exception("signup start beacon failed")
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+    return ("", 204)
+
+
 @web_bp.route("/api/heatmap/record", methods=["POST"])
 def heatmap_record():
     """Ingest a session-replay track (cursor movements / clicks / scroll) so the

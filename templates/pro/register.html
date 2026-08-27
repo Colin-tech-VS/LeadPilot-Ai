@@ -61,7 +61,8 @@
       {{ auth_divider() }}
       {% endif %}
 
-      <form method="post" class="auth-form" id="register-form" data-start-step="{{ start_step|default(0) }}">
+      <form method="post" class="auth-form" id="register-form" data-start-step="{{ start_step|default(0) }}"
+            data-funnel-form="artisan">
         <input type="hidden" name="plan" value="{{ selected_plan }}">
 
         <div class="auth-pro__viewport">

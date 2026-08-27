@@ -72,8 +72,16 @@ def create_app(config_object=None):
             _ensure_missing_tables()
         except Exception:
             logging.getLogger(__name__).exception("table creation failed — app continues")
-        # Idempotent column patches — must run in production too when Alembic
-        # lags behind the ORM (otherwise /dashboard 500s after deploy).
+        # Columns the ORM declares and the database is missing, derived from the
+        # models themselves so a new one cannot be forgotten. Must run in
+        # production too when Alembic lags behind the ORM (otherwise every page
+        # reading the table 500s after deploy).
+        try:
+            _sync_orm_columns()
+        except Exception:
+            logging.getLogger(__name__).exception("column sync failed — app continues")
+        # Idempotent hand-written patches: data backfills and type fixes the
+        # generic sweep above cannot express.
         try:
             _ensure_schema_updates()
         except Exception:
@@ -215,6 +223,70 @@ def _ensure_missing_tables():
     logging.getLogger(__name__).info(
         "Created missing tables: %s", ", ".join(sorted(t.name for t in missing))
     )
+
+
+def _sync_orm_columns():
+    """Add columns the ORM declares and the database does not have yet.
+
+    The production database predates the Alembic chain: the first revision
+    calls ``op.create_table`` on tables that already exist, so
+    ``alembic upgrade head`` fails on revision one and *every* later revision
+    stays unapplied. Until that is untangled, a column added to a model only
+    reaches production if someone also remembers to list it by hand in
+    :func:`_ensure_schema_updates` — and forgetting once takes down every page
+    that reads the table (a missing ``tenants.listing_prompt_answered_at``
+    turned /admin/clients, the dashboard and the sign-up into 500s).
+
+    So derive the patch from the models instead of from a list kept in sync by
+    hand. Only columns that can be added to a table that already holds rows are
+    touched — nullable ones, or ones carrying a server default; anything else is
+    logged and left to a real migration. The sweep is idempotent: it is guarded
+    by the inspector and never rewrites or drops anything.
+    """
+    from sqlalchemy import inspect, text
+    from sqlalchemy.schema import CreateColumn
+
+    inspector = inspect(db.engine)
+    existing_tables = set(inspector.get_table_names())
+    dialect = db.engine.dialect
+    preparer = dialect.identifier_preparer
+    log = logging.getLogger(__name__)
+    added = []
+
+    for table_name, table in db.metadata.tables.items():
+        if table_name not in existing_tables:
+            continue  # whole tables are _ensure_missing_tables()'s job
+        db_columns = {col["name"] for col in inspector.get_columns(table_name)}
+        for column in table.columns:
+            if column.name in db_columns:
+                continue
+            if column.primary_key or getattr(column, "computed", None) is not None:
+                log.warning(
+                    "%s.%s is missing and cannot be added automatically — "
+                    "needs a migration",
+                    table_name,
+                    column.name,
+                )
+                continue
+            if not column.nullable and column.server_default is None:
+                log.warning(
+                    "%s.%s is missing and is NOT NULL without a server default "
+                    "— needs a migration",
+                    table_name,
+                    column.name,
+                )
+                continue
+            ddl = CreateColumn(column).compile(dialect=dialect).string
+            statement = f"ALTER TABLE {preparer.format_table(table)} ADD COLUMN {ddl}"
+            try:
+                with db.engine.begin() as conn:
+                    conn.execute(text(statement))
+                added.append(f"{table_name}.{column.name}")
+            except Exception:
+                log.exception("could not add column %s.%s", table_name, column.name)
+
+    if added:
+        log.info("Added missing columns: %s", ", ".join(sorted(added)))
 
 
 def _ensure_schema_updates():

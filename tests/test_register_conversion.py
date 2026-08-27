@@ -137,3 +137,71 @@ def test_the_install_prompt_stays_off_the_auth_pages():
     no reason to install the app; the prompt is shown again on the dashboard."""
     js = (STATIC / "js" / "pwa-install.js").read_text(encoding="utf-8")
     assert 'document.querySelector(".auth-pro")' in js
+
+
+# ── The schema underneath it ─────────────────────────────────────────────────
+
+
+def test_a_column_the_models_added_cannot_silently_kill_every_signup(client, app):
+    """The costliest conversion bug this page has had was not on the page.
+
+    ``tenants.listing_prompt_answered_at`` reached the model and its migration
+    but never reached production (the Alembic chain aborts on revision one
+    there). Every INSERT then named a column the database did not have, the
+    route's catch-all turned that into « Inscription impossible pour le
+    moment », and the sign-up rate went to zero while the form itself looked
+    perfectly healthy. Boot now reconciles the ORM against the live schema, so
+    a missing column heals instead of converting nobody.
+    """
+    import sqlalchemy as sa
+
+    from app import _sync_orm_columns
+    from app.core.extensions import db
+
+    with db.engine.begin() as conn:
+        conn.execute(sa.text("ALTER TABLE tenants DROP COLUMN listing_prompt_answered_at"))
+    db.session.remove()
+
+    _sync_orm_columns()  # what create_app() does on every boot
+
+    data = _signup()
+    response = client.post("/register", data=data)
+    assert response.status_code == 302, response.get_data(as_text=True)[:2000]
+
+    with app.app_context():
+        assert User.query.filter_by(email=data["email"]).first() is not None
+
+
+# ── The CTA had to stay reachable after the page moved ───────────────────────
+
+
+def test_the_banner_rechecks_the_cta_when_the_layout_moves():
+    """Lifting the button clear of the banner once, when the banner appears, is
+    not enough — at that moment the wizard is on its short first step and there
+    is nothing to clear. The button only drops under the banner afterwards,
+    when step 2 makes the card taller. Without a re-check it stayed there and
+    the tap landed on the banner."""
+    js = (STATIC / "js" / "cookie-consent.js").read_text(encoding="utf-8")
+    assert "ResizeObserver" in js
+    assert "pc-consent-recheck" in js
+
+
+def test_the_wizard_asks_for_a_recheck_on_every_step():
+    js = (STATIC / "js" / "auth.js").read_text(encoding="utf-8")
+    assert "pc-consent-recheck" in js
+
+
+def test_focusing_a_field_rechecks_the_cta():
+    """The browser scrolls a focused input into view, which moves the button
+    without resizing anything — the observer never hears about it. Filling the
+    last field put the button back under the banner and the sign-up was lost
+    right at the final tap."""
+    js = (STATIC / "js" / "cookie-consent.js").read_text(encoding="utf-8")
+    assert "focusin" in js
+
+
+def test_the_lift_ignores_a_cta_that_is_not_laid_out():
+    """A wizard step that is display:none has a zero-height rect; measuring an
+    overlap against it would scroll the page for a button nobody can see."""
+    js = (STATIC / "js" / "cookie-consent.js").read_text(encoding="utf-8")
+    assert "if (!c.height) return;" in js

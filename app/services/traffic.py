@@ -257,6 +257,7 @@ def conversions(days=30):
 
     register_real = _js_visitors_on_paths(since, REGISTER_PATHS)
     attempts = signup_funnel.summary(since)
+    starts = signup_funnel.start_visitors(since)
 
     return {
         "signups_total": total,
@@ -279,6 +280,17 @@ def conversions(days=30):
         "register_no_js_share": _rate(
             max(0, register_visitors - register_real), register_visitors
         ),
+        # Visitors who reached the account step of the form. Submissions are a
+        # floor: sending the form means having got there, whatever the beacon
+        # managed to report.
+        "signup_form_starts": max(starts, attempts["visitors"]),
+        # Of those, the share that looked at the fields and left without ever
+        # pressing the button. This is the number to move when the page itself
+        # is fine and the form is what loses people.
+        "signup_start_abandon_rate": _rate(
+            max(0, max(starts, attempts["visitors"]) - attempts["visitors"]),
+            max(starts, attempts["visitors"]),
+        ),
         "signup_attempts": attempts["attempts"],
         "signup_attempt_visitors": attempts["visitors"],
         "signup_attempts_failed": attempts["failed"],
@@ -294,13 +306,15 @@ def conversions(days=30):
 
 
 def acquisition_funnel(days=30):
-    """Visitor → register page → real browser → form sent → signup.
+    """Visitor → register page → real browser → form started → sent → signup.
 
-    The middle two steps exist because a three-step funnel could not say *why*
-    the last one was empty. « Page inscription visitée » counts HTML responses,
-    so automated hits inflate it; « affichée dans un navigateur » only counts
-    visitors whose browser ran the page; and « formulaire envoyé » is the step
-    that separates *nobody pressed the button* from *the server said no*.
+    The middle steps exist because a three-step funnel could not say *why* the
+    last one was empty. « Page inscription servie » counts HTML responses, so
+    automated hits inflate it; « affichée dans un navigateur » only counts
+    visitors whose browser ran the page; « formulaire commencé » separates a
+    page nobody engages with from a form that loses the people who do; and
+    « formulaire envoyé » separates *nobody pressed the button* from *the
+    server said no*.
     """
     from app.services import signup_funnel
 
@@ -308,6 +322,7 @@ def acquisition_funnel(days=30):
     uniques = _unique_visitors(since)
     register_visitors = _unique_on_paths(since, REGISTER_PATHS)
     register_real = _js_visitors_on_paths(since, REGISTER_PATHS)
+    started = signup_funnel.start_visitors(since)
     attempts = signup_funnel.attempt_visitors(since)
     signups = _count_signups(since)
 
@@ -330,7 +345,13 @@ def acquisition_funnel(days=30):
         },
         _step("Page inscription servie", register_visitors, uniques),
         _step("Affichée dans un navigateur", register_real, register_visitors),
-        _step("Formulaire envoyé", attempts, register_real or register_visitors),
+        # A start is beaconed from the page, so an ad blocker or a closed tab
+        # can lose one — but anyone who submitted the form necessarily reached
+        # its account step, so the submissions are a floor. Without that floor a
+        # lost beacon would draw a funnel where more people sent the form than
+        # ever opened it.
+        _step("Formulaire commencé", max(started, attempts), register_real or register_visitors),
+        _step("Formulaire envoyé", attempts, max(started, attempts)),
         _step("Inscriptions confirmées", signups, attempts),
     ]
 

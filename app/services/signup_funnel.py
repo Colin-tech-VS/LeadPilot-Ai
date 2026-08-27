@@ -28,6 +28,14 @@ logger = logging.getLogger(__name__)
 
 ACTION = "signup_attempt"
 
+# Reaching the account step of the form — the visitor picked a trade and is now
+# looking at the fields that create the account. Recorded separately from
+# ``ACTION`` because « personne n'a envoyé le formulaire » covers two opposite
+# problems: nobody ever engaged with it (the page or the offer does not sell),
+# or plenty of people started and the second step lost them (the form does).
+# Without this step both read as a single empty row and the fix is a guess.
+ACTION_STARTED = "signup_started"
+
 # Which form was posted. Mirrors the paths in ``traffic.REGISTER_PATHS``.
 FORM_ARTISAN = "artisan"
 FORM_CUSTOMER = "customer"
@@ -109,6 +117,34 @@ def record_attempt(
         logger.exception("Failed to record a %s sign-up attempt", form)
 
 
+def record_start(form: str) -> None:
+    """Record that a visitor reached the account step of a sign-up form.
+
+    Beaconed from the page, so it is best-effort by nature: an ad blocker or a
+    closed tab loses it. It is only ever read as a *distinct visitor* count, so
+    a duplicate beacon from the same browser costs nothing and a lost one only
+    under-counts the step it measures — never the sign-ups themselves.
+
+    Like :func:`record_attempt`, it swallows everything: nothing measured here
+    is worth breaking a sign-up over.
+    """
+    try:
+        log_event(
+            CAT_AUTH,
+            ACTION_STARTED,
+            summary=f"{form}: formulaire commencé",
+            level=LEVEL_INFO,
+            actor="visitor",
+            meta={
+                "form": form,
+                "visitor": _visitor_id(),
+                "device": "mobile" if _is_mobile() else "desktop",
+            },
+        )
+    except Exception:  # pragma: no cover - defensive, mirrors log_event itself
+        logger.exception("Failed to record a %s sign-up start", form)
+
+
 def _is_mobile() -> bool:
     try:
         from app.core.tracking import _device
@@ -118,8 +154,8 @@ def _is_mobile() -> bool:
         return False
 
 
-def _rows(since, until=None, forms=None):
-    q = Event.query.filter(Event.action == ACTION, Event.created_at >= since)
+def _rows(since, until=None, forms=None, action=ACTION):
+    q = Event.query.filter(Event.action == action, Event.created_at >= since)
     if until is not None:
         q = q.filter(Event.created_at < until)
     rows = [e.get_meta() for e in q.all()]
@@ -128,21 +164,27 @@ def _rows(since, until=None, forms=None):
     return rows
 
 
-def attempt_visitors(since, until=None, forms=None) -> int:
-    """Distinct visitors who actually submitted a sign-up form.
-
-    Visitors without a cookie fall back to counting one attempt each — better a
-    slight over-count than silently dropping the very submissions this exists
-    to surface.
-    """
+def _distinct_visitors(rows) -> int:
+    """Visitors without a cookie fall back to counting one each — better a
+    slight over-count than silently dropping the very events this surfaces."""
     known, anonymous = set(), 0
-    for meta in _rows(since, until, forms):
+    for meta in rows:
         vid = meta.get("visitor")
         if vid:
             known.add(vid)
         else:
             anonymous += 1
     return len(known) + anonymous
+
+
+def start_visitors(since, until=None, forms=None) -> int:
+    """Distinct visitors who got as far as the account step of the form."""
+    return _distinct_visitors(_rows(since, until, forms, action=ACTION_STARTED))
+
+
+def attempt_visitors(since, until=None, forms=None) -> int:
+    """Distinct visitors who actually submitted a sign-up form."""
+    return _distinct_visitors(_rows(since, until, forms))
 
 
 def summary(since, until=None, forms=None) -> dict:

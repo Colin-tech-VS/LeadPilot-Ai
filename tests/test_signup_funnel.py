@@ -119,6 +119,7 @@ def test_the_funnel_shows_the_browser_and_submission_steps(app, at_instant):
             "Visiteurs uniques",
             "Page inscription servie",
             "Affichée dans un navigateur",
+            "Formulaire commencé",
             "Formulaire envoyé",
             "Inscriptions confirmées",
         ]
@@ -256,3 +257,130 @@ def test_recording_an_attempt_never_breaks_the_signup(client, app, monkeypatch):
         from app.models.user import User
 
         assert User.query.filter_by(email=data["email"]).first() is not None
+
+
+# ── The step nobody could see: reaching the form at all ──────────────────────
+
+
+@pytest.fixture
+def start_log(app):
+    """Start from an empty « formulaire commencé » log, for the same reason
+    ``attempt_log`` clears the attempts: the suite shares one database."""
+    with app.app_context():
+        from app.models.event import Event
+
+        Event.query.filter(Event.action == signup_funnel.ACTION_STARTED).delete()
+        db.session.commit()
+    return lambda **kw: signup_funnel.start_visitors(EPOCH, **kw)
+
+
+# The beacon is dropped unless it comes from something that looks like a
+# browser — the test client's own User-Agent does not.
+BROWSER_UA = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+)
+
+
+def _visitor_cookie(client):
+    """Give the client the ``lp_vid`` cookie a tracked visitor carries."""
+    from app.core.tracking import VISITOR_COOKIE
+
+    client.set_cookie(VISITOR_COOKIE, "vid-" + uuid.uuid4().hex[:8])
+
+
+def _beacon(client, **payload):
+    return client.post(
+        "/api/signup/started", json=payload, headers={"User-Agent": BROWSER_UA}
+    )
+
+
+def test_reaching_the_account_step_is_recorded(client, app, start_log):
+    """« Formulaire envoyé = 0 » hides two opposite problems: nobody engaged
+    with the form, or everybody did and the second step lost them."""
+    _visitor_cookie(client)
+    assert _beacon(client, form=signup_funnel.FORM_ARTISAN).status_code == 204
+
+    with app.app_context():
+        assert start_log() == 1
+
+
+def test_the_same_visitor_starting_twice_counts_once(client, app, start_log):
+    """The beacon is fire-and-forget and a reload re-fires it; the step is a
+    count of people, not of page loads."""
+    _visitor_cookie(client)
+    for _ in range(3):
+        _beacon(client, form=signup_funnel.FORM_ARTISAN)
+
+    with app.app_context():
+        assert start_log() == 1
+
+
+def test_a_start_beacon_stores_no_personal_data(client, app, start_log):
+    """The account step holds the e-mail field. Nothing typed into it may end
+    up in the event log — the beacon carries the form key and nothing else."""
+    _visitor_cookie(client)
+    _beacon(client, form=signup_funnel.FORM_ARTISAN, email="secret@example.com")
+
+    with app.app_context():
+        from app.models.event import Event
+
+        rows = Event.query.filter(Event.action == signup_funnel.ACTION_STARTED).all()
+        assert rows
+        for event in rows:
+            assert "secret@example.com" not in (event.meta or "")
+            assert set(event.get_meta()) <= {"form", "visitor", "device"}
+
+
+def test_an_unknown_form_key_is_ignored(client, app, start_log):
+    """The body is visitor-controlled — only the three real forms count."""
+    _visitor_cookie(client)
+    assert _beacon(client, form="../etc").status_code == 204
+    assert _beacon(client).status_code == 204
+
+    with app.app_context():
+        assert start_log() == 0
+
+
+def test_a_bot_never_lands_in_the_started_step(client, app, start_log):
+    _visitor_cookie(client)
+    client.post(
+        "/api/signup/started",
+        json={"form": signup_funnel.FORM_ARTISAN},
+        headers={"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"},
+    )
+
+    with app.app_context():
+        assert start_log() == 0
+
+
+def test_a_submission_is_a_floor_for_the_started_step(app, at_instant, attempt_log, start_log):
+    """A blocked or lost beacon must not draw a funnel where more people sent
+    the form than ever opened it — submitting means having reached the step."""
+    from app.models.event import Event
+
+    with app.app_context():
+        now = datetime(2093, 2, 2, 9, 0, tzinfo=timezone.utc)
+        hit = at_instant(now)
+        hit("/register", "floor-visitor", with_js=True)
+        signup_funnel.record_attempt(signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_OK)
+        # The attempt has to sit inside the window the frozen clock looks at.
+        Event.query.filter(Event.action == signup_funnel.ACTION).update(
+            {Event.created_at: now}
+        )
+        db.session.commit()
+
+        assert start_log() == 0  # the beacon never arrived
+        counts = {s["label"]: s["count"] for s in acquisition_funnel(days=30)}
+        assert counts["Formulaire commencé"] >= counts["Formulaire envoyé"] == 1
+
+
+def test_the_start_beacon_never_breaks_the_page(client, app, monkeypatch):
+    """It is fired from the sign-up form itself. A failure here must answer 204
+    like nothing happened, never an error the page could surface."""
+    monkeypatch.setattr(
+        "app.services.signup_funnel.log_event",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("log is down")),
+    )
+    _visitor_cookie(client)
+    assert _beacon(client, form=signup_funnel.FORM_ARTISAN).status_code == 204

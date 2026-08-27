@@ -428,6 +428,7 @@
       setText("cv-register-nojs-rate", fmtPct(c.register_no_js_share));
       setText("cv-attempts", fmtInt.format(c.signup_attempt_visitors || 0));
       setText("cv-attempts-failed", fmtInt.format(c.signup_attempts_failed || 0) + " échec");
+      setText("cv-listing-prompts", fmtInt.format(c.signup_listing_prompts || 0));
       setText("cv-vps", c.visitors_per_signup != null ? fmtInt.format(c.visitors_per_signup) : "—");
       drawSignupReasons(c.signup_failure_reasons || [], c.signup_attempts || 0);
 

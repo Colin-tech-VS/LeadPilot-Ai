@@ -193,6 +193,43 @@ def test_an_attempt_never_stores_the_email_or_the_password(client, app, attempt_
             assert "MonSecret2099" not in blob
 
 
+def test_a_fiche_match_is_a_note_on_a_success_not_a_failure(client, app, attempt_log):
+    """The registry match used to send the artisan back to the form, so it was
+    recorded as a refusal. The account is created now and the question waits
+    for the dashboard — one event, and « pourquoi les envois ont échoué » stays
+    a list of things that actually went wrong."""
+    from app.models.registry_listing import STATUS_LISTED, RegistryListing
+
+    with app.app_context():
+        db.session.add(
+            RegistryListing(
+                siren="314159265",
+                name="PLOMBERIE CHAVILLOISE",
+                city_slug="chaville",
+                city="Chaville",
+                postal_code="92370",
+                dept_code="92",
+                trade_key="plombier",
+                status=STATUS_LISTED,
+            )
+        )
+        db.session.commit()
+
+    response = client.post(
+        "/register",
+        data=_signup(company_name="Plomberie Chavilloise", city="Chaville"),
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        report = attempt_log()
+        assert report["attempts"] == 1  # one submission, one event
+        assert report["succeeded"] == 1
+        assert report["failed"] == 0
+        assert report["by_reason"] == []
+        assert report["listing_prompts"] == 1
+
+
 def test_the_customer_form_records_its_attempts_as_well(client, app, attempt_log):
     client.post(
         "/client/register",

@@ -61,6 +61,11 @@ class Tenant(db.Model):
     public_blurb = db.Column(db.String(500), nullable=True)
     # When False (default), only the AI line is shown on the public profile.
     show_direct_phone_public = db.Column(db.Boolean, nullable=False, default=False)
+    # Set once the artisan has answered « est-ce votre fiche ? ». A name+city
+    # match is only a hint, so the merge always needs an explicit yes — but
+    # asking during sign-up cost the account itself, so the question is put on
+    # the dashboard instead and this records that it has been settled.
+    listing_prompt_answered_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     users = db.relationship("User", back_populates="tenant", lazy="dynamic")

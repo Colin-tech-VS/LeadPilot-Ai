@@ -5,6 +5,33 @@
 {% block title %}{{ _('dash_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block content %}
+{% if listing_suggestions %}
+<section class="listing-prompt dash-animate">
+  <header class="listing-prompt__head">
+    <span class="listing-prompt__icon" aria-hidden="true">🏷️</span>
+    <div>
+      <h2 class="listing-prompt__title">{{ _('listing_prompt.title') }}</h2>
+      <p class="listing-prompt__lead">{{ _('listing_prompt.lead') }}</p>
+    </div>
+  </header>
+  <form method="post" action="{{ url_for('web.listing_claim') }}" class="listing-prompt__options">
+    {% for l in listing_suggestions %}
+    <button type="submit" name="claim_siren" value="{{ l.siren }}" class="listing-prompt__option">
+      <strong>{{ l.name | display_name }}</strong>
+      <span>{{ l.city | display_name }}{% if l.postal_code %} · {{ l.postal_code }}{% endif %} · SIREN {{ l.siren }}</span>
+    </button>
+    {% endfor %}
+    <button type="submit" name="claim_siren" value="skip" class="listing-prompt__skip">
+      {{ _('listing_prompt.skip') }}
+    </button>
+  </form>
+</section>
+{% endif %}
+
+{% if request.args.get('claimed') %}
+<div class="alert alert-success dash-animate">{{ _('listing_prompt.merged') }}</div>
+{% endif %}
+
 {% if tenant and not tenant.is_paid %}
 <div class="trial-banner{% if not tenant.subscription_active %} trial-banner-expired{% endif %} dash-animate">
   <span class="trial-banner-text">

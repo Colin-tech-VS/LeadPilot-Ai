@@ -4688,3 +4688,97 @@ html.js-enabled .dash-card-in.is-visible {
   pointer-events: none;
 }
 .ac-powered img { display: block; height: 14px; width: auto; }
+
+/* ── « Est-ce votre fiche ? » ────────────────────────────────────────────────
+   The registry match used to be asked mid-sign-up, where it sent the artisan
+   back to a form with an emptied password field. It is a dashboard card now:
+   each candidate is its own submit button, so answering is one tap and
+   dismissing is always in reach. */
+.listing-prompt {
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #F0F9FF 0%, #E0F2FE 100%);
+  border: 1px solid #BAE6FD;
+  color: #0C4A6E;
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.12);
+}
+
+.listing-prompt__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.listing-prompt__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+  border-radius: 12px;
+  background: #BAE6FD;
+  box-shadow: inset 0 0 0 1px rgba(3, 105, 161, 0.15);
+}
+
+.listing-prompt__title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.listing-prompt__lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.listing-prompt__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listing-prompt__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid #BAE6FD;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.listing-prompt__option:hover,
+.listing-prompt__option:focus-visible {
+  border-color: #0284C7;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.18);
+  transform: translateY(-1px);
+}
+
+.listing-prompt__option strong { font-size: 14px; }
+.listing-prompt__option span { font-size: 12.5px; opacity: 0.75; }
+
+.listing-prompt__skip {
+  align-self: flex-start;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: #0369A1;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .listing-prompt { padding: 16px; }
+  .listing-prompt__head { gap: 10px; }
+}

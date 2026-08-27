@@ -144,27 +144,6 @@
                 </div>
               </details>
 
-              {% if listing_suggestions %}
-              <fieldset class="auth-claim">
-                <legend class="auth-claim__title">{{ _('register.claim_title') }}</legend>
-                <p class="auth-claim__lead">{{ _('register.claim_lead') }}</p>
-                {% for l in listing_suggestions %}
-                <label class="auth-claim__option">
-                  <input type="radio" name="claim_siren" value="{{ l.siren }}" required
-                         {% if form.get('claim_siren') == l.siren %}checked{% endif %}>
-                  <span class="auth-claim__card">
-                    <strong>{{ l.name | display_name }}</strong>
-                    <span>{{ l.city | display_name }}{% if l.postal_code %} · {{ l.postal_code }}{% endif %} · SIREN {{ l.siren }}</span>
-                  </span>
-                </label>
-                {% endfor %}
-                <label class="auth-claim__option">
-                  <input type="radio" name="claim_siren" value="skip" required
-                         {% if form.get('claim_siren') == 'skip' %}checked{% endif %}>
-                  <span class="auth-claim__card">{{ _('register.claim_skip') }}</span>
-                </label>
-              </fieldset>
-              {% endif %}
 
               <p class="auth-pro__reassure">
                 <span class="auth-pro__reassure-icon" aria-hidden="true">🔒</span>

@@ -1858,7 +1858,6 @@ def register():
 
     error = None
     form = {}
-    listing_suggestions = None
     start_step = 0
 
     # Someone who came back from Google: we already hold a verified e-mail and
@@ -1937,14 +1936,6 @@ def register():
                             signup_funnel.OUTCOME_ERROR,
                             "siret_invalid",
                         )
-                    elif suggestions:
-                        listing_suggestions = suggestions
-                        start_step = 1
-                        signup_funnel.record_attempt(
-                            signup_funnel.FORM_ARTISAN,
-                            signup_funnel.OUTCOME_CLAIM,
-                            "listing_claim",
-                        )
                     else:
                         user, tenant = register_plumber(
                             email=form["email"],
@@ -1965,7 +1956,11 @@ def register():
                         # brand-new signup — consumed on the first dashboard render.
                         session["signup_conversion_pending"] = True
                         signup_funnel.record_attempt(
-                            signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_OK
+                            signup_funnel.FORM_ARTISAN,
+                            signup_funnel.OUTCOME_OK,
+                            # A fiche to ask about on the dashboard — recorded
+                            # on the successful attempt, not as a failure.
+                            listing_prompt=bool(suggestions and listing is None),
                         )
                         return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
@@ -2019,7 +2014,6 @@ def register():
         trades=trade_choices(lang),
         selected_plan=selected_plan,
         selected_plan_name=selected_plan_name,
-        listing_suggestions=listing_suggestions or [],
         start_step=start_step,
         google=google,
         google_enabled=_google_login_enabled(),
@@ -2239,9 +2233,12 @@ def dashboard():
     except Exception:
         logger.exception("Founding dashboard context failed")
 
+    from app.services import listing_link
+
     return render_template(
         "artisan/dashboard.html",
         tenant=tenant,
+        listing_suggestions=listing_link.pending_suggestions_for(tenant),
         track_signup_conversion=track_signup_conversion,
         calls_today=calls_today,
         appointments_today=appointments_today,
@@ -2256,6 +2253,24 @@ def dashboard():
         total_leads=total_leads,
         next_appointment=next_appointment,
         founding=founding,
+    )
+
+
+@web_bp.route("/listing-claim", methods=["POST"])
+@web_tenant_required
+def listing_claim():
+    """Answer « est-ce votre fiche ? ».
+
+    Asked on the dashboard rather than during sign-up: a name+city match is
+    only a hint, and a hint has no business standing between an artisan and
+    the account they just filled in a form for.
+    """
+    from app.services import listing_link
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    listing = listing_link.answer_listing_prompt(tenant, request.form.get("claim_siren"))
+    return redirect(
+        url_for("web.dashboard", claimed=1 if listing is not None else None)
     )
 
 

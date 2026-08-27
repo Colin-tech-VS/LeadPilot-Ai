@@ -28,6 +28,25 @@ def _listing(**overrides):
     return row
 
 
+def _own_listing():
+    """A fiche and the matching sign-up data, unique to the calling test.
+
+    ``suggest_listings`` returns at most three candidates, so tests that all
+    register the same « PLOMBERIE CHAVILLOISE » in Chaville start crowding each
+    other out of their own suggestions once enough of them run in one session.
+    """
+    token = uuid.uuid4().hex[:6]
+    name = f"PLOMBERIE {token.upper()}"
+    city = f"Ville{token}"
+    listing = _listing(
+        name=name,
+        city=city,
+        city_slug=city.lower(),
+        postal_code=None,
+    )
+    return listing.siren, _signup_data(company_name=name.title(), city=city)
+
+
 def _signup_data(**overrides):
     data = {
         "company_name": "Plomberie Chavilloise",
@@ -82,23 +101,85 @@ def test_siren_at_signup_attaches_the_listing(client, app):
         assert tenant.siret == "98765432100019"
 
 
-def test_name_match_asks_before_creating_the_account(client, app):
+def test_a_name_match_never_holds_up_the_account(client, app):
+    """It used to: the artisan was sent back to the form to pick a fiche, and
+    the password field came back empty, so a filled-in sign-up turned into
+    « retapez tout ». A name match is only a hint — the account is created and
+    the question waits for the dashboard."""
     with app.app_context():
-        listing = _listing()
-        siren = listing.siren
+        siren, data = _own_listing()
 
-    data = _signup_data()
     response = client.post("/register", data=data)
-    assert response.status_code == 200
-    html = response.get_data(as_text=True)
-    assert "Une fiche correspond déjà" in html
-    assert siren in html
+    assert response.status_code == 302
 
     with app.app_context():
         from app.models.user import User
 
-        assert User.query.filter_by(email=data["email"]).first() is None
+        assert User.query.filter_by(email=data["email"]).first() is not None
+        # Still not merged: only an explicit yes does that.
         assert RegistryListing.query.filter_by(siren=siren).one().status == STATUS_LISTED
+
+
+def test_the_dashboard_asks_about_the_match_the_form_no_longer_does(client, app):
+    with app.app_context():
+        siren, data = _own_listing()
+
+    assert client.post("/register", data=data).status_code == 302
+
+    html = client.get("/dashboard").get_data(as_text=True)
+    assert "correspond à votre entreprise" in html
+    assert siren in html
+
+
+def test_confirming_on_the_dashboard_merges_the_listing(client, app):
+    with app.app_context():
+        siren, data = _own_listing()
+
+    assert client.post("/register", data=data).status_code == 302
+    response = client.post("/listing-claim", data={"claim_siren": siren})
+    assert response.status_code == 302
+
+    with app.app_context():
+        row = RegistryListing.query.filter_by(siren=siren).one()
+        assert row.status == STATUS_CLAIMED
+        tenant = db.session.get(Tenant, row.claimed_tenant_id)
+        assert tenant.listing_prompt_answered_at is not None
+
+    # Asked once, and only once.
+    assert "correspond à votre entreprise" not in client.get("/dashboard").get_data(as_text=True)
+
+
+def test_declining_on_the_dashboard_leaves_the_listing_and_never_asks_again(client, app):
+    with app.app_context():
+        siren, data = _own_listing()
+
+    assert client.post("/register", data=data).status_code == 302
+    assert client.post("/listing-claim", data={"claim_siren": "skip"}).status_code == 302
+
+    with app.app_context():
+        assert RegistryListing.query.filter_by(siren=siren).one().status == STATUS_LISTED
+
+    assert "correspond à votre entreprise" not in client.get("/dashboard").get_data(as_text=True)
+
+
+def test_the_prompt_cannot_be_used_to_claim_a_listing_it_never_offered(client, app):
+    """The SIREN arrives in a POST body. Only the fiches we would have shown
+    this tenant may be claimed through it — otherwise the prompt would be a
+    way to take over any business page by guessing its number."""
+    with app.app_context():
+        offered_siren, data = _own_listing()
+        someone_else = _listing(
+            siren="555000111", name="TOITURE ETRANGERE", city_slug="lille",
+            city="Lille", postal_code="59000", dept_code="59", trade_key="couvreur",
+        )
+        other_siren = someone_else.siren
+
+    assert client.post("/register", data=data).status_code == 302
+    client.post("/listing-claim", data={"claim_siren": other_siren})
+
+    with app.app_context():
+        assert RegistryListing.query.filter_by(siren=other_siren).one().status == STATUS_LISTED
+        assert RegistryListing.query.filter_by(siren=offered_siren).one().status == STATUS_LISTED
 
 
 def test_confirmed_name_match_attaches(client, app):

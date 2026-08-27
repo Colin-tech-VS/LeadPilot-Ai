@@ -37,7 +37,6 @@ FORM_FOUNDING = "founding"
 OUTCOME_OK = "ok"                # account created
 OUTCOME_ERROR = "error"          # rejected, see ``reason``
 OUTCOME_RATE_LIMITED = "rate_limited"
-OUTCOME_CLAIM = "claim_prompt"   # sent back to pick a registry listing
 
 # Human labels for the admin. Keys are the ``reason`` recorded with an attempt.
 REASON_LABELS = {
@@ -49,7 +48,6 @@ REASON_LABELS = {
     "phone_taken": "Téléphone déjà utilisé",
     "siret_invalid": "SIRET invalide",
     "trade_invalid": "Métier invalide",
-    "listing_claim": "Fiche à réclamer (2ᵉ envoi demandé)",
     "rate_limited": "Bloqué par la limite de tentatives",
     "server_error": "Erreur serveur",
 }
@@ -58,7 +56,6 @@ _LEVELS = {
     OUTCOME_OK: LEVEL_SUCCESS,
     OUTCOME_ERROR: LEVEL_ERROR,
     OUTCOME_RATE_LIMITED: LEVEL_ERROR,
-    OUTCOME_CLAIM: LEVEL_INFO,
 }
 
 
@@ -73,8 +70,18 @@ def _visitor_id():
         return None
 
 
-def record_attempt(form: str, outcome: str, reason: str | None = None) -> None:
-    """Record one sign-up form submission.
+def record_attempt(
+    form: str,
+    outcome: str,
+    reason: str | None = None,
+    listing_prompt: bool = False,
+) -> None:
+    """Record one sign-up form submission — exactly one event per submission.
+
+    ``listing_prompt`` marks a sign-up that turned up a registry fiche to ask
+    about later. It is a note on a *successful* attempt, not an outcome of its
+    own: the account exists either way, so counting it as a failure would put
+    a working sign-up in the « pourquoi les envois ont échoué » list.
 
     This sits on the critical path of the sign-up form, so it swallows
     everything: measuring why sign-ups fail must never become a reason one
@@ -93,6 +100,7 @@ def record_attempt(form: str, outcome: str, reason: str | None = None) -> None:
                 "form": form,
                 "outcome": outcome,
                 "reason": reason,
+                "listing_prompt": listing_prompt or None,
                 "visitor": _visitor_id(),
                 "device": "mobile" if _is_mobile() else "desktop",
             },
@@ -152,6 +160,9 @@ def summary(since, until=None, forms=None) -> dict:
         "visitors": attempt_visitors(since, until, forms),
         "succeeded": outcomes.get(OUTCOME_OK, 0),
         "failed": len(rows) - outcomes.get(OUTCOME_OK, 0),
+        # Sign-ups that matched a registry fiche. Asked on the dashboard now,
+        # so this measures how often the question comes up — not a failure.
+        "listing_prompts": sum(1 for m in rows if m.get("listing_prompt")),
         "by_reason": [
             {
                 "reason": reason,

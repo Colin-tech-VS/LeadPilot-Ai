@@ -7,6 +7,13 @@ Two ways in, deliberately different:
 * A name + city + trade collision is only a hint. We surface the candidate(s)
   and wait for an explicit confirmation. Silent merge on a name would hand a
   business page to whoever typed the same words first.
+
+That confirmation used to be asked *during* sign-up: the artisan was sent back
+to the form to pick a fiche, and the password field came back empty, so they
+had to retype it to get an account they had already filled in a form for. The
+rule is unchanged — a name match still never merges on its own — but the
+question is now asked on the dashboard, after the account exists. Nothing that
+is only a hint belongs between someone and their account.
 """
 from __future__ import annotations
 
@@ -146,7 +153,11 @@ def resolve_signup_listing(
 ) -> tuple[RegistryListing | None, list[RegistryListing] | None, str | None]:
     """Decide what signup should do with the registry.
 
-    Returns ``(listing_to_attach, suggestions_to_show, error_key)``.
+    Returns ``(listing_to_attach, suggestions_to_ask_later, error_key)``.
+
+    The suggestions are no longer a reason to stop: sign-up carries on and asks
+    about them once the account exists. Only a malformed SIRET — something the
+    artisan typed and can fix on the spot — still holds the form back.
     """
     raw = (siret or "").strip()
     if raw and not normalize_siren_or_siret(raw):
@@ -163,10 +174,61 @@ def resolve_signup_listing(
         listing = find_listed_by_identifier(chosen)
         return listing, None, None
 
-    suggestions = suggest_listings(name=name, city=city, trade=trade)
-    if suggestions:
-        return None, suggestions, None
-    return None, None, None
+    return None, suggest_listings(name=name, city=city, trade=trade) or None, None
+
+
+def claimed_listing_for(tenant) -> RegistryListing | None:
+    """The fiche already merged into this tenant, if any."""
+    if tenant is None:
+        return None
+    return RegistryListing.query.filter_by(claimed_tenant_id=tenant.id).first()
+
+
+def pending_suggestions_for(tenant) -> list[RegistryListing]:
+    """Fiches worth asking this tenant about, or nothing at all.
+
+    Recomputed from the tenant's own profile rather than stashed at sign-up:
+    the answer is only interesting while it is still unanswered, and a tenant
+    who fills in a SIRET later gets attached through that exact identifier
+    instead — no guessing needed.
+    """
+    if tenant is None or tenant.listing_prompt_answered_at is not None:
+        return []
+    if (tenant.siret or "").strip():
+        return []
+    if claimed_listing_for(tenant) is not None:
+        return []
+    return suggest_listings(
+        name=tenant.name or "",
+        city=tenant.city,
+        trade=tenant.trade_type,
+    )
+
+
+def answer_listing_prompt(tenant, claim_siren: str | None) -> RegistryListing | None:
+    """Settle the « est-ce votre fiche ? » question, once.
+
+    ``claim_siren`` is the SIREN the artisan recognised, or anything else
+    (``"skip"``, empty) to say none of them are theirs. Either way the question
+    is marked answered so it is never put again.
+
+    The SIREN is checked against the fiches we would have offered: a posted
+    value must not be able to claim an arbitrary listing.
+    """
+    from datetime import datetime, timezone
+
+    if tenant is None:
+        return None
+
+    chosen = (claim_siren or "").strip()
+    offered = {listing.siren for listing in pending_suggestions_for(tenant)}
+    listing = None
+    if chosen and chosen != "skip" and chosen in offered:
+        listing = link_tenant(tenant, find_listed_by_identifier(chosen))
+
+    tenant.listing_prompt_answered_at = datetime.now(timezone.utc)
+    db.session.commit()
+    return listing
 
 
 def persist_siret(tenant, identifier: str | None) -> None:

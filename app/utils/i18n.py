@@ -486,7 +486,14 @@ TRANSLATIONS = {
         "register.google_change": "Changer",
         "register.step3_hint": "Dernière étape — vos identifiants de connexion.",
         "register.plan_selected": "Offre {plan} sélectionnée",
-        "register.plan_selected_sub": "Vous finaliserez votre abonnement par paiement sécurisé juste après la création de votre compte.",
+        "register.plan_selected_sub": "Vos 14 jours gratuits sont conservés : votre carte est enregistrée juste après la création du compte, et le premier prélèvement n'a lieu qu'à la fin de l'essai.",
+        # Same page, different truth: choosing a paid offer sends the artisan to
+        # Stripe right after signing up, so the card promise cannot stay « sans
+        # carte bancaire » there. The 14 free days do hold — they are carried
+        # into the subscription — so only the card line changes.
+        "register.trust_card_after_trial": "Carte enregistrée, débit après 14 jours",
+        "register.form_sub_plan": "Essai 14 jours · carte enregistrée maintenant, rien de prélevé avant.",
+        "register.reassure_plan": "Votre carte est enregistrée à l'étape suivante, sur une page sécurisée Stripe. Rien n'est débité avant la fin des 14 jours, et vous pouvez résilier en un clic.",
         "register.error.required": "Tous les champs obligatoires doivent être remplis.",
         "register.error.password_mismatch": "Les mots de passe ne correspondent pas.",
         "register.error.email_taken": "Cet e-mail est déjà utilisé.",
@@ -1819,7 +1826,10 @@ TRANSLATIONS = {
         "register.google_change": "Change",
         "register.step3_hint": "Last step — your sign-in details.",
         "register.plan_selected": "{plan} plan selected",
-        "register.plan_selected_sub": "You'll complete your subscription with secure payment right after creating your account.",
+        "register.plan_selected_sub": "Your 14 free days are kept: your card is saved right after the account is created, and the first charge only happens when the trial ends.",
+        "register.trust_card_after_trial": "Card saved, charged after 14 days",
+        "register.form_sub_plan": "14-day trial · card saved now, nothing charged before.",
+        "register.reassure_plan": "Your card is saved on the next step, on a secure Stripe page. Nothing is charged before the 14 days are up, and you can cancel in one click.",
         "register.error.required": "All required fields must be filled.",
         "register.error.password_mismatch": "Passwords do not match.",
         "register.error.email_taken": "This email is already in use.",

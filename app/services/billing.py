@@ -178,6 +178,25 @@ def _line_item(plan_key: str) -> dict:
     }
 
 
+def checkout_trial_days(tenant: Tenant) -> int:
+    """Free days to carry into a Stripe subscription for this tenant.
+
+    Choosing a paid plan must not cost the artisan the free trial the whole
+    site promises them — signing up from a pricing card used to bill the first
+    month on the spot, on a page that had just said « 14 jours gratuits ». So
+    Checkout starts with whatever is left of their trial: the card is taken
+    now, the first charge is the day the trial would have ended anyway.
+
+    Only what is *left*, and only while it lasts: a tenant already paying, or
+    one whose trial has run out, subscribes at full price. That keeps this
+    honest for the artisan who comes back to /billing three months later
+    instead of handing out a second free trial each time.
+    """
+    if tenant.is_paid:
+        return 0
+    return max(0, tenant.trial_days_left or 0)
+
+
 def create_checkout_session(tenant: Tenant, plan_key: str, success_url: str, cancel_url: str) -> str:
     """Create a Stripe Checkout subscription session and return its URL."""
     if plan_key not in PLANS:
@@ -191,6 +210,11 @@ def create_checkout_session(tenant: Tenant, plan_key: str, success_url: str, can
     if user:
         email = user.email
 
+    subscription_data = {"metadata": {"tenant_id": str(tenant.id), "plan": plan_key}}
+    trial_days = checkout_trial_days(tenant)
+    if trial_days:
+        subscription_data["trial_period_days"] = trial_days
+
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[_line_item(plan_key)],
@@ -198,7 +222,7 @@ def create_checkout_session(tenant: Tenant, plan_key: str, success_url: str, can
         customer=tenant.stripe_customer_id or None,
         customer_email=None if tenant.stripe_customer_id else email,
         metadata={"tenant_id": str(tenant.id), "plan": plan_key},
-        subscription_data={"metadata": {"tenant_id": str(tenant.id), "plan": plan_key}},
+        subscription_data=subscription_data,
         success_url=success_url,
         cancel_url=cancel_url,
         allow_promotion_codes=True,
@@ -289,7 +313,18 @@ def apply_event(event_type: str, obj: dict) -> bool:
 
         from app.models.tenant import utcnow
 
-        tenant.trial_ends_at = utcnow() - timedelta(seconds=1)
+        # Ending a subscription ends the access it paid for — unless the free
+        # trial it was started on is still running. Since Checkout carries the
+        # remaining trial into the subscription, an artisan who picks a plan on
+        # day 0 and cancels on day 3 has not been charged a cent and is still
+        # inside the 14 days the site promised them; expiring the trial here
+        # would take those days back for having tried to pay.
+        now = utcnow()
+        ends_at = tenant.trial_end_date
+        if not ends_at or ends_at <= now:
+            tenant.trial_ends_at = now - timedelta(seconds=1)
+        else:
+            tenant.trial_ends_at = ends_at
         db.session.commit()
         logger.info("Tenant %s subscription ended — reverted to trial", tenant.id)
         try:

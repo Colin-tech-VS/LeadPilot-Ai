@@ -19,10 +19,15 @@
 
   <section class="auth-pro__panel">
     <div class="auth-pro__card">
+      {# Choosing a paid offer means Stripe right after signing up, so the card
+         promise has to tell the truth on this page rather than be contradicted
+         on the next one. The free 14 days survive either way — they are carried
+         into the subscription — so only the card line changes. #}
+      {% set card_promise = _('register.trust_card_after_trial') if selected_plan else _('register.trust_no_card') %}
       <header class="auth-pro__card-head">
-        <p class="auth-pro__kicker">{{ _('register.trust_free') }} · {{ _('register.trust_no_card') }}</p>
+        <p class="auth-pro__kicker">{{ _('register.trust_free') }} · {{ card_promise }}</p>
         <h2>{{ _('register.form_title') }}</h2>
-        <p class="auth-pro__card-sub">{{ _('register.form_sub') }}</p>
+        <p class="auth-pro__card-sub">{{ _('register.form_sub_plan') if selected_plan else _('register.form_sub') }}</p>
       </header>
 
       <ol class="auth-pro__progress" aria-label="{{ _('auth.steps_aria') }}">
@@ -148,7 +153,7 @@
 
               <p class="auth-pro__reassure">
                 <span class="auth-pro__reassure-icon" aria-hidden="true">🔒</span>
-                {{ _('register.reassure') }}
+                {{ _('register.reassure_plan') if selected_plan else _('register.reassure') }}
               </p>
             </div>
           </div>
@@ -164,7 +169,7 @@
 
       <ul class="auth-pro__trust" aria-label="{{ _('register.trust_aria') }}">
         <li>{{ _('register.trust_free') }}</li>
-        <li>{{ _('register.trust_no_card') }}</li>
+        <li>{{ card_promise }}</li>
         <li>{{ _('register.trust_cancel') }}</li>
       </ul>
 

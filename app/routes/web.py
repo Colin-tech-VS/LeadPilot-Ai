@@ -1749,10 +1749,21 @@ def demo_simulate():
 def _post_register_redirect(tenant, plan_key):
     """Where to send a freshly registered artisan.
 
-    When they came from a paid pricing card (``?plan=starter|pro|premium``) we
-    take them straight to Stripe Checkout for that plan so the subscription is
-    set up in one flow. Falls back to the billing page (Stripe not configured or
-    checkout failed) or the dashboard (free trial / no plan chosen)."""
+    Stripe Checkout is for one case only: the artisan picked a paid offer on
+    the pricing grid and arrived here with it (``?plan=starter|pro|premium``).
+    Then, and only then, the subscription is set up in the same flow — with the
+    free trial carried into it, so choosing a plan never costs them the 14 days
+    (see :func:`billing.checkout_trial_days`).
+
+    Everyone else lands on the dashboard: someone taking the plain 14-day trial,
+    and the « 50 premiers artisans » founding members, who join through
+    /50-artisans and never come through here at all. Being asked for a card
+    right after signing up for something free is how you lose the account you
+    just created.
+
+    Falls back to the billing page when Stripe is not configured or checkout
+    could not be created — never to an error page.
+    """
     from app.services import billing
 
     if plan_key and plan_key in billing.available_plans():

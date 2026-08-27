@@ -55,10 +55,16 @@ def test_conversions_and_funnel(app, traffic_clock):
         assert conv["register_visitors"] == 1
         assert conv["visitor_to_signup_rate"] == 50.0
 
+        # Visiteurs → page servie → affichée dans un navigateur → formulaire
+        # envoyé → compte créé. The two middle steps have no data here: these
+        # page views were written straight to the table, with no heatmap event
+        # and no form submission behind them — which is exactly what a visit
+        # from a scanner looks like.
         funnel = acquisition_funnel(days=30)
-        assert funnel[0]["count"] == 4
-        assert funnel[1]["count"] == 1
-        assert funnel[2]["count"] == 2
+        assert [step["count"] for step in funnel] == [4, 1, 0, 0, 2]
+        assert funnel[2]["label"] == "Affichée dans un navigateur"
+        assert funnel[3]["label"] == "Formulaire envoyé"
+        assert funnel[-1]["label"] == "Inscriptions confirmées"
 
 
 def test_channel_breakdown(app, traffic_clock):

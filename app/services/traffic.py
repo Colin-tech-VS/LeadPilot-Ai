@@ -11,9 +11,12 @@ from app.models.page_view import PageView
 from app.models.user import User
 
 REALTIME_WINDOW_MIN = 5
-REGISTER_PATHS = ("/register", "/client/register")
-ARTISAN_REGISTER_PATHS = ("/register",)
+# Every page that can create an account. ``/50-artisans`` is the founding-offer
+# landing: it carries a full sign-up form, so leaving it out made the funnel
+# count its sign-ups against visitors who never saw the page they came from.
+ARTISAN_REGISTER_PATHS = ("/register", "/50-artisans")
 CUSTOMER_REGISTER_PATHS = ("/client/register",)
+REGISTER_PATHS = ARTISAN_REGISTER_PATHS + CUSTOMER_REGISTER_PATHS
 
 SOCIAL_SOURCES = frozenset(
     {"facebook", "fb", "instagram", "linkedin", "twitter", "x", "tiktok", "youtube"}
@@ -61,6 +64,29 @@ def _unique_on_paths(since, paths, until=None):
     )
     if until is not None:
         q = q.filter(PageView.created_at < until)
+    return q.scalar() or 0
+
+
+def _js_visitors_on_paths(since, paths, until=None):
+    """Visitors who actually *rendered* one of these pages.
+
+    ``PageView`` counts every HTML response, and the visitor id it groups by
+    comes from a cookie: a scanner that keeps no cookies is a brand-new unique
+    visitor on every single hit, so a handful of automated requests to
+    ``/register`` can read as dozens of visitors who never converted. The
+    heatmap tracker only ever fires from a browser that ran JavaScript and sent
+    the cookie back, so the gap between the two numbers is the traffic that was
+    never a person deciding not to sign up.
+    """
+    from app.models.heatmap_event import TYPE_PAGEVIEW, HeatmapEvent
+
+    q = db.session.query(func.count(func.distinct(HeatmapEvent.visitor_id))).filter(
+        HeatmapEvent.created_at >= since,
+        HeatmapEvent.event_type == TYPE_PAGEVIEW,
+        HeatmapEvent.path.in_(paths),
+    )
+    if until is not None:
+        q = q.filter(HeatmapEvent.created_at < until)
     return q.scalar() or 0
 
 
@@ -227,6 +253,11 @@ def conversions(days=30):
     register_artisan = _unique_on_paths(since, ARTISAN_REGISTER_PATHS)
     register_customer = _unique_on_paths(since, CUSTOMER_REGISTER_PATHS)
 
+    from app.services import signup_funnel
+
+    register_real = _js_visitors_on_paths(since, REGISTER_PATHS)
+    attempts = signup_funnel.summary(since)
+
     return {
         "signups_total": total,
         "signups_artisan": artisan,
@@ -240,7 +271,19 @@ def conversions(days=30):
         "visitor_to_signup_rate": _rate(total, uniques),
         "visitor_to_artisan_rate": _rate(artisan, uniques),
         "visitor_to_customer_rate": _rate(customer, uniques),
-        "register_to_signup_rate": _rate(total, register_visitors),
+        # Rates against the browsers that really loaded the page: dividing by
+        # ``register_visitors`` mixes people in with automated hits and reads as
+        # a conversion problem when there was never anyone there to convert.
+        "register_real_visitors": register_real,
+        "register_no_js_visitors": max(0, register_visitors - register_real),
+        "register_no_js_share": _rate(
+            max(0, register_visitors - register_real), register_visitors
+        ),
+        "signup_attempts": attempts["attempts"],
+        "signup_attempt_visitors": attempts["visitors"],
+        "signup_attempts_failed": attempts["failed"],
+        "signup_failure_reasons": attempts["by_reason"],
+        "register_to_signup_rate": _rate(total, register_real or register_visitors),
         "register_to_artisan_rate": _rate(artisan, register_artisan),
         "register_to_customer_rate": _rate(customer, register_customer),
         "visitors_per_signup": round(uniques / total, 1) if total else None,
@@ -250,13 +293,33 @@ def conversions(days=30):
 
 
 def acquisition_funnel(days=30):
-    """Visitor → register page → signup funnel (GA4-style)."""
+    """Visitor → register page → real browser → form sent → signup.
+
+    The middle two steps exist because a three-step funnel could not say *why*
+    the last one was empty. « Page inscription visitée » counts HTML responses,
+    so automated hits inflate it; « affichée dans un navigateur » only counts
+    visitors whose browser ran the page; and « formulaire envoyé » is the step
+    that separates *nobody pressed the button* from *the server said no*.
+    """
+    from app.services import signup_funnel
+
     since = _since(days)
     uniques = _unique_visitors(since)
     register_visitors = _unique_on_paths(since, REGISTER_PATHS)
+    register_real = _js_visitors_on_paths(since, REGISTER_PATHS)
+    attempts = signup_funnel.attempt_visitors(since)
     signups = _count_signups(since)
 
     base = max(uniques, 1)
+
+    def _step(label, count, previous):
+        return {
+            "label": label,
+            "count": count,
+            "pct": round((count / base) * 100, 1),
+            "step_rate": _rate(count, previous),
+        }
+
     return [
         {
             "label": "Visiteurs uniques",
@@ -264,18 +327,10 @@ def acquisition_funnel(days=30):
             "pct": 100.0,
             "step_rate": None,
         },
-        {
-            "label": "Page inscription visitée",
-            "count": register_visitors,
-            "pct": round((register_visitors / base) * 100, 1),
-            "step_rate": _rate(register_visitors, uniques),
-        },
-        {
-            "label": "Inscriptions confirmées",
-            "count": signups,
-            "pct": round((signups / base) * 100, 1),
-            "step_rate": _rate(signups, register_visitors),
-        },
+        _step("Page inscription servie", register_visitors, uniques),
+        _step("Affichée dans un navigateur", register_real, register_visitors),
+        _step("Formulaire envoyé", attempts, register_real or register_visitors),
+        _step("Inscriptions confirmées", signups, attempts),
     ]
 
 

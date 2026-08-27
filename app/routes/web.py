@@ -776,7 +776,7 @@ def _founding_attribution():
 def founding_landing():
     from app.constants.trades import TRADES, trade_choices
     from app.core.errors import ConflictError
-    from app.services import founding_program
+    from app.services import founding_program, signup_funnel
     from app.utils.validation import validate_password
 
     _founding_attribution()
@@ -800,6 +800,11 @@ def founding_landing():
             if waitlist:
                 if not form["first_name"] or not form["email"] or not form["city"]:
                     error = translate("founding.error.required")
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_FOUNDING,
+                        signup_funnel.OUTCOME_ERROR,
+                        "required",
+                    )
                 else:
                     try:
                         validate_email(form["email"])
@@ -812,11 +817,24 @@ def founding_landing():
                             source=session.get("founding_source"),
                             utm_source=session.get("founding_utm_source"),
                         )
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING, signup_funnel.OUTCOME_OK
+                        )
                         return redirect(url_for("web.founding_landing", waitlisted=1))
                     except ConflictError:
                         error = translate("founding.error.email_taken")
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING,
+                            signup_funnel.OUTCOME_ERROR,
+                            "email_taken",
+                        )
                     except AppError as exc:
                         error = str(exc.message) if getattr(exc, "message", None) else translate("founding.error.required")
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING,
+                            signup_funnel.OUTCOME_ERROR,
+                            "invalid_email",
+                        )
             else:
                 password = request.form.get("password") or ""
                 if (
@@ -829,8 +847,18 @@ def founding_landing():
                     or not password
                 ):
                     error = translate("founding.error.required")
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_FOUNDING,
+                        signup_funnel.OUTCOME_ERROR,
+                        "required",
+                    )
                 elif form["trade_type"] not in TRADES:
                     error = translate("founding.error.trade")
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_FOUNDING,
+                        signup_funnel.OUTCOME_ERROR,
+                        "trade_invalid",
+                    )
                 else:
                     try:
                         validate_email(form["email"])
@@ -856,17 +884,37 @@ def founding_landing():
                         login_user_to_session(user)
                         session["signup_conversion_pending"] = True
                         session["founding_just_joined"] = str(participant.place_number)
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING, signup_funnel.OUTCOME_OK
+                        )
                         return redirect(url_for("web.dashboard"))
                     except ConflictError as exc:
                         msg = str(getattr(exc, "message", None) or exc)
                         if "phone" in msg.lower():
                             error = translate("founding.error.phone_taken")
+                            reason = "phone_taken"
                         else:
                             error = translate("founding.error.email_taken")
+                            reason = "email_taken"
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING,
+                            signup_funnel.OUTCOME_ERROR,
+                            reason,
+                        )
                     except AppError as exc:
                         error = str(exc.message) if getattr(exc, "message", None) else translate("founding.error.generic")
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_FOUNDING,
+                            signup_funnel.OUTCOME_ERROR,
+                            "server_error",
+                        )
         else:
             error = translate("founding.error.rate")
+            signup_funnel.record_attempt(
+                signup_funnel.FORM_FOUNDING,
+                signup_funnel.OUTCOME_RATE_LIMITED,
+                "rate_limited",
+            )
 
     return render_template(
         "pro/founding.html",
@@ -1820,6 +1868,7 @@ def register():
 
     if request.method == "POST":
         from app.core.errors import ConflictError
+        from app.services import signup_funnel
         from app.services.signup_service import register_plumber
         from app.utils.validation import validate_password
 
@@ -1851,6 +1900,9 @@ def register():
             if not form["company_name"] or not form["email"] or (not password and not google):
                 error = translate("register.error.required")
                 start_step = 1
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_ERROR, "required"
+                )
             # ``confirm_password`` was dropped from the web form (it cost more
             # sign-ups than it caught typos — the password field has a reveal
             # toggle instead). Other callers may still post it, so it is only
@@ -1858,6 +1910,11 @@ def register():
             elif not google and confirm and password != confirm:
                 error = translate("register.error.password_mismatch")
                 start_step = 1
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_ARTISAN,
+                    signup_funnel.OUTCOME_ERROR,
+                    "password_mismatch",
+                )
             else:
                 try:
                     from app.services import listing_link
@@ -1875,9 +1932,19 @@ def register():
                     if siret_error:
                         error = translate(siret_error)
                         start_step = 1
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_ARTISAN,
+                            signup_funnel.OUTCOME_ERROR,
+                            "siret_invalid",
+                        )
                     elif suggestions:
                         listing_suggestions = suggestions
                         start_step = 1
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_ARTISAN,
+                            signup_funnel.OUTCOME_CLAIM,
+                            "listing_claim",
+                        )
                     else:
                         user, tenant = register_plumber(
                             email=form["email"],
@@ -1897,25 +1964,49 @@ def register():
                         # Fire the Google Ads "Page vue" conversion only for this
                         # brand-new signup — consumed on the first dashboard render.
                         session["signup_conversion_pending"] = True
+                        signup_funnel.record_attempt(
+                            signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_OK
+                        )
                         return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
                     error = translate("register.error.email_taken")
                     start_step = 1
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_ARTISAN,
+                        signup_funnel.OUTCOME_ERROR,
+                        "email_taken",
+                    )
                 except AppError as e:
                     start_step = 1
                     if "email" in str(e.message).lower():
                         error = translate("login.error.invalid_email")
+                        reason = "invalid_email"
                     elif "password" in str(e.message).lower():
                         error = translate("register.error.password_short")
+                        reason = "password_short"
                     else:
                         error = str(e.message)
+                        reason = "server_error"
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_ERROR, reason
+                    )
                 except Exception:
                     current_app.logger.exception("Registration failed for %s", form.get("email"))
                     db.session.rollback()
                     error = translate("register.error.generic")
                     start_step = 1
+                    signup_funnel.record_attempt(
+                        signup_funnel.FORM_ARTISAN,
+                        signup_funnel.OUTCOME_ERROR,
+                        "server_error",
+                    )
         else:
             error = translate("login.error.rate_limited")
+            signup_funnel.record_attempt(
+                signup_funnel.FORM_ARTISAN,
+                signup_funnel.OUTCOME_RATE_LIMITED,
+                "rate_limited",
+            )
 
     from app.constants.trades import trade_choices
 

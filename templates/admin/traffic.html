@@ -71,6 +71,16 @@
       <strong id="cv-register-visitors">0</strong>
       <span class="conv-pill-rate" id="cv-register-rate">0 %</span>
     </div>
+    <div class="conv-pill conv-pill--muted" title="Requêtes comptées comme des visiteurs mais dont le navigateur n'a jamais exécuté le JS de la page — robots et scanners pour l'essentiel.">
+      <span class="conv-pill-label">Dont sans navigateur</span>
+      <strong id="cv-register-nojs">0</strong>
+      <span class="conv-pill-rate" id="cv-register-nojs-rate">0 %</span>
+    </div>
+    <div class="conv-pill" title="Visiteurs distincts ayant réellement envoyé un formulaire d'inscription.">
+      <span class="conv-pill-label">Formulaires envoyés</span>
+      <strong id="cv-attempts">0</strong>
+      <span class="conv-pill-rate" id="cv-attempts-failed">0 échec</span>
+    </div>
     <div class="conv-pill conv-pill--muted">
       <span class="conv-pill-label">Visiteurs / inscription</span>
       <strong id="cv-vps">—</strong>
@@ -114,8 +124,12 @@
   <div class="admin-grid-2">
     <section class="admin-panel traffic-panel">
       <h2>Entonnoir d'acquisition</h2>
-      <p class="admin-panel-lead">Visiteur → page inscription → compte créé</p>
+      <p class="admin-panel-lead">Visiteur → page servie → affichée dans un navigateur → formulaire envoyé → compte créé</p>
       <div id="traffic-funnel" class="funnel funnel--traffic"></div>
+      <div class="signup-reasons">
+        <h3>Pourquoi les envois ont échoué</h3>
+        <div id="signup-reasons"></div>
+      </div>
     </section>
     <section class="admin-panel traffic-panel">
       <h2>Canaux d'acquisition</h2>

@@ -319,6 +319,26 @@
     });
   }
 
+  /* Why sign-up submissions were turned away. An empty list means two very
+     different things depending on whether anyone submitted at all, so say
+     which one it is rather than showing a bare "no data". */
+  function drawSignupReasons(reasons, attempts) {
+    var host = document.getElementById("signup-reasons");
+    if (!host) return;
+    if (!reasons.length) {
+      host.innerHTML = '<p class="signup-reasons-empty">' +
+        (attempts
+          ? "Aucun envoi refusé sur la période."
+          : "Aucun formulaire d'inscription n'a été envoyé sur la période.") +
+        "</p>";
+      return;
+    }
+    host.innerHTML = reasons.map(function (r) {
+      return '<div class="signup-reason-row"><span>' + escHtml(r.label) +
+        "</span><strong>" + fmtInt.format(r.count) + "</strong></div>";
+    }).join("");
+  }
+
   function fillTrafficTable(tableId, rows, emptyMsg) {
     var table = document.getElementById(tableId);
     if (!table) return;
@@ -404,7 +424,12 @@
       setText("cv-artisan-rate", fmtPct(c.visitor_to_artisan_rate));
       setText("cv-customer-rate", fmtPct(c.visitor_to_customer_rate));
       setText("cv-register-rate", fmtPct(c.register_to_signup_rate));
+      setText("cv-register-nojs", fmtInt.format(c.register_no_js_visitors || 0));
+      setText("cv-register-nojs-rate", fmtPct(c.register_no_js_share));
+      setText("cv-attempts", fmtInt.format(c.signup_attempt_visitors || 0));
+      setText("cv-attempts-failed", fmtInt.format(c.signup_attempts_failed || 0) + " échec");
       setText("cv-vps", c.visitors_per_signup != null ? fmtInt.format(c.visitors_per_signup) : "—");
+      drawSignupReasons(c.signup_failure_reasons || [], c.signup_attempts || 0);
 
       var pps = document.getElementById("tk-pps");
       if (pps) pps.textContent = k.pages_per_session || 0;

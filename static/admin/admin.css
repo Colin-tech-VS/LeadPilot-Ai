@@ -412,8 +412,10 @@ a { color: inherit; text-decoration: none; }
 .traffic-empty { text-align: center; color: var(--muted); padding: 20px !important; }
 
 .funnel--traffic .funnel-bar--0 { background: linear-gradient(90deg, #1A2332, #3D5270); }
-.funnel--traffic .funnel-bar--1 { background: linear-gradient(90deg, #3D5270, #1A2332); }
-.funnel--traffic .funnel-bar--2 { background: linear-gradient(90deg, #059669, #34d399); }
+.funnel--traffic .funnel-bar--1 { background: linear-gradient(90deg, #3D5270, #55708f); }
+.funnel--traffic .funnel-bar--2 { background: linear-gradient(90deg, #55708f, #7c8fa8); }
+.funnel--traffic .funnel-bar--3 { background: linear-gradient(90deg, #b45309, #f59e0b); }
+.funnel--traffic .funnel-bar--4 { background: linear-gradient(90deg, #059669, #34d399); }
 
 .lg-signups::before { background: var(--green); }
 
@@ -2432,12 +2434,16 @@ body.admin {
 .funnel--traffic .funnel-bar--0,
 .funnel--traffic .funnel-bar--1,
 .funnel--traffic .funnel-bar--2,
+.funnel--traffic .funnel-bar--3,
+.funnel--traffic .funnel-bar--4,
 .bar-fill {
   background: #1a2332;
   border-radius: 2px;
 }
 .funnel--traffic .funnel-bar--1 { background: #3d5270; }
 .funnel--traffic .funnel-bar--2 { background: #5a6d86; }
+.funnel--traffic .funnel-bar--3 { background: #7c8fa8; }
+.funnel--traffic .funnel-bar--4 { background: #9aa9bd; }
 
 .nvx-ai-badge {
   width: 28px; height: 28px; border-radius: 2px;
@@ -3205,3 +3211,14 @@ body.admin {
   .camp-link { grid-template-columns: minmax(0, 1fr) 40px; }
   .camp-link .camp-bar { display: none; }
 }
+
+
+/* Why sign-up submissions were turned away — reads under the funnel. */
+.signup-reasons { margin-top: 14px; }
+.signup-reasons h3 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--muted); margin: 0 0 8px;
+}
+.signup-reasons-empty { color: var(--muted); font-size: 13px; }
+.signup-reason-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
+.signup-reason-row strong { font-variant-numeric: tabular-nums; }

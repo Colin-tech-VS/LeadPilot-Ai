@@ -268,6 +268,7 @@ def register():
     error = None
     form = {}
     if request.method == "POST":
+        from app.services import signup_funnel
         from app.services.signup_service import register_customer
         from app.utils.validation import validate_password
 
@@ -282,10 +283,23 @@ def register():
 
         if not check_rate("customer_register", limit=5, window=3600):
             error = "Trop de tentatives. Réessayez plus tard."
+            signup_funnel.record_attempt(
+                signup_funnel.FORM_CUSTOMER,
+                signup_funnel.OUTCOME_RATE_LIMITED,
+                "rate_limited",
+            )
         elif not form["email"] or not password or not form["first_name"]:
             error = "Prénom, e-mail et mot de passe sont requis."
+            signup_funnel.record_attempt(
+                signup_funnel.FORM_CUSTOMER, signup_funnel.OUTCOME_ERROR, "required"
+            )
         elif password != confirm:
             error = "Les mots de passe ne correspondent pas."
+            signup_funnel.record_attempt(
+                signup_funnel.FORM_CUSTOMER,
+                signup_funnel.OUTCOME_ERROR,
+                "password_mismatch",
+            )
         else:
             try:
                 validate_email(form["email"])
@@ -298,19 +312,37 @@ def register():
                     phone=form["phone"] or None,
                 )
                 login_user_to_session(user)
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_CUSTOMER, signup_funnel.OUTCOME_OK
+                )
                 return _redirect_after_customer_auth(next_url)
             except ConflictError:
                 error = "Cet e-mail est déjà utilisé."
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_CUSTOMER,
+                    signup_funnel.OUTCOME_ERROR,
+                    "email_taken",
+                )
             except AppError as e:
                 msg = str(e.message).lower()
                 if "password" in msg:
                     error = "Mot de passe trop court (8 caractères minimum)."
+                    reason = "password_short"
                 else:
                     error = "E-mail invalide."
+                    reason = "invalid_email"
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_CUSTOMER, signup_funnel.OUTCOME_ERROR, reason
+                )
             except Exception:
                 logger.exception("Customer registration failed for %s", form.get("email"))
                 db.session.rollback()
                 error = "Une erreur est survenue. Réessayez."
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_CUSTOMER,
+                    signup_funnel.OUTCOME_ERROR,
+                    "server_error",
+                )
 
     return render_template("customer/register.html", error=error, form=form, next=next_url)
 

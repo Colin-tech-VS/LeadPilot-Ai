@@ -221,10 +221,15 @@ def _confidence(email: str) -> str:
 
 
 def _known_emails() -> set[str]:
-    """Every address we must not source again: prospects and account holders."""
-    from app.models.user import User
+    """Every address we must not source again: prospects and account holders.
 
-    known: set[str] = set()
+    Team test addresses are in here too — a cold campaign must never go out to
+    our own inbox, whether or not the test account currently exists.
+    """
+    from app.models.user import User
+    from app.services import internal_accounts
+
+    known: set[str] = set(internal_accounts.internal_emails())
     for (email,) in db.session.query(OutreachProspect.email).filter(
         OutreachProspect.email.isnot(None), OutreachProspect.email != ""
     ):

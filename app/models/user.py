@@ -25,6 +25,10 @@ class User(db.Model):
     first_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
+    # Google's stable subject id, set when the account signs in with Google.
+    # Matched on before e-mail, because a Google account can change its address
+    # and the subject never does.
+    google_sub = db.Column(db.String(64), nullable=True, unique=True, index=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
 
     tenant = db.relationship("Tenant", back_populates="users")
@@ -40,6 +44,18 @@ class User(db.Model):
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+
+    def set_unusable_password(self):
+        """For accounts created through Google, which never chose a password.
+
+        ``password_hash`` is NOT NULL, and a hash of a random secret is a
+        better answer than relaxing the column: no password can ever match it,
+        so :meth:`check_password` keeps returning False, and the account can
+        still gain a real password later through the reset-by-e-mail flow.
+        """
+        import secrets
+
+        self.password_hash = generate_password_hash(secrets.token_urlsafe(48))
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)

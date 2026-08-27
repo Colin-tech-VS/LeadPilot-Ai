@@ -1,6 +1,7 @@
 {% extends "layouts/pro.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% from 'macros/auth_showcase.html' import auth_showcase with context %}
+{% from 'macros/google_button.html' import google_button, auth_divider with context %}
 {% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('login.title') ~ ' — ' ~ _('app.name'), _('login.tagline'), '/login', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
@@ -27,6 +28,11 @@
       {% endif %}
       {% if error %}
       <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
+
+      {% if google_enabled %}
+      {{ google_button(label=_('auth.google_signin')) }}
+      {{ auth_divider() }}
       {% endif %}
 
       <form method="post" class="auth-form" id="login-form">

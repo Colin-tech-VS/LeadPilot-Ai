@@ -1,5 +1,6 @@
 import re
 import logging
+import secrets
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -1677,6 +1678,112 @@ def _post_register_redirect(tenant, plan_key):
     return redirect(url_for("web.dashboard"))
 
 
+GOOGLE_SESSION_KEY = "pending_google"
+GOOGLE_STATE_KEY = "google_oauth_state"
+
+
+def _google_login_enabled() -> bool:
+    from app.services import google_login
+
+    return google_login.is_configured()
+
+
+def _google_identity_in_session() -> dict | None:
+    """The Google profile of someone mid-signup, if there is one."""
+    payload = session.get(GOOGLE_SESSION_KEY)
+    return payload if isinstance(payload, dict) and payload.get("email") else None
+
+
+@web_bp.route("/auth/google/start", methods=["GET"])
+def google_start():
+    """Send the artisan to Google's consent screen."""
+    from app.services import google_login
+
+    if not google_login.is_configured():
+        abort(404)
+
+    if not (current_app.config.get("TESTING") or check_rate("google_oauth", limit=10, window=300)):
+        session["flash_error_key"] = "login.error.rate_limited"
+        return redirect(url_for("web.login"))
+
+    state = google_login.new_state()
+    session[GOOGLE_STATE_KEY] = state
+    # A plan picked on the pricing grid must survive the round trip to Google.
+    from app.services import billing
+
+    plan = (request.args.get("plan") or "").strip().lower()
+    session["google_oauth_plan"] = plan if plan in billing.available_plans() else ""
+    return redirect(google_login.build_auth_url(state), code=302)
+
+
+@web_bp.route("/auth/google/callback", methods=["GET"])
+def google_callback():
+    """Where Google sends the artisan back.
+
+    Three outcomes: a known Google account signs straight in; a known e-mail
+    adopts the Google identity and signs in; anyone else is handed to the
+    sign-up form, which still needs the company and trade Google cannot supply.
+    """
+    from app.services import google_login
+
+    if not google_login.is_configured():
+        abort(404)
+
+    expected = session.pop(GOOGLE_STATE_KEY, None)
+    plan = session.pop("google_oauth_plan", "") or ""
+    state = request.args.get("state") or ""
+    if not expected or not secrets.compare_digest(str(expected), str(state)):
+        session["flash_error_key"] = "login.error.google_failed"
+        return redirect(url_for("web.login"))
+
+    if request.args.get("error") or not request.args.get("code"):
+        # The artisan pressed "Cancel" on Google's screen — not an error worth
+        # shouting about, just put them back where they started.
+        return redirect(url_for("web.login"))
+
+    try:
+        identity = google_login.exchange_code(request.args["code"])
+    except google_login.GoogleLoginError:
+        current_app.logger.warning("Google sign-in failed", exc_info=True)
+        session["flash_error_key"] = "login.error.google_failed"
+        return redirect(url_for("web.login"))
+
+    user = User.query.filter_by(google_sub=identity.sub).first()
+
+    if user is None and identity.email_verified:
+        # Same person, arriving through Google for the first time. Only ever on
+        # a verified address: an unverified one could name someone else's inbox.
+        user = User.query.filter_by(email=identity.email).first()
+        if user is not None:
+            user.google_sub = identity.sub
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Could not link Google account to %s", identity.email)
+
+    if user is not None:
+        if not user.tenant_id:
+            # A customer (particulier) account, or an artisan with no tenant —
+            # neither belongs in the artisan dashboard.
+            session["flash_error_key"] = "login.error.no_tenant"
+            return redirect(_login_url_for(user))
+        session.pop(GOOGLE_SESSION_KEY, None)
+        login_user_to_session(user)
+        return redirect(url_for("web.dashboard"))
+
+    # Brand new. Park the identity and let /register collect the business side.
+    session[GOOGLE_SESSION_KEY] = identity.as_session_payload()
+    return redirect(url_for("web.register", plan=plan) if plan else url_for("web.register"))
+
+
+@web_bp.route("/auth/google/forget", methods=["GET"])
+def google_forget():
+    """Drop a pending Google identity — « ce n'est pas moi » on the sign-up form."""
+    session.pop(GOOGLE_SESSION_KEY, None)
+    return redirect(url_for("web.register"))
+
+
 @web_bp.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id") and session.get("tenant_id"):
@@ -1694,6 +1801,11 @@ def register():
     form = {}
     listing_suggestions = None
     start_step = 0
+
+    # Someone who came back from Google: we already hold a verified e-mail and
+    # a name, so the form drops its e-mail and password fields entirely and
+    # asks only for the company and trade Google cannot tell us.
+    google = _google_identity_in_session()
 
     if request.method == "POST":
         from app.core.errors import ConflictError
@@ -1715,17 +1827,24 @@ def register():
             password = request.form.get("password") or ""
             confirm = request.form.get("confirm_password") or ""
 
+            if google:
+                # Never trust the posted e-mail here: the address is the one
+                # Google verified, and the hidden field could say anything.
+                form["email"] = google["email"]
+                form["first_name"] = google.get("first_name") or ""
+                form["last_name"] = google.get("last_name") or ""
+
             # The sign-up form is two steps (trade, then account details); every
             # field that can fail validation lives on the second one, so errors
             # always send the visitor back to step index 1.
-            if not form["company_name"] or not form["email"] or not password:
+            if not form["company_name"] or not form["email"] or (not password and not google):
                 error = translate("register.error.required")
                 start_step = 1
             # ``confirm_password`` was dropped from the web form (it cost more
             # sign-ups than it caught typos — the password field has a reveal
             # toggle instead). Other callers may still post it, so it is only
             # checked when present.
-            elif confirm and password != confirm:
+            elif not google and confirm and password != confirm:
                 error = translate("register.error.password_mismatch")
                 start_step = 1
             else:
@@ -1733,7 +1852,8 @@ def register():
                     from app.services import listing_link
 
                     validate_email(form["email"])
-                    validate_password(password)
+                    if not google:
+                        validate_password(password)
                     listing, suggestions, siret_error = listing_link.resolve_signup_listing(
                         siret=form["siret"],
                         claim_siren=form["claim_siren"],
@@ -1757,9 +1877,11 @@ def register():
                             first_name=form["first_name"] or None,
                             last_name=form["last_name"] or None,
                             trade_type=form["trade_type"],
+                            google_sub=google["sub"] if google else None,
                         )
                         listing_link.link_tenant(tenant, listing)
                         listing_link.persist_siret(tenant, form["siret"])
+                        session.pop(GOOGLE_SESSION_KEY, None)
                         login_user_to_session(user)
                         # Fire the Google Ads "Page vue" conversion only for this
                         # brand-new signup — consumed on the first dashboard render.
@@ -1797,6 +1919,8 @@ def register():
         selected_plan_name=selected_plan_name,
         listing_suggestions=listing_suggestions or [],
         start_step=start_step,
+        google=google,
+        google_enabled=_google_login_enabled(),
     )
 
 
@@ -1831,7 +1955,7 @@ def login():
                     login_user_to_session(user)
                     return redirect(url_for("web.dashboard"))
 
-    return render_template("pro/login.html", error=error)
+    return render_template("pro/login.html", error=error, google_enabled=_google_login_enabled())
 
 
 @web_bp.route("/logout", methods=["GET"])

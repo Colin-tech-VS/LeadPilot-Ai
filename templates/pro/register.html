@@ -2,6 +2,7 @@
 {% from 'macros/seo.html' import seo_meta with context %}
 {% from 'macros/auth_showcase.html' import auth_showcase with context %}
 {% from 'macros/trade_picker.html' import trade_select %}
+{% from 'macros/google_button.html' import google_button, auth_divider with context %}
 {% set nav_active = 'login' %}
 {% block meta %}{{ seo_meta(_('register.title') ~ ' — ' ~ _('app.name'), _('register.tagline'), '/register', None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
 
@@ -49,6 +50,17 @@
       <div class="alert alert-error">{{ error }}</div>
       {% endif %}
 
+      {% if google %}
+      <p class="auth-google-identity">
+        <span class="auth-google-identity__check" aria-hidden="true">✓</span>
+        {{ _('register.google_as', email=google.email) }}
+        <a href="{{ url_for('web.google_forget') }}">{{ _('register.google_change') }}</a>
+      </p>
+      {% elif google_enabled %}
+      {{ google_button(selected_plan) }}
+      {{ auth_divider() }}
+      {% endif %}
+
       <form method="post" class="auth-form" id="register-form" data-start-step="{{ start_step|default(0) }}">
         <input type="hidden" name="plan" value="{{ selected_plan }}">
 
@@ -63,7 +75,7 @@
             </div>
 
             <div class="auth-pro__form-step" data-register-step>
-              <p class="auth-pro__step-hint">{{ _('register.step2_hint') }}</p>
+              <p class="auth-pro__step-hint">{{ _('register.step2_hint_google') if google else _('register.step2_hint') }}</p>
 
               <label class="auth-field">
                 <span class="auth-field__label">{{ _('register.company') }}</span>
@@ -84,6 +96,7 @@
                 </span>
               </label>
 
+              {% if not google %}
               <label class="auth-field">
                 <span class="auth-field__label">{{ _('login.email') }}</span>
                 <span class="auth-field__wrap">
@@ -103,6 +116,7 @@
                 </span>
                 <span class="auth-field__hint">{{ _('register.password_hint') }}</span>
               </label>
+              {% endif %}
 
               {# Phone and SIRET are genuinely optional: both are collected again
                  in Settings, and putting them on the critical path of the form

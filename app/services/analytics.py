@@ -44,8 +44,13 @@ def kpis(days=30):
     quotes_accepted = Quote.query.filter(Quote.status.in_(["accepted", "paid"])).count()
     quotes_paid = Quote.query.filter(Quote.status == "paid").count()
 
-    tenants = Tenant.query.count()
-    paid_tenants = Tenant.query.filter(Tenant.plan != "trial").count()
+    # Team test accounts are excluded everywhere they would be counted.
+    from app.services import internal_accounts
+
+    tenants = internal_accounts.exclude_tenants(Tenant.query).count()
+    paid_tenants = (
+        internal_accounts.exclude_tenants(Tenant.query).filter(Tenant.plan != "trial").count()
+    )
 
     return {
         "leads_total": leads,
@@ -60,7 +65,7 @@ def kpis(days=30):
         "quotes_paid": quotes_paid,
         "tenants_total": tenants,
         "paid_tenants": paid_tenants,
-        "users_total": User.query.count(),
+        "users_total": internal_accounts.exclude_users(User.query).count(),
         "emails_sent": EmailMessage.query.filter(EmailMessage.direction == "outbound").count(),
         "emails_received": EmailMessage.query.filter(EmailMessage.direction == "inbound").count(),
         "revenue_estimate_cents": _revenue_estimate_cents(),
@@ -72,8 +77,10 @@ def _revenue_estimate_cents():
     from app.services.billing import PLANS
 
     total = 0
+    from app.services import internal_accounts
+
     rows = (
-        db.session.query(Tenant.plan, func.count(Tenant.id))
+        internal_accounts.exclude_tenants(db.session.query(Tenant.plan, func.count(Tenant.id)))
         .filter(Tenant.plan != "trial")
         .group_by(Tenant.plan)
         .all()
@@ -139,8 +146,10 @@ def urgency_breakdown():
 
 
 def plan_breakdown():
+    from app.services import internal_accounts
+
     rows = (
-        db.session.query(Tenant.plan, func.count(Tenant.id))
+        internal_accounts.exclude_tenants(db.session.query(Tenant.plan, func.count(Tenant.id)))
         .group_by(Tenant.plan)
         .all()
     )

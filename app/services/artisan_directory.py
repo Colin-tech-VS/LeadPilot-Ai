@@ -9,7 +9,9 @@ from app.utils.slug import unique_public_slug
 
 
 def public_artisans_query(trade=None, city=None, q=None):
-    query = Tenant.query.filter(
+    from app.services import internal_accounts
+
+    query = internal_accounts.exclude_tenants(Tenant.query).filter(
         Tenant.is_public.is_(True),
         Tenant.public_slug.isnot(None),
     )
@@ -52,7 +54,13 @@ def list_public_artisans(trade=None, city=None, q=None, limit=48):
 def get_public_artisan_by_slug(slug: str) -> Tenant | None:
     if not slug:
         return None
-    return Tenant.query.filter_by(public_slug=slug, is_public=True).first()
+    from app.services import internal_accounts
+
+    return (
+        internal_accounts.exclude_tenants(Tenant.query)
+        .filter_by(public_slug=slug, is_public=True)
+        .first()
+    )
 
 
 def _placeholder_logo_url() -> str:

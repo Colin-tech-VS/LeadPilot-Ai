@@ -187,6 +187,14 @@ class Config:
     GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 
     # Google Search Console (OAuth admin dashboard at /admin/gsc)
+    # Team accounts created through the real forms to test them. Never counted
+    # in the KPIs, never listed in the admin, never public in the directory.
+    INTERNAL_ACCOUNT_EMAILS = os.environ.get("INTERNAL_ACCOUNT_EMAILS", "contact@pilotcore.fr")
+
+    # « Se connecter avec Google » on the artisan login / sign-up pages.
+    # Absent → the button is not rendered and the routes 404.
+    GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+    GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
     GOOGLE_GSC_CLIENT_ID = os.environ.get("GOOGLE_GSC_CLIENT_ID", "")
     GOOGLE_GSC_CLIENT_SECRET = os.environ.get("GOOGLE_GSC_CLIENT_SECRET", "")
 

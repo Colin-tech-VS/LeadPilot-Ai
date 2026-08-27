@@ -20,9 +20,13 @@ def register_plumber(
     last_name: str | None = None,
     trade_type: str = "plombier",
     send_welcome: bool = True,
+    google_sub: str | None = None,
 ) -> tuple[User, Tenant]:
     email = validate_email(email)
-    validate_password(password)
+    # An account created through Google never chose a password, and there is
+    # nothing to validate; it gets an unusable hash below instead.
+    if not google_sub:
+        validate_password(password)
     company_name = (company_name or "").strip()
     if not company_name:
         raise AppError("Company name is required", status_code=422)
@@ -57,8 +61,14 @@ def register_plumber(
         email=email,
         tenant_id=tenant.id,
         role="admin",
+        first_name=(first_name or "").strip() or None,
+        last_name=(last_name or "").strip() or None,
+        google_sub=google_sub or None,
     )
-    user.set_password(password)
+    if google_sub:
+        user.set_unusable_password()
+    else:
+        user.set_password(password)
     db.session.add(user)
 
     # Persist the account FIRST. Welcome email is best-effort and must NEVER

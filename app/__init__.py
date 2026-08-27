@@ -367,6 +367,7 @@ def _ensure_schema_updates():
         "first_name": "VARCHAR(100)",
         "last_name": "VARCHAR(100)",
         "phone": "VARCHAR(50)",
+        "google_sub": "VARCHAR(64)",
     }
     for col_name, col_type in user_patches.items():
         if col_name not in user_columns:

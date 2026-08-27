@@ -727,16 +727,23 @@ def clients():
         tab = "particuliers"
     q = request.args.get("q", "").strip()
 
-    total_customers = User.query.filter(User.role == "customer").count()
-    total_artisans = Tenant.query.count()
-    total_public_artisans = Tenant.query.filter(Tenant.is_public.is_(True)).count()
+    # Team test accounts are ours, not customers — never counted, never listed.
+    from app.services import internal_accounts
+
+    total_customers = internal_accounts.exclude_users(
+        User.query.filter(User.role == "customer")
+    ).count()
+    total_artisans = internal_accounts.exclude_tenants(Tenant.query).count()
+    total_public_artisans = internal_accounts.exclude_tenants(
+        Tenant.query.filter(Tenant.is_public.is_(True))
+    ).count()
     total_leads = Lead.query.count()
 
     customers = []
     artisans = []
 
     if tab == "particuliers":
-        query = User.query.filter(User.role == "customer")
+        query = internal_accounts.exclude_users(User.query.filter(User.role == "customer"))
         if q:
             like = f"%{q}%"
             query = query.filter(
@@ -760,7 +767,7 @@ def clients():
                 }
             )
     else:
-        query = Tenant.query
+        query = internal_accounts.exclude_tenants(Tenant.query)
         if q:
             like = f"%{q}%"
             query = query.filter(

@@ -65,7 +65,12 @@ def _unique_on_paths(since, paths, until=None):
 
 
 def _count_signups(since, until=None, role=None):
-    q = User.query.filter(User.created_at >= since)
+    # Team test accounts are not sign-ups. Counting them made the funnel lie in
+    # the most misleading direction: one internal account turned « 0 inscription »
+    # into « 1 », and visitors-per-signup into a real-looking 3431.
+    from app.services import internal_accounts
+
+    q = internal_accounts.exclude_users(User.query).filter(User.created_at >= since)
     if until is not None:
         q = q.filter(User.created_at < until)
     if role == "customer":
@@ -347,8 +352,12 @@ def timeseries(days=30):
         .group_by(func.date(PageView.created_at))
         .all()
     )
+    from app.services import internal_accounts
+
     signup_rows = (
-        db.session.query(func.date(User.created_at), func.count(User.id))
+        internal_accounts.exclude_users(
+            db.session.query(func.date(User.created_at), func.count(User.id))
+        )
         .filter(User.created_at >= since)
         .group_by(func.date(User.created_at))
         .all()

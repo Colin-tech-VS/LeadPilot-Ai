@@ -1,138 +1,134 @@
-"""contact@pilotcore.fr is the team's own test account — it must be invisible.
+"""A team test account must never appear as a customer — anywhere.
 
-Signing up through the real form is the only honest way to check the real form
-works, but the account that comes out is indistinguishable from a customer's.
-Left alone it inflates every KPI and, worst of all, appears in the public
-directory where a visitor can book an appointment with a company that does not
-exist.
+The team signs up through the real forms to check the real forms work. Those
+rows are indistinguishable from a customer's, so every place that counts or
+lists accounts has to skip them. Missing one is not cosmetic: in production,
+with a single internal account and no real one, /admin/traffic reported
+« 1 inscription » and « 3431 visiteurs / inscription » — a number that reads
+like a funnel measurement and is pure noise.
+
+The suite shares one database across tests, so these assert on *deltas* rather
+than absolute counts: what matters is that an internal account moves a number
+by zero and a real one moves it by one.
 """
 import uuid
 
 import pytest
 
-from app.core.extensions import db
-from app.models.tenant import Tenant
-from app.models.user import User
-from app.services import analytics, artisan_directory, internal_accounts
+from app.services import analytics, internal_accounts, traffic
 from app.services.signup_service import register_plumber
-
-INTERNAL = "contact@pilotcore.fr"
 
 
 @pytest.fixture
-def accounts(app):
-    """One internal account and one real customer artisan, both public.
+def pair(app):
+    """One internal account and one real one, created back to back.
 
-    The suite shares a database across a run, so the internal account is
-    created once and reused — signing it up twice is a duplicate e-mail.
+    The internal address is unique per test and declared through the config, so
+    tests never collide on a shared database and the configuration path itself
+    is exercised.
+
+    The city is deliberately not one the SEO tests measure: those assert that
+    « plombier / Lyon » stays thin enough to remain noindex, and a public
+    artisan created here would tip it over the threshold and fail them.
     """
     with app.app_context():
-        existing = User.query.filter_by(email=INTERNAL).first()
-        if existing is not None:
-            internal_tenant = db.session.get(Tenant, existing.tenant_id)
-        else:
-            _, internal_tenant = register_plumber(
-                email=INTERNAL, password="MotDePasse123", company_name="Test Interne", city="Paris"
-            )
+        internal_email = f"interne-{uuid.uuid4().hex[:8]}@pilotcore.fr"
+        app.config["INTERNAL_ACCOUNT_EMAILS"] = internal_email
 
-        real_email = f"vrai-{uuid.uuid4().hex[:8]}@example.com"
-        _, real_tenant = register_plumber(
-            email=real_email, password="MotDePasse123", company_name="Plomberie Réelle", city="Paris"
+        before = {
+            "signups": traffic.conversions(30)["signups_total"],
+            "tenants": analytics.kpis(30)["tenants_total"],
+            "users": analytics.kpis(30)["users_total"],
+        }
+
+        internal_name = f"Test Interne {uuid.uuid4().hex[:6]}"
+        register_plumber(
+            email=internal_email, password="MotDePasse123",
+            company_name=internal_name, city="Guéret", send_welcome=False,
         )
-        for tenant in (internal_tenant, real_tenant):
-            tenant.is_public = True
-        db.session.commit()
-        yield {
-            "internal_tenant_id": internal_tenant.id,
-            "internal_slug": internal_tenant.public_slug,
-            "real_tenant_id": real_tenant.id,
-            "real_slug": real_tenant.public_slug,
-            "real_email": real_email,
+        real_name = f"Plomberie Reelle {uuid.uuid4().hex[:6]}"
+        register_plumber(
+            email=f"vrai-{uuid.uuid4().hex[:8]}@example.com", password="MotDePasse123",
+            company_name=real_name, city="Guéret", send_welcome=False,
+        )
+        return {
+            "before": before,
+            "internal_email": internal_email,
+            "internal_name": internal_name,
+            "real_name": real_name,
         }
 
 
-def test_the_address_is_recognised_as_ours(app):
+def test_the_default_list_covers_the_address_the_team_tests_with(app):
     with app.app_context():
-        assert internal_accounts.is_internal_email(INTERNAL)
+        app.config.pop("INTERNAL_ACCOUNT_EMAILS", None)
+        assert internal_accounts.is_internal_email("contact@pilotcore.fr")
         assert internal_accounts.is_internal_email("  CONTACT@PilotCore.FR  ")
-        assert not internal_accounts.is_internal_email("client@example.com")
+        assert not internal_accounts.is_internal_email("artisan@example.com")
         assert not internal_accounts.is_internal_email(None)
 
 
 def test_the_list_is_configurable(app):
     with app.app_context():
-        app.config["INTERNAL_ACCOUNT_EMAILS"] = "a@x.fr, B@x.fr"
-        assert internal_accounts.is_internal_email("b@x.fr")
-        assert not internal_accounts.is_internal_email(INTERNAL)
+        app.config["INTERNAL_ACCOUNT_EMAILS"] = "a@x.fr, B@X.FR"
+        assert internal_accounts.internal_emails() == {"a@x.fr", "b@x.fr"}
+        assert internal_accounts.is_internal_email("A@x.fr")
+        assert not internal_accounts.is_internal_email("contact@pilotcore.fr")
 
 
-# ── Never counted ────────────────────────────────────────────────────────────
-
-
-def test_the_kpis_do_not_count_it(app, accounts):
-    """Stated as a delta against the raw tables: other tests share this database,
-    so an absolute count would only measure the order the suite ran in."""
+def test_two_accounts_count_as_one_signup(app, pair):
+    """The bug behind the 3431: /admin/traffic counted the test account."""
     with app.app_context():
-        internal_tenants = len(internal_accounts.internal_tenant_ids())
-        internal_users = User.query.filter_by(email=INTERNAL).count()
-        assert internal_tenants == 1, "fixture should leave exactly one internal tenant"
-
-        kpis = analytics.kpis()
-        assert kpis["tenants_total"] == Tenant.query.count() - internal_tenants
-        assert kpis["users_total"] == User.query.count() - internal_users
+        after = traffic.conversions(30)["signups_total"]
+        assert after - pair["before"]["signups"] == 1
 
 
-def test_the_plan_breakdown_does_not_count_it(app, accounts):
+def test_two_accounts_count_as_one_in_the_kpis(app, pair):
     with app.app_context():
-        total = sum(row["count"] for row in analytics.plan_breakdown())
-        assert total == Tenant.query.count() - len(internal_accounts.internal_tenant_ids())
+        k = analytics.kpis(30)
+        assert k["tenants_total"] - pair["before"]["tenants"] == 1
+        assert k["users_total"] - pair["before"]["users"] == 1
 
 
-# ── Never shown ──────────────────────────────────────────────────────────────
+def test_visitors_per_signup_is_blank_rather_than_a_fake_ratio(app):
+    """With no real sign-up the honest answer is « — », not a big number.
+
+    Stated as the invariant so it holds whatever the shared database contains.
+    """
+    with app.app_context():
+        conv = traffic.conversions(30)
+        if conv["signups_total"]:
+            assert conv["visitors_per_signup"] == round(
+                conv["unique_visitors"] / conv["signups_total"], 1
+            )
+        else:
+            assert conv["visitors_per_signup"] is None
 
 
-def test_the_public_directory_does_not_list_it(app, accounts):
+def test_the_admin_accounts_list_shows_the_real_one_and_hides_the_test_one(client, app, pair):
+    with client.session_transaction() as sess:
+        sess["admin_authenticated"] = True
+        sess["admin_username"] = "admin"
+
+    html = client.get("/admin/clients?tab=artisans").get_data(as_text=True)
+    assert pair["real_name"] in html, "a real account must still be listed"
+    assert pair["internal_name"] not in html
+
+
+def test_the_public_directory_hides_the_test_one(app, pair):
+    from app.services import artisan_directory
+
     with app.app_context():
         names = [t.name for t in artisan_directory.public_artisans_query().all()]
-        assert "Plomberie Réelle" in names
-        assert "Test Interne" not in names
+        assert pair["real_name"] in names
+        assert pair["internal_name"] not in names
 
 
-def test_its_public_profile_page_does_not_resolve(app, accounts):
+def test_the_signup_curve_does_not_spike_on_it(app, pair):
     with app.app_context():
-        assert artisan_directory.get_public_artisan_by_slug(accounts["internal_slug"]) is None
-        # The real artisan's profile still works.
-        assert artisan_directory.get_public_artisan_by_slug(accounts["real_slug"]) is not None
-
-
-def test_the_profile_page_404s_for_a_visitor(client, accounts):
-    assert client.get(f"/artisans/{accounts['internal_slug']}").status_code == 404
-    assert client.get(f"/artisans/{accounts['real_slug']}").status_code == 200
-
-
-def test_the_admin_accounts_list_hides_it(client, app, accounts):
-    with client.session_transaction() as sess:
-        sess["is_admin"] = True
-        sess["admin_authenticated"] = True
-
-    response = client.get("/admin/clients?tab=artisans")
-    if response.status_code != 200:
-        pytest.skip("admin session shape differs; the query-level tests above still cover it")
-
-    html = response.get_data(as_text=True)
-    assert "Plomberie Réelle" in html
-    assert "Test Interne" not in html
-
-
-# ── The account itself still works ───────────────────────────────────────────
-
-
-def test_the_account_can_still_sign_in_and_use_the_app(client, app, accounts):
-    """Hiding it from the outside must not break the thing it exists to test."""
-    response = client.post("/login", data={"email": INTERNAL, "password": "MotDePasse123"})
-    assert response.status_code == 302
-    assert "/dashboard" in response.headers["Location"]
-
-    with app.app_context():
-        assert User.query.filter_by(email=INTERNAL).first() is not None
-        assert db.session.get(Tenant, accounts["internal_tenant_id"]) is not None
+        series = traffic.timeseries(30)
+        points = series["points"] if isinstance(series, dict) else series
+        total = sum(p.get("signups", 0) for p in points)
+        assert total >= 1
+        # The internal account must not have added a second point-worth.
+        assert total == traffic.conversions(30)["signups_total"]

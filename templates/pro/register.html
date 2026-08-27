@@ -9,7 +9,7 @@
 {% block title %}{{ _('register_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=11">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=12">
 {% endblock %}
 
 {% block content %}
@@ -24,17 +24,13 @@
         <p class="auth-pro__card-sub">{{ _('register.form_sub') }}</p>
       </header>
 
-      <ol class="auth-pro__progress" aria-label="Étapes">
+      <ol class="auth-pro__progress" aria-label="{{ _('auth.steps_aria') }}">
         <li class="is-active" data-step-indicator data-step-label>
           <span class="auth-pro__progress-num">1</span>
           <span>{{ _('auth.step_trade') }}</span>
         </li>
         <li data-step-indicator data-step-label>
           <span class="auth-pro__progress-num">2</span>
-          <span>{{ _('auth.step_activity') }}</span>
-        </li>
-        <li data-step-indicator data-step-label>
-          <span class="auth-pro__progress-num">3</span>
           <span>{{ _('auth.step_account') }}</span>
         </li>
       </ol>
@@ -61,48 +57,79 @@
             <div class="auth-pro__form-step is-active" data-register-step>
               <p class="auth-pro__step-hint">{{ _('register.step1_hint') }}</p>
               <label class="auth-field auth-field--trade">
-                <span class="auth-field__label">{{ _('register.trade') }}</span>
+                <span class="auth-sr-only">{{ _('register.trade') }}</span>
                 {{ trade_select('trade_type', trades, form.get('trade_type', 'plombier'), id='trade_type', required=true, chips_aria=_('register.trade')) }}
               </label>
             </div>
 
             <div class="auth-pro__form-step" data-register-step>
               <p class="auth-pro__step-hint">{{ _('register.step2_hint') }}</p>
+
               <label class="auth-field">
                 <span class="auth-field__label">{{ _('register.company') }}</span>
                 <span class="auth-field__wrap">
                   <span class="auth-field__icon" aria-hidden="true">🏢</span>
                   <input type="text" class="auth-field__input" id="company_name" name="company_name" required
-                         value="{{ form.get('company_name', '') }}" placeholder="Artisan Dupont">
+                         value="{{ form.get('company_name', '') }}" placeholder="Artisan Dupont"
+                         autocomplete="organization">
                 </span>
               </label>
-              <div class="auth-form-row">
-                <label class="auth-field">
-                  <span class="auth-field__label">{{ _('register.city') }}</span>
-                  <span class="auth-field__wrap">
-                    <span class="auth-field__icon" aria-hidden="true">📍</span>
-                    <input type="text" class="auth-field__input places-city" id="city" name="city"
-                           value="{{ form.get('city', '') }}" placeholder="Paris" autocomplete="off" data-places-city>
-                  </span>
-                </label>
-                <label class="auth-field">
-                  <span class="auth-field__label">{{ _('register.phone') }}</span>
-                  <span class="auth-field__wrap">
-                    <span class="auth-field__icon" aria-hidden="true">📞</span>
-                    <input type="tel" class="auth-field__input" id="phone" name="phone"
-                           value="{{ form.get('phone', '') }}" placeholder="+336…">
-                  </span>
-                </label>
-              </div>
+
               <label class="auth-field">
-                <span class="auth-field__label">{{ _('register.siret') }}</span>
+                <span class="auth-field__label">{{ _('register.city') }}</span>
                 <span class="auth-field__wrap">
-                  <input type="text" class="auth-field__input auth-field__input--plain" id="siret" name="siret"
-                         value="{{ form.get('siret', '') }}" placeholder="123 456 789 00012"
-                         inputmode="numeric" maxlength="17" autocomplete="off">
+                  <span class="auth-field__icon" aria-hidden="true">📍</span>
+                  <input type="text" class="auth-field__input places-city" id="city" name="city"
+                         value="{{ form.get('city', '') }}" placeholder="Paris" autocomplete="address-level2" data-places-city>
                 </span>
-                <span class="auth-field__hint">{{ _('register.siret_hint') }}</span>
               </label>
+
+              <label class="auth-field">
+                <span class="auth-field__label">{{ _('login.email') }}</span>
+                <span class="auth-field__wrap">
+                  <span class="auth-field__icon" aria-hidden="true">✉️</span>
+                  <input type="email" class="auth-field__input" id="email" name="email" required
+                         value="{{ form.get('email', '') }}" placeholder="vous@entreprise.fr"
+                         autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+                </span>
+              </label>
+
+              <label class="auth-field">
+                <span class="auth-field__label">{{ _('login.password') }}</span>
+                <span class="auth-field__wrap">
+                  <span class="auth-field__icon" aria-hidden="true">🔒</span>
+                  <input type="password" class="auth-field__input" id="password" name="password" required minlength="8" autocomplete="new-password">
+                  <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="{{ _('register.password_show') }}">👁️</button>
+                </span>
+                <span class="auth-field__hint">{{ _('register.password_hint') }}</span>
+              </label>
+
+              {# Phone and SIRET are genuinely optional: both are collected again
+                 in Settings, and putting them on the critical path of the form
+                 cost more sign-ups than the data was worth. #}
+              <details class="auth-optional"{% if form.get('phone') or form.get('siret') %} open{% endif %}>
+                <summary class="auth-optional__summary">{{ _('register.optional_toggle') }}</summary>
+                <div class="auth-optional__body">
+                  <label class="auth-field">
+                    <span class="auth-field__label">{{ _('register.phone') }}</span>
+                    <span class="auth-field__wrap">
+                      <span class="auth-field__icon" aria-hidden="true">📞</span>
+                      <input type="tel" class="auth-field__input" id="phone" name="phone"
+                             value="{{ form.get('phone', '') }}" placeholder="+336…" autocomplete="tel">
+                    </span>
+                  </label>
+                  <label class="auth-field">
+                    <span class="auth-field__label">{{ _('register.siret') }}</span>
+                    <span class="auth-field__wrap">
+                      <input type="text" class="auth-field__input auth-field__input--plain" id="siret" name="siret"
+                             value="{{ form.get('siret', '') }}" placeholder="123 456 789 00012"
+                             inputmode="numeric" maxlength="17" autocomplete="off">
+                    </span>
+                    <span class="auth-field__hint">{{ _('register.siret_hint') }}</span>
+                  </label>
+                </div>
+              </details>
+
               {% if listing_suggestions %}
               <fieldset class="auth-claim">
                 <legend class="auth-claim__title">{{ _('register.claim_title') }}</legend>
@@ -124,51 +151,7 @@
                 </label>
               </fieldset>
               {% endif %}
-            </div>
 
-            <div class="auth-pro__form-step" data-register-step>
-              <p class="auth-pro__step-hint">{{ _('register.step3_hint') }}</p>
-              <div class="auth-form-row">
-                <label class="auth-field">
-                  <span class="auth-field__label">{{ _('register.first_name') }}</span>
-                  <span class="auth-field__wrap">
-                    <span class="auth-field__icon" aria-hidden="true">👤</span>
-                    <input type="text" class="auth-field__input" id="first_name" name="first_name" autocomplete="given-name"
-                           value="{{ form.get('first_name', '') }}" placeholder="Jean">
-                  </span>
-                </label>
-                <label class="auth-field">
-                  <span class="auth-field__label">{{ _('register.last_name') }}</span>
-                  <span class="auth-field__wrap">
-                    <span class="auth-field__icon" aria-hidden="true">👤</span>
-                    <input type="text" class="auth-field__input" id="last_name" name="last_name" autocomplete="family-name"
-                           value="{{ form.get('last_name', '') }}" placeholder="Dupont">
-                  </span>
-                </label>
-              </div>
-              <label class="auth-field">
-                <span class="auth-field__label">{{ _('login.email') }}</span>
-                <span class="auth-field__wrap">
-                  <span class="auth-field__icon" aria-hidden="true">✉️</span>
-                  <input type="email" class="auth-field__input" id="email" name="email" required
-                         value="{{ form.get('email', '') }}" placeholder="vous@entreprise.fr">
-                </span>
-              </label>
-              <label class="auth-field">
-                <span class="auth-field__label">{{ _('login.password') }}</span>
-                <span class="auth-field__wrap">
-                  <span class="auth-field__icon" aria-hidden="true">🔒</span>
-                  <input type="password" class="auth-field__input" id="password" name="password" required minlength="8" autocomplete="new-password">
-                  <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="Afficher">👁️</button>
-                </span>
-              </label>
-              <label class="auth-field">
-                <span class="auth-field__label">{{ _('register.confirm_password') }}</span>
-                <span class="auth-field__wrap">
-                  <span class="auth-field__icon" aria-hidden="true">🔒</span>
-                  <input type="password" class="auth-field__input" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
-                </span>
-              </label>
               <p class="auth-pro__reassure">
                 <span class="auth-pro__reassure-icon" aria-hidden="true">🔒</span>
                 {{ _('register.reassure') }}
@@ -177,13 +160,19 @@
           </div>
         </div>
 
-        <div class="auth-pro__actions">
+        <div class="auth-pro__actions" data-consent-keep-visible>
           <button type="button" class="btn btn-auth-ghost" id="register-back" hidden>{{ _('auth.step_back') }}</button>
           <button type="submit" class="btn btn-primary" id="register-next"
                   data-next-label="{{ _('auth.step_next') }}"
                   data-submit-label="{{ _('register.submit') }}">{{ _('auth.step_next') }}</button>
         </div>
       </form>
+
+      <ul class="auth-pro__trust" aria-label="{{ _('register.trust_aria') }}">
+        <li>{{ _('register.trust_free') }}</li>
+        <li>{{ _('register.trust_no_card') }}</li>
+        <li>{{ _('register.trust_cancel') }}</li>
+      </ul>
 
       <p class="auth-switch">
         {{ _('register.have_account') }}
@@ -196,6 +185,6 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=6"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}?v=7"></script>
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 {% endblock %}

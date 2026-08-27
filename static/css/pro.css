@@ -317,6 +317,11 @@
     min-width: 0;
   }
 
+  /* Stacked banner: the base `flex: 1 1 320px` would become a 320px height. */
+  .page-pro .cookie-banner-text {
+    flex: 1 1 auto;
+  }
+
   .page-pro .cookie-banner-actions {
     width: 100%;
     flex-wrap: wrap;

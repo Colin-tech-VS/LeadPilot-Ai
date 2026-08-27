@@ -162,6 +162,22 @@ document.documentElement.classList.add("js-enabled");
       });
     });
 
+    /* Picking a trade IS the answer to step 1, so the extra tap on "Continuer"
+       is pure friction — advance as soon as a chip is chosen. The button stays
+       for keyboard users and for anyone happy with the pre-selected trade. */
+    var tradeStep = steps[0];
+    if (tradeStep) {
+      tradeStep.querySelectorAll(".trade-picker-chip").forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          if (current !== 0 || steps.length < 2) return;
+          // Let trade-picker.js write the <select> and paint the chip first.
+          window.setTimeout(function () {
+            if (current === 0 && validateStep(0)) showStep(1, true);
+          }, 180);
+        });
+      });
+    }
+
     var password = document.getElementById("password");
     var confirm = document.getElementById("confirm_password");
 

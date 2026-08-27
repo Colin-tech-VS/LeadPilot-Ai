@@ -53,7 +53,7 @@
 
         <p class="auth-forgot"><a href="{{ url_for('web.forgot_password') }}">{{ _('login.forgot') }}</a></p>
 
-        <div class="auth-pro__actions">
+        <div class="auth-pro__actions" data-consent-keep-visible>
           <button type="submit" class="btn btn-primary">{{ _('customer.login.submit') }}</button>
         </div>
       </form>

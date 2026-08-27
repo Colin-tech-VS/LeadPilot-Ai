@@ -48,6 +48,13 @@
   // Already installed or previously dismissed → do nothing.
   if (isStandalone() || dismissed()) return;
 
+  /* Never interrupt a sign-in / sign-up. The prompt is position:fixed at the
+     bottom of the viewport, so on a phone it lands on top of the auth card's
+     CTA — a second floating layer over the one button the visitor needs. An
+     artisan who has not created an account yet has no reason to install the
+     app either; the prompt is shown again on the dashboard right after. */
+  if (document.querySelector(".auth-pro")) return;
+
   var deferredPrompt = null;
 
   function makeButton(onClick) {

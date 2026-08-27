@@ -1715,12 +1715,19 @@ def register():
             password = request.form.get("password") or ""
             confirm = request.form.get("confirm_password") or ""
 
+            # The sign-up form is two steps (trade, then account details); every
+            # field that can fail validation lives on the second one, so errors
+            # always send the visitor back to step index 1.
             if not form["company_name"] or not form["email"] or not password:
                 error = translate("register.error.required")
-                start_step = 2 if form["email"] or password else 1
-            elif password != confirm:
+                start_step = 1
+            # ``confirm_password`` was dropped from the web form (it cost more
+            # sign-ups than it caught typos — the password field has a reveal
+            # toggle instead). Other callers may still post it, so it is only
+            # checked when present.
+            elif confirm and password != confirm:
                 error = translate("register.error.password_mismatch")
-                start_step = 2
+                start_step = 1
             else:
                 try:
                     from app.services import listing_link
@@ -1760,9 +1767,9 @@ def register():
                         return _post_register_redirect(tenant, selected_plan)
                 except ConflictError:
                     error = translate("register.error.email_taken")
-                    start_step = 2
+                    start_step = 1
                 except AppError as e:
-                    start_step = 2
+                    start_step = 1
                     if "email" in str(e.message).lower():
                         error = translate("login.error.invalid_email")
                     elif "password" in str(e.message).lower():
@@ -1773,7 +1780,7 @@ def register():
                     current_app.logger.exception("Registration failed for %s", form.get("email"))
                     db.session.rollback()
                     error = translate("register.error.generic")
-                    start_step = 2
+                    start_step = 1
         else:
             error = translate("login.error.rate_limited")
 

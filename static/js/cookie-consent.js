@@ -47,6 +47,32 @@
     }
   }
 
+  /* Reserved space alone is not enough on a short phone: the banner is fixed to
+     the bottom, and a form CTA that sits mid-card (the artisan sign-up button)
+     can still be underneath it at the current scroll position — taps then land
+     on the banner and the visitor cannot submit. The reservation above makes
+     the page scrollable past the banner, so use it: lift anything marked
+     data-consent-keep-visible clear of the banner. */
+  function keepCtaClear(banner) {
+    var cta = document.querySelector("[data-consent-keep-visible]");
+    if (!cta) return;
+    // The banner slides in via `transform`, so its rect is still off-screen on
+    // the frame it becomes visible. Derive the edge it will occupy from its
+    // laid-out height instead, the way reserveSpace() does.
+    var bannerTop = window.innerHeight - (banner.offsetHeight || 0);
+    var c = cta.getBoundingClientRect();
+    var overlap = c.bottom - bannerTop;
+    if (overlap <= 0) return;
+    var behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+    try {
+      window.scrollBy({ top: overlap + 16, behavior: behavior });
+    } catch (e) {
+      window.scrollBy(0, overlap + 16);
+    }
+  }
+
   function hide(banner) {
     banner.hidden = true;
     banner.classList.remove("is-visible");
@@ -59,8 +85,12 @@
     requestAnimationFrame(function () {
       banner.classList.add("is-visible");
       reserveSpace(banner);
+      keepCtaClear(banner);
       if (!_resizeBound) {
-        _resizeBound = function () { reserveSpace(banner); };
+        _resizeBound = function () {
+          reserveSpace(banner);
+          keepCtaClear(banner);
+        };
         window.addEventListener("resize", _resizeBound);
       }
     });

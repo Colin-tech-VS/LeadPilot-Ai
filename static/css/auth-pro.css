@@ -1118,3 +1118,78 @@
   color: #475569;
   line-height: 1.5;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Sign-up: optional fields + trust row
+   ───────────────────────────────────────────────────────────────────────── */
+
+.auth-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Phone + SIRET are folded away so the visible form is four fields. Kept in
+   the DOM (and posted normally) — only the disclosure is collapsed. */
+.auth-optional {
+  margin: 2px 0 14px;
+  border-top: 1px solid rgba(26, 35, 50, 0.12);
+  padding-top: 12px;
+}
+
+.auth-optional__summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #5A6472);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.auth-optional__summary::-webkit-details-marker {
+  display: none;
+}
+
+.auth-optional__summary::before {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(26, 35, 50, 0.25);
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  flex: none;
+}
+
+.auth-optional[open] .auth-optional__summary::before {
+  content: "−";
+}
+
+.auth-optional__summary:hover {
+  color: #1A2332;
+}
+
+.auth-optional__body {
+  padding-top: 12px;
+}
+
+/* Trust badges sit UNDER the CTA on the sign-up page: the showcase panel that
+   carries the reassurance on desktop is hidden on phones, so without this a
+   mobile visitor sees nothing next to the button they are asked to press. */
+.page-register .auth-pro__trust {
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0 0;
+}

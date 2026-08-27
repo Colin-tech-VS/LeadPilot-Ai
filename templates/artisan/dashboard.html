@@ -310,7 +310,6 @@
   };
 </script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=3"></script>
-{% block body_attrs %}{% if track_signup_conversion %}data-signup-completed="1"{% endif %}{% endblock %}
 {% if track_signup_conversion %}
 <!-- Event snippet for Page vue conversion page -->
 <script>

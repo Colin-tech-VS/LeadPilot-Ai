@@ -494,7 +494,18 @@ def listing_page(siren):
 
     listing = RegistryListing.query.filter_by(siren=(siren or "").strip()).one_or_none()
     if listing is None or listing.status == STATUS_OPTED_OUT:
-        abort(404)
+        # 410 rather than 404. Erasure here is permanent — the tombstone blocks
+        # re-ingestion for good — and "Gone" is the only status that says so:
+        # search engines re-crawl a 404 for weeks in case it comes back, and
+        # drop a 410 on the next visit. That matters when the page carried
+        # someone's name and they have asked for it to disappear.
+        #
+        # Both branches answer identically on purpose. Splitting them (404 for
+        # unknown, 410 for delisted) would turn this URL into a way of probing
+        # which businesses have asked to be removed.
+        gone = make_response("", 410)
+        gone.headers["X-Robots-Tag"] = "noindex, noarchive"
+        return gone
 
     # Once claimed, the artisan's own profile is the canonical page for this
     # business — send visitors and crawlers there rather than keeping two.

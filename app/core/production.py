@@ -76,6 +76,42 @@ def validate_production_config(app) -> None:
         )
 
 
+# Every third-party origin the pages actually pull from. Keep this list and the
+# templates in step: an origin added to a page and not to the policy is blocked
+# in the browser and works fine in every test.
+_CSP = "; ".join(
+    [
+        "default-src 'self'",
+        # gtag.js (Google Ads) and Leaflet. 'unsafe-inline' is required while the
+        # templates carry inline <script> blocks; the directives below are what
+        # actually blunts an injection until those move behind a nonce.
+        "script-src 'self' 'unsafe-inline' https://unpkg.com "
+        "https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        # OpenStreetMap tiles, Google conversion pixels, inlined data: URIs.
+        "img-src 'self' data: https:",
+        "connect-src 'self' https://api-adresse.data.gouv.fr "
+        "https://www.google-analytics.com https://region1.google-analytics.com",
+        # An injected <base> would silently repoint every relative URL on the page.
+        "base-uri 'self'",
+        # Stops a stolen form — a sign-up, a payment step — from being posted
+        # to someone else's server. This one holds even with unsafe-inline.
+        "form-action 'self'",
+        "frame-ancestors 'self'",
+        "object-src 'none'",
+        "upgrade-insecure-requests",
+    ]
+)
+
+# Geolocation stays on: the artisan agenda maps live positions. Everything else
+# the site never asks for, so no injected code gets to ask on its behalf.
+_PERMISSIONS_POLICY = (
+    "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), "
+    "magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()"
+)
+
+
 def register_security_headers(app) -> None:
     @app.after_request
     def _security_headers(response):
@@ -86,4 +122,6 @@ def register_security_headers(app) -> None:
             response.headers.setdefault(
                 "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
             )
+            response.headers.setdefault("Content-Security-Policy", _CSP)
+            response.headers.setdefault("Permissions-Policy", _PERMISSIONS_POLICY)
         return response

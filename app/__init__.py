@@ -53,8 +53,10 @@ def create_app(config_object=None):
     register_security_headers(app)
     validate_production_config(app)
 
+    from app.core.assets import register_asset_versioning
     from app.core.tracking import register_tracking
 
+    register_asset_versioning(app)
     register_tracking(app)
 
     with app.app_context():

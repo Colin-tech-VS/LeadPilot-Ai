@@ -18,9 +18,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PilotCore Pro">
   {% include 'partials/brand_icons.html' %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=23">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}">
   {% block head_extra %}{% endblock %}
 </head>
 <body class="zone-artisan {% block body_class %}{% endblock %}" {% block body_attrs %}{% endblock %}>
@@ -121,7 +121,7 @@
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/pwa-install.js') }}"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
@@ -138,10 +138,10 @@
       lang: {{ lang|tojson }}
     };
   </script>
-  <script src="{{ url_for('static', filename='js/notifications.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
   {% endif %}
   {{ address_autocomplete_scripts() }}
-  <script src="{{ url_for('static', filename='js/conversion.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/conversion.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

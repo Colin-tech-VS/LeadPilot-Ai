@@ -97,7 +97,17 @@ def _referrer_host(ref):
     return m.group(1) if m else None
 
 
-_TRACKER_TAG = '<script src="/static/js/heatmap.js?v=2" defer></script>'
+def _tracker_tag() -> str:
+    """The tracker <script>, carrying the same content digest as every other
+    asset.
+
+    Built through url_for rather than hard-coded: a hand-written ``?v=2`` would
+    now be cached as immutable for a year, so the next edit to heatmap.js would
+    never reach anyone who had already loaded the old one.
+    """
+    from flask import url_for
+
+    return f'<script src="{url_for("static", filename="js/heatmap.js")}" defer></script>'
 
 
 def _inject_tracker(response):
@@ -111,7 +121,7 @@ def _inject_tracker(response):
         if "</body>" not in html or "heatmap.js" in html:
             return
         head, sep, tail = html.rpartition("</body>")
-        response.set_data(head + _TRACKER_TAG + sep + tail)
+        response.set_data(head + _tracker_tag() + sep + tail)
     except Exception:
         logger.debug("tracker injection skipped", exc_info=True)
 

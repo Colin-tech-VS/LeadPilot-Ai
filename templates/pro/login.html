@@ -9,7 +9,7 @@
 {% block title %}{{ _('login_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}?v=9">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth-pro.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -71,5 +71,5 @@
     </div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/auth.js') }}?v=5"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}

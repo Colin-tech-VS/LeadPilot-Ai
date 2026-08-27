@@ -104,6 +104,7 @@ def test_pro_demo_playlist_uses_recorded_clips(app):
         en = _pro_demo_playlist("en")
     assert len(fr) == 4 and len(en) == 4
     assert all(clip["text"] for clip in fr + en)
-    assert fr[0]["src"] and fr[0]["src"].endswith("/static/audio/demo/fr/01-ai.mp3")
-    assert en[0]["src"] and en[0]["src"].endswith("/static/audio/demo/en/01-ai.mp3")
+    # Static URLs now carry a ?v=<content digest>, so compare the path only.
+    assert fr[0]["src"].split("?")[0].endswith("/static/audio/demo/fr/01-ai.mp3")
+    assert en[0]["src"].split("?")[0].endswith("/static/audio/demo/en/01-ai.mp3")
     assert TRANSLATIONS["en"]["landing.demo_audio_hint"].lower().startswith("a recorded sample call")

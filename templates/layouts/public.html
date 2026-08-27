@@ -25,12 +25,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PilotCore">
   {% include 'partials/brand_icons.html' %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=3">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=23">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}?v=40">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}?v=16">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}?v=9">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/client-doctolib.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/logo.css') }}">
   <link rel="alternate" type="text/plain" href="{{ canonical_url('/llms.txt') }}" title="LLM site index">
   <script type="application/ld+json">{{ global_site_json_ld_script() | safe }}</script>
   {% block head_extra %}{% endblock %}
@@ -125,8 +125,8 @@
   <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
   <script src="{{ url_for('static', filename='js/public-reveal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/cookie-consent.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/vitrine-animate.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='js/pwa-install.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/vitrine-animate.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/pwa-install.js') }}"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

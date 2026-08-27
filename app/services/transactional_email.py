@@ -191,8 +191,35 @@ def _rib_box(rib_lines: list[str] | None) -> str:
 </table>'''
 
 
-def _send(to_addr, subject, html, text_body, tenant_id=None):
-    """Deliver a transactional email. Never raises."""
+def _artisan_reply_to(tenant_id) -> str | None:
+    """The artisan's own address, for mail their client receives.
+
+    A devis reaches a homeowner who will want to answer it — about a date, a
+    price, a question. That reply belongs to the artisan, not to us.
+    """
+    if not tenant_id:
+        return None
+    try:
+        from app.models.user import User
+
+        owner = (
+            User.query.filter(User.tenant_id == tenant_id, User.role == "admin")
+            .order_by(User.created_at.asc())
+            .first()
+        )
+        return owner.email if owner and owner.email else None
+    except Exception:
+        logger.debug("Could not resolve a reply-to for tenant=%s", tenant_id, exc_info=True)
+        return None
+
+
+def _send(to_addr, subject, html, text_body, tenant_id=None, reply_to=None):
+    """Deliver a transactional email. Never raises.
+
+    Always carries a Reply-To. The envelope From is pinned to SMTP_USER (LWS
+    refuses anything else), and that mailbox is a no-reply, so without this
+    header every answer a recipient writes would fall on the floor.
+    """
     try:
         from app.services import admin_email
 
@@ -203,6 +230,7 @@ def _send(to_addr, subject, html, text_body, tenant_id=None):
             is_html=True,
             html_body=html,
             tenant_id=tenant_id,
+            reply_to=reply_to or admin_email.default_from_addr(),
         )
     except Exception:
         logger.exception("Transactional email send failed to=%s subject=%s", to_addr, subject)
@@ -359,7 +387,10 @@ def send_appointment_confirmation(to_addr, when_label, artisan_name, *, customer
         cta_url=f"{base}/client/account",
     )
     text = f"{hello}\nRDV confirmé avec {artisan_name} le {when_label}."
-    return _send(to_addr, f"Rendez-vous confirmé — {artisan_name}", html, text, tenant_id=tenant_id)
+    return _send(
+        to_addr, f"Rendez-vous confirmé — {artisan_name}", html, text,
+        tenant_id=tenant_id, reply_to=_artisan_reply_to(tenant_id),
+    )
 
 
 def send_new_booking_to_artisan(to_addr, when_label, customer_name, *, tenant_id=None,
@@ -448,7 +479,10 @@ def send_devis_to_client(
         text_lines.append(rib)
     text = "\n".join(text_lines)
     subject = f"{title} — {artisan_name}".strip(" —")
-    return _send(to_addr, subject, html, text, tenant_id=tenant_id)
+    return _send(
+        to_addr, subject, html, text, tenant_id=tenant_id,
+        reply_to=_artisan_reply_to(tenant_id),
+    )
 
 
 def send_booking_quote_for_signature(
@@ -495,6 +529,7 @@ def send_booking_quote_for_signature(
         html,
         text,
         tenant_id=tenant_id,
+        reply_to=_artisan_reply_to(tenant_id),
     )
 
 

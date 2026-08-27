@@ -41,6 +41,30 @@ def _get(key, default=""):
     return current_app.config.get(key, default)
 
 
+def _google_redirect_row():
+    """The callback URL Google must be given, verbatim.
+
+    ``redirect_uri_mismatch`` is the failure everyone hits, and it is always the
+    same cause: the URI registered in the Cloud Console differs from the one the
+    app sends. Showing the computed value removes the guesswork.
+    """
+    try:
+        from app.services import google_login
+
+        uri = google_login.redirect_uri()
+    except Exception:  # pragma: no cover - defensive; diagnostics must never 500
+        uri = "—"
+    return {
+        "label": "URI de redirection",
+        "key": "—",
+        "value": uri,
+        "present": True,
+        "required": False,
+        "status": INFO,
+        "hint": "À coller telle quelle dans « Authorized redirect URIs » du client OAuth.",
+    }
+
+
 def _check(label, key, *, secret=False, required=False, show_value=False, hint=""):
     """Build one row describing a single environment variable."""
     raw = _get(key)
@@ -240,6 +264,26 @@ def collect():
             ],
             note="Sans clé Places, l'autocomplétion bascule sur la Base Adresse "
                  "Nationale : rien ne casse, la couverture est juste un peu moindre.",
+        )
+    )
+
+    # ------------------------------------------------- Google sign-in (OAuth)
+    groups.append(
+        _group(
+            "Connexion Google",
+            "🔑",
+            [
+                _check("Client ID", "GOOGLE_OAUTH_CLIENT_ID", show_value=True,
+                       hint="GOOGLE_OAUTH_CLIENT_ID — type « Application Web ». "
+                            "Public : il circule dans l'URL de redirection."),
+                _check("Client secret", "GOOGLE_OAUTH_CLIENT_SECRET", secret=True,
+                       hint="GOOGLE_OAUTH_CLIENT_SECRET — visible une seule fois "
+                            "à sa création. Perdu ⇒ « Add secret » sur le client."),
+                _google_redirect_row(),
+            ],
+            note="Tant que les deux identifiants sont absents, le bouton « Continuer "
+                 "avec Google » n'est pas affiché et /auth/google/start répond 404 : "
+                 "l'inscription par e-mail continue de fonctionner normalement.",
         )
     )
 

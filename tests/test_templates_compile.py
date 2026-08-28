@@ -77,6 +77,22 @@ def test_a_fresh_signup_reaches_a_working_dashboard(client, app):
 
     dashboard = client.get("/dashboard")
     assert dashboard.status_code == 200, f"dashboard returned {dashboard.status_code}"
+    html = dashboard.get_data(as_text=True)
+    assert "trial-banner" in html
+    assert "Voir les offres" in html
+    assert "/billing" in html
+
+    billing = client.get("/billing")
+    assert billing.status_code == 200
+
+    settings = client.get("/settings")
+    assert settings.status_code == 200
+    settings_html = settings.get_data(as_text=True)
+    assert "settings-toc" in settings_html
+    assert 'id="settings-company"' in settings_html
+    assert "stripe-connect-form" in settings_html
+    assert "<form method=\"post\"" in settings_html
+    assert settings_html.count("<form") >= 2
 
 
 @pytest.mark.parametrize("path", ["/", "/pro", "/register", "/login", "/trouver-un-artisan"])

@@ -18,7 +18,7 @@ from app.core.security import check_rate, rate_limit
 from app.core.web_auth import login_user_to_session, logout_user_session, web_tenant_required
 from app.models.appointment import ACTIVE_STATUSES, INACTIVE_STATUSES, Appointment
 from app.models.lead import Lead
-from app.models.tenant import Tenant
+from app.models.tenant import TRIAL_DAYS, Tenant
 from app.models.user import User
 from app.utils.i18n import translate
 from app.utils.validation import validate_email
@@ -2304,6 +2304,7 @@ def dashboard():
                 "progress": progress,
                 "ended": participant.status in ("expired", "completed")
                 and not (tenant and tenant.is_paid),
+                "duration_days": founding_program.get_config()["duration_days"],
             }
     except Exception:
         logger.exception("Founding dashboard context failed")
@@ -2328,6 +2329,7 @@ def dashboard():
         total_leads=total_leads,
         next_appointment=next_appointment,
         founding=founding,
+        trial_total_days=founding["duration_days"] if founding else TRIAL_DAYS,
     )
 
 

@@ -1,13 +1,25 @@
 {% extends "layout.html" %}
 {% from 'macros/trade_picker.html' import trade_select %}
 
+{% block body_class %}page-settings{% endblock %}
 {% block title %}{{ _('settings_suffix') }} — {{ _('app.name') }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<header class="settings-hero">
   <h1>{{ _('settings.title') }}</h1>
   <p class="subtitle">{{ _('settings.subtitle') }}</p>
-</div>
+</header>
+
+<nav class="settings-toc" aria-label="{{ _('settings.toc') }}">
+  <a href="#settings-company">{{ _('settings.section.company') }}</a>
+  <a href="#settings-phones">{{ _('settings.section.phones') }}</a>
+  <a href="#settings-location">{{ _('settings.section.location') }}</a>
+  <a href="#settings-public">{{ _('settings.section.public') }}</a>
+  <a href="#settings-signature">{{ _('settings.section.signature') }}</a>
+  <a href="#paiements">{{ _('settings.section.payments') }}</a>
+  <a href="#rib">{{ _('settings.section.bank') }}</a>
+  <a href="#settings-account">{{ _('settings.section.account') }}</a>
+</nav>
 
 {% if success %}
 <div class="alert alert-success">{{ success }}</div>
@@ -18,7 +30,8 @@
 
 <form method="post" class="settings-form" data-track-submit="phone_setup_completed">
   <div class="settings-grid">
-    <section class="card form-card settings-section">
+    <section class="card form-card settings-section" id="settings-company">
+      <p class="settings-section-kicker">01</p>
       <h2>{{ _('settings.section.company') }}</h2>
       <p class="section-hint">{{ _('settings.section.company_hint') }}</p>
 
@@ -50,15 +63,17 @@
       <p class="field-hint">{{ _('settings.siret_hint') }}</p>
     </section>
 
-    <section class="card form-card settings-section">
+    <section class="card form-card settings-section" id="settings-phones">
+      <p class="settings-section-kicker">02</p>
       <h2>{{ _('settings.section.phones') }}</h2>
       <p class="section-hint">{{ _('settings.section.phones_hint') }}</p>
 
       <label for="phone_number">{{ _('settings.phone') }}</label>
       <input type="tel" id="phone_number" name="phone_number" value="{{ tenant.phone_number or '' }}" placeholder="+33612345678">
 
-      <label class="db-inline directory-toggle" style="margin-top:10px">
+      <label class="pc-switch">
         <input type="checkbox" name="show_direct_phone_public" {% if tenant.show_direct_phone_public %}checked{% endif %}>
+        <span class="pc-switch-track"></span>
         <span>{{ _('settings.show_direct_phone_public') }}</span>
       </label>
       <p class="field-hint">{{ _('settings.show_direct_phone_public_hint') }}</p>
@@ -76,7 +91,8 @@
       {% endif %}
     </section>
 
-    <section class="card form-card settings-section">
+    <section class="card form-card settings-section" id="settings-location">
+      <p class="settings-section-kicker">03</p>
       <h2>{{ _('settings.section.location') }}</h2>
       <p class="section-hint">{{ _('settings.section.location_hint') }}</p>
 
@@ -104,15 +120,17 @@
       <p class="field-hint">{{ _('settings.service_radius_hint') }}</p>
     </section>
 
-    <section class="card form-card settings-section">
+    <section class="card form-card settings-section" id="settings-public">
+      <p class="settings-section-kicker">04</p>
       <h2>{{ _('settings.section.public') }}</h2>
       <p class="section-hint">{{ _('settings.section.public_hint') }}</p>
 
       <label for="trade_type">{{ _('settings.trade_type') }}</label>
       {{ trade_select('trade_type', trades, tenant.trade_type, id='trade_type', chips_aria=_('settings.trade_type')) }}
 
-      <label class="db-inline directory-toggle" style="margin-top:12px">
+      <label class="pc-switch">
         <input type="checkbox" name="is_public" {% if tenant.is_public %}checked{% endif %}>
+        <span class="pc-switch-track"></span>
         <span>{{ _('settings.is_public') }}</span>
       </label>
       <p class="field-hint">{{ _('settings.is_public_hint') }}</p>
@@ -128,7 +146,8 @@
       {% endif %}
     </section>
 
-    <section class="card form-card settings-section settings-section-signature">
+    <section class="card form-card settings-section settings-section-signature" id="settings-signature">
+      <p class="settings-section-kicker">05</p>
       <h2>{{ _('settings.section.signature') }}</h2>
       <p class="section-hint">{{ _('settings.section.signature_hint') }}</p>
 
@@ -150,6 +169,7 @@
     </section>
 
     <section class="card form-card settings-section" id="paiements">
+      <p class="settings-section-kicker">06</p>
       <h2>{{ _('settings.section.payments') }}</h2>
       <p class="section-hint">{{ _('settings.section.payments_hint') }}</p>
 
@@ -164,20 +184,17 @@
       {% if stripe_connect_ready %}
       <p class="field-hint stripe-connect-status stripe-connect-status--ok">✓ {{ _('settings.stripe_connect_active') }}</p>
       <p class="field-hint">{{ _('settings.stripe_connect_active_hint') }}</p>
-      <form method="post" action="{{ url_for('web.stripe_connect_start') }}" class="settings-inline-form">
-        <button type="submit" class="btn btn-outline btn-sm">{{ _('settings.stripe_connect_manage') }}</button>
-      </form>
+      <button type="submit" form="stripe-connect-form" class="btn btn-outline btn-sm">{{ _('settings.stripe_connect_manage') }}</button>
       {% elif stripe_connect_available %}
       <p class="field-hint">{{ _('settings.stripe_connect_intro') }}</p>
-      <form method="post" action="{{ url_for('web.stripe_connect_start') }}" class="settings-inline-form">
-        <button type="submit" class="btn btn-primary btn-sm">{{ _('settings.stripe_connect_cta') }}</button>
-      </form>
+      <button type="submit" form="stripe-connect-form" class="btn btn-primary btn-sm">{{ _('settings.stripe_connect_cta') }}</button>
       {% else %}
       <p class="field-hint">{{ _('settings.stripe_connect_unavailable') }}</p>
       {% endif %}
     </section>
 
     <section class="card form-card settings-section" id="rib">
+      <p class="settings-section-kicker">07</p>
       <h2>{{ _('settings.section.bank') }}</h2>
       <p class="section-hint">{{ _('settings.section.bank_hint') }}</p>
 
@@ -193,7 +210,8 @@
       <p class="field-hint">{{ _('settings.payment_hint') }}</p>
     </section>
 
-    <section class="card form-card settings-section">
+    <section class="card form-card settings-section" id="settings-account">
+      <p class="settings-section-kicker">08</p>
       <h2>{{ _('settings.section.account') }}</h2>
       <p class="section-hint">{{ _('settings.section.account_hint') }}</p>
 
@@ -212,6 +230,8 @@
     <button type="submit" class="btn btn-primary">{{ _('settings.save') }}</button>
   </div>
 </form>
+
+<form id="stripe-connect-form" method="post" action="{{ url_for('web.stripe_connect_start') }}" hidden></form>
 
 <script src="{{ url_for('static', filename='js/trade-picker.js') }}"></script>
 <script>

@@ -33,25 +33,48 @@
 {% endif %}
 
 {% if tenant and not tenant.is_paid %}
-<div class="trial-banner{% if not tenant.subscription_active %} trial-banner-expired{% endif %} dash-animate">
-  <span class="trial-banner-text">
-    {% if founding %}
-      {% if not tenant.subscription_active %}
-        {{ _('dashboard.founding_gift_expired') }}
-      {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
-        {{ _('dashboard.founding_gift_last_day') }}
-      {% else %}
-        {{ _('dashboard.founding_gift_active', days=tenant.trial_days_left) }}
-      {% endif %}
-    {% elif not tenant.subscription_active %}
-      {{ _('dashboard.trial_expired') }}
-    {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
-      {{ _('dashboard.trial_last_day') }}
-    {% else %}
-      {{ _('dashboard.trial_active', days=tenant.trial_days_left) }}
+{% set days_left = tenant.trial_days_left or 0 %}
+{% set trial_total = trial_total_days or 14 %}
+{% set trial_pct = [(((trial_total - days_left) / trial_total * 100) | round(0, 'ceil') | int) if trial_total else 0, 4] | max %}
+<div class="trial-banner{% if not tenant.subscription_active %} trial-banner--expired{% endif %} dash-animate">
+  <div class="trial-banner-main">
+    <div class="trial-banner-copy">
+      <p class="trial-banner-kicker">
+        {% if founding %}
+          {% if tenant.subscription_active %}{{ _('dashboard.founding_kicker') }}{% else %}{{ _('dashboard.founding_ended_kicker') }}{% endif %}
+        {% else %}
+          {% if tenant.subscription_active %}{{ _('dashboard.trial_kicker') }}{% else %}{{ _('dashboard.trial_ended_kicker') }}{% endif %}
+        {% endif %}
+      </p>
+      <p class="trial-banner-text">
+        {% if founding %}
+          {% if not tenant.subscription_active %}
+            {{ _('dashboard.founding_gift_expired') }}
+          {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
+            {{ _('dashboard.founding_gift_last_day') }}
+          {% else %}
+            {{ _('dashboard.founding_gift_active', days=days_left) }}
+          {% endif %}
+        {% elif not tenant.subscription_active %}
+          {{ _('dashboard.trial_expired') }}
+        {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
+          {{ _('dashboard.trial_last_day') }}
+        {% else %}
+          {{ _('dashboard.trial_active', days=days_left) }}
+        {% endif %}
+      </p>
+    </div>
+    {% if tenant.subscription_active %}
+    <p class="trial-banner-count">
+      <strong>{{ days_left }}</strong>
+      <span>{{ _('dashboard.trial_days_left_label') }}</span>
+    </p>
     {% endif %}
-  </span>
-  <a href="{{ url_for('billing.billing_page') }}" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
+    <a href="{{ url_for('billing.billing_page') }}" class="btn btn-sm btn-primary trial-banner-cta">{{ _('dashboard.trial_cta') }}</a>
+  </div>
+  {% if tenant.subscription_active %}
+  <div class="trial-banner-bar" aria-hidden="true"><span style="width: {{ [trial_pct, 100] | min }}%"></span></div>
+  {% endif %}
 </div>
 {% endif %}
 

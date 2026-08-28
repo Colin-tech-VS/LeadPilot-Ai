@@ -1,0 +1,95 @@
+{# « Vous êtes artisan ? » — le seul chemin de conversion artisan sur des pages
+   qui se positionnent sur des requêtes clients.
+
+   Toute la recherche organique du site est de la recherche d'artisan : les
+   visiteurs arrivent sur l'annuaire, les pages métier × ville et les fiches du
+   registre. Un artisan y arrive aussi — en cherchant son propre nom, ses
+   confrères ou sa ville — et n'y trouvait jusqu'ici rien qui lui soit adressé.
+   Ce bloc lui parle dans le contexte de la page qu'il lit (son métier, sa
+   ville) et l'envoie vers un formulaire déjà prérempli.
+
+   Ne rien promettre d'invérifiable : la fiche publique n'est conditionnée à
+   aucun abonnement (`artisan_directory.list_public_artisans`), l'essai dure
+   14 jours sans carte bancaire, et rien n'est prélevé automatiquement à la
+   fin. C'est tout ce que le bloc affirme.
+
+   ``source`` arrive en ``?src=`` sur /register, y est mémorisé en session et
+   ressort dans « D'où viennent les inscriptions » (/admin/traffic) : une bande
+   qui ne convertit pas doit pouvoir être identifiée comme telle. #}
+
+{% macro register_href(trade_key=none, city=none, source=none) -%}
+{#- url_for ignore les valeurs None : un contexte absent ne laisse pas de
+    paramètre vide dans l'URL. -#}
+{{- url_for('web.register', trade=trade_key or none, city=city or none, src=source or none) -}}
+{%- endmacro %}
+
+{% macro artisan_cta(trade_label=none, trade_key=none, city=none, source='seo') %}
+<section class="pro-hook" aria-labelledby="pro-hook-title">
+  <div class="container pro-hook-inner">
+    <div class="pro-hook-copy">
+      <p class="pro-hook-kicker">{{ _('prohook.kicker') }}</p>
+      <h2 id="pro-hook-title">
+        {%- if trade_label and city -%}
+        {{ _('prohook.title_trade_city', trade=trade_label|lower, city=city) }}
+        {%- elif trade_label -%}
+        {{ _('prohook.title_trade', trade=trade_label|lower) }}
+        {%- else -%}
+        {{ _('prohook.title') }}
+        {%- endif -%}
+      </h2>
+      <p class="pro-hook-lead">
+        {%- if trade_label and city -%}
+        {{ _('prohook.lead_trade_city', trade=trade_label|lower, city=city) }}
+        {%- elif trade_label -%}
+        {{ _('prohook.lead_trade', trade=trade_label|lower) }}
+        {%- else -%}
+        {{ _('prohook.lead') }}
+        {%- endif -%}
+      </p>
+      <ul class="pro-hook-points">
+        <li>
+          <strong>{{ _('prohook.point_listing_title') }}</strong>
+          <span>{{ _('prohook.point_listing_body') }}</span>
+        </li>
+        <li>
+          <strong>{{ _('prohook.point_calls_title') }}</strong>
+          <span>{{ _('prohook.point_calls_body') }}</span>
+        </li>
+        <li>
+          <strong>{{ _('prohook.point_trial_title') }}</strong>
+          <span>{{ _('prohook.point_trial_body') }}</span>
+        </li>
+      </ul>
+    </div>
+    <div class="pro-hook-actions">
+      <a href="{{ register_href(trade_key, city, source) }}" class="btn btn-primary btn-lg">{{ _('prohook.cta_primary') }}</a>
+      <a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline">{{ _('prohook.cta_secondary') }}</a>
+      <p class="pro-hook-note">{{ _('prohook.note') }}</p>
+      <p class="pro-hook-claim">
+        {{ _('prohook.claim') }}
+        <a href="{{ url_for('web.find_my_listing') }}">{{ _('prohook.claim_link') }}</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endmacro %}
+
+{# Variante colonne — même promesse, en haut de page sur les gabarits qui ont
+   une barre latérale, là où la bande de bas de page ne serait jamais vue. #}
+{% macro artisan_cta_box(trade_label=none, trade_key=none, city=none, source='seo') %}
+<div class="dl-local-box pro-hook-box">
+  <h3>
+    {%- if trade_label -%}
+    {{ _('prohook.title_trade', trade=trade_label|lower) }}
+    {%- else -%}
+    {{ _('prohook.title') }}
+    {%- endif -%}
+  </h3>
+  <p class="pro-hook-box-body">{{ _('prohook.box_body') }}</p>
+  <a href="{{ register_href(trade_key, city, source) }}" class="btn btn-primary btn-block">{{ _('prohook.cta_primary') }}</a>
+  <p class="pro-hook-box-note">
+    {{ _('prohook.note') }}
+    <a href="{{ url_for('web.pro_landing') }}#pricing">{{ _('prohook.box_pricing_link') }}</a>
+  </p>
+</div>
+{% endmacro %}

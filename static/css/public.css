@@ -1938,10 +1938,6 @@ html {
 .dl-local-links a { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--text); text-decoration: none; transition: all .15s ease; }
 .dl-local-links a:hover { border-color: var(--lp-brand-light); color: var(--blue-primary); background: var(--lp-brand-soft); }
 
-.dl-local-cta { margin: 32px 0 8px; padding: 28px; border-radius: var(--radius-lg, 18px); background: linear-gradient(135deg, var(--lp-brand-soft), #fff); border: 1px solid var(--lp-border-strong); text-align: center; }
-.dl-local-cta h2 { font-size: 22px; margin: 0 0 8px; }
-.dl-local-cta p { color: var(--text-muted); max-width: 620px; margin: 0 auto 18px; line-height: 1.6; }
-
 @media (max-width: 860px) {
   .dl-local-grid { grid-template-columns: 1fr; gap: 24px; }
   .dl-local-aside { position: static; }
@@ -2233,3 +2229,56 @@ html {
   padding: 26px 28px; border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card); }
 .v-claim-inner h2 { margin: 0 0 8px; font-size: 19px; }
 .v-claim-inner p { margin: 0; color: var(--text-muted); line-height: 1.65; max-width: 60ch; }
+
+/* ---- « Vous êtes artisan ? » — bande pro sur les pages de recherche client
+       (macros/artisan_cta.html). Contrastée volontairement : elle s'adresse à
+       un autre lecteur que le reste de la page. ---- */
+.pro-hook { padding: 48px 0; background: var(--lp-brand); color: #fff; }
+.pro-hook-inner {
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  gap: 32px; align-items: start;
+}
+.pro-hook-kicker {
+  margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--lp-brand-soft);
+}
+.pro-hook h2 { margin: 0 0 10px; font-size: 26px; line-height: 1.25; color: #fff; }
+.pro-hook-lead { margin: 0 0 20px; line-height: 1.65; color: rgba(255, 255, 255, .82); max-width: 62ch; }
+.pro-hook-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pro-hook-points li { position: relative; padding-left: 26px; line-height: 1.6; }
+.pro-hook-points li::before {
+  content: "✓"; position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
+  border-radius: 999px; background: var(--lp-brand-soft); color: var(--lp-brand);
+  font-size: 11px; font-weight: 700; display: grid; place-items: center;
+}
+.pro-hook-points strong { display: block; color: #fff; font-size: 15px; }
+.pro-hook-points span { color: rgba(255, 255, 255, .76); font-size: 14px; }
+.pro-hook-actions { display: grid; gap: 12px; justify-items: stretch; }
+.pro-hook-actions .btn { width: 100%; justify-content: center; }
+.pro-hook-actions .btn-outline { color: #fff; border-color: rgba(255, 255, 255, .45); background: transparent; }
+.pro-hook-actions .btn-outline:hover { border-color: #fff; background: rgba(255, 255, 255, .1); }
+.pro-hook-note { margin: 2px 0 0; font-size: 13px; color: rgba(255, 255, 255, .7); text-align: center; }
+.pro-hook-claim { margin: 0; font-size: 13px; color: rgba(255, 255, 255, .7); line-height: 1.6; }
+.pro-hook-claim a { color: var(--lp-brand-soft); }
+
+/* Variante colonne (barre latérale des pages métier × ville) */
+.pro-hook-box { background: var(--lp-brand); border-color: var(--lp-brand); }
+.pro-hook-box h3 { color: #fff; font-size: 16px; margin-bottom: 8px; }
+.pro-hook-box-body { margin: 0 0 14px; font-size: 13.5px; line-height: 1.6; color: rgba(255, 255, 255, .8); }
+.pro-hook-box .btn-block { width: 100%; justify-content: center; }
+.pro-hook-box-note { margin: 10px 0 0; font-size: 12px; line-height: 1.55; color: rgba(255, 255, 255, .68); }
+.pro-hook-box-note a { color: var(--lp-brand-soft); white-space: nowrap; }
+
+@media (max-width: 860px) {
+  .pro-hook { padding: 36px 0; }
+  .pro-hook-inner { grid-template-columns: 1fr; gap: 24px; }
+  .pro-hook h2 { font-size: 22px; }
+}
+
+/* Ce que revendiquer une fiche du registre apporte réellement */
+.lp-unclaimed-gains { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; }
+.lp-unclaimed-gains li { position: relative; padding-left: 22px; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+.lp-unclaimed-gains li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--blue-primary); font-weight: 700; }
+.lp-unclaimed-gains strong { display: inline; color: var(--text); }
+.lp-unclaimed-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.lp-unclaimed .lp-unclaimed-hint { margin: 14px 0 0; font-size: 13px; line-height: 1.6; }

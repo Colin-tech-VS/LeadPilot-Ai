@@ -1,5 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta with context %}
 {% set nav_active = 'directory' %}
 {% set _assistant = tenant.ai_assistant_name or _('chatbot.assistant') %}
 
@@ -418,6 +419,9 @@
   </div>
 </section>
 {% endif %}
+
+{{ artisan_cta(trade_label=trade_label, trade_key=tenant.trade_type, city=tenant.city,
+               source='profil-artisan') }}
 {% endblock %}
 
 {% block scripts %}

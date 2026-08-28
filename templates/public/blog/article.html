@@ -1,5 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/artisan_cta.html' import register_href with context %}
 {% block title %}{{ post.title }} · Blog · {{ _('app.name') }}{% endblock %}
 {% block body_class %}blog-article-page{% endblock %}
 {% block meta %}
@@ -140,8 +141,9 @@
         <div class="blog-aside-cta blog-aside-cta--pro">
           <span class="blog-aside-icon" aria-hidden="true">📞</span>
           <h3>Vous êtes artisan ?</h3>
-          <p>Ne ratez plus les appels en intervention : standard IA + RDV en ligne.</p>
-          <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light">Découvrir PilotCore Pro</a>
+          <p>Fiche gratuite dans l'annuaire et un assistant qui décroche pendant vos interventions.</p>
+          <a href="{{ register_href(source='blog') }}" class="btn btn-light">Créer ma fiche gratuitement</a>
+          <p class="blog-aside-note">{{ _('prohook.note') }}</p>
         </div>
 
         <ul class="blog-trust-list">
@@ -165,8 +167,8 @@
     <div class="blog-dual-card blog-dual-card--dark">
       <p class="blog-dual-kicker">Artisans</p>
       <h2>Convertissez chaque appel</h2>
-      <p>Standard téléphonique IA, prise de RDV et visibilité sur PilotCore.</p>
-      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light">Essayer PilotCore Pro</a>
+      <p>Fiche gratuite dans l'annuaire, un assistant qui décroche 24h/24 et la prise de RDV. 14 jours d'essai, sans carte bancaire.</p>
+      <a href="{{ register_href(source='blog') }}" class="btn btn-light">Créer ma fiche gratuitement</a>
     </div>
   </div>
 </section>

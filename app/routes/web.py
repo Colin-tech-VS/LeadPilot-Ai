@@ -777,12 +777,15 @@ def pro_landing():
     from app.services import content_studio
 
     offers = content_studio.get_offers(active_only=True)
-    from app.services import founding_program
+    from app.services import founding_program, plan_features
 
     return render_template(
         "pro/landing.html",
         offers=offers or [],
         honest_offer_features=content_studio.honest_offer_features,
+        # The three cards say what each plan is *for*; the matrix says what it
+        # actually contains, straight from the rules the app enforces.
+        plan_matrix=plan_features.public_comparison(),
         founding=founding_program.landing_context(),
         demo_audio_playlist=_pro_demo_playlist(getattr(g, "lang", "fr")),
     )
@@ -1902,9 +1905,35 @@ def register():
     if selected_plan not in billing.available_plans():
         selected_plan = ""
 
+    # Which CTA sent them here. Kept in the session because the ``?src=`` only
+    # exists on the GET that opens the form, never on the POST that sends it —
+    # ``signup_funnel`` reads it back when it records the attempt.
+    src = (request.args.get("src") or "").strip().lower()[:40]
+    if src:
+        session["signup_src"] = src
+
     error = None
     form = {}
     start_step = 0
+
+    # A CTA on a directory or listing page already knows the trade and the town
+    # it is talking to (« Vous êtes plombier à Lyon ? »). Carrying them into the
+    # form means the artisan lands on the account step with the first question
+    # already answered rather than on an empty two-step wizard.
+    if request.method == "GET":
+        from app.constants.trades import TRADES
+
+        arg_trade = (request.args.get("trade") or "").strip().lower()
+        arg_city = (request.args.get("city") or "").strip()[:120]
+        arg_company = (request.args.get("company") or "").strip()[:120]
+        if arg_trade in TRADES:
+            form["trade_type"] = arg_trade
+            # The trade step is answered — open the form on the account fields.
+            start_step = 1
+        if arg_city:
+            form["city"] = arg_city
+        if arg_company:
+            form["company_name"] = arg_company
 
     # Someone who came back from Google: we already hold a verified e-mail and
     # a name, so the form drops its e-mail and password fields entirely and

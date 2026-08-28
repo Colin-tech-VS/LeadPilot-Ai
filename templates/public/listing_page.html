@@ -1,5 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta, register_href with context %}
 {% set nav_active = 'directory' %}
 
 {% set _place = city_name or (department.name if department else 'France') %}
@@ -148,6 +149,11 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
   <div class="container lp-grid">
     <article class="lp-main">
 
+      {# La page où un artisan atterrit en cherchant son propre nom : c'est
+         l'endroit du site où l'intention pro est la plus forte. Elle disait
+         seulement pourquoi les coordonnées manquaient ; elle dit maintenant ce
+         que reprendre la fiche apporte, sinon il n'y a aucune raison de le
+         faire. #}
       <div class="lp-unclaimed">
         <strong>Fiche non revendiquée</strong>
         <p>
@@ -156,9 +162,24 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
           d'intervention ni ses disponibilités sur PilotCore — nous ne les
           publions donc pas.
         </p>
-        <a href="{{ url_for('web.claim_listing', siren=listing.siren) }}" class="btn btn-primary">
-          C'est mon entreprise — je revendique cette fiche
-        </a>
+        <ul class="lp-unclaimed-gains">
+          <li><strong>Vos coordonnées publiées</strong> — téléphone, zone d'intervention et description, à la place de cet encart.</li>
+          <li><strong>Les demandes vous arrivent</strong> — un assistant décroche 24h/24, note l'urgence et l'adresse, et vous transmet la demande.</li>
+          <li><strong>Gratuit et sans engagement</strong> — la fiche reste en ligne même sans abonnement ; 14 jours d'essai, sans carte bancaire.</li>
+        </ul>
+        <div class="lp-unclaimed-actions">
+          <a href="{{ url_for('web.claim_listing', siren=listing.siren) }}" class="btn btn-primary">
+            C'est mon entreprise — je revendique cette fiche
+          </a>
+          <a href="{{ register_href(listing.trade_key, city_name, 'fiche-registre') }}" class="btn btn-outline">
+            Créer mon compte tout de suite
+          </a>
+        </div>
+        <p class="lp-unclaimed-hint">
+          La revendication est vérifiée à la main : nous confirmons que la demande
+          vient bien de l'entreprise avant de vous transférer la fiche. Créer le
+          compte est immédiat — vous rattacherez la fiche ensuite.
+        </p>
       </div>
 
       <h2>{{ name }} en quelques faits</h2>
@@ -314,6 +335,9 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
     </aside>
   </div>
 </section>
+
+{{ artisan_cta(trade_label=label, trade_key=listing.trade_key, city=city_name,
+               source='fiche-registre') }}
 {% endblock %}
 
 {% block scripts %}

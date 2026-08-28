@@ -1,5 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta with context %}
 {% set nav_active = 'directory' %}
 
 {% set _t = "Prix des artisans 2026 — tarifs par métier" %}
@@ -150,4 +151,6 @@
     {% endif %}
   </div>
 </section>
+
+{{ artisan_cta(source='prix') }}
 {% endblock %}

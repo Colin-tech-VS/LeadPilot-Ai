@@ -1,6 +1,7 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/artisan_card.html' import artisan_card, registry_card with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta, artisan_cta_box with context %}
 {% set nav_active = 'directory' %}
 
 {% set seo = seo|default({}) %}
@@ -364,6 +365,13 @@
       </article>
 
       <aside class="dl-local-aside">
+        {# En tête de colonne : sur ces pages l'artisan lit le haut de page (ses
+           confrères, sa ville) et ne descend pas jusqu'à la bande de bas de
+           page. #}
+        {{ artisan_cta_box(trade_label=local_ctx.trade_label, trade_key=local_ctx.trade_key,
+                           city=(local_ctx.city if not local_ctx.is_department else none),
+                           source='annuaire') }}
+
         {% if local_ctx.city and local_ctx.city_slug %}
         <div class="dl-local-box">
           <h3>{{ _('local.other_trades_title', city=local_ctx.city) }}</h3>
@@ -427,11 +435,6 @@
       </aside>
     </div>
 
-    <div class="dl-local-cta">
-      <h2>{{ _('local.pro_cta_title', trade=local_ctx.trade_label) }}</h2>
-      <p>{{ _('local.pro_cta_body') }}</p>
-      <a href="{{ url_for('web.pro_landing') }}" class="btn btn-primary btn-lg">{{ _('local.pro_cta_btn') }}</a>
-    </div>
   </div>
 </section>
 {% endif %}
@@ -439,6 +442,15 @@
 {% if not local_ctx %}
 {% include 'partials/popular_local.html' %}
 {% endif %}
+
+{# Sur une page « département », ``local_ctx.city`` est le nom du département :
+   il n'a pas sa place dans « Vous êtes plombier à … ». #}
+{{ artisan_cta(
+     trade_label=(local_ctx.trade_label if local_ctx else registry_trade_label),
+     trade_key=(local_ctx.trade_key if local_ctx else (filters.metier or none)),
+     city=(local_ctx.city if (local_ctx and not local_ctx.is_department)
+           else (none if local_ctx else (filters.ville or none))),
+     source='annuaire') }}
 {% endblock %}
 
 {% block scripts %}

@@ -1812,3 +1812,51 @@
     animation: none;
   }
 }
+
+/* ── Tableau comparatif des offres ────────────────────────────────────────
+   Le carrousel vend une offre à la fois ; ce tableau répond à « qu'est-ce que
+   j'ai pour 149 plutôt que 349 » sans faire défiler trois cartes. */
+.page-pro .pricing-matrix-wrap { margin: 40px auto 0; max-width: 980px; }
+.page-pro .pricing-matrix-title { text-align: center; font-size: 20px; margin: 0 0 8px; }
+.page-pro .pricing-matrix-lead {
+  text-align: center; margin: 0 auto 22px; max-width: 68ch;
+  color: var(--text-muted); line-height: 1.65; font-size: 15px;
+}
+.page-pro .pricing-matrix-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border); border-radius: var(--radius-lg, 18px); background: var(--card);
+}
+.page-pro .pricing-matrix { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+.page-pro .pricing-matrix th,
+.page-pro .pricing-matrix td { padding: 12px 14px; text-align: center; border-bottom: 1px solid var(--border); }
+.page-pro .pricing-matrix tbody tr:last-child th,
+.page-pro .pricing-matrix tbody tr:last-child td { border-bottom: 0; }
+.page-pro .pricing-matrix thead th { vertical-align: bottom; background: var(--bg); }
+.page-pro .pricing-matrix th[scope="row"] {
+  text-align: left; font-weight: 500; color: var(--text); line-height: 1.5;
+  min-width: 240px; background: var(--card);
+}
+.page-pro .pricing-matrix thead th:first-child { text-align: left; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.page-pro .pricing-matrix-plan { display: block; font-size: 15px; font-weight: 700; color: var(--text); }
+.page-pro .pricing-matrix-price { display: block; margin-top: 4px; font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+.page-pro .pricing-matrix-price small { font-size: 11px; margin-left: 3px; }
+.page-pro .pricing-matrix .is-trial { background: var(--lp-brand-soft); }
+.page-pro .pricing-matrix-yes { color: var(--blue-primary); font-weight: 700; }
+.page-pro .pricing-matrix-no { color: var(--text-muted); }
+/* Le ✓ / — seul ne dit rien à un lecteur d'écran : le mot est là, hors écran. */
+.page-pro .pricing-matrix-sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.page-pro .pricing-matrix-note {
+  margin: 14px auto 0; max-width: 72ch; text-align: center;
+  font-size: 13px; line-height: 1.65; color: var(--text-muted);
+}
+.page-pro .pricing-matrix-note--strong { color: var(--text); font-weight: 500; }
+.page-pro .pricing-matrix-cta { margin-top: 20px; text-align: center; }
+
+@media (max-width: 640px) {
+  .page-pro .pricing-matrix th[scope="row"] { min-width: 200px; }
+  .page-pro .pricing-matrix th,
+  .page-pro .pricing-matrix td { padding: 10px; }
+}

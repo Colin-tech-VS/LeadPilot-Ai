@@ -809,3 +809,5 @@
   .blog-author-box { flex-direction: column; }
   .blog-mid-cta { flex-direction: column; align-items: flex-start; }
 }
+
+.blog-aside-cta .blog-aside-note { margin: 10px 0 0; font-size: 12px; opacity: .75; }

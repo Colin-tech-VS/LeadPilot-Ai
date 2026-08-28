@@ -339,6 +339,28 @@
     }).join("");
   }
 
+  /* Which CTA sent the visitor to the sign-up form. Two numbers per row:
+     forms sent, and how many of those became accounts — a source that brings
+     traffic but no accounts is a different problem from one that brings
+     nobody. */
+  function drawSignupSources(sources, attempts) {
+    var host = document.getElementById("signup-sources");
+    if (!host) return;
+    if (!sources.length) {
+      host.innerHTML = '<p class="signup-reasons-empty">' +
+        (attempts
+          ? "Aucune source identifiée sur la période."
+          : "Aucun formulaire d'inscription n'a été envoyé sur la période.") +
+        "</p>";
+      return;
+    }
+    host.innerHTML = sources.map(function (s) {
+      return '<div class="signup-reason-row"><span>' + escHtml(s.label) +
+        "</span><strong>" + fmtInt.format(s.signups) + " / " +
+        fmtInt.format(s.attempts) + "</strong></div>";
+    }).join("");
+  }
+
   function fillTrafficTable(tableId, rows, emptyMsg) {
     var table = document.getElementById(tableId);
     if (!table) return;
@@ -431,6 +453,7 @@
       setText("cv-listing-prompts", fmtInt.format(c.signup_listing_prompts || 0));
       setText("cv-vps", c.visitors_per_signup != null ? fmtInt.format(c.visitors_per_signup) : "—");
       drawSignupReasons(c.signup_failure_reasons || [], c.signup_attempts || 0);
+      drawSignupSources(c.signup_sources || [], c.signup_attempts || 0);
 
       var pps = document.getElementById("tk-pps");
       if (pps) pps.textContent = k.pages_per_session || 0;

@@ -552,6 +552,75 @@
         <p class="pro-pricing-hint">{{ _('landing.pricing_swipe') }}</p>
       </div>
     </div>
+    {# Le carrousel montre une offre à la fois : sur mobile on ne peut pas
+       comparer, et « Tout de l'offre Starter » oblige à revenir en arrière pour
+       savoir ce que ça recouvre. Le tableau dit la même chose d'un seul coup
+       d'œil — et il est construit depuis `plan_features`, pas depuis du texte,
+       donc il ne peut pas promettre ce que l'app refuse. #}
+    {% if plan_matrix and plan_matrix.rows %}
+    <div class="pricing-matrix-wrap">
+      <h3 class="pricing-matrix-title">{{ _('matrix.title') }}</h3>
+      <p class="pricing-matrix-lead">{{ _('matrix.lead') }}</p>
+      <div class="pricing-matrix-scroll">
+        <table class="pricing-matrix">
+          <thead>
+            <tr>
+              <th scope="col">{{ _('matrix.plan') }}</th>
+              {% for col in plan_matrix.columns %}
+              <th scope="col"{% if col.trial %} class="is-trial"{% endif %}>
+                <span class="pricing-matrix-plan">{{ _('landing.pricing_' ~ col.key ~ '_name') }}</span>
+                <span class="pricing-matrix-price">
+                  {%- if col.trial -%}
+                  {{ _('matrix.trial_price') }}
+                  {%- else -%}
+                  {{ col.price_cents // 100 }} €<small>{{ _('matrix.per_month') }}</small>
+                  {%- endif -%}
+                </span>
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in plan_matrix.rows %}
+            <tr>
+              <th scope="row">{{ _('matrix.' ~ row.key) }}</th>
+              {% for col in plan_matrix.columns %}
+              {% set value = row.cells[col.key] %}
+              <td{% if col.trial %} class="is-trial"{% endif %}>
+                {%- if row.kind == 'flag' -%}
+                {%- if value -%}
+                <span class="pricing-matrix-yes" title="{{ _('matrix.included') }}">✓</span>
+                <span class="pricing-matrix-sr">{{ _('matrix.included') }}</span>
+                {%- else -%}
+                <span class="pricing-matrix-no" aria-hidden="true">—</span>
+                <span class="pricing-matrix-sr">{{ _('matrix.not_included') }}</span>
+                {%- endif -%}
+                {%- elif row.key == 'call_overage' -%}
+                {%- if value -%}
+                {{ _('matrix.per_call', price=('%.2f'|format(value / 100))|replace('.', ',') ~ ' €') }}
+                {%- else -%}
+                <span class="pricing-matrix-no" aria-hidden="true">—</span>
+                {%- endif -%}
+                {%- elif value is none -%}
+                {{ _('matrix.unlimited') }}
+                {%- else -%}
+                {{ '{:,}'.format(value).replace(',', ' ') }}
+                {%- endif -%}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="pricing-matrix-note">{{ _('matrix.trial_note') }}</p>
+      <p class="pricing-matrix-note pricing-matrix-note--strong">{{ _('matrix.after_trial') }}</p>
+      <div class="pricing-matrix-cta">
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.pricing_trial_cta') }}</a>
+      </div>
+    </div>
+    {% endif %}
+
     <p class="pricing-note">{{ _('landing.pricing_note') }}</p>
 
     <div class="v-guarantee">

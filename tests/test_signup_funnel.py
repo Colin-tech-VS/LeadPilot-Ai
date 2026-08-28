@@ -329,7 +329,9 @@ def test_a_start_beacon_stores_no_personal_data(client, app, start_log):
         assert rows
         for event in rows:
             assert "secret@example.com" not in (event.meta or "")
-            assert set(event.get_meta()) <= {"form", "visitor", "device"}
+            # ``source`` is the ?src= slug of the CTA that sent them — one of
+            # our own template constants, never anything they typed.
+            assert set(event.get_meta()) <= {"form", "visitor", "device", "source"}
 
 
 def test_an_unknown_form_key_is_ignored(client, app, start_log):

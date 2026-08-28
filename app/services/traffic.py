@@ -296,6 +296,8 @@ def conversions(days=30):
         "signup_attempts_failed": attempts["failed"],
         "signup_listing_prompts": attempts["listing_prompts"],
         "signup_failure_reasons": attempts["by_reason"],
+        # Which page sent the visitor to the form (see signup_funnel.SOURCE_LABELS).
+        "signup_sources": attempts["by_source"],
         "register_to_signup_rate": _rate(total, register_real or register_visitors),
         "register_to_artisan_rate": _rate(artisan, register_artisan),
         "register_to_customer_rate": _rate(customer, register_customer),

@@ -60,6 +60,25 @@ REASON_LABELS = {
     "server_error": "Erreur serveur",
 }
 
+# Where the visitor was when they decided to sign up. The value is the ``?src=``
+# carried by our own CTAs (``macros/artisan_cta.html``), stashed in the session
+# by the sign-up routes. Everything organic lands on client-facing pages, so
+# « aucun artisan ne s'inscrit » had no way of saying *which* of those pages the
+# few who do come from — or that none of them convert at all.
+SOURCE_LABELS = {
+    "annuaire": "Annuaire / page métier × ville",
+    "fiche-registre": "Fiche registre (SIREN)",
+    "profil-artisan": "Profil d'un artisan",
+    "guide-artisan": "Guide « trouver un artisan »",
+    "depannage": "Page dépannage urgent",
+    "prix": "Référentiel de prix",
+    "blog": "Blog",
+}
+
+# No ``?src=``: the visitor came through /pro, the navigation, an ad or a link
+# we did not tag. Not a source of its own — the absence of one.
+SOURCE_UNTAGGED = "(non balisé)"
+
 _LEVELS = {
     OUTCOME_OK: LEVEL_SUCCESS,
     OUTCOME_ERROR: LEVEL_ERROR,
@@ -74,6 +93,22 @@ def _visitor_id():
 
     try:
         return request.cookies.get(VISITOR_COOKIE)
+    except Exception:
+        return None
+
+
+def _source():
+    """The CTA slug that sent this visitor to the form, or None.
+
+    Read from the session rather than from the request: the ``?src=`` is on the
+    GET that opened the form, never on the POST that sends it. Only ever a
+    short slug written by our own templates — anything longer is truncated, and
+    a missing session is simply no source.
+    """
+    try:
+        from flask import session
+
+        return (session.get("signup_src") or "").strip()[:40] or None
     except Exception:
         return None
 
@@ -109,6 +144,7 @@ def record_attempt(
                 "outcome": outcome,
                 "reason": reason,
                 "listing_prompt": listing_prompt or None,
+                "source": _source(),
                 "visitor": _visitor_id(),
                 "device": "mobile" if _is_mobile() else "desktop",
             },
@@ -137,6 +173,7 @@ def record_start(form: str) -> None:
             actor="visitor",
             meta={
                 "form": form,
+                "source": _source(),
                 "visitor": _visitor_id(),
                 "device": "mobile" if _is_mobile() else "desktop",
             },
@@ -192,10 +229,16 @@ def summary(since, until=None, forms=None) -> dict:
     rows = _rows(since, until, forms)
     reasons = Counter()
     outcomes = Counter()
+    sources = Counter()
+    source_signups = Counter()
     for meta in rows:
         outcomes[meta.get("outcome") or "?"] += 1
         if meta.get("outcome") != OUTCOME_OK:
             reasons[meta.get("reason") or "?"] += 1
+        source = meta.get("source") or SOURCE_UNTAGGED
+        sources[source] += 1
+        if meta.get("outcome") == OUTCOME_OK:
+            source_signups[source] += 1
 
     return {
         "attempts": len(rows),
@@ -205,6 +248,17 @@ def summary(since, until=None, forms=None) -> dict:
         # Sign-ups that matched a registry fiche. Asked on the dashboard now,
         # so this measures how often the question comes up — not a failure.
         "listing_prompts": sum(1 for m in rows if m.get("listing_prompt")),
+        # Which CTA actually brings artisans as far as sending the form, and
+        # how many of those end up with an account.
+        "by_source": [
+            {
+                "source": source,
+                "label": SOURCE_LABELS.get(source, source),
+                "attempts": count,
+                "signups": source_signups.get(source, 0),
+            }
+            for source, count in sources.most_common(12)
+        ],
         "by_reason": [
             {
                 "reason": reason,

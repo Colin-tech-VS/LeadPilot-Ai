@@ -1,6 +1,7 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% from 'macros/breadcrumb.html' import breadcrumb with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta with context %}
 {% set nav_active = 'directory' %}
 
 {% set _t = "Trouver un artisan près de chez vous — RDV en ligne" %}
@@ -281,4 +282,6 @@
     </div>
   </div>
 </section>
+
+{{ artisan_cta(source='guide-artisan') }}
 {% endblock %}

@@ -1,16 +1,19 @@
 """One pass over the mailing subsystem. Run from cron.
 
-Three jobs in one entry because the host caps scheduled tasks at five, and
+Four jobs in one entry because the host caps scheduled tasks at five, and
 because they belong together anyway — each one protects the next:
 
 1. Pull new inbound mail. Nothing else did this on a schedule, so replies and
    delivery reports only arrived when an admin happened to open the console.
 2. Quarantine addresses behind a permanent bounce (the inbox sync triggers this,
    and it is re-run here so a failed sync does not skip it).
-3. Advance scheduled and in-flight campaigns by one batch.
+3. Recover the SIREN of prospects sourced before the column existed, which is
+   what lets a campaign target the artisans whose registry fiche is online.
+   Idempotent and bounded, so it costs nothing once the base is filled.
+4. Advance scheduled and in-flight campaigns by one batch.
 
 Sending to addresses that already bounced is what wrecks a domain's reputation,
-so step 3 must never run ahead of steps 1 and 2.
+so the last step must never run ahead of steps 1 and 2.
 """
 import os
 import sys
@@ -18,7 +21,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app  # noqa: E402
-from app.services import bounce_processing, campaigns, imap_mailbox  # noqa: E402
+from app.services import (  # noqa: E402
+    artisan_sourcing,
+    bounce_processing,
+    campaigns,
+    imap_mailbox,
+)
 
 
 def main() -> int:
@@ -41,6 +49,13 @@ def main() -> int:
                   f"{bounces['marked']} adresse(s) retirée(s)")
         except Exception as exc:  # noqa: BLE001
             print(f"rebonds : échec — {type(exc).__name__}: {exc}", file=sys.stderr)
+
+        try:
+            filled = artisan_sourcing.backfill_sirens(limit=2000)
+            if filled["filled"]:
+                print(f"sirens  : {filled['filled']} prospect(s) rattaché(s) au registre")
+        except Exception as exc:  # noqa: BLE001
+            print(f"sirens  : échec — {type(exc).__name__}: {exc}", file=sys.stderr)
 
         reports = campaigns.run_due_campaigns()
 

@@ -255,6 +255,42 @@ def preview_available(*, trades=None, departments=None) -> int:
         raise SourcingError(f"Registre RGE injoignable : {exc}") from exc
 
 
+_NOTE_SIRET_RE = re.compile(r"SIRET\s+(\d{9,14})")
+
+
+def backfill_sirens(*, limit: int = 100_000) -> dict:
+    """Recover the SIREN of prospects sourced before the column existed.
+
+    Every RGE import wrote the SIRET into ``notes`` ("… · SIRET 12345678900019
+    · …") and nowhere else. Reading it back is the difference between this
+    feature working on the base you already have and only on future imports.
+
+    Idempotent: a prospect that already has a SIREN is left alone.
+    """
+    rows = (
+        OutreachProspect.query.filter(
+            OutreachProspect.siren.is_(None),
+            # Only the rows that can possibly carry one. Without this the pass
+            # re-reads every web-sourced prospect on every run, forever, to
+            # find nothing. What is left over — an RGE row whose register entry
+            # had no SIRET, written as "SIRET —" — is a handful and harmless.
+            OutreachProspect.notes.like("%SIRET %"),
+        )
+        .limit(limit)
+        .all()
+    )
+    filled = 0
+    for prospect in rows:
+        match = _NOTE_SIRET_RE.search(prospect.notes or "")
+        if not match:
+            continue
+        prospect.siren = match.group(1)[:9]
+        filled += 1
+    if filled:
+        db.session.commit()
+    return {"scanned": len(rows), "filled": filled}
+
+
 def source_artisans(
     *,
     target: int = 200,
@@ -316,6 +352,10 @@ def source_artisans(
         prospect = OutreachProspect(
             company_name=_clean_company(row.get("nom_entreprise") or ""),
             email=email,
+            # The SIREN is the first nine digits of the SIRET. Stored rather
+            # than only mentioned in ``notes``: it is what later matches this
+            # prospect to the registry listing that carries their own name.
+            siren=(siret[:9] or None),
             phone=phone,
             trade_type=trade,
             city=_clean_city(row.get("commune") or ""),

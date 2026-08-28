@@ -3222,3 +3222,11 @@ body.admin {
 .signup-reasons-empty { color: var(--muted); font-size: 13px; }
 .signup-reason-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
 .signup-reason-row strong { font-variant-numeric: tabular-nums; }
+
+/* Prospect dont l'entreprise a déjà une fiche au registre (audience campagne) */
+.camp-sample-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  background: var(--lp-brand-soft, #E8E4D6); color: var(--lp-brand, #1A2332);
+}
+.camp-check-hint { display: block; margin-top: 2px; font-size: 11px; opacity: .7; }

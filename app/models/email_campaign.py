@@ -174,6 +174,11 @@ class CampaignRecipient(db.Model):
     company_name = db.Column(db.String(255), nullable=True)
     city = db.Column(db.String(100), nullable=True)
     trade_type = db.Column(db.String(30), nullable=True)
+    # The registry listing this recipient was matched to when the audience was
+    # frozen. Kept as the identifier rather than a foreign key: the link is
+    # re-checked at send time, because a fiche claimed or withdrawn between
+    # « préparer » and « envoyer » must not be linked to.
+    listing_siren = db.Column(db.String(9), nullable=True)
 
     status = db.Column(db.String(20), nullable=False, default=R_PENDING, index=True)
     email_message_id = db.Column(Uuid, ForeignKey("email_messages.id"), nullable=True, index=True)

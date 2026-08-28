@@ -73,6 +73,9 @@ SOURCE_LABELS = {
     "depannage": "Page dépannage urgent",
     "prix": "Référentiel de prix",
     "blog": "Blog",
+    # Not a page: the link carried by an outreach e-mail
+    # (``campaign_render.merge_context``).
+    "campagne": "E-mail de prospection",
 }
 
 # No ``?src=``: the visitor came through /pro, the navigation, an ad or a link

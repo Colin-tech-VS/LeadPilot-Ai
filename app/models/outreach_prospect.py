@@ -32,6 +32,10 @@ class OutreachProspect(db.Model):
     company_name = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(255), nullable=True, index=True)
     phone = db.Column(db.String(50), nullable=True)
+    # The company identifier the public registers agree on. Sourced prospects
+    # carry it from the RGE register; it is what matches them to the registry
+    # listing that already bears their name (``registry_listings.siren``).
+    siren = db.Column(db.String(9), nullable=True, index=True)
     trade_type = db.Column(db.String(30), nullable=False, default="plombier", index=True)
     city = db.Column(db.String(100), nullable=True, index=True)
     postal_code = db.Column(db.String(10), nullable=True)

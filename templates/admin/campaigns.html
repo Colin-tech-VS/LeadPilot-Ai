@@ -68,6 +68,7 @@
   <form method="POST" action="{{ url_for('admin.campaign_new') }}" class="camp-start-form">
     <div class="camp-templates" role="radiogroup" aria-label="Modèle de départ">
       {% set templates = [
+        ('fiche',   'Sa fiche',    'Lui montrer la fiche déjà en ligne à son nom, et lui proposer de la reprendre. Audience limitée aux artisans qui en ont une.'),
         ('offre',   'Acquisition', 'Présenter l’offre à un artisan qui ne vous connaît pas encore.'),
         ('relance', 'Relance',     'Deuxième contact, plus court, pour ceux qui n’ont pas répondu.'),
         ('annonce', 'Annonce',     'Annoncer une nouveauté à des contacts déjà informés.'),

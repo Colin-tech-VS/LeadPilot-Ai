@@ -20,7 +20,7 @@
     design: normaliseDesign(initial.design),
     segment: initial.segment && Object.keys(initial.segment).length ? initial.segment : {
       trades: [], cities: [], statuses: ['new', 'ready'], sources: [],
-      exclude_contacted: true, limit: 200
+      exclude_contacted: true, with_listing: false, limit: 200
     },
     selected: null,
     sending: false,
@@ -710,6 +710,7 @@
   var segCities = document.getElementById('seg-cities');
   var segLimit = document.getElementById('seg-limit');
   var segExclude = document.getElementById('seg-exclude');
+  var segListing = document.getElementById('seg-listing');
 
   function fillMulti(node, values) {
     Array.prototype.forEach.call(node.options, function (o) {
@@ -727,6 +728,7 @@
       cities: segCities.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
       sources: [],
       exclude_contacted: segExclude.checked,
+      with_listing: segListing.checked,
       limit: parseInt(segLimit.value, 10) || 200
     };
   }
@@ -735,8 +737,9 @@
   segCities.value = (state.segment.cities || []).join(', ');
   segLimit.value = state.segment.limit || 200;
   segExclude.checked = state.segment.exclude_contacted !== false;
+  segListing.checked = state.segment.with_listing === true;
 
-  [segTrades, segStatuses, segCities, segLimit, segExclude].forEach(function (node) {
+  [segTrades, segStatuses, segCities, segLimit, segExclude, segListing].forEach(function (node) {
     node.addEventListener('change', function () { markDirty(); refreshAudience(); });
   });
 
@@ -753,7 +756,8 @@
         (d.sample || []).forEach(function (p) {
           var li = el('li');
           li.innerHTML = '<strong>' + esc(p.name) + '</strong> · ' + esc(p.email) +
-            (p.city ? ' · ' + esc(p.city) : '');
+            (p.city ? ' · ' + esc(p.city) : '') +
+            (p.has_listing ? ' <span class="camp-sample-tag">fiche</span>' : '');
           box.appendChild(li);
         });
         var counter = box.previousElementSibling;

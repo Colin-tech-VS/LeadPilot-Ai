@@ -107,16 +107,23 @@ def list_campaigns(*, status: str | None = None, limit: int = 100) -> list[Email
 # --------------------------------------------------------------------------- #
 def create_campaign(*, name: str = "", template: str = "offre", subject: str = "") -> EmailCampaign:
     design = campaign_render.default_template(template) if template != "blank" else campaign_render.blank_design()
+    meta = campaign_render.template_meta(template)
     campaign = EmailCampaign(
         name=(name or "").strip()[:160] or "Nouvelle campagne",
-        subject=(subject or "").strip()[:255] or "Vos appels manqués vous coûtent des chantiers",
-        preheader="Un standard qui décroche quand vous êtes sur le chantier.",
+        subject=(subject or "").strip()[:255] or meta["subject"],
+        preheader=meta["preheader"],
         from_name="PilotCore",
         reply_to=admin_email.default_from_addr(),
         status=STATUS_DRAFT,
     )
     campaign.set_design(design)
-    campaign.set_segment(default_segment())
+    segment = default_segment()
+    if template == "fiche":
+        # This body says « voici votre fiche ». Sending it to someone who has
+        # none is the one way to make it worse than no mail at all, so the
+        # filter comes with the template rather than being remembered later.
+        segment["with_listing"] = True
+    campaign.set_segment(segment)
     _rerender(campaign)
     db.session.add(campaign)
     db.session.commit()
@@ -232,6 +239,7 @@ def default_segment() -> dict:
         "statuses": ["new", "ready"],
         "sources": [],
         "exclude_contacted": True,
+        "with_listing": False,
         "limit": 200,
     }
 
@@ -254,6 +262,7 @@ def _clean_segment(raw: dict) -> dict:
         "statuses": _strings("statuses"),
         "sources": _strings("sources"),
         "exclude_contacted": bool(raw.get("exclude_contacted", True)),
+        "with_listing": bool(raw.get("with_listing", False)),
         "limit": limit,
     }
 
@@ -282,7 +291,38 @@ def audience_query(segment: dict):
         q = q.filter(db.or_(*clauses))
     if segment["exclude_contacted"]:
         q = q.filter(OutreachProspect.last_contacted_at.is_(None))
+    if segment["with_listing"]:
+        # Only companies that still have an unclaimed fiche: one already
+        # claimed belongs to somebody with an account, and one withdrawn must
+        # never be linked to again.
+        from app.models.registry_listing import STATUS_LISTED, RegistryListing
+
+        q = q.join(
+            RegistryListing,
+            db.and_(
+                RegistryListing.siren == OutreachProspect.siren,
+                RegistryListing.status == STATUS_LISTED,
+            ),
+        )
     return q.order_by(OutreachProspect.created_at.desc())
+
+
+def listing_url_for(siren: str | None) -> str | None:
+    """Public URL of the registry fiche for this SIREN, if it is still listed.
+
+    Resolved from the identifier every time rather than stored as a link: a
+    fiche can be claimed or withdrawn between the day an audience is prepared
+    and the day the batch goes out, and neither may be linked to.
+    """
+    siren = (siren or "").strip()
+    if not siren:
+        return None
+    from app.services.listing_link import find_listed_by_identifier
+
+    listing = find_listed_by_identifier(siren)
+    if listing is None:
+        return None
+    return f"{_base_url()}/artisans/entreprise/{listing.siren}"
 
 
 def preview_audience(segment: dict, *, sample: int = 8) -> dict:
@@ -300,6 +340,7 @@ def preview_audience(segment: dict, *, sample: int = 8) -> dict:
                 "name": p.display_name(),
                 "city": p.city,
                 "trade_type": p.trade_type,
+                "has_listing": bool(listing_url_for(p.siren)),
             }
             for p in rows
         ],
@@ -338,6 +379,7 @@ def prepare_campaign(campaign_id) -> dict:
                 company_name=prospect.company_name,
                 city=prospect.city,
                 trade_type=prospect.trade_type,
+                listing_siren=prospect.siren,
             )
         )
         existing.add(email)
@@ -363,6 +405,7 @@ def _render_for(campaign: EmailCampaign, recipient: CampaignRecipient) -> tuple[
         trade_type=recipient.trade_type,
         email=recipient.email,
         unsubscribe_url=unsubscribe_url(recipient),
+        listing_url=listing_url_for(recipient.listing_siren),
     )
     design = campaign.design()
     subject = campaign_render.apply_merge(campaign.subject or "", ctx)[:255]

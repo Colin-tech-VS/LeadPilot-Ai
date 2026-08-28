@@ -232,6 +232,14 @@
           <label class="camp-check">
             <input type="checkbox" id="seg-exclude"> Exclure les prospects déjà contactés
           </label>
+          {# Indispensable pour le modèle « Sa fiche » : un e-mail qui dit
+             « voici votre fiche » à quelqu'un qui n'en a pas est pire que pas
+             d'e-mail du tout. #}
+          <label class="camp-check">
+            <input type="checkbox" id="seg-listing">
+            Uniquement ceux qui ont une fiche au registre
+            <small class="camp-check-hint">Requis si l'e-mail utilise {{ '{{lien_fiche}}' }}.</small>
+          </label>
         </div>
       </div>
       <div class="camp-audience-out">
@@ -243,7 +251,8 @@
       </div>
       <ul class="camp-audience-sample" id="seg-sample">
         {% for p in audience.sample %}
-        <li><strong>{{ p.name }}</strong> · {{ p.email }}{% if p.city %} · {{ p.city }}{% endif %}</li>
+        <li><strong>{{ p.name }}</strong> · {{ p.email }}{% if p.city %} · {{ p.city }}{% endif %}
+          {%- if p.has_listing %} <span class="camp-sample-tag">fiche</span>{% endif %}</li>
         {% endfor %}
       </ul>
     </section>

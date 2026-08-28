@@ -71,6 +71,11 @@ MERGE_TAGS = [
     {"tag": "{{email}}", "label": "E-mail du contact", "sample": "contact@exemple.fr"},
     {"tag": "{{site}}", "label": "Adresse du site", "sample": "www.pilotcore.fr"},
     {"tag": "{{lien_inscription}}", "label": "Lien d'inscription", "sample": "/register"},
+    {
+        "tag": "{{lien_fiche}}",
+        "label": "Lien vers sa fiche au registre (segment « a une fiche »)",
+        "sample": "/artisans/entreprise/123456789",
+    },
     {"tag": "{{lien_desinscription}}", "label": "Lien de désinscription", "sample": "/desinscription/…"},
 ]
 
@@ -169,11 +174,25 @@ def merge_context(
     trade_type: str | None = None,
     email: str | None = None,
     unsubscribe_url: str | None = None,
+    listing_url: str | None = None,
+    source: str = "campagne",
 ) -> dict:
+    from urllib.parse import urlencode
+
     from app.constants.trades import trade_label
 
     base = _base_url()
     given = (first_name or "").strip()
+    # The sign-up form prefills from the query string and records where the
+    # visitor came from (``web.register``). A campaign knows both the trade and
+    # the town of every recipient, so the link it sends is the one case where
+    # the form can open already half-answered — and where the sign-ups it
+    # produces show up under their own source in /admin/traffic.
+    signup_params = {"src": (source or "campagne")[:40]}
+    if trade_type:
+        signup_params["trade"] = trade_type
+    if (city or "").strip():
+        signup_params["city"] = city.strip()
     return {
         # Sourced registers rarely carry a first name, so ``prenom`` must be
         # safe to be empty: ``salutation`` is what a greeting line should use.
@@ -184,7 +203,13 @@ def merge_context(
         "metier": trade_label(trade_type, "fr").lower() if trade_type else "artisan",
         "email": (email or "").strip(),
         "site": base.replace("https://", "").replace("http://", ""),
-        "lien_inscription": f"{base}/register",
+        "lien_inscription": f"{base}/register?" + urlencode(signup_params),
+        # Without a matched listing the tag must still resolve to something
+        # true: the page that searches the register for their company. A silent
+        # fallback to the sign-up form would turn « voici votre fiche » into a
+        # lie — which is why the campaign that uses this tag also filters its
+        # audience on having one (``campaigns.audience_query``).
+        "lien_fiche": listing_url or f"{base}/artisans/ma-fiche",
         "lien_desinscription": unsubscribe_url or f"{base}/contact",
     }
 
@@ -200,7 +225,8 @@ def sample_context() -> dict:
         "metier": "plombier",
         "email": "contact@dupont-plomberie.fr",
         "site": base.replace("https://", "").replace("http://", ""),
-        "lien_inscription": f"{base}/register",
+        "lien_inscription": f"{base}/register?src=campagne&trade=plombier&city=Lyon",
+        "lien_fiche": f"{base}/artisans/entreprise/123456789",
         "lien_desinscription": f"{base}/desinscription/apercu",
     }
 
@@ -616,10 +642,104 @@ def blank_design() -> dict:
     }
 
 
+# Subject and preheader that go with each starting point. A template whose
+# body says « voici votre fiche » under a subject about missed calls gets
+# opened by nobody, so the two are chosen together rather than left to a
+# single hardcoded default.
+TEMPLATE_META = {
+    "offre": {
+        "subject": "Vos appels manqués vous coûtent des chantiers",
+        "preheader": "Un standard qui décroche quand vous êtes sur le chantier.",
+    },
+    "relance": {
+        "subject": "Je reviens vers vous — {{entreprise}}",
+        "preheader": "Une question rapide, et je n'insiste pas.",
+    },
+    "annonce": {
+        "subject": "Du nouveau sur {{site}}",
+        "preheader": "Ce qui change ce mois-ci.",
+    },
+    "fiche": {
+        "subject": "Votre fiche {{entreprise}} est en ligne sur {{site}}",
+        "preheader": "Elle vient du registre officiel des entreprises. Vous pouvez la reprendre.",
+    },
+}
+
+
+def template_meta(kind: str) -> dict:
+    return TEMPLATE_META.get(kind) or TEMPLATE_META["offre"]
+
+
 def default_template(kind: str = "offre") -> dict:
     """Ready-made starting points, mirroring what the site actually sells."""
     base = _base_url()
-    if kind == "relance":
+    if kind == "fiche":
+        # The one mail that talks about *their* company rather than about us.
+        # It only makes sense to someone whose fiche exists, which is what the
+        # segment's « a une fiche au registre » filter guarantees.
+        blocks = [
+            {"id": new_block_id(), "type": "header", "title": BRAND, "tagline": "Votre fiche", "logo": True},
+            {
+                "id": new_block_id(),
+                "type": "heading",
+                "text": "{{entreprise}} figure déjà dans notre annuaire",
+            },
+            {
+                "id": new_block_id(),
+                "type": "text",
+                "html": (
+                    "<p>{{salutation}},</p>"
+                    "<p>Nous avons publié une fiche pour {{entreprise}} à partir du "
+                    "registre officiel des entreprises. Elle est visible par les "
+                    "particuliers qui cherchent un {{metier}} à {{ville}}.</p>"
+                    "<p>Pour l'instant elle ne montre que ce que dit le registre : "
+                    "ni vos coordonnées, ni votre zone d'intervention, ni vos "
+                    "disponibilités — nous ne publions rien que vous n'ayez "
+                    "renseigné vous-même.</p>"
+                ),
+            },
+            {
+                "id": new_block_id(),
+                "type": "button",
+                "label": "Voir ma fiche",
+                "url": "{{lien_fiche}}",
+                "align": "left",
+            },
+            {"id": new_block_id(), "type": "divider"},
+            {
+                "id": new_block_id(),
+                "type": "text",
+                "html": "<p>En la reprenant, vous obtenez :</p>",
+            },
+            {
+                "id": new_block_id(),
+                "type": "list",
+                "items": [
+                    "Vos coordonnées et votre zone d'intervention publiées, à la place de l'encart « fiche non revendiquée »",
+                    "Un assistant qui décroche 24h/24, note l'urgence et l'adresse, et vous transmet la demande",
+                    "La fiche reste gratuite et en ligne, même si vous ne prenez aucun abonnement",
+                ],
+            },
+            {
+                "id": new_block_id(),
+                "type": "button",
+                "label": "Reprendre ma fiche",
+                "url": "{{lien_inscription}}",
+                "align": "left",
+            },
+            {
+                "id": new_block_id(),
+                "type": "text",
+                "html": (
+                    "<p style=\"font-size:13px\">Cette fiche provient du registre "
+                    "officiel des entreprises (données INSEE en licence ouverte). "
+                    "Si vous ne souhaitez pas y figurer, "
+                    f"<a href=\"{base}/artisans/retrait-fiche\">demandez son retrait</a> "
+                    "— c'est immédiat et sans justification.</p>"
+                ),
+            },
+        ]
+    elif kind == "relance":
         blocks = [
             {"id": new_block_id(), "type": "header", "title": BRAND, "tagline": "Relance", "logo": True},
             {"id": new_block_id(), "type": "heading", "text": "Une question rapide"},

@@ -207,19 +207,35 @@
         </div>
       </header>
       <div class="camp-audience-grid">
-        <label class="field">
-          <span>Métiers</span>
-          <select id="seg-trades" class="admin-select" multiple size="6">
-            {% for t in trades %}<option value="{{ t.key }}">{{ t.icon }} {{ t.label }}</option>{% endfor %}
-          </select>
-        </label>
-        <label class="field">
-          <span>Statuts du prospect</span>
-          <select id="seg-statuses" class="admin-select" multiple size="6">
+        <fieldset class="camp-toggles camp-audience-trades">
+          <legend>Métiers</legend>
+          <p class="camp-toggles-hint">Aucun coché = tous les métiers.</p>
+          <div class="camp-toggles-actions">
+            <button type="button" class="camp-toggles-btn" id="seg-trades-all">Tous</button>
+            <button type="button" class="camp-toggles-btn" id="seg-trades-none">Aucun</button>
+          </div>
+          <div class="camp-chip-grid" id="seg-trades">
+            {% for t in trades %}
+            <label class="camp-chip">
+              <input type="checkbox" value="{{ t.key }}">
+              <span class="camp-chip-face">{{ t.icon }} {{ t.label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <fieldset class="camp-toggles">
+          <legend>Statut du prospect</legend>
+          <p class="camp-toggles-hint">Aucun activé = tous les statuts (sauf désinscrits).</p>
+          <div class="camp-switch-list" id="seg-statuses">
             {% for code, label in {'new':'Nouveau','ready':'Prêt','contacted':'Contacté','replied':'Répondu','converted':'Converti'}.items() %}
-            <option value="{{ code }}">{{ label }}</option>{% endfor %}
-          </select>
-        </label>
+            <label class="switch">
+              <input type="checkbox" value="{{ code }}">
+              <span class="switch-track"></span>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
         <div class="camp-audience-fields">
           <label class="field">
             <span>Villes (séparées par des virgules)</span>
@@ -229,17 +245,22 @@
             <span>Nombre maximum d'envois</span>
             <input type="number" id="seg-limit" class="admin-input" min="1" max="5000" value="200">
           </label>
-          <label class="camp-check">
-            <input type="checkbox" id="seg-exclude"> Exclure les prospects déjà contactés
+          <label class="switch camp-audience-switch">
+            <input type="checkbox" id="seg-exclude">
+            <span class="switch-track"></span>
+            <span>Exclure les prospects déjà contactés</span>
           </label>
           {# Indispensable pour le modèle « Sa fiche » : un e-mail qui dit
              « voici votre fiche » à quelqu'un qui n'en a pas est pire que pas
              d'e-mail du tout. #}
-          <label class="camp-check">
-            <input type="checkbox" id="seg-listing">
-            Uniquement ceux qui ont une fiche au registre
+          <div class="camp-switch-block">
+            <label class="switch camp-audience-switch">
+              <input type="checkbox" id="seg-listing">
+              <span class="switch-track"></span>
+              <span>Uniquement ceux qui ont une fiche au registre</span>
+            </label>
             <small class="camp-check-hint">Requis si l'e-mail utilise {{ '{{lien_fiche}}' }}.</small>
-          </label>
+          </div>
         </div>
       </div>
       <div class="camp-audience-out">
@@ -321,5 +342,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='admin/campaign-designer.js') }}"></script>
+<script src="{{ url_for('static', filename='admin/campaign-designer.js') }}?v=audience-toggles"></script>
 {% endblock %}

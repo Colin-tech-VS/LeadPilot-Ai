@@ -712,19 +712,29 @@
   var segExclude = document.getElementById('seg-exclude');
   var segListing = document.getElementById('seg-listing');
 
-  function fillMulti(node, values) {
-    Array.prototype.forEach.call(node.options, function (o) {
-      o.selected = (values || []).indexOf(o.value) !== -1;
+  function fillChecks(node, values) {
+    var set = values || [];
+    Array.prototype.forEach.call(node.querySelectorAll('input[type=checkbox]'), function (el) {
+      el.checked = set.indexOf(el.value) !== -1;
     });
   }
-  function readMulti(node) {
-    return Array.prototype.filter.call(node.options, function (o) { return o.selected; })
-      .map(function (o) { return o.value; });
+  function readChecks(node) {
+    return Array.prototype.map.call(
+      node.querySelectorAll('input[type=checkbox]:checked'),
+      function (el) { return el.value; }
+    );
+  }
+  function setChecks(node, on) {
+    Array.prototype.forEach.call(node.querySelectorAll('input[type=checkbox]'), function (el) {
+      el.checked = !!on;
+    });
+    markDirty();
+    refreshAudience();
   }
   function readSegment() {
     return {
-      trades: readMulti(segTrades),
-      statuses: readMulti(segStatuses),
+      trades: readChecks(segTrades),
+      statuses: readChecks(segStatuses),
       cities: segCities.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
       sources: [],
       exclude_contacted: segExclude.checked,
@@ -732,8 +742,8 @@
       limit: parseInt(segLimit.value, 10) || 200
     };
   }
-  fillMulti(segTrades, state.segment.trades);
-  fillMulti(segStatuses, state.segment.statuses);
+  fillChecks(segTrades, state.segment.trades);
+  fillChecks(segStatuses, state.segment.statuses);
   segCities.value = (state.segment.cities || []).join(', ');
   segLimit.value = state.segment.limit || 200;
   segExclude.checked = state.segment.exclude_contacted !== false;
@@ -742,6 +752,16 @@
   [segTrades, segStatuses, segCities, segLimit, segExclude, segListing].forEach(function (node) {
     node.addEventListener('change', function () { markDirty(); refreshAudience(); });
   });
+  var tradesAll = document.getElementById('seg-trades-all');
+  var tradesNone = document.getElementById('seg-trades-none');
+  if (tradesAll) tradesAll.addEventListener('click', function () { setChecks(segTrades, true); });
+  if (tradesNone) tradesNone.addEventListener('click', function () { setChecks(segTrades, false); });
+  if (!EDITABLE) {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.camp-audience input, #seg-trades-all, #seg-trades-none'),
+      function (n) { n.disabled = true; }
+    );
+  }
 
   function refreshAudience() {
     fetch(root.dataset.audienceUrl, {

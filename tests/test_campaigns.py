@@ -401,7 +401,15 @@ def test_admin_campaign_pages_render(app, client):
     campaign = campaigns.create_campaign(name="Rendu", template="offre")
 
     assert client.get("/admin/campagnes").status_code == 200
-    assert client.get(f"/admin/campagnes/{campaign.id}").status_code == 200
+    editor = client.get(f"/admin/campagnes/{campaign.id}")
+    assert editor.status_code == 200
+    html = editor.get_data(as_text=True)
+    assert 'id="seg-trades"' in html
+    assert 'class="camp-chip"' in html
+    assert 'id="seg-statuses"' in html
+    assert 'class="switch-track"' in html
+    assert 'select id="seg-trades"' not in html
+    assert 'select id="seg-statuses"' not in html
     assert client.get(f"/admin/campagnes/{campaign.id}/rapport").status_code == 200
 
     preview = client.get(f"/admin/campagnes/{campaign.id}/apercu")

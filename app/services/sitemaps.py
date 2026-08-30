@@ -49,6 +49,8 @@ def _artisan_index() -> tuple[dict[str, int], set[tuple[str, str]]]:
 
 
 def core_urls() -> list[Url]:
+    from app.constants import pro_intents
+
     today = _today()
     return [
         ("", "daily", "1.0", today),
@@ -60,6 +62,14 @@ def core_urls() -> list[Url]:
         ("/artisans/ma-fiche", "weekly", "0.8", today),
         ("/pro", "weekly", "0.9", today),
         ("/50-artisans", "weekly", "0.85", today),
+        # The artisan-intent set. Everything else in this file answers « je
+        # cherche un plombier »; these are the only URLs written for the person
+        # who actually pays.
+        ("/" + pro_intents.HUB_SLUG, "weekly", "0.9", today),
+        *[
+            (f"/secretariat-telephonique/{trade}", "weekly", "0.85", today)
+            for trade in pro_intents.INTENT_TRADES
+        ],
         ("/contact", "monthly", "0.5", today),
         ("/blog", "daily", "0.85", today),
         ("/mentions-legales", "yearly", "0.3", None),

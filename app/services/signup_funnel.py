@@ -76,6 +76,15 @@ SOURCE_LABELS = {
     # Not a page: the link carried by an outreach e-mail
     # (``campaign_render.merge_context``).
     "campagne": "E-mail de prospection",
+    # The artisan-intent pages — the only ones written for the buyer rather
+    # than for their client, so « d'où viennent les inscriptions » can finally
+    # separate « quelqu'un cherchait exactement ça » from everything else.
+    "intent-hub": "Secrétariat téléphonique (hub)",
+    "intent-plombier": "Secrétariat téléphonique plombier",
+    "intent-serrurier": "Secrétariat téléphonique serrurier",
+    "intent-electricien": "Secrétariat téléphonique électricien",
+    "intent-chauffagiste": "Secrétariat téléphonique chauffagiste",
+    "intent-vitrier": "Secrétariat téléphonique vitrier",
 }
 
 # No ``?src=``: the visitor came through /pro, the navigation, an ad or a link

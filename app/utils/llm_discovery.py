@@ -287,6 +287,16 @@ def _direct_answers_block() -> list[str]:
     ]
 
 
+_INTENT_TRADES = ("plombier", "serrurier", "electricien", "chauffagiste", "vitrier")
+_INTENT_TITLES = {
+    "plombier": "Secrétariat téléphonique plombier",
+    "serrurier": "Secrétariat téléphonique serrurier",
+    "electricien": "Secrétariat téléphonique électricien",
+    "chauffagiste": "Secrétariat téléphonique chauffagiste",
+    "vitrier": "Secrétariat téléphonique vitrier",
+}
+
+
 def render_llms_txt() -> str:
     """Curated Markdown index at /llms.txt (llmstxt.org spec)."""
     base = site_base_url()
@@ -304,14 +314,23 @@ def render_llms_txt() -> str:
         f"- [Prix des artisans en France]({canonical_url('/prix-artisans')}): Fourchettes tarifaires indicatives par métier, données ouvertes CC BY 4.0",
         f"- [Prendre RDV avec un artisan en ligne]({canonical_url('/prendre-rdv-artisan-en-ligne')}): Comment fonctionne la réservation de créneau selon l'offre de l'artisan",
         f"- [PilotCore Pro — logiciel artisan]({canonical_url('/pro')}): Standard téléphonique IA, Starter 149 €, Pro 349 €, Premium 699 € HT / mois",
-        f"- [Les 50 premiers artisans]({canonical_url('/50-artisans')}): 1 mois de Starter offert, sans carte bancaire",
+        f"- [Les 50 premiers artisans]({canonical_url('/50-artisans')}): 30 jours d'essai complet au lieu de 14, sans carte bancaire",
+        f"- [Secrétariat téléphonique artisan]({canonical_url('/secretariat-telephonique-artisan')}): Ce que le standard fait pour un artisan, métier par métier",
         f"- [Blog PilotCore]({canonical_url('/blog')}): Conseils artisans, dépannage maison et téléphonie IA",
         f"- [Contact]({canonical_url('/contact')}): contact@pilotcore.fr",
         "",
         "## Offre artisans (B2B)",
         "",
-        f"- [Inscription artisan]({canonical_url('/register')}): Essai 14 jours, toutes fonctions, sans carte — ligne PilotCore partagée, pas de numéro dédié",
+        f"- [Inscription artisan]({canonical_url('/register')}): Essai gratuit, toutes fonctions, sans carte — numéro de réception à son nom activé depuis le tableau de bord",
         f"- [Tarifs & fonctionnalités]({canonical_url('/pro')}): Starter 149 € (répondre et qualifier), Pro 349 € (RDV auto), Premium 699 € (campagnes) HT / mois",
+        "",
+        "## Secrétariat téléphonique par métier",
+        "",
+        *[
+            f"- [{_INTENT_TITLES[trade]}]({canonical_url(f'/secretariat-telephonique/{trade}')}): "
+            f"Les appels que ce métier rate, ce qui est noté, et ce que ça coûte"
+            for trade in _INTENT_TRADES
+        ],
         "",
     ]
 

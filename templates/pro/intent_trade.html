@@ -1,0 +1,156 @@
+{% extends "layouts/pro.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% from 'macros/breadcrumb.html' import breadcrumb with context %}
+{% set nav_active = '' %}
+{% set path = '/secretariat-telephonique/' ~ trade_key %}
+
+{% block title %}{{ content.h1 }} | {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-pro page-intent{% endblock %}
+
+{% block meta %}
+{% set intent_ld %}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "name": {{ content.h1|tojson }},
+      "serviceType": {{ _('intent.service_type')|tojson }},
+      "url": {{ canonical_url(path)|tojson }},
+      "areaServed": "FR",
+      "provider": { "@type": "Organization", "name": "PilotCore", "url": {{ site_base_url()|tojson }} },
+      "audience": { "@type": "Audience", "audienceType": {{ trade_label|tojson }} },
+      "description": {{ content.lead|tojson }}
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {% for question, answer in content.faq %}
+        {
+          "@type": "Question",
+          "name": {{ question|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ answer|tojson }} }
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+  ]
+}
+{% endset %}
+{{ seo_meta(content.h1 ~ ' | ' ~ _('app.name'), content.lead, path, None, 'website', None, 'index, follow', intent_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="intent-hero">
+  <div class="container">
+    {{ breadcrumb([
+      (_('intent.breadcrumb_hub'), url_for('web.pro_intent_hub')),
+      (trade_label, None),
+    ], embedded=true) }}
+    <p class="v-kicker">{{ trade_icon }} {{ _('intent.kicker') }}</p>
+    <h1>{{ content.h1 }}</h1>
+    <p class="intent-lead">{{ content.lead }}</p>
+    <div class="intent-cta">
+      <a href="{{ url_for('web.register', src='intent-' ~ trade_key, trade=trade_key) }}"
+         class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <p class="intent-cta-note">{{ _('landing.hero_microtrust') }}</p>
+    </div>
+  </div>
+</section>
+
+<section class="intent-section">
+  <div class="container intent-cols">
+    <div>
+      <h2>{{ _('intent.calls_title', trade=trade_label|lower) }}</h2>
+      <ul class="intent-list">
+        {% for item in content.calls %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      <p class="intent-stake">{{ content.stake }}</p>
+    </div>
+    <div>
+      <h2>{{ _('intent.captured_title') }}</h2>
+      <ul class="intent-list intent-list--check">
+        {% for item in content.captured %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      <p class="intent-note">{{ _('intent.captured_note') }}</p>
+    </div>
+  </div>
+</section>
+
+{% if price_facts %}
+{# The price grid is this trade's own data, already published for its clients.
+   On this page it answers the question the artisan is really weighing: what one
+   recovered job is worth against what the subscription costs. #}
+<section class="intent-section intent-section--tint">
+  <div class="container">
+    <h2>{{ _('intent.price_title', trade=trade_label|lower) }}</h2>
+    <p class="intent-price-lead">
+      {{ _('intent.price_lead', low=price_facts.min_eur, high=price_facts.max_eur, job=price_facts.first.label|lower) }}
+    </p>
+    <p class="intent-note">{{ _('intent.price_note') }}</p>
+  </div>
+</section>
+{% endif %}
+
+<section class="intent-section">
+  <div class="container">
+    <h2>{{ _('intent.how_title') }}</h2>
+    <ol class="intent-steps">
+      <li><strong>{{ _('intent.how_1_title') }}</strong><span>{{ _('intent.how_1_desc') }}</span></li>
+      <li><strong>{{ _('intent.how_2_title') }}</strong><span>{{ _('intent.how_2_desc') }}</span></li>
+      <li><strong>{{ _('intent.how_3_title') }}</strong><span>{{ _('intent.how_3_desc') }}</span></li>
+    </ol>
+    <div class="intent-cta">
+      <a href="{{ url_for('web.register', src='intent-' ~ trade_key, trade=trade_key) }}"
+         class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline btn-lg">{{ _('intent.cta_pricing') }}</a>
+    </div>
+  </div>
+</section>
+
+<section class="intent-section intent-section--tint">
+  <div class="container">
+    <h2>{{ _('intent.faq_title') }}</h2>
+    <div class="faq-list">
+      {% for question, answer in content.faq %}
+      <details class="faq-item"{% if loop.first %} open{% endif %}>
+        <summary>{{ question }}</summary>
+        <p>{{ answer }}</p>
+      </details>
+      {% endfor %}
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_1_q') }}</summary>
+        <p>{{ _('landing.faq_1_a') }}</p>
+      </details>
+      <details class="faq-item">
+        <summary>{{ _('landing.faq_7_q') }}</summary>
+        <p>{{ _('landing.faq_7_a') }}</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="intent-section">
+  <div class="container">
+    <h2>{{ _('intent.others_title') }}</h2>
+    <ul class="intent-others">
+      {% for other in other_intent_trades %}
+      <li>
+        <a href="{{ url_for('web.pro_intent_trade', trade=other.key) }}">
+          <span aria-hidden="true">{{ other.icon }}</span>{{ _('intent.other_link', trade=other.label|lower) }}
+        </a>
+      </li>
+      {% endfor %}
+      <li>
+        <a href="{{ url_for('web.pro_intent_hub') }}">
+          <span aria-hidden="true">🛠️</span>{{ _('intent.other_all') }}
+        </a>
+      </li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

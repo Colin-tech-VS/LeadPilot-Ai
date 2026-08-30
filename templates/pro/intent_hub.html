@@ -1,0 +1,93 @@
+{% extends "layouts/pro.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
+{% set nav_active = '' %}
+
+{% block title %}{{ _('intent.hub_title') }} | {{ _('app.name') }}{% endblock %}
+{% block body_class %}page-pro page-intent{% endblock %}
+
+{% block meta %}
+{% set hub_ld %}
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": {{ _('intent.hub_title')|tojson }},
+  "serviceType": {{ _('intent.service_type')|tojson }},
+  "url": {{ canonical_url('/secretariat-telephonique-artisan')|tojson }},
+  "areaServed": "FR",
+  "provider": { "@type": "Organization", "name": "PilotCore", "url": {{ site_base_url()|tojson }} },
+  "description": {{ _('intent.hub_meta_description')|tojson }}
+}
+{% endset %}
+{{ seo_meta(_('intent.hub_title') ~ ' | ' ~ _('app.name'), _('intent.hub_meta_description'), '/secretariat-telephonique-artisan', _('intent.hub_keywords'), 'website', None, 'index, follow', hub_ld, lang) }}
+{% endblock %}
+
+{% block content %}
+<section class="intent-hero">
+  <div class="container">
+    <p class="v-kicker">{{ _('intent.kicker') }}</p>
+    <h1>{{ _('intent.hub_h1') }}</h1>
+    <p class="intent-lead">{{ _('intent.hub_lead') }}</p>
+    <div class="intent-cta">
+      <a href="{{ url_for('web.register', src='intent-hub') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <p class="intent-cta-note">{{ _('landing.hero_microtrust') }}</p>
+    </div>
+  </div>
+</section>
+
+<section class="intent-section">
+  <div class="container">
+    <h2>{{ _('intent.hub_what_title') }}</h2>
+    <ol class="intent-steps">
+      <li><strong>{{ _('intent.how_1_title') }}</strong><span>{{ _('intent.how_1_desc') }}</span></li>
+      <li><strong>{{ _('intent.how_2_title') }}</strong><span>{{ _('intent.how_2_desc') }}</span></li>
+      <li><strong>{{ _('intent.how_3_title') }}</strong><span>{{ _('intent.how_3_desc') }}</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="intent-section intent-section--tint">
+  <div class="container">
+    <h2>{{ _('intent.hub_trades_title') }}</h2>
+    <p class="intent-note">{{ _('intent.hub_trades_lead') }}</p>
+    <div class="intent-cards">
+      {% for trade in intent_trades %}
+      <a class="intent-card" href="{{ url_for('web.pro_intent_trade', trade=trade.key) }}">
+        <span class="intent-card-icon" aria-hidden="true">{{ trade.icon }}</span>
+        <strong>{{ _('intent.other_link', trade=trade.label|lower) }}</strong>
+        <span class="intent-card-lead">{{ trade.lead }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="intent-note">{{ _('intent.hub_trades_other') }}</p>
+  </div>
+</section>
+
+<section class="intent-section">
+  <div class="container">
+    <h2>{{ _('intent.hub_compare_title') }}</h2>
+    <ul class="intent-list">
+      <li>{{ _('intent.hub_compare_1') }}</li>
+      <li>{{ _('intent.hub_compare_2') }}</li>
+      <li>{{ _('intent.hub_compare_3') }}</li>
+    </ul>
+    <div class="intent-cta">
+      <a href="{{ url_for('web.register', src='intent-hub') }}" class="btn btn-primary btn-lg" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+      <a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline btn-lg">{{ _('intent.cta_pricing') }}</a>
+    </div>
+  </div>
+</section>
+
+<section class="intent-section intent-section--tint">
+  <div class="container">
+    <h2>{{ _('intent.faq_title') }}</h2>
+    <div class="faq-list">
+      {% for n in [1, 3, 7, 9] %}
+      <details class="faq-item"{% if loop.first %} open{% endif %}>
+        <summary>{{ _('landing.faq_%s_q'|format(n)) }}</summary>
+        <p>{{ _('landing.faq_%s_a'|format(n)) }}</p>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

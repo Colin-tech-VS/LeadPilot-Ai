@@ -33,6 +33,7 @@
    worth right now, said on /pro itself. A nav entry for it put a competing
    free-trial page one click from every page. It stays in the footer. #}
 <a href="{{ url_for('web.pro_landing') }}#how" class="{% if active == 'how' %}active{% endif %}">{{ _('pro.nav_how') }}</a>
+<a href="{{ url_for('web.pro_intent_hub') }}" class="{% if active == 'intent' %}active{% endif %}">{{ _('intent.nav') }}</a>
 <a href="{{ url_for('web.pro_landing') }}#pricing" class="{% if active == 'pricing' %}active{% endif %}">{{ _('landing.nav_pricing') }}</a>
       <span class="nav-zone-sep" aria-hidden="true"></span>
 <a href="{{ url_for('web.login') }}" class="nav-auth {% if active == 'login' %}active{% endif %}">{{ _('client.nav_login') }}</a>

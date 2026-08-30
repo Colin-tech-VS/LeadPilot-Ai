@@ -80,6 +80,7 @@
         <div class="v-footer-col">
           <h4>{{ _('vitrine.footer_pros') }}</h4>
           <a href="{{ url_for('web.pro_landing') }}#pricing">{{ _('landing.nav_pricing') }}</a>
+          <a href="{{ url_for('web.pro_intent_hub') }}">{{ _('intent.nav') }}</a>
           {% if founding and founding.enabled %}
           <a href="{{ url_for('web.founding_landing') }}">{{ _('founding.nav') }}</a>
           {% endif %}

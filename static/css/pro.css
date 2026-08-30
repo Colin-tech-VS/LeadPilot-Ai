@@ -1970,3 +1970,196 @@
   .page-pro .pricing-matrix th,
   .page-pro .pricing-matrix td { padding: 10px; }
 }
+
+/* ── Artisan-intent pages (/secretariat-telephonique…) ──
+   The only pages on the site written for the person who pays rather than for
+   their client. Deliberately plain: long-form, readable, one action. */
+.page-intent .intent-hero {
+  padding: 48px 0 36px;
+  background: var(--lp-surface);
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.page-intent .intent-hero h1 {
+  max-width: 22ch;
+  margin: 6px 0 0;
+  font-size: clamp(1.9rem, 4.4vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.page-intent .intent-lead {
+  max-width: 58ch;
+  margin: 14px 0 0;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.page-intent .intent-cta-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-section { padding: 44px 0; }
+.page-intent .intent-section--tint {
+  background: var(--lp-surface);
+  border-block: 1px solid var(--lp-border);
+}
+
+.page-intent .intent-section h2 {
+  margin: 0 0 16px;
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.page-intent .intent-cols {
+  display: grid;
+  gap: 32px 48px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+}
+
+.page-intent .intent-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.page-intent .intent-list li {
+  position: relative;
+  padding-left: 22px;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lp-text);
+}
+
+.page-intent .intent-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-list--check li::before { content: "✓"; }
+
+.page-intent .intent-stake,
+.page-intent .intent-price-lead {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.page-intent .intent-note {
+  max-width: 62ch;
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: intent-step;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.page-intent .intent-steps li {
+  counter-increment: intent-step;
+  padding: 18px 20px;
+  background: var(--lp-bg);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+}
+
+.page-intent .intent-steps li::before {
+  content: counter(intent-step);
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--lp-font-display);
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-steps strong { display: block; font-size: 16px; line-height: 1.3; }
+.page-intent .intent-steps span {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-cards {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  margin-top: 18px;
+}
+
+.page-intent .intent-card {
+  display: block;
+  padding: 18px 20px;
+  background: var(--lp-bg);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  text-decoration: none;
+  color: inherit;
+}
+
+.page-intent .intent-card:hover { border-color: var(--lp-border-strong, #C4B79A); }
+.page-intent .intent-card-icon { font-size: 22px; }
+.page-intent .intent-card strong { display: block; margin: 6px 0 4px; font-size: 16px; line-height: 1.3; }
+.page-intent .intent-card-lead {
+  display: block;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--lp-text-muted);
+}
+
+.page-intent .intent-others {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.page-intent .intent-others a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--lp-border);
+  border-radius: 99px;
+  font-size: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.page-intent .intent-others a:hover { border-color: var(--lp-border-strong, #C4B79A); }
+
+@media (max-width: 640px) {
+  .page-intent .intent-cta .btn { width: 100%; text-align: center; }
+}

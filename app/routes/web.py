@@ -495,6 +495,64 @@ def indexnow_key_file(key):
     )
 
 
+@web_bp.route("/secretariat-telephonique-artisan", methods=["GET"])
+def pro_intent_hub():
+    """The hub for artisans searching for what we sell, not for an artisan.
+
+    Everything else the SEO engine generates answers « je cherche un plombier ».
+    An artisan looking for a receptionist types something else entirely, and
+    until now only /pro and /50-artisans were written for them.
+    """
+    from app.constants import pro_intents
+    from app.constants.trades import trade_icon, trade_label
+
+    lang = getattr(g, "lang", "fr")
+    trades = [
+        {
+            "key": key,
+            "label": trade_label(key, lang),
+            "icon": trade_icon(key),
+            "lead": pro_intents.content_for(key, lang)["lead"],
+        }
+        for key in pro_intents.INTENT_TRADES
+    ]
+    return render_template("pro/intent_hub.html", intent_trades=trades)
+
+
+@web_bp.route("/secretariat-telephonique/<trade>", methods=["GET"])
+def pro_intent_trade(trade):
+    """« Secrétariat téléphonique plombier » and its four siblings.
+
+    Only the five trades where an unanswered call is an emergency get a page of
+    their own; every other trade is answered by the hub. A page per trade for
+    all thirteen would be the doorway pattern ``app.utils.indexability`` exists
+    to keep this site out of.
+    """
+    from flask import abort
+
+    from app.constants import pro_intents
+    from app.constants.trades import trade_icon, trade_label
+
+    key = (trade or "").strip().lower()
+    if not pro_intents.has_page(key):
+        abort(404)
+
+    lang = getattr(g, "lang", "fr")
+    others = [
+        {"key": k, "label": trade_label(k, lang), "icon": trade_icon(k)}
+        for k in pro_intents.other_trades(key)
+    ]
+    return render_template(
+        "pro/intent_trade.html",
+        trade_key=key,
+        trade_label=trade_label(key, lang),
+        trade_icon=trade_icon(key),
+        content=pro_intents.content_for(key, lang),
+        price_facts=_trade_price_facts(key, lang),
+        other_intent_trades=others,
+    )
+
+
 @web_bp.route("/artisans/ma-fiche", methods=["GET"])
 def find_my_listing():
     """"Is my company already listed?" — the artisan-facing entry point.

@@ -147,18 +147,28 @@
 
 {% if founding %}
 <section class="founding-dash dash-animate">
+  {# Setup lives in the activation card at the top of the page, which every
+     artisan gets. While that card is showing, this panel keeps to what is
+     actually specific to a founding seat — the place, the referral link and
+     the feedback — instead of running a second progress bar that disagrees
+     with the first about the same account. #}
+  {% set setup_done = activation and activation.complete %}
   <header class="founding-dash-head">
     <p class="founding-dash-kicker">{{ _('founding.dash_title') }} · {{ _('founding.dash_place', n=founding.participant.place_number) }}</p>
+    {% if setup_done %}
     <h2>{{ _('founding.dash_progress', pct=founding.progress.percent) }}</h2>
     <div class="founding-dash-bar" aria-hidden="true"><span style="width: {{ founding.progress.percent }}%"></span></div>
+    {% endif %}
   </header>
+  {% if setup_done %}
   <ol class="founding-dash-steps">
     {% for step in founding.progress.steps %}
     <li class="{% if step.done %}is-done{% endif %}">{{ step.label }}</li>
     {% endfor %}
   </ol>
+  {% endif %}
   <div class="founding-dash-actions">
-    {% if founding.progress.needs_address or not founding.progress.steps[1].done %}
+    {% if setup_done and (founding.progress.needs_address or not founding.progress.steps[1].done) %}
     <a class="btn btn-sm btn-primary" href="{{ url_for('web.settings_page') }}">{{ _('founding.dash_cta_settings') }}</a>
     {% endif %}
     <a class="btn btn-sm btn-outline" href="{{ url_for('web.leads_page') }}">{{ _('founding.dash_cta_leads') }}</a>

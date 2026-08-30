@@ -63,7 +63,18 @@
     </div>
     <div class="pro-hook-actions">
       <a href="{{ register_href(trade_key, city, source) }}" class="btn btn-primary btn-lg">{{ _('prohook.cta_primary') }}</a>
-      <a href="{{ url_for('web.pro_landing') }}#pricing" class="btn btn-outline">{{ _('prohook.cta_secondary') }}</a>
+      {# The secondary link goes to the trade's own intent page, not to /pro.
+         These bands sit on thousands of directory pages; sending them all to
+         /pro left the pages written for the buyer reachable only from the pro
+         nav — nine pages of internal links against six thousand. The anchor
+         carries the head term those pages are meant to rank for. #}
+      <a href="{{ pro_intent_path(trade_key) }}" class="btn btn-outline">
+        {%- if trade_label -%}
+        {{ _('prohook.cta_intent_trade', trade=trade_label|lower) }}
+        {%- else -%}
+        {{ _('prohook.cta_intent') }}
+        {%- endif -%}
+      </a>
       <p class="pro-hook-note">{{ _('prohook.note') }}</p>
       <p class="pro-hook-claim">
         {{ _('prohook.claim') }}
@@ -89,7 +100,13 @@
   <a href="{{ register_href(trade_key, city, source) }}" class="btn btn-primary btn-block">{{ _('prohook.cta_primary') }}</a>
   <p class="pro-hook-box-note">
     {{ _('prohook.note') }}
-    <a href="{{ url_for('web.pro_landing') }}#pricing">{{ _('prohook.box_pricing_link') }}</a>
+    <a href="{{ pro_intent_path(trade_key) }}">
+      {%- if trade_label -%}
+      {{ _('prohook.cta_intent_trade', trade=trade_label|lower) }}
+      {%- else -%}
+      {{ _('prohook.cta_intent') }}
+      {%- endif -%}
+    </a>
   </p>
 </div>
 {% endmacro %}

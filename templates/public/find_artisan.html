@@ -4,9 +4,13 @@
 {% from 'macros/artisan_cta.html' import artisan_cta with context %}
 {% set nav_active = 'directory' %}
 
-{% set _t = "Trouver un artisan près de chez vous — RDV en ligne" %}
-{% set _d = "Trouvez un artisan de confiance près de chez vous et prenez rendez-vous en ligne 24h/24. Plombier, serrurier, électricien, chauffagiste, menuisier… Comparez les disponibilités, réservez un créneau en 2 minutes. Gratuit, sans engagement." %}
-{% set _k = "trouver un artisan, artisan près de chez moi, artisan de confiance, comment choisir un artisan, prendre rdv artisan en ligne, plombier serrurier électricien, dépannage à domicile, devis artisan gratuit" %}
+{# The home page owns « trouver un artisan près de chez vous » — the
+   transactional query. This page carried a title 86 % identical to it, so the
+   two competed for one result. It is the guide: how to choose, what to check,
+   what a job should cost. Different question, different page. #}
+{% set _t = "Comment choisir un artisan de confiance — le guide" %}
+{% set _d = "Assurance décennale, SIRET, devis écrit, acompte, avis : les points à vérifier avant de confier un chantier, et les questions à poser au premier appel. Guide pratique, métier par métier." %}
+{% set _k = "comment choisir un artisan, artisan de confiance, vérifier un artisan, assurance décennale, devis artisan, éviter les arnaques travaux, questions à poser à un artisan" %}
 {% set _path = "/trouver-un-artisan" %}
 
 {% block title %}{{ _t }}{% endblock %}
@@ -65,12 +69,12 @@
 <section class="fa-hero fa-hero--pillar">
   <div class="container fa-hero-grid">
     <div>
-      <span class="fa-kicker">✓ Artisans locaux · RDV en ligne</span>
-      <h1>Trouvez un <em>artisan de confiance</em> près de chez vous</h1>
+      <span class="fa-kicker">✓ Guide pratique · Vérifier avant de signer</span>
+      <h1>Comment choisir un <em>artisan de confiance</em></h1>
       <p class="fa-hero-lead">
-        Plombier, serrurier, électricien, chauffagiste, menuisier… Recherchez par métier
-        et par ville, comparez les disponibilités et réservez votre créneau en ligne en 2 minutes.
-        Gratuit, sans engagement.
+        Assurance décennale, SIRET, devis écrit, acompte : ce qu'il faut vérifier avant
+        de confier un chantier, et les questions à poser dès le premier appel. Ensuite
+        seulement, cherchez par métier et par ville.
       </p>
 
       <form class="fa-search" action="{{ url_for('web.artisan_directory') }}" method="get" role="search" aria-label="Rechercher un artisan">

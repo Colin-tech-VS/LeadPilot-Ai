@@ -26,11 +26,36 @@ def _tag(html, pattern):
 
 def test_the_pro_title_leads_with_what_an_artisan_searches(client):
     """« Ne ratez plus aucun appel » is a good ad headline and ranks for
-    nothing. The search term goes first, the hook second, the brand last."""
+    nothing. The search term goes first, the hook second, the brand last.
+
+    Which search term is now a division of labour: /pro answers the
+    transactional half (« combien ça coûte, je veux l'essayer »), the hub
+    answers the informational head term. Before that split they carried the
+    same one and competed for a single result.
+    """
     title = _tag(_head(client, "/pro"), r"<title>(.*?)</title>")
     assert title
-    assert re.search(r"secr[ée]tariat t[ée]l[ée]phonique", title, re.I), title
+    assert re.search(r"standard t[ée]l[ée]phonique", title, re.I), title
     assert "artisan" in title.lower()
+    assert re.search(r"tarif|prix|essai", title, re.I), title
+
+
+def test_the_head_term_belongs_to_the_hub_alone(client):
+    """Anti-cannibalisation guard.
+
+    /pro and /secretariat-telephonique-artisan once carried « secrétariat
+    téléphonique artisan » in both titles: same term, same intent, same
+    audience, both indexable. Google keeps one and the other drags it down. No
+    two indexable pages may lead with that term again.
+    """
+    hub = _tag(_head(client, "/secretariat-telephonique-artisan"), r"<title>(.*?)</title>")
+    assert re.search(r"secr[ée]tariat t[ée]l[ée]phonique", hub, re.I), hub
+    assert "artisan" in hub.lower()
+
+    pro = _tag(_head(client, "/pro"), r"<title>(.*?)</title>")
+    assert not re.search(r"secr[ée]tariat t[ée]l[ée]phonique", pro, re.I), (
+        f"/pro is competing with the hub again: {pro}"
+    )
 
 
 def test_every_pro_page_is_branded(client):

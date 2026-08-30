@@ -93,6 +93,27 @@ def inject_tenant():
 
 
 @web_bp.app_context_processor
+def inject_pro_intent_links():
+    """``pro_intent_path(trade)`` — where an artisan reading a client page goes.
+
+    The « Vous êtes artisan ? » band sits on thousands of directory pages and
+    already knows their trade. Pointing it at the trade's own intent page rather
+    than at /pro is what connects that mass of pages to the handful written for
+    the buyer: without it the intent set is reachable only from the pro nav, on
+    nine pages, and stays an orphan whatever the sitemap says.
+    """
+    from app.constants import pro_intents
+
+    def pro_intent_path(trade_key=None):
+        key = (trade_key or "").strip().lower()
+        if pro_intents.has_page(key):
+            return url_for("web.pro_intent_trade", trade=key)
+        return url_for("web.pro_intent_hub")
+
+    return {"pro_intent_path": pro_intent_path}
+
+
+@web_bp.app_context_processor
 def inject_seo_local_links():
     """Expose curated trade/city data so pages can link into the local SEO
     landing pages (internal maillage → faster indexing, more authority)."""
@@ -430,6 +451,48 @@ def heatmap_record():
     return ("", 204)
 
 
+def _listing_cluster_indexable(listing, city) -> bool:
+    """Is the trade × city cluster this business sits in itself indexed?
+
+    A company page floating alone in a noindex cluster answers nothing a
+    searcher could not get elsewhere, and there are twelve thousand of them
+    against the handful of pages written for the artisan who pays. Never
+    raises: a lookup failure falls back to the looser rule rather than
+    silently de-indexing a page.
+    """
+    try:
+        from app.services import trade_guides as _tg
+        from app.services.artisan_directory import list_public_artisans
+        from app.utils.indexability import city_page_robots, is_indexable
+
+        if city is None or not listing.trade_key:
+            return False
+        slug = (listing.city_slug or "").strip().lower()
+        artisans = sum(
+            1
+            for t in list_public_artisans(limit=2000)
+            if (t.trade_type or "").strip().lower() == listing.trade_key
+            and (t.city or "").strip()
+            and _city_slug(t.city) == slug
+        )
+        return is_indexable(
+            city_page_robots(
+                artisan_count=artisans,
+                has_trade_guide=_tg.get_guide(listing.trade_key, "fr") is not None,
+                city=city,
+            )
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("listing cluster indexability lookup failed")
+        return True
+
+
+def _city_slug(value):
+    from app.constants.cities import city_slugify
+
+    return city_slugify(value or "")
+
+
 def _trade_price_facts(trade_key, lang="fr"):
     """Answer-first price numbers for a trade landing page, or None.
 
@@ -652,7 +715,13 @@ def listing_page(siren):
             for row in _ri.listings_for(listing.trade_key, listing.city_slug or "", limit=7)
             if row.siren != listing.siren
         ][:6],
-        robots=listing_page_robots(listing, city_has_page=city is not None),
+        # Same gate the sitemap applies, so the page and the sitemap never
+        # disagree about whether this business belongs in the index.
+        robots=listing_page_robots(
+            listing,
+            city_has_page=city is not None,
+            cluster_indexable=_listing_cluster_indexable(listing, city),
+        ),
         has_map=has_map,
         map_lat=map_lat,
         map_lng=map_lng,

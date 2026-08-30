@@ -91,17 +91,28 @@ def trade_pillar_robots(*, has_trade_guide: bool, artisan_count: int) -> str:
 MIN_LISTING_YEARS = 5
 
 
-def listing_page_robots(listing, *, city_has_page: bool) -> str:
+def listing_page_robots(listing, *, city_has_page: bool, cluster_indexable: bool | None = None) -> str:
     """Robots directive for ``/artisans/entreprise/<siren>``.
 
     A claimed listing has its own artisan page and must never compete with it;
     an opted-out one must not be served at all.
+
+    ``cluster_indexable`` is the second condition above, stated properly: the
+    business must sit inside a cluster that exists, not merely in a town on our
+    list. ``city_has_page`` only ever meant « the slug resolves », which let a
+    company page float alone in a trade × city cluster that is itself noindex —
+    twelve thousand islands against nine pages written for the buyer, all
+    competing for the same crawl. When it is not supplied the old, looser rule
+    applies, so a caller that cannot cheaply know the cluster's state (the page
+    view itself) is not forced to guess.
     """
     from app.models.registry_listing import STATUS_LISTED
 
     if listing is None or listing.status != STATUS_LISTED:
         return NOINDEX
     if not city_has_page:
+        return NOINDEX
+    if cluster_indexable is False:
         return NOINDEX
     years = listing.years_active
     if years is None or years < MIN_LISTING_YEARS:

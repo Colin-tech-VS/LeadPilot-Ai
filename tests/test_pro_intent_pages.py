@@ -120,3 +120,54 @@ def test_english_falls_back_to_french_rather_than_breaking(client):
     assert pro_intents.content_for("plombier", "en")["stake"] in html
     # A trade with no English payload would still render its French one.
     assert pro_intents.content_for("plombier", "de") == pro_intents.content_for("plombier", "fr")
+
+
+def test_the_directory_band_points_at_the_trade_intent_page(client):
+    """The band sits on thousands of client-intent pages and knows their trade.
+
+    Sending every one of them to /pro left the intent set reachable only from
+    the pro nav — nine pages of internal links against six thousand — so the
+    pages written for the buyer were orphans whatever the sitemap said. The
+    anchor also carries the head term they are meant to rank for.
+    """
+    covered = client.get("/artisans/metier/plombier").get_data(as_text=True)
+    assert 'href="/secretariat-telephonique/plombier"' in covered
+    assert "secrétariat téléphonique pour plombier" in covered.lower()
+
+    city = client.get("/artisans/plombier/paris").get_data(as_text=True)
+    assert 'href="/secretariat-telephonique/plombier"' in city
+
+    # A trade with no page of its own falls back to the hub rather than to a 404.
+    other = client.get("/artisans/metier/carreleur").get_data(as_text=True)
+    assert 'href="/secretariat-telephonique-artisan"' in other
+    assert "/secretariat-telephonique/carreleur" not in other
+
+    # And the pages with no trade context at all reach the hub too.
+    for path in ("/artisans", "/prix-artisans", "/depannage-urgent"):
+        html = client.get(path).get_data(as_text=True)
+        assert 'href="/secretariat-telephonique-artisan"' in html, path
+
+
+def test_a_company_page_is_only_indexed_inside_a_live_cluster(app):
+    """Twelve thousand registry pages against nine written for the buyer, all
+    drawing on the same crawl. A company floating alone in a trade × city
+    cluster that is itself noindex answers nothing its siblings do not."""
+    from app.utils.indexability import listing_page_robots
+
+    class _Listing:
+        status = "listed"
+        years_active = 12
+
+    from app.models.registry_listing import STATUS_LISTED
+
+    listing = _Listing()
+    listing.status = STATUS_LISTED
+
+    assert listing_page_robots(listing, city_has_page=True, cluster_indexable=True).startswith("index")
+    assert listing_page_robots(listing, city_has_page=True, cluster_indexable=False).startswith("noindex")
+    # Omitted (a caller that cannot cheaply know) keeps the older, looser rule.
+    assert listing_page_robots(listing, city_has_page=True).startswith("index")
+    # The existing gates still bite.
+    assert listing_page_robots(listing, city_has_page=False, cluster_indexable=True).startswith("noindex")
+    listing.years_active = 1
+    assert listing_page_robots(listing, city_has_page=True, cluster_indexable=True).startswith("noindex")

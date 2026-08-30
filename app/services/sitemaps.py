@@ -210,8 +210,28 @@ def entreprise_urls() -> list[Url]:
     """
     from app.constants.cities import city_info
     from app.models.registry_listing import STATUS_LISTED, RegistryListing
-    from app.utils.indexability import is_indexable, listing_page_robots
+    from app.utils.indexability import city_page_robots, is_indexable, listing_page_robots
     from app.utils.seo import format_lastmod
+
+    guided = _guided_trades()
+    _, by_city = _artisan_index()
+
+    # Whether the trade × city cluster a listing belongs to is itself indexed,
+    # memoised: the answer is the same for every business of a trade in a town,
+    # and there are twelve thousand of them.
+    cluster_cache: dict[tuple[str, str], bool] = {}
+
+    def _cluster_indexable(trade: str, slug: str) -> bool:
+        key = (trade, slug)
+        if key not in cluster_cache:
+            cluster_cache[key] = is_indexable(
+                city_page_robots(
+                    artisan_count=1 if key in by_city else 0,
+                    has_trade_guide=trade in guided,
+                    city=city_info(slug),
+                )
+            )
+        return cluster_cache[key]
 
     out: list[Url] = []
     rows = (
@@ -222,7 +242,15 @@ def entreprise_urls() -> list[Url]:
     )
     for listing in rows:
         city = city_info(listing.city_slug) if listing.city_slug else None
-        robots = listing_page_robots(listing, city_has_page=city is not None)
+        robots = listing_page_robots(
+            listing,
+            city_has_page=city is not None,
+            cluster_indexable=(
+                _cluster_indexable(listing.trade_key, listing.city_slug)
+                if city is not None and listing.trade_key
+                else False
+            ),
+        )
         if is_indexable(robots):
             out.append(
                 (

@@ -37,7 +37,11 @@
           <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline btn-lg">{{ _('founding.cta_pro') }}</a>
         </div>
       </div>
+      {# The seat count is shown only once it counts in our favour: an « 0 / 50 »
+         above the fold is a public statement that nobody signed up. Until then
+         the same space carries what the artisan actually gets. #}
       <div class="founding-hero-mark">
+        {% if founding.show_counter or not founding.open %}
         <p class="founding-seat" aria-hidden="true">
           <span class="founding-seat-n">{{ founding.occupied }}</span>
           <span class="founding-seat-rest">
@@ -58,6 +62,13 @@
           <span class="founding-meter-fill" style="width: {{ [meter_pct, 100]|min }}%"></span>
         </div>
         {% endif %}
+        {% else %}
+        <p class="founding-seat founding-seat--days" aria-hidden="true">
+          <span class="founding-seat-n">{{ founding.duration_days }}</span>
+          <span class="founding-seat-rest"><span class="founding-seat-max">{{ _('founding.days_unit') }}</span></span>
+        </p>
+        <p class="founding-counter">{{ _('founding.duration_hint', days=founding.duration_days) }}</p>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -77,7 +88,9 @@
           <h2>{{ _('founding.full_title') }}</h2>
           {% endif %}
         </div>
+        {% if founding.show_counter or not founding.open %}
         <p class="founding-fiche-index" aria-hidden="true">{{ founding.occupied }}&nbsp;/&nbsp;{{ founding.max }}</p>
+        {% endif %}
       </header>
       {% if waitlisted %}
       <p class="founding-flash">{{ _('founding.waitlist_thanks') }}</p>
@@ -215,10 +228,12 @@
   <div class="container">
     <h2>{{ _('founding.final_title') }}</h2>
     <p class="founding-counter" aria-live="polite">
-      {% if founding.open %}
+      {% if not founding.open %}
+        {{ _('founding.full_banner') }}
+      {% elif founding.show_counter %}
         {{ _('founding.counter', n=founding.occupied, max=founding.max) }}
       {% else %}
-        {{ _('founding.full_banner') }}
+        {{ _('founding.duration_hint', days=founding.duration_days) }}
       {% endif %}
     </p>
     {% if founding.open %}

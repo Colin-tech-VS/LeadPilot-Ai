@@ -3,8 +3,10 @@ from app.utils.i18n import TRANSLATIONS
 
 
 NEW_KEYS = (
-    "landing.hero_seats_fallback",
-    "landing.hero_seats_remaining",
+    # The hero states the trial. It used to state the seat count instead
+    # (« 50 places restantes sur 50 »), which announced an empty room.
+    "landing.hero_trial",
+    "landing.hero_trial_launch",
     "landing.flow_title",
     "landing.flow_1",
     "landing.flow_5",
@@ -23,7 +25,6 @@ NEW_KEYS = (
     "landing.roi_price_label",
     "landing.roi_hypothesis",
     "landing.pricing_paid_title",
-    "landing.cta_founding",
     "landing.faq_9_q",
     "landing.faq_9_a",
 )

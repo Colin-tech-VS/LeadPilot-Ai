@@ -121,12 +121,20 @@ def test_a_plan_that_is_not_a_real_offer_is_ignored(client, app, stripe_calls):
 
 
 def test_checkout_carries_the_free_trial_into_the_subscription(client, app, stripe_calls):
-    """Choosing a plan must not cost the artisan the 14 days they were just
-    promised: the card is taken now, the first charge waits for the trial."""
+    """Choosing a plan must not cost the artisan the free days they were just
+    promised: the card is taken now, the first charge waits for the trial.
+
+    The length is whatever the page advertised at the moment they signed up —
+    longer while the launch programme is open — not the bare constant."""
+    from app.services import founding_program
+
     client.post("/register", data=_signup(plan="starter"))
 
+    with app.app_context():
+        expected = founding_program.public_trial_days()
     subscription = stripe_calls[0]["subscription_data"]
-    assert subscription["trial_period_days"] == TRIAL_DAYS
+    assert subscription["trial_period_days"] == expected
+    assert expected >= TRIAL_DAYS
 
 
 def test_an_expired_trial_subscribes_at_full_price(app, stripe_calls):
@@ -173,9 +181,9 @@ def test_the_page_stops_promising_no_card_when_an_offer_is_chosen(client):
     contradiction that made the redirect feel like a bait-and-switch."""
     html = client.get("/register?plan=starter").get_data(as_text=True)
     assert "Sans carte bancaire" not in html
-    assert "Carte enregistrée, débit après 14 jours" in html
+    assert "Carte enregistrée, débit après" in html
     # The free days are real either way, so they stay on the page.
-    assert "14 jours gratuits" in html
+    assert "jours gratuits" in html
 
 
 def test_the_trial_signup_still_promises_no_card(client):

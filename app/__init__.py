@@ -322,6 +322,7 @@ def _ensure_schema_updates():
         "ai_assistant_name": "VARCHAR(100)",
         "siret": "VARCHAR(14)",
         "ai_phone_number": "VARCHAR(50)",
+        "line_requested_at": ts_type,
         "address": "VARCHAR(500)",
         "postal_code": "VARCHAR(10)",
         "city": "VARCHAR(100)",

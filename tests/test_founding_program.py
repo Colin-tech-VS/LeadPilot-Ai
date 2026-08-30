@@ -28,13 +28,16 @@ def _signup(client, **overrides):
     return client.post("/50-artisans", data=data, follow_redirects=False)
 
 
-def test_founding_landing_seo_and_counter(client):
+def test_founding_landing_sells_the_longer_trial_without_an_empty_counter(client):
+    """« 0 / 50 artisans inscrits » above the fold is not scarcity — it is a
+    public statement that nobody signed up. The counter appears only once there
+    are enough members for it to argue in our favour."""
     html = client.get("/50-artisans").data.decode()
     assert "Programme des 50 premiers artisans" in html
-    assert "/ 50 artisans inscrits" in html
     assert "Rejoindre les 50 premiers artisans" in html or "est complet" in html
-    assert "Starter" in html
     assert "30 jours" in html
+    assert "0 / 50 artisans inscrits" not in html
+    assert "/ 50 artisans inscrits" not in html
     assert "des milliers" not in html.lower()
 
 
@@ -67,10 +70,13 @@ def test_founding_signup_creates_real_artisan_account(client, app):
         from app.services import plan_features as pf
         from app.services.twilio_provisioning import should_buy_dedicated_number
 
-        assert pf.founding_starter_gift_active(tenant) is True
-        assert pf.trial_has_all_features(tenant) is False
-        assert pf.has_feature(tenant, "auto_booking") is False
-        assert pf.call_quota(tenant) == 150
+        # A founding seat buys length and hands-on setup, not a smaller product:
+        # it used to silently withhold the automatic booking the landing page
+        # led with, which made the « better » offer the worse one.
+        assert pf.trial_has_all_features(tenant) is True
+        assert pf.has_feature(tenant, "auto_booking") is True
+        assert pf.call_quota(tenant) is None
+        # The line is bought when the artisan asks for it, not at signup.
         assert should_buy_dedicated_number(tenant) is False
 
 
@@ -230,15 +236,18 @@ def test_founding_admin_registre_shows_participant(client, app):
     assert "Rappel" in html
 
 
-def test_pro_homepage_features_founding_programme(client):
+def test_pro_homepage_states_the_launch_terms_without_a_second_offer(client):
+    """The launch programme is what the single trial is worth right now — not a
+    rival page with a rival free trial. Two « gratuit » buttons pointing at two
+    different signups made the visitor choose between them instead of choosing
+    us, so /pro carries one destination."""
     html = client.get("/pro").data.decode()
     assert 'class="founding-spotlight"' in html
-    assert "/50-artisans" in html
-    assert "Les 50 premiers" in html
-    assert "Rejoindre les 50" in html
-    assert "/ 50 artisans inscrits" in html
-    assert "Un mois de Starter offert" in html or "1 mois de Starter" in html
-    assert 'href="/register"' in html or "/register" in html
+    assert "30 jours" in html
+    assert 'href="/register"' in html
+    assert "/ 50 artisans inscrits" not in html
+    assert "places restantes" not in html
+    assert html.count('href="/50-artisans"') <= 1  # the footer link only
     assert "des milliers" not in html.lower()
     assert "clients garantis" not in html.lower()
 

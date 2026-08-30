@@ -923,6 +923,180 @@ a:hover {
   border: 1px solid #FECACA;
 }
 
+/* ── Activation checklist (dashboard) ──
+   The first thing an artisan sees until their line actually answers. It ranks
+   above the trial banner on purpose: the countdown is meaningless while the
+   switchboard is off. */
+.activation {
+  margin-bottom: 24px;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--lp-border-strong, #C4B79A);
+  border-radius: var(--lp-radius, 4px);
+  background: var(--lp-bg-elevated, #FBF7EE);
+  color: var(--text);
+}
+.activation__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.activation__head > div { flex: 1 1 240px; min-width: 0; }
+.activation__kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.activation__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.activation__lead {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.activation__count {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.activation__count strong {
+  font-family: var(--lp-font-display, Fraunces, Georgia, serif);
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.activation__bar {
+  margin: 14px 0 4px;
+  height: 6px;
+  background: var(--lp-brand-soft, #E8E4D6);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.activation__bar span {
+  display: block;
+  height: 100%;
+  background: var(--lp-brand, #1A2332);
+  transition: width 240ms ease;
+}
+.activation__steps {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.activation__step {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--lp-brand-soft, #E8E4D6);
+}
+.activation__step:first-child { border-top: 0; }
+.activation__mark {
+  flex: 0 0 24px;
+  height: 24px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--lp-brand-soft, #E8E4D6);
+  color: var(--text-muted);
+}
+.activation__step.is-done .activation__mark {
+  background: var(--lp-brand, #1A2332);
+  color: #fff;
+}
+.activation__step.is-current .activation__mark {
+  background: transparent;
+  border: 2px solid var(--lp-brand, #1A2332);
+  color: var(--text);
+}
+.activation__body { flex: 1 1 auto; min-width: 0; }
+.activation__body > strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.activation__step.is-done .activation__body > strong { color: var(--text-muted); }
+.activation__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.activation__cta { margin-top: 12px; }
+.activation__note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.activation__note--muted { opacity: 0.8; }
+.activation__number {
+  margin: 12px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.activation__number strong {
+  font-size: 22px;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+.activation__number a { text-decoration: none; }
+.activation__codes {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.activation__codes li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.activation__codes code {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--card, #fff);
+  border: 1px solid var(--lp-brand-soft, #E8E4D6);
+  border-radius: 4px;
+  padding: 2px 8px;
+  /* A dial code must survive a narrow phone without wrapping mid-code. */
+  white-space: nowrap;
+}
+.settings-line-activate { margin-top: 10px; }
+@media (max-width: 640px) {
+  .activation__cta { width: 100%; text-align: center; }
+  .activation__codes li { justify-content: flex-start; }
+}
+
 /* ── Free-trial banner (dashboard) ── */
 .trial-banner {
   margin-bottom: 24px;

@@ -1,14 +1,17 @@
-"""Provision a dedicated AI phone number for **paying** tenants that lack one.
+"""Provision a dedicated AI phone number for every tenant entitled to one.
 
-New paying tenants get their number on Stripe checkout (see billing.py). This
-backfill is for artisans who already paid before that hook existed.
+Paying tenants get their number on Stripe checkout (see billing.py) and trial
+artisans get theirs the moment they press « Activer ma ligne » on the dashboard.
+This backfill catches the ones a Twilio outage, a full trial-line cap or a
+pre-hook subscription left without one — an artisan whose request was recorded
+but never fulfilled has a dashboard that says « en cours d'attribution » and
+nothing else will ever change that.
 
 Idempotent: a tenant that already has a dedicated ``ai_phone_number`` is
-skipped. Trial / test accounts are skipped on purpose — they share
-``TWILIO_AI_PHONE_NUMBER``.
+skipped, and so is a trial that never asked.
 
 Usage:
-    python scripts/provision_numbers.py            # paid tenants missing a number
+    python scripts/provision_numbers.py            # everyone entitled, missing a number
     python scripts/provision_numbers.py --dry-run  # list who would get one, buy nothing
 """
 import sys
@@ -19,7 +22,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app import create_app
 from app.core.extensions import db
 from app.models.tenant import Tenant
-from app.services.twilio_provisioning import auto_provision_enabled, provision_ai_number
+from app.services.twilio_provisioning import (
+    auto_provision_enabled,
+    provision_ai_number,
+    should_buy_dedicated_number,
+)
 
 
 def main(argv):
@@ -35,18 +42,19 @@ def main(argv):
             return
 
         shared = (app.config.get("TWILIO_AI_PHONE_NUMBER") or "").strip()
-        paid = [t for t in Tenant.query.all() if t.is_paid]
         missing = []
-        for tenant in paid:
+        for tenant in Tenant.query.all():
             number = (tenant.ai_phone_number or "").strip()
-            if not number or (shared and number == shared):
+            if number and not (shared and number == shared):
+                continue
+            if should_buy_dedicated_number(tenant):
                 missing.append(tenant)
 
         if not missing:
-            print("Tous les artisans payants ont déjà un numéro IA dédié. Rien à faire.")
+            print("Tous les artisans concernés ont déjà un numéro de réception dédié. Rien à faire.")
             return
 
-        print(f"{len(missing)} artisan(s) payant(s) sans numéro IA dédié.")
+        print(f"{len(missing)} artisan(s) sans numéro de réception dédié.")
         provisioned = failed = 0
         for tenant in missing:
             if dry_run:

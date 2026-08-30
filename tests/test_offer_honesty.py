@@ -53,17 +53,28 @@ def test_stale_offer_rows_pick_up_job_copy(app):
         assert "rendez-vous" in (Offer.query.filter_by(key="pro").one().badge or "").lower()
 
 
-def test_trial_length_is_fourteen_days():
+def test_trial_length_is_written_once_and_resolved(app):
+    """The trial used to be typed as a literal « 14 jours » in thirty strings,
+    beside a « 30 jours » founding gift in thirty more, so the two could — and
+    did — drift apart. One offer now, one variable, resolved per request."""
+    from app.utils.i18n import trial_days
+
     assert TRIAL_DAYS == 14
-    assert "14 jours" in TRANSLATIONS["fr"]["landing.pricing_trial_period"]
-    assert "14 jours" in TRANSLATIONS["fr"]["register.form_sub"]
+    assert "{trial_days} jours" in TRANSLATIONS["fr"]["landing.pricing_trial_period"]
+    assert "{trial_days} jours" in TRANSLATIONS["fr"]["register.form_sub"]
+    with app.test_request_context("/pro"):
+        assert trial_days() >= TRIAL_DAYS
 
 
-def test_founding_copy_is_thirty_day_starter():
+def test_founding_copy_sells_a_longer_trial_not_a_smaller_plan():
+    """« 1 mois de Starter offert » sold the founding seat as the better deal
+    while quietly withholding the automatic booking the landing page led with.
+    The seat buys days and hands-on setup; the product is the same."""
     fr = TRANSLATIONS["fr"]
     assert "30 jours" in fr["founding.form_sub"]
-    assert "Starter" in fr["founding.duration_hint"]
-    assert "14 jours" not in fr["founding.why_1"]
+    assert "Starter" not in fr["founding.duration_hint"]
+    assert "Starter" not in fr["founding.why_1"]
+    assert "toutes les fonctions" in fr["founding.why_1"].lower()
 
 
 def test_i18n_does_not_advertise_unshipped_capabilities():
@@ -177,7 +188,9 @@ def test_public_pages_describe_offers_honestly(client):
     assert "150 appels" in pro
     assert "500 appels" in pro
     assert "1 500" in pro or "1500" in pro
-    assert "14 jours" in pro
+    # The trial length is whatever is on offer today — one number, computed,
+    # never two competing ones printed side by side.
+    assert re.search(r"\b(14|30) jours\b", pro)
     assert "Google Agenda" not in pro
     assert "Plusieurs utilisateurs" not in pro
     assert "Plusieurs numéros" not in pro
@@ -188,12 +201,13 @@ def test_public_pages_describe_offers_honestly(client):
 
     register = client.get("/register").get_data(as_text=True)
     assert "Numéro IA dédié pour vos clients" not in register
-    assert "14 jours" in register
+    assert re.search(r"\b(14|30) jours\b", register)
     assert "sans carte" in register.lower() or "Sans carte" in register
 
     founding = client.get("/50-artisans").get_data(as_text=True)
-    assert "Starter" in founding
+    # The seat is the full trial for longer, not a gifted Starter month.
     assert "30 jours" in founding
+    assert "mois de Starter" not in founding
     assert "sans carte" in founding.lower() or "Sans carte" in founding
 
 
@@ -226,7 +240,7 @@ def test_trial_listing_keeps_online_booking_copy(client, app):
     assert "Réservation en ligne non activée" not in html
 
 
-def test_founding_listing_has_no_auto_booking(client, app):
+def test_founding_seat_keeps_the_full_trial(client, app):
     email = f"fnd-{uuid.uuid4().hex[:8]}@example.com"
     resp = client.post(
         "/50-artisans",
@@ -248,8 +262,9 @@ def test_founding_listing_has_no_auto_booking(client, app):
 
         user = User.query.filter_by(email=email).first()
         tenant = user.tenant
-        assert pf.founding_starter_gift_active(tenant) is True
-        assert pf.has_feature(tenant, "auto_booking") is False
+        # A founding seat is the full trial, only longer — booking included.
+        assert pf.trial_has_all_features(tenant) is True
+        assert pf.has_feature(tenant, "auto_booking") is True
         slug = tenant.public_slug
     html = client.get(f"/artisans/{slug}").get_data(as_text=True)
-    assert "Réservation en ligne non activée" in html
+    assert "Réservation en ligne non activée" not in html

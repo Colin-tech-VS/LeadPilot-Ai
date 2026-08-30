@@ -1,15 +1,24 @@
-"""Twilio phone-number provisioning for paying tenants.
+"""Twilio phone-number provisioning.
 
 The AI receptionist is a phone line, and the ONLY signal Twilio gives us to
-know which plumber a caller wants is the number that was dialed (the ``To``
-field, resolved in :mod:`app.routes.voice`). Paying artisans therefore get a
-dedicated number. Trials, test signups and unpaid accounts share
-``TWILIO_AI_PHONE_NUMBER`` / ``TWILIO_DEFAULT_TENANT_ID`` — buying a FR line at
-every ``/register`` is what drained the Twilio balance on dummy accounts.
+know which artisan a caller wants is the number that was dialed (the ``To``
+field, resolved in :mod:`app.routes.voice`). A tenant without a dedicated
+number therefore has no receptionist at all: calls to the shared
+``TWILIO_AI_PHONE_NUMBER`` route to ``TWILIO_DEFAULT_TENANT_ID``, never to
+them.
 
-Purchase is **best-effort** and never runs under pytest. Signup, founding
-enrolment and listing-claim approval must not call this. Stripe checkout
-(paid plan) does.
+That used to be the case for every trial, which made the free trial a promise
+the product could not keep — fourteen days on an empty dashboard, not one call
+handled, nothing to subscribe for at the end. So the gate is no longer « has
+paid ». It is « asked for the line », which a real artisan does from their
+dashboard, logged in, with a company name and a mobile number on file. The
+scanners that POST ``/register`` and never come back — the reason the gate was
+payment in the first place — never get that far, and
+:func:`trial_lines_remaining` caps how many trial lines can ever be open at
+once so the Twilio balance stays bounded either way.
+
+Purchase is **best-effort** and never runs under pytest. Sign-up does not call
+this; the dashboard activation step and Stripe checkout do.
 """
 
 import logging
@@ -42,11 +51,61 @@ def _is_shared_line(number: str | None) -> bool:
     return bool(number and shared and _digits(number) == _digits(shared))
 
 
-def should_buy_dedicated_number(tenant) -> bool:
-    """True only for a paying artisan on the live production app.
+# How many trial artisans may hold a dedicated line at the same time. The trial
+# is worthless without one, but an unbounded free line is an unbounded bill, so
+# the spend is capped rather than refused. Raise it as the funnel grows.
+DEFAULT_MAX_TRIAL_LINES = 50
 
-    Trials, local ``python main.py``, waitlists, founding tests and pytest
-    never qualify — that is what stopped dummy signups buying FR lines.
+
+def max_trial_lines() -> int:
+    try:
+        return max(0, int(current_app.config.get("TWILIO_MAX_TRIAL_LINES", DEFAULT_MAX_TRIAL_LINES)))
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_TRIAL_LINES
+
+
+def trial_lines_in_use() -> int:
+    """Trial tenants currently holding a dedicated number."""
+    from app.models.tenant import Tenant
+
+    shared = _digits(current_app.config.get("TWILIO_AI_PHONE_NUMBER"))
+    count = 0
+    for tenant in Tenant.query.filter(
+        Tenant.ai_phone_number.isnot(None), Tenant.plan == "trial"
+    ).all():
+        if _digits(tenant.ai_phone_number) != shared:
+            count += 1
+    return count
+
+
+def trial_lines_remaining() -> int:
+    return max(0, max_trial_lines() - trial_lines_in_use())
+
+
+def trial_line_blocker(tenant) -> str | None:
+    """Why this trial cannot have a line yet, or ``None`` when it can.
+
+    The answer is shown to the artisan, so every branch names something they can
+    act on — except ``capacity``, which is ours to fix.
+    """
+    if getattr(tenant, "is_paid", False):
+        return None
+    if not getattr(tenant, "subscription_active", False):
+        return "trial_expired"
+    if not (getattr(tenant, "name", "") or "").strip():
+        return "company_missing"
+    if not (getattr(tenant, "phone_number", "") or "").strip():
+        return "phone_missing"
+    if trial_lines_remaining() <= 0:
+        return "capacity"
+    return None
+
+
+def should_buy_dedicated_number(tenant) -> bool:
+    """True for a paying artisan, and for a trial that has asked for its line.
+
+    Local ``python main.py``, pytest and any environment where live provider
+    spend is switched off never qualify.
     """
     from app.core.production import live_provider_spend_allowed
 
@@ -54,7 +113,33 @@ def should_buy_dedicated_number(tenant) -> bool:
         return False
     if not auto_provision_enabled():
         return False
-    return bool(getattr(tenant, "is_paid", False))
+    if getattr(tenant, "is_paid", False):
+        return True
+    if not getattr(tenant, "line_requested_at", None):
+        return False
+    return trial_line_blocker(tenant) is None
+
+
+def dedicated_number(tenant) -> str | None:
+    """The tenant's own receptionist number, or ``None``.
+
+    The shared fallback is deliberately not one: a call to it is routed to
+    ``TWILIO_DEFAULT_TENANT_ID``, so presenting it as « your number » tells the
+    artisan their clients are being answered when they are not.
+    """
+    number = (getattr(tenant, "ai_phone_number", None) or "").strip()
+    if not number or _is_shared_line(number):
+        return None
+    return number
+
+
+def has_active_line(tenant) -> bool:
+    """Whether calls to this artisan are actually being answered."""
+    return bool(
+        tenant is not None
+        and dedicated_number(tenant)
+        and getattr(tenant, "subscription_active", False)
+    )
 
 
 def _base_url() -> str | None:
@@ -352,3 +437,126 @@ def _purchase_hint(exc) -> str:
             "choisissez un pays non réglementé via TWILIO_NUMBER_COUNTRY."
         )
     return "Vérifiez le solde, le bundle réglementaire et les permissions du compte Twilio."
+
+
+# --- Activation ---------------------------------------------------------
+
+
+def request_line(tenant) -> dict:
+    """« Activer ma ligne » — the step that turns a trial into a real trial.
+
+    Records the request (so a number can still be bought later by
+    :mod:`scripts.provision_numbers` when Twilio was down or the cap was full),
+    then buys the number when the tenant qualifies. Returns a small status dict
+    the dashboard renders; never raises.
+
+    ``status`` is one of:
+
+    ``active``    the artisan has a dedicated number, calls are answered;
+    ``pending``   the request is recorded, the number is not bought yet;
+    ``blocked``   something the artisan must fix first — see ``reason``.
+    """
+    from app.core.extensions import db
+    from app.models.tenant import utcnow
+
+    existing = dedicated_number(tenant)
+    if existing:
+        return {"status": "active", "number": existing, "reason": None}
+
+    blocker = trial_line_blocker(tenant)
+    if blocker in ("company_missing", "phone_missing", "trial_expired"):
+        return {"status": "blocked", "number": None, "reason": blocker}
+
+    if not getattr(tenant, "line_requested_at", None):
+        tenant.line_requested_at = utcnow()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            logger.exception("Could not record line request for tenant=%s", getattr(tenant, "id", "?"))
+
+    number = provision_ai_number(tenant)
+    if number:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            logger.exception("Could not save provisioned number for tenant=%s", tenant.id)
+            return {"status": "pending", "number": None, "reason": "provisioning"}
+        return {"status": "active", "number": number, "reason": None}
+
+    return {"status": "pending", "number": None, "reason": blocker or "provisioning"}
+
+
+def line_state(tenant) -> dict:
+    """Everything the dashboard and settings need to tell the truth about the line.
+
+    Kept in one place because three templates used to each decide for themselves
+    whether « votre assistant répond », and all three said yes to an artisan who
+    had no number at all.
+    """
+    number = dedicated_number(tenant) if tenant is not None else None
+    requested = bool(getattr(tenant, "line_requested_at", None))
+    if number:
+        status = "active" if getattr(tenant, "subscription_active", False) else "suspended"
+    elif requested:
+        status = "pending"
+    else:
+        status = "off"
+    return {
+        "status": status,
+        "number": number,
+        "requested": requested,
+        "blocker": trial_line_blocker(tenant) if tenant is not None else None,
+        "answering": has_active_line(tenant),
+    }
+
+
+# Trial lines are handed back when the trial ends unsubscribed: a number nobody
+# pays for and nobody uses is a monthly bill and a seat held against
+# ``max_trial_lines``. Deliberately unhurried — a line is only released this
+# many days after the trial ended, so someone who subscribes a few days late
+# keeps the number their clients have been calling.
+TRIAL_LINE_GRACE_DAYS = 7
+
+
+def expired_trial_lines() -> list:
+    """Trial tenants whose grace period is over and who still hold a line."""
+    from datetime import timedelta
+
+    from app.models.tenant import Tenant, utcnow
+
+    cutoff = utcnow() - timedelta(days=TRIAL_LINE_GRACE_DAYS)
+    due = []
+    for tenant in Tenant.query.filter(Tenant.ai_phone_number.isnot(None)).all():
+        if tenant.is_paid or not dedicated_number(tenant):
+            continue
+        if tenant.trial_end_date > cutoff:
+            continue
+        due.append(tenant)
+    return due
+
+
+def release_expired_trial_lines() -> tuple[int, int]:
+    """Release every line due. Returns ``(released, failed)``. Never raises."""
+    from app.core.extensions import db
+
+    released = failed = 0
+    for tenant in expired_trial_lines():
+        try:
+            if release_ai_number(tenant):
+                # The request goes with the number: an artisan who comes back
+                # asks again, and gets a line again.
+                tenant.line_requested_at = None
+                db.session.commit()
+                released += 1
+            else:
+                db.session.rollback()
+                failed += 1
+        except Exception:
+            db.session.rollback()
+            failed += 1
+            logger.exception("Trial line release failed for tenant=%s", getattr(tenant, "id", "?"))
+    if released or failed:
+        logger.info("Trial lines released=%s failed=%s", released, failed)
+    return released, failed

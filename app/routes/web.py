@@ -119,6 +119,11 @@ def _format_phone_display(e164: str | None) -> str:
     return raw
 
 
+@web_bp.app_template_filter("phone_display")
+def phone_display_filter(value):
+    return _format_phone_display(value)
+
+
 @web_bp.route("/set-language/<lang>", methods=["GET"])
 def set_language(lang):
     lang = set_language_preference(lang)
@@ -787,6 +792,7 @@ def pro_landing():
         # actually contains, straight from the rules the app enforces.
         plan_matrix=plan_features.public_comparison(),
         founding=founding_program.landing_context(),
+        trial_days=founding_program.public_trial_days(),
         demo_audio_playlist=_pro_demo_playlist(getattr(g, "lang", "fr")),
     )
 
@@ -2025,6 +2031,15 @@ def register():
                         )
                         listing_link.link_tenant(tenant, listing)
                         listing_link.persist_siret(tenant, form["siret"])
+                        # One sign-up, one offer: while « les 50 premiers » is
+                        # open this account simply gets it, instead of the
+                        # landing page asking the visitor to choose between two
+                        # free trials before choosing us at all.
+                        from app.services import founding_program
+
+                        founding_program.enroll_existing(
+                            user, tenant, source=session.get("signup_src") or "register"
+                        )
                         session.pop(GOOGLE_SESSION_KEY, None)
                         login_user_to_session(user)
                         # Fire the Google Ads "Page vue" conversion only for this
@@ -2309,11 +2324,12 @@ def dashboard():
     except Exception:
         logger.exception("Founding dashboard context failed")
 
-    from app.services import listing_link
+    from app.services import activation, listing_link
 
     return render_template(
         "artisan/dashboard.html",
         tenant=tenant,
+        activation=activation.checklist(tenant),
         listing_suggestions=listing_link.pending_suggestions_for(tenant),
         track_signup_conversion=track_signup_conversion,
         calls_today=calls_today,
@@ -2331,6 +2347,22 @@ def dashboard():
         founding=founding,
         trial_total_days=founding["duration_days"] if founding else TRIAL_DAYS,
     )
+
+
+@web_bp.route("/ligne/activer", methods=["POST"])
+@web_tenant_required
+def activate_line():
+    """« Activer ma ligne » — buy this artisan's receptionist number.
+
+    The one step that turns the free trial into something that can actually
+    handle a call. Always redirects back to the dashboard with a flag the
+    template reads, so a Twilio outage shows a sentence rather than a 500.
+    """
+    from app.services import twilio_provisioning
+
+    tenant = db.session.get(Tenant, g.tenant_id)
+    result = twilio_provisioning.request_line(tenant)
+    return redirect(url_for("web.dashboard", line=result["status"], _anchor="activation"))
 
 
 @web_bp.route("/listing-claim", methods=["POST"])
@@ -2822,6 +2854,7 @@ def stripe_connect_refresh():
 @web_bp.route("/settings", methods=["GET", "POST"])
 @web_tenant_required
 def settings_page():
+    from app.services import twilio_provisioning
     from app.utils.geocoding import geocode_address
 
     tenant = db.session.get(Tenant, g.tenant_id)
@@ -2973,6 +3006,7 @@ def settings_page():
         user=user,
         success=success,
         error=error,
+        line=twilio_provisioning.line_state(tenant),
         trades=trade_choices(lang),
         public_profile_url=public_profile_url,
         stripe_connect_available=stripe_connect.connect_available(),

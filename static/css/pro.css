@@ -751,6 +751,14 @@
   color: var(--founding-brass);
 }
 
+/* Before there are enough founding members to be worth counting, the same slot
+   shows the length of the trial instead — a number that is always in our
+   favour, where « 0 / 50 » never was. */
+.page-founding .founding-seat--days .founding-seat-max {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  letter-spacing: -0.02em;
+}
+
 .page-founding .founding-hero .founding-counter {
   margin: 0 0 14px;
   font-size: 14px;

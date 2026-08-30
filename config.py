@@ -102,11 +102,16 @@ class Config:
     # the app degrades gracefully — no SMS is sent and nothing breaks.
     TWILIO_SMS_FROM = os.environ.get("TWILIO_SMS_FROM", "")
 
-    # Dedicated AI number for paying artisans only. A phone call carries no
-    # login, so the dialed number is how we route to the right tenant — but
-    # buying a FR line at every trial/test signup is what drained Twilio.
-    # Trials share TWILIO_AI_PHONE_NUMBER. Set 0 to never buy, even after pay.
+    # A phone call carries no login, so the dialed number is how we route to the
+    # right tenant: an artisan without a dedicated number has no receptionist at
+    # all. Numbers are therefore bought for paying artisans AND for trials that
+    # asked for their line from the dashboard — a free trial with nothing
+    # answering is not a trial. Set 0 to never buy, even after payment.
     TWILIO_AUTO_PROVISION_NUMBERS = os.environ.get("TWILIO_AUTO_PROVISION_NUMBERS", "1") not in ("0", "false", "False", "")
+    # How many trial artisans may hold a line at once. Bounds the Twilio bill
+    # without making the trial useless; scripts/release_expired_trial_lines.py
+    # gives the seats back.
+    TWILIO_MAX_TRIAL_LINES = int(os.environ.get("TWILIO_MAX_TRIAL_LINES", "50") or 50)
     # Country (ISO-3166 alpha-2) the AI numbers are purchased in, and an optional
     # preferred area/regional code (e.g. "1" for Paris local numbers).
     TWILIO_NUMBER_COUNTRY = os.environ.get("TWILIO_NUMBER_COUNTRY", "FR")

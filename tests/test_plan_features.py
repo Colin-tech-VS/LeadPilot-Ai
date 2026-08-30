@@ -44,15 +44,18 @@ def test_premium_includes_crm():
     assert pf.has_feature(t, "multiple_phone_numbers")
 
 
-def test_founding_gift_is_starter_not_full_trial():
+def test_founding_seat_is_the_full_trial_only_longer():
+    """A founding member used to get thirty days of the *Starter* feature set,
+    so the offer sold as the better one quietly withheld the automatic booking
+    the landing page led with. One trial now, the full one, whatever its
+    length."""
     t = _tenant(trialing=True)
     t.trial_ends_at = utcnow() + timedelta(days=30)
     t._founding_gift_active = True
-    assert pf.founding_starter_gift_active(t) is True
-    assert pf.trial_has_all_features(t) is False
-    assert not pf.has_feature(t, "auto_booking")
-    assert not pf.has_feature(t, "crm_marketing")
-    assert pf.call_quota(t) == 150
+    assert pf.trial_has_all_features(t) is True
+    assert pf.has_feature(t, "auto_booking")
+    assert pf.has_feature(t, "crm_marketing")
+    assert pf.call_quota(t) is None
 
 
 def test_apply_booking_plan_limits_starter():

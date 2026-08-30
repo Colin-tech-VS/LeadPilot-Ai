@@ -27,6 +27,13 @@ class Tenant(db.Model):
     siret = db.Column(db.String(14), nullable=True)
     phone_number = db.Column(db.String(50), nullable=True)
     ai_phone_number = db.Column(db.String(50), nullable=True)
+    # When the artisan asked for their own receptionist line from the dashboard.
+    # A trial without a dedicated number has no receptionist at all — calls to
+    # the shared line are routed elsewhere — so this is the moment the free
+    # trial starts being a trial rather than an empty dashboard. It is a request,
+    # not a guarantee: the number may be bought a few seconds later, or by
+    # ``scripts/provision_numbers.py`` if Twilio was unavailable.
+    line_requested_at = db.Column(db.DateTime(timezone=True), nullable=True)
     address = db.Column(db.String(500), nullable=True)
     postal_code = db.Column(db.String(10), nullable=True)
     city = db.Column(db.String(100), nullable=True)
@@ -119,6 +126,10 @@ class Tenant(db.Model):
         return self.is_paid or utcnow() <= self.trial_end_date
 
     @property
+    def line_requested(self):
+        return self.line_requested_at is not None
+
+    @property
     def trial_days_left(self):
         """Whole days remaining on the trial (0 once expired)."""
         if self.is_paid:
@@ -139,6 +150,7 @@ class Tenant(db.Model):
             "siret": self.siret,
             "phone_number": self.phone_number,
             "ai_phone_number": self.ai_phone_number,
+            "line_requested": self.line_requested,
             "address": self.address,
             "postal_code": self.postal_code,
             "city": self.city,

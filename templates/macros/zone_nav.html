@@ -29,9 +29,9 @@
 
 {% macro pro_zone_nav(active='') %}
 <a href="{{ url_for('web.pro_landing') }}" class="{% if active == 'home' %}active{% endif %}">{{ _('vitrine.nav_home') }}</a>
-{% if founding and founding.enabled %}
-<a href="{{ url_for('web.founding_landing') }}" class="{% if active == 'founding' %}active{% endif %}">{{ _('founding.nav') }}</a>
-{% endif %}
+{# « Les 50 premiers » is not a second offer any more — it is what the trial is
+   worth right now, said on /pro itself. A nav entry for it put a competing
+   free-trial page one click from every page. It stays in the footer. #}
 <a href="{{ url_for('web.pro_landing') }}#how" class="{% if active == 'how' %}active{% endif %}">{{ _('pro.nav_how') }}</a>
 <a href="{{ url_for('web.pro_landing') }}#pricing" class="{% if active == 'pricing' %}active{% endif %}">{{ _('landing.nav_pricing') }}</a>
       <span class="nav-zone-sep" aria-hidden="true"></span>

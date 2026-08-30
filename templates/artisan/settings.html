@@ -79,15 +79,21 @@
       <p class="field-hint">{{ _('settings.show_direct_phone_public_hint') }}</p>
 
       <label for="ai_phone_number">{{ _('settings.ai_phone') }}</label>
-      {% if tenant.ai_phone_number and tenant.ai_phone_number != twilio_ai_phone_e164 %}
-      <input type="tel" id="ai_phone_number" value="{{ tenant.ai_phone_number }}" readonly>
+      {# Only a dedicated number is « votre ligne ». Showing the shared fallback
+         here told artisans their clients were being answered on a number whose
+         calls are routed to someone else entirely. #}
+      {% if line and line.number %}
+      <input type="tel" id="ai_phone_number" value="{{ line.number }}" readonly>
       <p class="field-hint">{{ _('settings.ai_phone_dedicated_hint') }}</p>
-      {% elif tenant.is_paid %}
-      <input type="tel" id="ai_phone_number" value="{{ twilio_ai_phone_e164 }}" readonly>
+      {% elif line and line.status == 'pending' %}
+      <input type="tel" id="ai_phone_number" value="" placeholder="—" readonly>
       <p class="field-hint">{{ _('settings.ai_phone_pending_hint') }}</p>
       {% else %}
-      <input type="tel" id="ai_phone_number" value="{{ twilio_ai_phone_e164 }}" readonly>
-      <p class="field-hint">{{ _('settings.ai_phone_shared_hint') }}</p>
+      <input type="tel" id="ai_phone_number" value="" placeholder="—" readonly>
+      <p class="field-hint">{{ _('settings.ai_phone_none_hint') }}</p>
+      <form method="post" action="{{ url_for('web.activate_line') }}" class="settings-line-activate">
+        <button type="submit" class="btn btn-primary btn-sm" data-track="activation_line_request">{{ _('activation.cta_line') }}</button>
+      </form>
       {% endif %}
     </section>
 

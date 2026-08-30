@@ -129,9 +129,10 @@ def public_comparison() -> dict:
         if row_key == "call_overage":
             return 0 if trial else overage
         if row_key == "dedicated_number":
-            # Dedicated numbers are bought when the artisan pays; the trial
-            # shares the PilotCore line (``twilio_provisioning``).
-            return not trial
+            # The trial gets a line in the artisan's name too, activated from the
+            # dashboard: a trial answering on a shared number that routes calls
+            # to somebody else was never a trial (``twilio_provisioning``).
+            return True
         if row_key in _ALWAYS_INCLUDED:
             return True
         if trial:
@@ -152,26 +153,15 @@ def public_comparison() -> dict:
 
 
 def trial_has_all_features(tenant) -> bool:
-    """Classic /register trial: every Premium feature, unlimited calls.
+    """Every free trial: all features, unlimited calls, for as long as it runs.
 
-    The /50-artisans gift is Starter for 30 days — not this bypass.
+    Founding members used to be an exception — thirty days of the *Starter*
+    feature set, so the offer sold as the better one silently withheld the
+    automatic booking the landing page led with. There is one trial now, and it
+    is the full one; « les 50 premiers » buys length and hands-on setup, not a
+    smaller product.
     """
-    if founding_starter_gift_active(tenant):
-        return False
     return bool(getattr(tenant, "is_trialing", False) and tenant.subscription_active)
-
-
-def founding_starter_gift_active(tenant) -> bool:
-    try:
-        from flask import has_app_context
-
-        from app.services.founding_program import gift_active_for_tenant
-
-        if not has_app_context():
-            return bool(getattr(tenant, "_founding_gift_active", False))
-        return gift_active_for_tenant(tenant)
-    except Exception:
-        return bool(getattr(tenant, "_founding_gift_active", False))
 
 
 def has_feature(tenant, feature: str) -> bool:
@@ -180,8 +170,6 @@ def has_feature(tenant, feature: str) -> bool:
     if trial_has_all_features(tenant):
         return True
     plan = (getattr(tenant, "plan", None) or "trial").lower()
-    if founding_starter_gift_active(tenant):
-        plan = "starter"
     return feature in PLAN_FEATURES.get(plan, frozenset())
 
 
@@ -189,8 +177,6 @@ def max_team_users(tenant) -> int | None:
     if trial_has_all_features(tenant):
         return MAX_TEAM_USERS["premium"]
     plan = (getattr(tenant, "plan", None) or "starter").lower()
-    if founding_starter_gift_active(tenant):
-        plan = "starter"
     return MAX_TEAM_USERS.get(plan, 1)
 
 
@@ -200,8 +186,6 @@ def call_quota(tenant) -> int | None:
         return 0
     if trial_has_all_features(tenant):
         return None
-    if founding_starter_gift_active(tenant):
-        return included_calls("starter") or 0
     return included_calls(tenant.plan) or 0
 
 
@@ -263,12 +247,9 @@ def plan_summary(tenant) -> dict:
     used = calls_used(tenant)
     extra = max(0, used - quota) if quota is not None else 0
     plan = getattr(tenant, "plan", "trial")
-    if founding_starter_gift_active(tenant) and not getattr(tenant, "is_paid", False):
-        plan = "starter"
     return {
         "plan": plan,
         "trial_all_features": trial_has_all_features(tenant),
-        "founding_starter_gift": founding_starter_gift_active(tenant),
         "subscription_active": bool(tenant.subscription_active),
         "call_quota": quota,
         "calls_used": used,

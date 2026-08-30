@@ -189,8 +189,10 @@ def test_the_comparison_table_is_built_from_the_enforced_rules(app):
     assert cells["auto_booking"]["pro"] is True
     assert cells["auto_booking"]["trial"] is True
 
-    # The dedicated line is bought when the artisan pays (twilio_provisioning).
-    assert cells["dedicated_number"]["trial"] is False
+    # The trial gets a line in the artisan's name too, activated from the
+    # dashboard: a trial answering on a shared number whose calls route to
+    # somebody else was never a trial (twilio_provisioning).
+    assert cells["dedicated_number"]["trial"] is True
     assert cells["dedicated_number"]["starter"] is True
 
     # Answering the phone is the product, not an upsell.

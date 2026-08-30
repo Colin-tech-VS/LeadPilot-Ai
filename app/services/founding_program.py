@@ -40,7 +40,8 @@ SETTING_END = "founding_end_date"
 SETTING_POST_OFFER = "founding_post_offer"
 
 # Gifted Starter window for /50-artisans. Distinct from the 14-day full trial
-# on /register: 30 days of the Starter feature set, no card, no dedicated line.
+# on /register: 30 days of the Starter feature set, no card. The receptionist
+# line is real here as everywhere — it is activated from the dashboard.
 STARTER_GIFT_DAYS = 30
 STARTER_GIFT_PLAN = "starter"
 
@@ -56,6 +57,9 @@ DEFAULTS = {
     SETTING_END: "",
     SETTING_POST_OFFER: STARTER_GIFT_PLAN,
 }
+
+# Below this many founding members the public counter stays hidden.
+COUNTER_MIN = 5
 
 _gift_defaults_ready = False
 
@@ -262,7 +266,12 @@ def activation_progress(participant: FoundingParticipant) -> dict:
         and (tenant.phone_number or "").strip()
         and (tenant.trade_type or "").strip()
     )
-    has_line = bool(tenant and (tenant.ai_phone_number or tenant.phone_number))
+    # A personal mobile is not a receptionist line, and neither is the shared
+    # fallback: both used to tick this step for an artisan whose calls nothing
+    # was answering.
+    from app.services import twilio_provisioning
+
+    has_line = bool(tenant and twilio_provisioning.dedicated_number(tenant))
     steps = [
         {"key": "account", "label": "Compte créé", "done": True, "cta": None},
         {
@@ -361,7 +370,12 @@ def mark_converted(tenant_id) -> None:
 
 
 def gift_active_for_tenant(tenant) -> bool:
-    """True while this artisan is on the unpaid Starter month from /50-artisans."""
+    """True while this artisan holds an unpaid founding seat.
+
+    It no longer narrows the feature set — a founding trial is the full trial,
+    just longer (see :func:`plan_features.trial_has_all_features`). Kept for the
+    admin views and the drip, which need to know who is on a seat.
+    """
     if not tenant or getattr(tenant, "is_paid", False):
         return False
     cached = getattr(tenant, "_founding_gift_active", None)
@@ -455,47 +469,95 @@ def enroll(
         trade_type=trade_type,
         send_welcome=False,
     )
-    cfg = get_config()
-    tenant.trial_ends_at = utcnow() + timedelta(days=cfg["duration_days"])
-    db.session.commit()
-
-    started = utcnow()
-    utm = utm or {}
-    last_place = db.session.query(db.func.max(FoundingParticipant.place_number)).scalar() or 0
-    participant = FoundingParticipant(
-        place_number=last_place + 1,
-        tenant_id=tenant.id,
-        user_id=user.id,
-        status="active",
-        source=normalize_source(source, has_ref=bool(referrer)),
-        utm_source=(utm.get("utm_source") or "")[:80] or None,
-        utm_medium=(utm.get("utm_medium") or "")[:80] or None,
-        utm_campaign=(utm.get("utm_campaign") or "")[:120] or None,
-        utm_content=(utm.get("utm_content") or "")[:120] or None,
-        referral_code=_referral_code(),
-        referred_by_id=referrer.id if referrer else None,
-        started_at=started,
-        ends_at=started + timedelta(days=cfg["duration_days"]),
+    participant = enroll_existing(
+        user,
+        tenant,
+        source=source,
+        utm=utm,
+        referrer=referrer,
+        send_welcome=True,
     )
-    db.session.add(participant)
-    db.session.add(
-        FoundingStatusEvent(
-            participant=participant,
-            old_status=None,
-            new_status="active",
-            actor="system",
-        )
-    )
-    db.session.commit()
+    if participant is None:
+        # The last seat went between the check above and the insert.
+        raise AppError("Le programme des 50 premiers artisans est complet.", status_code=409)
+    return user, tenant, participant
 
+
+def enroll_existing(
+    user,
+    tenant,
+    *,
+    source: str | None = None,
+    utm: dict | None = None,
+    referrer: FoundingParticipant | None = None,
+    send_welcome: bool = False,
+) -> FoundingParticipant | None:
+    """Give a founding seat to an account that already exists.
+
+    Split out of :func:`enroll` so the ordinary ``/register`` sign-up can take a
+    seat too. That is the point: the landing page used to offer a 14-day trial
+    and a 30-day founding gift side by side, so the visitor had to choose
+    between two versions of « gratuit » before they had decided anything at all.
+    There is one offer now — the best one currently available — and this is what
+    applies it.
+
+    Returns the participant, or ``None`` when the programme is closed or the
+    account already holds a seat. Never raises: a sign-up must not fail because
+    a bonus could not be attached.
+    """
+    if tenant is None or user is None:
+        return None
     try:
-        from app.services.transactional_email import send_founding_welcome
+        if not accept_signups():
+            return None
+        existing = FoundingParticipant.query.filter_by(tenant_id=tenant.id).first()
+        if existing:
+            return existing
 
-        if send_founding_welcome(user, tenant, participant):
-            participant.mark_email_sent("welcome")
-            db.session.commit()
+        cfg = get_config()
+        started = utcnow()
+        tenant.trial_ends_at = started + timedelta(days=cfg["duration_days"])
+        utm = utm or {}
+        last_place = db.session.query(db.func.max(FoundingParticipant.place_number)).scalar() or 0
+        participant = FoundingParticipant(
+            place_number=last_place + 1,
+            tenant_id=tenant.id,
+            user_id=user.id,
+            status="active",
+            source=normalize_source(source, has_ref=bool(referrer)),
+            utm_source=(utm.get("utm_source") or "")[:80] or None,
+            utm_medium=(utm.get("utm_medium") or "")[:80] or None,
+            utm_campaign=(utm.get("utm_campaign") or "")[:120] or None,
+            utm_content=(utm.get("utm_content") or "")[:120] or None,
+            referral_code=_referral_code(),
+            referred_by_id=referrer.id if referrer else None,
+            started_at=started,
+            ends_at=started + timedelta(days=cfg["duration_days"]),
+        )
+        db.session.add(participant)
+        db.session.add(
+            FoundingStatusEvent(
+                participant=participant,
+                old_status=None,
+                new_status="active",
+                actor="system",
+            )
+        )
+        db.session.commit()
     except Exception:
-        logger.exception("Founding welcome email failed for tenant=%s", tenant.id)
+        db.session.rollback()
+        logger.exception("Founding seat could not be attached to tenant=%s", getattr(tenant, "id", "?"))
+        return None
+
+    if send_welcome:
+        try:
+            from app.services.transactional_email import send_founding_welcome
+
+            if send_founding_welcome(user, tenant, participant):
+                participant.mark_email_sent("welcome")
+                db.session.commit()
+        except Exception:
+            logger.exception("Founding welcome email failed for tenant=%s", tenant.id)
 
     log_event(
         CAT_AUTH,
@@ -509,7 +571,7 @@ def enroll(
         },
         level=LEVEL_SUCCESS,
     )
-    return user, tenant, participant
+    return participant
 
 
 def join_waitlist(
@@ -793,6 +855,25 @@ def alerts() -> list[dict]:
     return items
 
 
+def public_trial_days() -> int:
+    """How many free days a sign-up gets right now.
+
+    One number for the whole site. The landing page used to advertise a 14-day
+    trial next to a 30-day founding gift, which asked the visitor to pick
+    between two free things before they had decided on the paid one; ``/register``
+    now attaches the founding seat itself, so there is a single offer and this
+    says how long it lasts.
+    """
+    from app.models.tenant import TRIAL_DAYS
+
+    try:
+        if accept_signups():
+            return get_config()["duration_days"]
+    except Exception:
+        logger.exception("public_trial_days failed — falling back to the standard trial")
+    return TRIAL_DAYS
+
+
 def landing_context() -> dict:
     cfg = get_config()
     occupied = occupied_count()
@@ -808,4 +889,10 @@ def landing_context() -> dict:
         "enabled": cfg["enabled"],
         "open": open_,
         "gift_plan": STARTER_GIFT_PLAN,
+        "trial_days": public_trial_days(),
+        # A public counter is social proof only once it has something to prove.
+        # « 0 / 50 artisans inscrits », printed above the fold, told every
+        # visitor that nobody had signed up — the exact opposite of the
+        # reassurance it was there to give.
+        "show_counter": occupied >= COUNTER_MIN,
     }

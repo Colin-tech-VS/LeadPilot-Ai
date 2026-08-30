@@ -442,7 +442,9 @@ def test_founding_welcome_is_sent_on_enrolment(app):
         password="MotDePasse123",
         first_name="Julien",
         last_name="Martin",
-        phone="0478000000",
+        # Distinct from the /register signup above: an ordinary signup now takes
+        # a founding seat too, and a seat is one per phone number.
+        phone="0478000042",
         city="Flux-les-Bains",
         trade_type="plombier",
         company_name="Plomberie Fondatrice",

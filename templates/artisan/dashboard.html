@@ -32,6 +32,69 @@
 <div class="alert alert-success dash-animate">{{ _('listing_prompt.merged') }}</div>
 {% endif %}
 
+{% if activation and not activation.complete %}
+{% set line = activation.line %}
+<section class="activation" id="activation">
+  <header class="activation__head">
+    <div>
+      <p class="activation__kicker">{{ _('activation.kicker') }}</p>
+      <h2 class="activation__title">{{ _('activation.title') }}</h2>
+      <p class="activation__lead">{{ _('activation.lead') }}</p>
+    </div>
+    <p class="activation__count"><strong>{{ activation.done }}</strong><span>/ {{ activation.total }}</span></p>
+  </header>
+  <div class="activation__bar" aria-hidden="true"><span style="width: {{ activation.pct }}%"></span></div>
+
+  <ol class="activation__steps">
+    {% for step in activation.steps %}
+    <li class="activation__step{% if step.done %} is-done{% elif step.key == activation.next_step.key %} is-current{% endif %}">
+      <span class="activation__mark" aria-hidden="true">{% if step.done %}✓{% else %}{{ loop.index }}{% endif %}</span>
+      <div class="activation__body">
+        <strong>{{ _('activation.step_' ~ step.key) }}</strong>
+        <span class="activation__hint">{{ _('activation.step_' ~ step.key ~ '_hint') }}</span>
+
+        {% if not step.done and step.key == activation.next_step.key %}
+          {% if step.key == 'profile' %}
+            <a href="{{ url_for('web.settings_page') }}" class="btn btn-primary btn-sm activation__cta">{{ _('activation.cta_profile') }}</a>
+
+          {% elif step.key == 'line' %}
+            {% if line.blocker == 'capacity' %}
+              <p class="activation__note">{{ _('activation.line_capacity') }}</p>
+            {% elif line.blocker == 'trial_expired' %}
+              <a href="{{ url_for('billing.billing_page') }}" class="btn btn-primary btn-sm activation__cta">{{ _('activation.cta_subscribe') }}</a>
+            {% elif line.status == 'pending' %}
+              <p class="activation__note">{{ _('activation.line_pending') }}</p>
+            {% else %}
+              <form method="post" action="{{ url_for('web.activate_line') }}">
+                <button type="submit" class="btn btn-primary btn-sm activation__cta" data-track="activation_line_request">{{ _('activation.cta_line') }}</button>
+              </form>
+              <p class="activation__note">{{ _('activation.line_free_note') }}</p>
+            {% endif %}
+
+          {% elif step.key == 'forwarding' %}
+            {% if line.number %}
+              <p class="activation__number">
+                <span>{{ _('activation.your_number') }}</span>
+                <a href="tel:{{ line.number }}" data-track="activation_test_call"><strong>{{ line.number | phone_display }}</strong></a>
+              </p>
+              <p class="activation__note">{{ _('activation.forward_intro') }}</p>
+              <ul class="activation__codes">
+                {% for item in activation.forwarding %}
+                <li><span>{{ _(item.label_key) }}</span><code>{{ item.code }}</code></li>
+                {% endfor %}
+              </ul>
+              <p class="activation__note activation__note--muted">{{ _('activation.forward_cancel', code=activation.forward_cancel_code) }}</p>
+              <a href="tel:{{ line.number }}" class="btn btn-primary btn-sm activation__cta" data-track="activation_test_call">{{ _('activation.cta_test_call') }}</a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
 {% if tenant and not tenant.is_paid %}
 {% set days_left = tenant.trial_days_left or 0 %}
 {% set trial_total = trial_total_days or 14 %}
@@ -57,6 +120,10 @@
           {% endif %}
         {% elif not tenant.subscription_active %}
           {{ _('dashboard.trial_expired') }}
+        {% elif not (activation and activation.line.answering) %}
+          {# Never say the assistant is answering to an account whose line is
+             not in service — that sentence is what let 14 days go by. #}
+          {{ _('dashboard.trial_not_live') }}
         {% elif tenant.trial_days_left and tenant.trial_days_left <= 1 %}
           {{ _('dashboard.trial_last_day') }}
         {% else %}
@@ -150,7 +217,8 @@
           <span class="flow-step-title">{{ _('dashboard.flow_calls_title') }}</span>
           <span class="flow-step-metric"><strong data-count="{{ calls_today }}">0</strong></span>
           <span class="flow-step-unit">{{ _('dashboard.flow_calls_unit') }}</span>
-          <span class="flow-step-desc">{{ _('dashboard.flow_calls_desc') }}</span>
+          {# « L'IA répond 24/7 » is only true once a line is in service. #}
+          <span class="flow-step-desc">{{ _('dashboard.flow_calls_desc') if activation and activation.line.answering else _('dashboard.flow_calls_desc_off') }}</span>
         </span>
       </a>
     </li>

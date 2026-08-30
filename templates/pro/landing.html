@@ -391,7 +391,6 @@
       <h2>{{ _('landing.acq_title') }}</h2>
       <p class="v-section-lead">{{ _('landing.acq_lead') }}</p>
     </div>
-    <p class="cv-honesty">{{ _('landing.dir_honesty') }}</p>
     <ul class="v-fiche-points">
       <li>{{ _('landing.fiche_got_1') }}</li>
       <li>{{ _('landing.fiche_got_2') }}</li>
@@ -639,6 +638,50 @@
       </details>
       {% endfor %}
     </div>
+  </div>
+</section>
+
+<section class="v-reassure" id="reassurance" aria-labelledby="reassure-title">
+  <div class="container">
+    <div class="v-section-head v-section-head--center">
+      <p class="v-kicker">{{ _('landing.reassure_kicker') }}</p>
+      <h2 id="reassure-title">{{ _('landing.reassure_title') }}</h2>
+      <p class="v-section-lead">{{ _('landing.reassure_lead') }}</p>
+    </div>
+    {# Verifiable promises only. Nothing here is about how much the artisan will
+       earn — every one of these is something the app either does or does not
+       do, and can be checked in five minutes. #}
+    <ul class="v-reassure-list">
+      <li>
+        <span class="v-reassure-mark" aria-hidden="true">✓</span>
+        <div><strong>{{ _('landing.reassure_1_title') }}</strong><span>{{ _('landing.reassure_1_desc') }}</span></div>
+      </li>
+      <li>
+        <span class="v-reassure-mark" aria-hidden="true">✓</span>
+        <div><strong>{{ _('landing.reassure_2_title') }}</strong><span>{{ _('landing.reassure_2_desc') }}</span></div>
+      </li>
+      <li>
+        <span class="v-reassure-mark" aria-hidden="true">✓</span>
+        <div><strong>{{ _('landing.reassure_3_title') }}</strong><span>{{ _('landing.reassure_3_desc') }}</span></div>
+      </li>
+      <li>
+        <span class="v-reassure-mark" aria-hidden="true">✓</span>
+        <div><strong>{{ _('landing.reassure_4_title') }}</strong><span>{{ _('landing.reassure_4_desc') }}</span></div>
+      </li>
+    </ul>
+
+    <div class="v-reassure-talk">
+      <div>
+        <h3>{{ _('landing.reassure_talk_title') }}</h3>
+        <p>{{ _('landing.reassure_talk_lead') }}</p>
+      </div>
+      <div class="v-reassure-talk-actions">
+        <a href="{{ url_for('web.contact', sujet='rappel') }}" class="btn btn-outline" data-track="cta_callback">{{ _('landing.reassure_talk_cta') }}</a>
+        <a href="mailto:{{ support_email }}" class="v-reassure-mail" data-track="cta_email">{{ support_email }}</a>
+      </div>
+    </div>
+
+    <p class="cv-honesty v-footnote">{{ _('landing.dir_honesty') }}</p>
   </div>
 </section>
 

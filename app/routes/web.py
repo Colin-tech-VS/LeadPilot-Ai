@@ -87,6 +87,8 @@ def inject_tenant():
         "twilio_ai_phone_display": ai_phone_display,
         "twilio_ai_phone_e164": ai_phone_e164,
         "founding": founding,
+        # Where a visitor writes to a human before signing up.
+        "support_email": current_app.config.get("EMAIL_FROM", "contact@pilotcore.fr"),
     }
 
 
@@ -1196,6 +1198,13 @@ def contact():
     success = request.args.get("sent") == "1"
     error = None
     form = {"name": "", "email": "", "subject": "", "message": ""}
+
+    # « Être rappelé » on /pro links here. Landing on an empty generic form
+    # after clicking a specific ask is how that click gets abandoned, so the
+    # subject and the message arrive already written.
+    if request.method == "GET" and (request.args.get("sujet") or "").strip() == "rappel":
+        form["subject"] = translate("contact.prefill_callback_subject")
+        form["message"] = translate("contact.prefill_callback_message")
 
     if request.method == "POST":
         if request.form.get("website"):

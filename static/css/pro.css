@@ -1633,6 +1633,108 @@
   color: var(--lp-text-muted);
 }
 
+/* ── Reassurance, just before the closing CTA ──
+   Four checkable commitments and a way to reach a human. It sits at the end
+   because that is where the doubts are, and it carries the page's only
+   disclaimer — which used to be repeated inside six of the sentences that were
+   supposed to be selling. */
+.page-pro .v-reassure-list {
+  display: grid;
+  gap: 14px 28px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  max-width: 56rem;
+  margin: 8px auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-pro .v-reassure-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.page-pro .v-reassure-mark {
+  flex: 0 0 22px;
+  height: 22px;
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--lp-brand, #1A2332);
+  color: #fff;
+}
+
+.page-pro .v-reassure-list strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--lp-text);
+}
+
+.page-pro .v-reassure-list span:not(.v-reassure-mark) {
+  display: block;
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--lp-text-muted);
+}
+
+.page-pro .v-reassure-talk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 32px;
+  flex-wrap: wrap;
+  max-width: 56rem;
+  margin: 32px auto 0;
+  padding: 20px 24px;
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+}
+
+.page-pro .v-reassure-talk h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.page-pro .v-reassure-talk p {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--lp-text-muted);
+}
+
+.page-pro .v-reassure-talk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+}
+
+.page-pro .v-reassure-mail {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lp-text);
+}
+
+.page-pro .v-footnote {
+  max-width: 52rem;
+  margin: 32px auto 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .page-pro .v-reassure-talk-actions { width: 100%; }
+  .page-pro .v-reassure-talk-actions .btn { width: 100%; text-align: center; }
+}
+
 .page-pro .cv-claim {
   display: grid;
   gap: 16px;

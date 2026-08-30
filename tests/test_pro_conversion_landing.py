@@ -48,7 +48,7 @@ def test_pro_landing_is_missed_call_first(client):
     assert "un appel manqué peut devenir" in low
     assert "comment ça marche" in low
     assert "tout ce qui se passe quand vous êtes occupé" in low
-    assert "et vos clients peuvent aussi vous trouver" in low
+    assert "et vos clients vous trouvent aussi" in low
     assert "combien vous coûte réellement un appel manqué" in low
     assert "commencez gratuitement" in low
     assert "est-ce que je garde mon numéro" in low
@@ -59,7 +59,7 @@ def test_pro_landing_is_missed_call_first(client):
     assert "8 appels sur 10" not in low
     assert "rentabilisé dès" not in low
     assert "google agenda" not in low
-    directory_at = low.index("et vos clients peuvent aussi vous trouver")
+    directory_at = low.index("et vos clients vous trouvent aussi")
     assert html.lower().index("ne ratez plus aucun appel") < directory_at
 
 
@@ -72,7 +72,9 @@ def test_pro_landing_english_copy(client):
     assert "recorded sample call" in low
     assert "not a live account" in low
     assert "/static/audio/demo/en/01-ai.mp3" in html
-    assert "does not promise" in low
+    # The caveats are said once, at the end, instead of inside the sentences
+    # that are meant to sell.
+    assert "what we do not promise" in low
     assert "recruiting its first 50" in low or "first 50" in low
 
 

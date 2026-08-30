@@ -62,6 +62,19 @@
     if (!banner || banner.hidden) return;
     var cta = document.querySelector("[data-consent-keep-visible]");
     if (!cta) return;
+    /* Never scroll away from something the visitor has to read. On a refused
+       sign-up the server re-renders the form with the reason at the top and
+       the password field blank — and this lift, ~266px on a phone, pushed that
+       reason off the top of the screen. What was left was a form that had
+       apparently done nothing, so the visitor retyped, resubmitted, and got
+       the same silence. The button being reachable matters less than knowing
+       why the last tap failed; the reserved space below still makes it
+       scrollable to. */
+    var alert = document.querySelector(".alert-error, .alert-success, [role='alert']");
+    if (alert) {
+      var a = alert.getBoundingClientRect();
+      if (a.height && a.top < window.innerHeight) return;
+    }
     // The banner slides in via `transform`, so its rect is still off-screen on
     // the frame it becomes visible. Derive the edge it will occupy from its
     // laid-out height instead, the way reserveSpace() does.

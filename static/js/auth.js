@@ -253,5 +253,26 @@ document.documentElement.classList.add("js-enabled");
       start = steps.length - 1;
     }
     showStep(start);
+
+    /* A refused sign-up comes back with the reason above the form and the
+       password field blank — the browser cannot re-fill a password, and a page
+       that echoed one back would be worse. If the reason is off screen the
+       visitor sees only a form that appears to have done nothing, retypes, and
+       resubmits into the same silence. So put the reason in front of them, and
+       say why the password is empty. */
+    var formError = document.querySelector(".auth-pro__panel .alert-error");
+    if (formError) {
+      try {
+        formError.setAttribute("role", "alert");
+        formError.scrollIntoView({ block: "center", behavior: "auto" });
+      } catch (err) {
+        formError.scrollIntoView();
+      }
+      var pwd = document.getElementById("password");
+      if (pwd && !pwd.value) {
+        var hint = registerForm.querySelector("[data-password-retype]");
+        if (hint) hint.hidden = false;
+      }
+    }
   }
 })();

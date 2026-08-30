@@ -121,6 +121,13 @@
                   <button type="button" class="auth-field__toggle" data-password-toggle="password" aria-label="{{ _('register.password_show') }}">👁️</button>
                 </span>
                 <span class="auth-field__hint">{{ _('register.password_hint') }}</span>
+                {# Shown by auth.js only when the form came back with an error
+                   and the field is therefore blank: a password can never be
+                   echoed into the page, and « pourquoi mon mot de passe a
+                   disparu » is the question that ends the sign-up. #}
+                <span class="auth-field__hint auth-field__hint--retype" data-password-retype hidden>
+                  {{ _('register.password_retype') }}
+                </span>
               </label>
               {% endif %}
 

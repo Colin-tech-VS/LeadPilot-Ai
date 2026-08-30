@@ -1279,3 +1279,10 @@
   margin-left: auto;
   font-weight: 600;
 }
+
+/* Shown only when the form came back with an error, to answer the question
+   that otherwise ends the sign-up: « pourquoi mon mot de passe a disparu ». */
+.page-register .auth-field__hint--retype {
+  color: var(--lp-text, #1A2332);
+  font-weight: 600;
+}

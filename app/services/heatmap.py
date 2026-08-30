@@ -16,6 +16,7 @@ from sqlalchemy import func
 from app.core.extensions import db
 from app.models.heatmap_event import (
     TYPE_CLICK,
+    TYPE_FIELD,
     TYPE_PAGEVIEW,
     TYPE_RAGECLICK,
     TYPE_SCROLL,
@@ -282,7 +283,68 @@ def journey_detail(visitor_id, days=90):
 # --------------------------------------------------------------------------- #
 # Ingestion                                                                   #
 # --------------------------------------------------------------------------- #
-_VALID_TYPES = {TYPE_PAGEVIEW, TYPE_CLICK, TYPE_RAGECLICK, TYPE_SCROLL}
+_VALID_TYPES = {TYPE_PAGEVIEW, TYPE_CLICK, TYPE_RAGECLICK, TYPE_SCROLL, TYPE_FIELD}
+
+
+# States a field event can carry. ``reached`` is emitted the first time the
+# visitor puts the caret in a field, ``filled`` when they leave it with
+# something in it, ``empty`` when they leave it as they found it, and
+# ``abandoned`` marks the single field they were on when they gave up on the
+# page. Never a value — a form tracker that records what people type into a
+# password box is a breach waiting to happen.
+FIELD_STATES = ("reached", "filled", "empty", "abandoned")
+
+
+def form_funnel(path="/register", days=30):
+    """Per-field drop-off for one form: « ils commencent et ne terminent pas »
+    resolved to a line on the page.
+
+    Returns the fields in the order they appear, each with how many distinct
+    visitors reached it, left it filled, left it empty, and gave up on it — plus
+    the totals the admin reads first.
+    """
+    from app.models.heatmap_event import TYPE_FIELD
+
+    rows = (
+        _base(days)
+        .filter(HeatmapEvent.event_type == TYPE_FIELD, HeatmapEvent.path == path)
+        .order_by(HeatmapEvent.created_at.asc())
+        .limit(20000)
+        .all()
+    )
+
+    order: list[str] = []
+    per: dict[str, dict] = {}
+    for r in rows:
+        name = (r.el_selector or "").strip()
+        state = (r.el_text or "").strip()
+        if not name or state not in FIELD_STATES:
+            continue
+        if name not in per:
+            order.append(name)
+            per[name] = {s: set() for s in FIELD_STATES}
+        per[name][state].add(r.visitor_id or f"row-{r.id}")
+
+    fields = [
+        {
+            "name": name,
+            "reached": len(per[name]["reached"]),
+            "filled": len(per[name]["filled"]),
+            "empty": len(per[name]["empty"]),
+            "abandoned": len(per[name]["abandoned"]),
+        }
+        for name in order
+    ]
+    # The most useful single number: the field the largest number of people were
+    # sitting on when they left.
+    worst = max(fields, key=lambda f: f["abandoned"], default=None)
+    return {
+        "path": path,
+        "days": days,
+        "fields": fields,
+        "visitors": len({r.visitor_id for r in rows if r.visitor_id}),
+        "abandoned_on": worst["name"] if worst and worst["abandoned"] else None,
+    }
 
 
 def _int(v, lo=0, hi=100000):

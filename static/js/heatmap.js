@@ -177,6 +177,83 @@
     { passive: true }
   );
 
+  /* --- form fields ---
+     « Les gens commencent le formulaire et ne le terminent pas » is not
+     actionable until it names a line. So each field the visitor touches emits
+     its name and how it ended — reached, filled, left empty — plus the one
+     field they were on when they gave up.
+
+     Never a value. Not the e-mail, not the company, and above all not the
+     password: the point is to know WHICH line loses people, and the content of
+     the line adds nothing to that while turning an analytics table into a
+     credentials leak. Password fields are recorded by name only, like the
+     rest, and their state is a boolean « was there something in it ».  */
+  function trackForm(form) {
+    var fields = form.querySelectorAll("input, select, textarea");
+    var reached = {};
+    var lastTouched = null;
+
+    function nameOf(el) {
+      return (el.name || el.id || "").slice(0, 60);
+    }
+
+    function fieldEvent(el, state) {
+      var name = nameOf(el);
+      if (!name) return;
+      queue.push({ t: "field", p: path, s: name, txt: state });
+    }
+
+    Array.prototype.forEach.call(fields, function (el) {
+      if (el.type === "hidden") return;
+      el.addEventListener(
+        "focus",
+        function () {
+          lastTouched = el;
+          var name = nameOf(el);
+          if (!name || reached[name]) return;
+          reached[name] = true;
+          fieldEvent(el, "reached");
+        },
+        true
+      );
+      el.addEventListener(
+        "blur",
+        function () {
+          // A checkbox has no text to weigh; everything else is « is there
+          // anything in it », which is all we ever need to know.
+          var filled =
+            el.type === "checkbox" || el.type === "radio"
+              ? el.checked
+              : !!(el.value && String(el.value).trim());
+          fieldEvent(el, filled ? "filled" : "empty");
+        },
+        true
+      );
+    });
+
+    // Submitting is not giving up: clear the marker so a completed sign-up
+    // never counts as an abandonment on its last field.
+    form.addEventListener("submit", function () {
+      lastTouched = null;
+    });
+
+    function markAbandon() {
+      if (!lastTouched) return;
+      fieldEvent(lastTouched, "abandoned");
+      lastTouched = null;
+    }
+    window.addEventListener("pagehide", markAbandon);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") markAbandon();
+    });
+  }
+
+  try {
+    document.querySelectorAll("form[data-funnel-form]").forEach(trackForm);
+  } catch (err) {
+    /* measurement is never worth breaking a form over */
+  }
+
   function queueScroll() {
     if (scrollDirty) {
       queue.push({ t: "scroll", p: path, sd: maxScroll, dh: docHeight() });

@@ -100,7 +100,7 @@
       {% endif %}
       {% if founding.open %}
       <p class="founding-form-sub">{{ _('founding.form_sub') }}</p>
-      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
+      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form" data-funnel-form="founding">
         <div class="founding-form-row">
           <label>{{ _('founding.first_name') }}
             <input type="text" name="first_name" value="{{ form.first_name or '' }}" required autocomplete="given-name">
@@ -134,7 +134,7 @@
       </form>
       {% elif founding.waitlist_enabled %}
       <p class="founding-form-sub">{{ _('founding.waitlist_sub') }}</p>
-      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form">
+      <form method="POST" action="{{ url_for('web.founding_landing') }}" class="founding-form" data-funnel-form="founding">
         <input type="hidden" name="waitlist" value="1">
         <label>{{ _('founding.first_name') }}
           <input type="text" name="first_name" value="{{ form.first_name or '' }}" required>

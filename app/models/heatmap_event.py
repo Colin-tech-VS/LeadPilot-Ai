@@ -15,6 +15,11 @@ TYPE_PAGEVIEW = "pageview"
 TYPE_CLICK = "click"
 TYPE_RAGECLICK = "rageclick"
 TYPE_SCROLL = "scroll"
+# One event per form field the visitor touched: which field, and how it ended
+# (filled, left empty, or the one they were on when they gave up). Never the
+# value — only the field's name and its state, so « ils commencent et ne
+# terminent pas » can finally name the line they stop on.
+TYPE_FIELD = "field"
 
 
 class HeatmapEvent(db.Model):

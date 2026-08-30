@@ -35,6 +35,35 @@
     </div>
   </div>
 
+  {# ══════════════ PART 0 — Où le formulaire perd les gens ══════════════
+     « Ils commencent l'inscription et ne la terminent pas » ne devient
+     actionnable qu'une fois la ligne nommée. Chaque champ dit combien de
+     visiteurs l'ont atteint, l'ont rempli, l'ont laissé vide — et combien
+     étaient dessus au moment où ils ont abandonné. Jamais le contenu saisi :
+     seulement le nom du champ et son état. #}
+  <section class="admin-panel">
+    <h2>🧾 Où le formulaire perd les gens</h2>
+    <div class="admin-toolbar">
+      <label for="hm-form-path">Formulaire</label>
+      <select id="hm-form-path" class="admin-select">
+        <option value="/register">Inscription artisan (/register)</option>
+        <option value="/50-artisans">Les 50 premiers (/50-artisans)</option>
+        <option value="/client/register">Inscription client (/client/register)</option>
+      </select>
+      <span class="admin-live" id="hm-form-summary">—</span>
+    </div>
+    <p class="admin-panel-lead">
+      Un visiteur compté une seule fois par champ. <strong>Abandons</strong> = le champ
+      sur lequel il était quand il a quitté la page. Aucune valeur saisie n'est enregistrée.
+    </p>
+    <table class="traffic-table" id="hm-form-table">
+      <thead>
+        <tr><th>Champ</th><th>Arrivés dessus</th><th>Remplis</th><th>Laissés vides</th><th>Abandons</th></tr>
+      </thead>
+      <tbody><tr><td colspan="5" class="admin-empty-inline">Chargement…</td></tr></tbody>
+    </table>
+  </section>
+
   {# ══════════════ PART 1 — Parcours des visiteurs ══════════════ #}
   <section class="admin-panel">
     <h2>👣 Parcours des visiteurs</h2>
@@ -253,6 +282,7 @@
     points: "{{ url_for('admin.api_heatmap_points') }}",
     journeys: "{{ url_for('admin.api_heatmap_journeys') }}",
     journey: "{{ url_for('admin.api_heatmap_journey', visitor_id='__VID__') }}",
+    formFunnel: "{{ url_for('admin.api_heatmap_form_funnel') }}",
   };
   var fmtInt = new Intl.NumberFormat("fr-FR");
   function days() { return document.getElementById("hm-range").value || "30"; }
@@ -314,6 +344,45 @@
       return "<tr><td>" + describeClick(r.selector, r.text) + "</td><td>" +
         fmtInt.format(r.clicks) + "</td></tr>";
     }).join("");
+  }
+
+  /* Le champ sur lequel les gens s'arrêtent. Une ligne par champ, un visiteur
+     compté une seule fois par champ, et jamais ce qu'il a tapé dedans. */
+  function loadFormFunnel() {
+    var path = $("hm-form-path").value || "/register";
+    fetch(URLS.formFunnel + "?days=" + days() + "&path=" + encodeURIComponent(path))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var body = $("hm-form-table").querySelector("tbody");
+        var fields = d.fields || [];
+        if (!fields.length) {
+          body.innerHTML = '<tr><td colspan="5" class="admin-empty-inline">' +
+            "Aucun champ touché sur cette période. Le suivi démarre au premier visiteur qui clique dans un champ." +
+            "</td></tr>";
+          $("hm-form-summary").textContent = "—";
+          return;
+        }
+        var top = fields.reduce(function (a, b) { return b.reached > a.reached ? b : a; }, fields[0]);
+        body.innerHTML = fields.map(function (f) {
+          /* Le taux se lit par rapport au champ le plus atteint : « sur ceux qui
+             ont commencé, combien sont arrivés jusqu'ici ». */
+          var thru = top.reached ? Math.round((f.reached / top.reached) * 100) : 0;
+          var lost = f.abandoned > 0;
+          return "<tr" + (lost ? ' class="is-alert"' : "") + ">" +
+            "<td><code>" + esc(f.name) + "</code></td>" +
+            "<td>" + fmtInt.format(f.reached) + " <span class=\"admin-muted\">(" + thru + "%)</span></td>" +
+            "<td>" + fmtInt.format(f.filled) + "</td>" +
+            "<td>" + fmtInt.format(f.empty) + "</td>" +
+            "<td>" + (f.abandoned ? "<strong>" + fmtInt.format(f.abandoned) + "</strong>" : "0") + "</td>" +
+            "</tr>";
+        }).join("");
+        $("hm-form-summary").textContent = d.abandoned_on
+          ? fmtInt.format(d.visitors) + " visiteur(s) · on perd surtout sur « " + d.abandoned_on + " »"
+          : fmtInt.format(d.visitors) + " visiteur(s) · aucun abandon enregistré";
+      })
+      .catch(function () {
+        $("hm-form-summary").textContent = "erreur de chargement";
+      });
   }
 
   function loadOverview() {
@@ -717,7 +786,8 @@
   });
 
   // ---------------- wiring ----------------
-  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); loadRecordings(); });
+  $("hm-range").addEventListener("change", function () { loadOverview(); loadJourneys(); loadRecordings(); loadFormFunnel(); });
+  $("hm-form-path").addEventListener("change", loadFormFunnel);
   $("hm-page").addEventListener("change", loadHeatmap);
   var rsz;
   window.addEventListener("resize", function () {
@@ -728,9 +798,10 @@
     }, 150);
   });
   loadOverview();
+  loadFormFunnel();
   loadJourneys();
   loadRecordings();
-  setInterval(function () { loadOverview(); loadJourneys(); loadRecordings(); }, 60000);
+  setInterval(function () { loadOverview(); loadJourneys(); loadRecordings(); loadFormFunnel(); }, 60000);
 })();
 </script>
 {% endblock %}

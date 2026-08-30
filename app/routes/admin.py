@@ -308,6 +308,16 @@ def api_heatmap_points():
     return jsonify(heatmap_service.clicks_for_path(path, _range_days()))
 
 
+@admin_bp.route("/api/heatmap/form-funnel")
+@admin_required
+def api_heatmap_form_funnel():
+    """Per-field drop-off on a sign-up form — which line people stop on."""
+    from app.services import heatmap as heatmap_service
+
+    path = request.args.get("path") or "/register"
+    return jsonify(heatmap_service.form_funnel(path, _range_days()))
+
+
 @admin_bp.route("/api/heatmap/journeys")
 @admin_required
 def api_heatmap_journeys():

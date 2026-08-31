@@ -76,7 +76,7 @@
               <p class="auth-pro__step-hint">{{ _('register.step1_hint') }}</p>
               <label class="auth-field auth-field--trade">
                 <span class="auth-sr-only">{{ _('register.trade') }}</span>
-                {{ trade_select('trade_type', trades, form.get('trade_type', 'plombier'), id='trade_type', required=true, chips_aria=_('register.trade')) }}
+                {{ trade_select('trade_type', trades, form.get('trade_type', ''), id='trade_type', required=true, placeholder=_('register.trade_placeholder'), chips_aria=_('register.trade')) }}
               </label>
             </div>
 

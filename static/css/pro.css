@@ -1860,3 +1860,61 @@
   .page-pro .pricing-matrix th,
   .page-pro .pricing-matrix td { padding: 10px; }
 }
+
+/* Mobile sticky CTA on /pro — the hero drops off-screen on a phone and the
+   next 8 sections are a pitch, so paid traffic that bounced at 96 % never
+   saw another button. Hidden on desktop (hero CTA is in view) and whenever
+   the cookie banner is up, so the two bars never stack. */
+.page-landing .pro-sticky-bar {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .page-landing .pro-sticky-bar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--lp-brand);
+    border-top: 1px solid var(--lp-brand-deep);
+  }
+
+  .page-landing .pro-sticky {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: var(--lp-surface);
+    color: var(--lp-brand);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: var(--lp-radius);
+  }
+
+  .page-landing .pro-sticky:hover,
+  .page-landing .pro-sticky:focus-visible {
+    background: var(--lp-bg);
+    color: var(--lp-brand-deep);
+  }
+
+  .page-landing .pro-sticky:focus-visible {
+    outline: 2px solid var(--lp-text-inverse);
+    outline-offset: 2px;
+  }
+
+  .page-landing .v-cta-band,
+  .page-landing .v-footer {
+    padding-bottom: 88px;
+  }
+
+  body.page-landing:has(#cookie-banner.is-visible) .pro-sticky-bar {
+    display: none;
+  }
+}

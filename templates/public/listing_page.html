@@ -141,6 +141,14 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
       </div>
       <h1 class="dl-hero-title dl-hero-title--sm">{{ name }}</h1>
       <p class="dl-hero-lead">{{ label }}{% if city_name %} à {{ city_name }}{% endif %}{% if listing.years_active %} · en activité depuis {{ listing.years_active }} ans{% endif %}</p>
+      <div class="lp-seller-cta">
+        <a href="{{ url_for('web.claim_listing', siren=listing.siren) }}" class="btn btn-primary">
+          C'est mon entreprise
+        </a>
+        <a href="{{ register_href(listing.trade_key, city_name, 'fiche-registre') }}" class="btn btn-outline">
+          Créer mon compte
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -338,6 +346,10 @@ L'adresse de {{ name }} n'est pas renseignée au registre.
 
 {{ artisan_cta(trade_label=label, trade_key=listing.trade_key, city=city_name,
                source='fiche-registre') }}
+
+<div class="lp-claim-sticky">
+  <a href="{{ url_for('web.claim_listing', siren=listing.siren) }}" class="lp-claim-sticky-btn">C'est mon entreprise — je revendique cette fiche</a>
+</div>
 {% endblock %}
 
 {% block scripts %}

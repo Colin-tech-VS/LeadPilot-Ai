@@ -669,6 +669,10 @@
     <p class="v-cta-band-note">{{ _('landing.cta_band_note') }}</p>
   </div>
 </section>
+
+<div class="pro-sticky-bar">
+  <a href="{{ url_for('web.register') }}" class="pro-sticky" data-track="cta_trial_click">{{ _('landing.cta_signup') }}</a>
+</div>
 {% endblock %}
 
 {% block scripts %}

@@ -1,5 +1,6 @@
 {% extends "layouts/public.html" %}
 {% from 'macros/artisan_card.html' import artisan_card, registry_card with context %}
+{% from 'macros/artisan_cta.html' import artisan_cta with context %}
 {% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'home' %}
 
@@ -57,6 +58,9 @@
     <p class="v-kicker">{{ _('client.hero_kicker') }}</p>
     <h1 class="dl-hero-title">{{ _('client.hero_title') }}</h1>
     <p class="dl-hero-lead">{{ _('client.hero_subtitle') }}</p>
+    <p class="dl-hero-pro">
+      <a href="{{ url_for('web.register', src='accueil-hero') }}">{{ _('home.hero_pro_link') }}</a>
+    </p>
 
     <form class="dl-search" action="{{ url_for('web.artisan_directory') }}" method="GET" role="search">
       <div class="dl-search-fields">
@@ -111,7 +115,7 @@
         <span class="v-fork-ico" aria-hidden="true">🔧</span>
         <h3>{{ _('home.fork_pro_title') }}</h3>
         <p>{{ _('home.fork_pro_body') }}</p>
-        <a href="{{ url_for('web.pro_landing') }}" class="btn btn-outline">{{ _('home.fork_pro_cta') }}</a>
+        <a href="{{ url_for('web.register', src='accueil-fork') }}" class="btn btn-outline">{{ _('home.fork_pro_cta') }}</a>
         <p class="v-fork-note">
           <a href="{{ url_for('web.find_my_listing') }}">{{ _('home.fork_pro_claim') }}</a>
         </p>
@@ -265,13 +269,15 @@
   </div>
 </section>
 
+{{ artisan_cta(source='accueil') }}
+
 <section class="v-pro-band v-pro-band--dark">
   <div class="container v-pro-band-inner">
     <div>
       <h2>{{ _('client.pro_band_title') }}</h2>
       <p>{{ _('client.pro_band_subtitle') }}</p>
     </div>
-    <a href="{{ url_for('web.pro_landing') }}" class="btn btn-light btn-lg">{{ _('client.pro_band_cta') }}</a>
+    <a href="{{ url_for('web.register', src='accueil') }}" class="btn btn-light btn-lg">{{ _('client.pro_band_cta') }}</a>
   </div>
 </section>
 {% endblock %}

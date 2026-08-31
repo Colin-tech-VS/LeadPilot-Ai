@@ -2092,6 +2092,52 @@ html {
 }
 .lp-seller-chips .lp-id-chip { margin-left: 0; }
 
+.lp-seller-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.lp-seller-cta .btn { min-height: 44px; }
+
+.lp-claim-sticky { display: none; }
+
+@media (max-width: 860px) {
+  .page-listing .lp-claim-sticky {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--lp-brand, #1A2332);
+    border-top: 1px solid var(--lp-brand-deep, #10151e);
+  }
+  .page-listing .lp-claim-sticky-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: var(--lp-surface, #F6F1E6);
+    color: var(--lp-brand, #1A2332);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: var(--lp-radius, 8px);
+  }
+  .page-listing .pro-hook,
+  .page-listing .v-footer {
+    padding-bottom: 88px;
+  }
+  body.page-listing:has(#cookie-banner.is-visible) .lp-claim-sticky {
+    display: none;
+  }
+}
+
 /* ---- Claim / opt-out forms ---- */
 .cl-wrap { padding: 40px 0 60px; }
 .cl-container { max-width: 620px; }

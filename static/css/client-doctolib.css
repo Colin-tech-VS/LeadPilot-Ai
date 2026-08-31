@@ -84,11 +84,23 @@
 }
 
 .dl-hero-lead {
-  margin: 0 auto 28px;
+  margin: 0 auto 12px;
   max-width: 520px;
   font-size: 1.05rem;
   line-height: 1.55;
   color: var(--dl-muted);
+}
+
+.dl-hero-pro {
+  margin: 0 auto 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dl-hero-pro a {
+  color: var(--dl-text, inherit);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Barre de recherche */

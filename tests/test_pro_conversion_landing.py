@@ -55,6 +55,7 @@ def test_pro_landing_is_missed_call_first(client):
     assert 'data-track="cta_trial_click"' in html
     assert "data-demo-listen" in html
     assert "conversion.js" in html
+    assert 'class="pro-sticky-bar"' in html
     assert "8 appels sur 10" not in low
     assert "rentabilisé dès" not in low
     assert "google agenda" not in low

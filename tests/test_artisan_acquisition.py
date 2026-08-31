@@ -34,6 +34,7 @@ from app.services.billing import PLANS
         "/depannage-urgent",
         "/prix-artisans",
         "/blog",
+        "/",
     ],
 )
 def test_every_client_search_page_speaks_to_artisans(client, path):
@@ -83,6 +84,8 @@ def test_a_registry_listing_says_what_taking_it_over_gives(app, client):
     html = client.get(f"/artisans/entreprise/{siren}").get_data(as_text=True)
     assert f"/artisans/revendiquer/{siren}" in html  # the verified path stays first
     assert "lp-unclaimed-gains" in html
+    assert "lp-seller-cta" in html
+    assert "lp-claim-sticky" in html
     assert "reste en ligne même sans abonnement" in html
     assert "/register?trade=plombier&amp;city=Lyon&amp;src=fiche-registre" in html
 

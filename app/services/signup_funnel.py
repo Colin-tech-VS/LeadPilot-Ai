@@ -76,6 +76,9 @@ SOURCE_LABELS = {
     # Not a page: the link carried by an outreach e-mail
     # (``campaign_render.merge_context``).
     "campagne": "E-mail de prospection",
+    "accueil": "Page d'accueil",
+    "accueil-hero": "Accueil — lien artisan du hero",
+    "accueil-fork": "Accueil — « Je suis artisan »",
 }
 
 # No ``?src=``: the visitor came through /pro, the navigation, an ad or a link

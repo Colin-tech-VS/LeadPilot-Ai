@@ -202,19 +202,23 @@ document.documentElement.classList.add("js-enabled");
     });
 
     /* Picking a trade IS the answer to step 1, so the extra tap on "Continuer"
-       is pure friction — advance as soon as a chip is chosen. The button stays
-       for keyboard users and for anyone happy with the pre-selected trade. */
+       is pure friction — advance as soon as a chip is chosen, or the dropdown
+       changes. The button stays for keyboard users who never fire a change. */
     var tradeStep = steps[0];
     if (tradeStep) {
+      function advanceFromTrade() {
+        if (current !== 0 || steps.length < 2) return;
+        window.setTimeout(function () {
+          if (current === 0 && validateStep(0)) showStep(1, true);
+        }, 180);
+      }
       tradeStep.querySelectorAll(".trade-picker-chip").forEach(function (chip) {
-        chip.addEventListener("click", function () {
-          if (current !== 0 || steps.length < 2) return;
-          // Let trade-picker.js write the <select> and paint the chip first.
-          window.setTimeout(function () {
-            if (current === 0 && validateStep(0)) showStep(1, true);
-          }, 180);
-        });
+        chip.addEventListener("click", advanceFromTrade);
       });
+      var tradeSelect = tradeStep.querySelector("[data-trade-select]");
+      if (tradeSelect) {
+        tradeSelect.addEventListener("change", advanceFromTrade);
+      }
     }
 
     var password = document.getElementById("password");

@@ -751,11 +751,50 @@ def sitemap_section(section):
     return make_response(body, 200, {"Content-Type": "application/xml; charset=utf-8"})
 
 
+# Paid/Facebook currently land on the consumer homepage and never register
+# (14-day funnel: Paid 205 visitors, 0 % /register; facebook.com +
+# m.facebook.com *are* that paid traffic). The artisan offer lives on /pro.
+_PRO_AD_SOURCES = frozenset({"facebook", "fb", "ig", "instagram", "meta"})
+_PAID_MEDIA = frozenset(
+    {"cpc", "ppc", "paid", "paid_social", "paidsocial", "social-paid"}
+)
+_CLIENT_INTENT_ARGS = frozenset({"q", "ville", "metier", "trade"})
+_SOCIAL_REFERRERS = ("facebook.com", "instagram.com")
+
+
+def _homepage_should_yield_to_pro():
+    """Send paid/Facebook homepage hits to /pro, leave genuine customer intent.
+
+    A consumer search ad keeps working with ``?q=`` / ``?ville=`` / ``?metier=``,
+    or with ``?audience=client``. Everything else from Facebook or a paid
+    medium is the artisan product being advertised onto the wrong door.
+    """
+    audience = (request.args.get("audience") or "").strip().lower()
+    if audience in {"client", "particulier", "customer"}:
+        return False
+    if any((request.args.get(key) or "").strip() for key in _CLIENT_INTENT_ARGS):
+        return False
+    source = (request.args.get("utm_source") or "").strip().lower()
+    medium = (request.args.get("utm_medium") or "").strip().lower()
+    if medium in _PAID_MEDIA or medium.startswith("paid"):
+        return True
+    if source in _PRO_AD_SOURCES:
+        return True
+    if request.args.get("fbclid"):
+        return True
+    referrer = (request.referrer or "").lower()
+    return any(token in referrer for token in _SOCIAL_REFERRERS)
+
+
 @web_bp.route("/", methods=["GET"])
 def client_home():
     """Public homepage for customers looking for an artisan."""
     if session.get("user_id") and session.get("tenant_id"):
         return redirect(url_for("web.dashboard"))
+    if _homepage_should_yield_to_pro():
+        return redirect(
+            url_for("web.pro_landing", **request.args.to_dict(flat=True))
+        )
     from app.constants.trades import trade_choices
     from app.services.artisan_directory import list_public_artisans
     from app.services.registry_import import search_listings
@@ -1941,6 +1980,7 @@ def register():
     google = _google_identity_in_session()
 
     if request.method == "POST":
+        from app.constants.trades import TRADES
         from app.core.errors import ConflictError
         from app.services import signup_funnel
         from app.services.signup_service import register_plumber
@@ -1954,7 +1994,7 @@ def register():
                 "email": (request.form.get("email") or "").strip().lower(),
                 "phone": (request.form.get("phone") or "").strip(),
                 "city": (request.form.get("city") or "").strip(),
-                "trade_type": (request.form.get("trade_type") or "plombier").strip(),
+                "trade_type": (request.form.get("trade_type") or "").strip(),
                 "siret": (request.form.get("siret") or "").strip(),
                 "claim_siren": (request.form.get("claim_siren") or "").strip(),
             }
@@ -1976,6 +2016,16 @@ def register():
                 start_step = 1
                 signup_funnel.record_attempt(
                     signup_funnel.FORM_ARTISAN, signup_funnel.OUTCOME_ERROR, "required"
+                )
+            elif form["trade_type"] not in TRADES:
+                # No silent default to plombier: that made every un-picked
+                # trade look like a plumber and hid a missing first step.
+                error = translate("register.error.required")
+                start_step = 0
+                signup_funnel.record_attempt(
+                    signup_funnel.FORM_ARTISAN,
+                    signup_funnel.OUTCOME_ERROR,
+                    "trade_invalid",
                 )
             # ``confirm_password`` was dropped from the web form (it cost more
             # sign-ups than it caught typos — the password field has a reveal

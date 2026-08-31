@@ -207,6 +207,7 @@ def approve(claim, *, note: str = "") -> tuple[bool, str]:
     Returns ``(ok, message)``; the message is meant for the admin.
     """
     from app.models.listing_claim import STATUS_APPROVED
+    from app.models.registry_listing import STATUS_CLAIMED as _CLAIMED
     from app.models.registry_listing import STATUS_OPTED_OUT as _OUT
     from app.models.user import User
 
@@ -217,10 +218,25 @@ def approve(claim, *, note: str = "") -> tuple[bool, str]:
         return False, "Cette fiche a fait l'objet d'une demande de retrait."
 
     existing = User.query.filter_by(email=claim.email).first()
+
+    # A claim can sit in the queue for days, and the fiche can leave in the
+    # meantime — the owner signing up with their SIREN attaches it silently, and
+    # a competing claim may have been approved first. Approving anyway used to
+    # create an account, mail « votre fiche vous a été transférée », and tell the
+    # admin it went through, while the fiche stayed with its owner. Stop here
+    # instead: the fiche is someone's, and only a human can tell whose.
+    if (
+        listing.status == _CLAIMED
+        and listing.claimed_tenant_id
+        and (existing is None or existing.tenant_id != listing.claimed_tenant_id)
+    ):
+        return False, "Cette fiche est déjà rattachée à un autre compte."
+
     if existing is not None:
         # Already has an account: link the listing to that tenant rather than
         # creating a duplicate one.
-        attach(listing.siren, existing.tenant_id)
+        if attach(listing.siren, existing.tenant_id) is None:
+            return False, "Rattachement impossible — fiche retirée ou déjà prise."
         claim.status = STATUS_APPROVED
         claim.decided_at = utcnow()
         claim.decision_note = (note or "Compte existant : fiche rattachée.")[:2000]
@@ -248,12 +264,21 @@ def approve(claim, *, note: str = "") -> tuple[bool, str]:
         logger.exception("Claim approval failed for SIREN %s", listing.siren)
         return False, f"Création du compte impossible : {exc}"
 
-    attach(listing.siren, tenant.id)
+    attached = attach(listing.siren, tenant.id)
     claim.status = STATUS_APPROVED
     claim.decided_at = utcnow()
     claim.decision_note = (note or "")[:2000] or None
     claim.created_tenant_id = tenant.id
     db.session.commit()
+
+    if attached is None:
+        # The fiche moved between the guard above and here. The account is real
+        # and stays, but the artisan must not be told they received a fiche they
+        # did not get.
+        return False, (
+            f"Compte créé pour {claim.email}, mais la fiche est partie ailleurs "
+            "entre-temps — à rattacher à la main."
+        )
 
     sent = _send_welcome(claim, tenant)
     suffix = "" if sent else " (e-mail non envoyé — à relayer à la main)"

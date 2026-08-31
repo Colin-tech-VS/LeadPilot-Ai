@@ -731,7 +731,6 @@ def listing_page(siren):
 
 
 @web_bp.route("/artisans/revendiquer/<siren>", methods=["GET", "POST"])
-@rate_limit(limit=10, window=3600, scope="claim_listing")
 def claim_listing(siren):
     """Claim an unclaimed registry listing.
 
@@ -754,7 +753,13 @@ def claim_listing(siren):
         contact_name = (request.form.get("contact_name") or "").strip()
         from app.services.email_validation import is_valid_recipient
 
-        if not is_valid_recipient(email):
+        # Submissions, not page views. The limiter used to wrap the whole route,
+        # so ten *visits* an hour from one address closed the form — and behind
+        # a mobile carrier's shared address that is a handful of artisans, each
+        # meeting a bare 429 on the one page acquisition depends on.
+        if not check_rate("claim_listing", limit=10, window=3600):
+            error = "Trop de demandes envoyées. Réessayez dans quelques minutes."
+        elif not is_valid_recipient(email):
             error = "Merci d'indiquer une adresse e-mail valide."
         elif not contact_name:
             error = "Merci d'indiquer votre nom."

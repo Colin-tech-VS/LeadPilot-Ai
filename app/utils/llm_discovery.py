@@ -23,6 +23,7 @@ _PRIVATE_PREFIXES = (
     "/chat/",
     "/client/",
     "/billing",
+    "/paiement",
     "/login",
     "/register",
     "/reset-password",

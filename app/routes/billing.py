@@ -11,6 +11,19 @@ from app.utils.i18n import get_lang
 logger = logging.getLogger(__name__)
 
 billing_bp = Blueprint("billing", __name__, url_prefix="/billing")
+paiement_bp = Blueprint("paiement", __name__)
+
+PAIEMENT_CANONICAL_URL = "https://pilotcore.fr/paiement"
+
+
+def _forwarded_proto() -> str:
+    raw = request.headers.get("X-Forwarded-Proto") or request.scheme or ""
+    return raw.split(",")[0].strip().lower()
+
+
+def _forwarded_host() -> str:
+    raw = request.headers.get("X-Forwarded-Host") or request.host or ""
+    return raw.split(",")[0].strip().split(":")[0].lower()
 
 
 def _fmt_eur(cents: int, lang: str) -> str:
@@ -46,6 +59,14 @@ def billing_page():
         overage_unit_price=_fmt_eur(billing.overage_price_cents(), lang),
         founding_gift=founding_gift,
     )
+
+
+@paiement_bp.route("/paiement", methods=["GET"], strict_slashes=False)
+def paiement_page():
+    """HTTP (and any non-canonical host) → https://pilotcore.fr/paiement."""
+    if _forwarded_proto() != "https" or _forwarded_host() != "pilotcore.fr":
+        return redirect(PAIEMENT_CANONICAL_URL, code=301)
+    return billing_page()
 
 
 @billing_bp.route("/checkout/<plan>", methods=["POST"])

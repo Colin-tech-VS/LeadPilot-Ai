@@ -33,6 +33,22 @@ def test_main_module_is_importable():
     assert isinstance(main.app, Flask)
 
 
+def test_scalingo_pythonpath_is_set_where_pytest_and_gunicorn_start():
+    """``pytest`` as a script does not put the repo root on sys.path — that
+    was the ModuleNotFoundError: app that failed Deploy to Scalingo. gunicorn
+    and alembic need the same root on Scalingo's cwd-less cron/web dynos."""
+    pytest_ini = (ROOT / "pytest.ini").read_text(encoding="utf-8")
+    assert "pythonpath" in pytest_ini.lower()
+    procfile = (ROOT / "Procfile").read_text(encoding="utf-8")
+    assert "PYTHONPATH=." in procfile
+    assert "gunicorn main:app" in procfile
+    workflow = (ROOT / ".github" / "workflows" / "deploy-scalingo.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "python -m pytest" in workflow
+    assert "PYTHONPATH:" in workflow
+
+
 def test_scalingo_app_json_routing():
     manifest = json.loads((ROOT / ".scalingo" / "app.json").read_text(encoding="utf-8"))
     assert manifest["port"] == 5000

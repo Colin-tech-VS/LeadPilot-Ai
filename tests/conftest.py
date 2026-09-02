@@ -1,6 +1,14 @@
 import os
+import sys
 import tempfile
 from pathlib import Path
+
+# Collection imports ``from app …`` at module level. ``python -m pytest`` and
+# pytest.ini ``pythonpath = .`` already put the repo root on sys.path; this
+# insert covers ``pytest`` invoked as a script (the Scalingo CI failure mode).
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 import pytest
 

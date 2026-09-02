@@ -82,7 +82,7 @@ def test_https_canonical_paiement_renders_billing_when_signed_in(client, app):
         "/register",
         data={
             "company_name": "Plomberie Paiement",
-            "city": "Lyon",
+            "city": "Ajaccio",
             "trade_type": "plombier",
             "email": email,
             "password": "MotDePasse123",
@@ -91,11 +91,12 @@ def test_https_canonical_paiement_renders_billing_when_signed_in(client, app):
     )
     assert signup.status_code == 302
 
-    response = client.get(
-        "/paiement",
-        base_url="https://pilotcore.fr",
-        follow_redirects=False,
-    )
+    # Keep the test-client cookie host; the view keys off forwarded proto/host.
+    headers = {
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-Host": "pilotcore.fr",
+    }
+    response = client.get("/paiement", headers=headers, follow_redirects=False)
     assert response.status_code == 200
     billing = client.get("/billing")
     assert billing.status_code == 200

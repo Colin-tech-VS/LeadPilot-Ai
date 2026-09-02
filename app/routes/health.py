@@ -11,6 +11,7 @@ _API_INDEX = {
     "endpoints": {
         "health": "GET /health",
         "ready": "GET /health/ready",
+        "api_health": "GET /api/health",
         "api_index": "GET /api",
         "register": "POST /auth/register",
         "login": "POST /auth/login",
@@ -38,6 +39,7 @@ def api_index():
 
 
 @health_bp.route("/health", methods=["GET"])
+@health_bp.route("/api/health", methods=["GET"])
 def health_check():
     """Liveness probe — process is up (no database dependency)."""
     return jsonify({"status": "ok"}), 200

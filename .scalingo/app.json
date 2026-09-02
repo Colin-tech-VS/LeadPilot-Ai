@@ -1,0 +1,27 @@
+{
+  "name": "PilotCore",
+  "description": "Plateforme PilotCore — suivi des inscriptions, leads et conversions.",
+  "website": "https://pilotcore.fr",
+  "repository": "https://github.com/Colin-tech-VS/LeadPilot-Ai",
+  "stack": "scalingo-22",
+  "port": 5000,
+  "env": {
+    "SCALINGO_PROJECT": {
+      "description": "Identifiant du projet Scalingo",
+      "value": ""
+    },
+    "DATABASE_URL": {
+      "description": "URL PostgreSQL (addon Scalingo ou pooler)",
+      "value": ""
+    },
+    "SECRET_KEY": {
+      "description": "Clé secrète Flask pour signer les sessions",
+      "value": ""
+    }
+  },
+  "routes": {
+    "/": "backend:5000",
+    "/api/health": "backend:5000/api/health",
+    "/admin": "backend:5000/admin"
+  }
+}

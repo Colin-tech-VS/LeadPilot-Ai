@@ -184,6 +184,8 @@ class Config:
         scheme=PREFERRED_URL_SCHEME,
     )
     SERVER_NAME = None
+    # Public IPv4 of the production host (see nginx.conf).
+    PUBLIC_IP = os.environ.get("PUBLIC_IP", "185.98.131.229")
 
     # Google Places (New) + Geocoding, called server-side only — the key is
     # never rendered into a page. Restrict it in Google Cloud Console by API

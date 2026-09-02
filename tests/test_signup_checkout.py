@@ -120,6 +120,53 @@ def test_a_plan_that_is_not_a_real_offer_is_ignored(client, app, stripe_calls):
 # ── What Checkout costs them ─────────────────────────────────────────────────
 
 
+def test_billing_checkout_rejects_missing_quantity_or_amount(client, app, stripe_calls):
+    """Stripe rejects an order without quantity or amount; fail clearly at 400."""
+    client.post("/register", data=_signup())
+    response = client.post("/billing/checkout/starter", follow_redirects=False)
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Un ordre a besoin d'une quantité ou d'un montant."
+    }
+    assert stripe_calls == []
+
+
+def test_billing_checkout_rejects_quantity_without_amount(client, app, stripe_calls):
+    client.post("/register", data=_signup())
+    response = client.post(
+        "/billing/checkout/starter",
+        data={"quantity": "1"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Un ordre a besoin d'une quantité ou d'un montant."
+    }
+    assert stripe_calls == []
+
+
+def test_billing_form_sends_quantity_and_amount(client, app):
+    """The payment form must post quantity and amount so checkout does not 400."""
+    client.post("/register", data=_signup())
+    html = client.get("/billing").get_data(as_text=True)
+    assert 'name="quantity"' in html
+    assert 'name="amount"' in html
+
+
+def test_billing_checkout_succeeds_when_quantity_and_amount_are_present(
+    client, app, stripe_calls
+):
+    client.post("/register", data=_signup())
+    response = client.post(
+        "/billing/checkout/starter",
+        data={"quantity": "1", "amount": "14900"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["Location"] == "https://checkout.stripe.test/session"
+    assert len(stripe_calls) == 1
+
+
 def test_checkout_carries_the_free_trial_into_the_subscription(client, app, stripe_calls):
     """Choosing a plan must not cost the artisan the free days they were just
     promised: the card is taken now, the first charge waits for the trial.

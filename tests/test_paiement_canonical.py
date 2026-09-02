@@ -74,6 +74,18 @@ def test_https_canonical_paiement_requires_login(client):
     )
     assert response.status_code == 302
     assert "/login" in response.headers["Location"]
+    assert response.headers["Location"] != PAIEMENT_URL
+
+
+def test_canonical_paiement_url_does_not_redirect_to_itself(client):
+    """https://pilotcore.fr/paiement must never 301 back to the same URL."""
+    response = client.get(
+        "/paiement",
+        base_url="https://pilotcore.fr",
+        follow_redirects=False,
+    )
+    assert response.status_code != 301
+    assert response.headers.get("Location") != PAIEMENT_URL
 
 
 def test_https_canonical_paiement_renders_billing_when_signed_in(client, app):

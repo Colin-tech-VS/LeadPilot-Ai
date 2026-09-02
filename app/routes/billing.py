@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, current_app, g, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
 from app.core.web_auth import web_tenant_required
 from app.core.extensions import db
@@ -24,6 +24,37 @@ def _forwarded_proto() -> str:
 def _forwarded_host() -> str:
     raw = request.headers.get("X-Forwarded-Host") or request.host or ""
     return raw.split(",")[0].strip().split(":")[0].lower()
+
+
+def _is_already_canonical_paiement() -> bool:
+    """True when this request is already https://pilotcore.fr/paiement."""
+    raw_url = (request.url or "").split("?", 1)[0].rstrip("/")
+    if raw_url == PAIEMENT_CANONICAL_URL:
+        return True
+    path = (request.path or "").rstrip("/")
+    return (
+        _forwarded_proto() == "https"
+        and _forwarded_host() == "pilotcore.fr"
+        and path == "/paiement"
+    )
+
+
+def _request_checkout_value(name: str):
+    """Read a checkout field from form, query string, or JSON body."""
+    if name in request.form:
+        value = request.form.get(name)
+        if value is not None and str(value).strip() != "":
+            return value
+    if name in request.args:
+        value = request.args.get(name)
+        if value is not None and str(value).strip() != "":
+            return value
+    data = request.get_json(silent=True)
+    if isinstance(data, dict) and name in data:
+        value = data.get(name)
+        if value is not None and str(value).strip() != "":
+            return value
+    return None
 
 
 def _fmt_eur(cents: int, lang: str) -> str:
@@ -64,14 +95,20 @@ def billing_page():
 @paiement_bp.route("/paiement", methods=["GET"], strict_slashes=False)
 def paiement_page():
     """HTTP (and any non-canonical host) → https://pilotcore.fr/paiement."""
-    if _forwarded_proto() != "https" or _forwarded_host() != "pilotcore.fr":
-        return redirect(PAIEMENT_CANONICAL_URL, code=301)
-    return billing_page()
+    # Already on the canonical URL: never 301 to self (redirect loop).
+    if _is_already_canonical_paiement():
+        return billing_page()
+    return redirect(PAIEMENT_CANONICAL_URL, code=301)
 
 
 @billing_bp.route("/checkout/<plan>", methods=["POST"])
 @web_tenant_required
 def checkout(plan):
+    quantity = _request_checkout_value("quantity")
+    amount = _request_checkout_value("amount")
+    if quantity is None or amount is None:
+        return jsonify({"error": "Un ordre a besoin d'une quantité ou d'un montant."}), 400
+
     tenant = db.session.get(Tenant, g.tenant_id)
     if not billing.is_configured() or plan not in billing.available_plans():
         return redirect(url_for("billing.billing_page", status="unavailable"))

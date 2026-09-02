@@ -124,6 +124,8 @@
         </button>
       {% else %}
         <form method="post" action="{{ url_for('billing.checkout', plan=key) }}" data-track-submit="subscription_started">
+          <input type="hidden" name="quantity" value="1">
+          <input type="hidden" name="amount" value="{{ plan.amount }}">
           <button type="submit" class="btn btn-block plan-cta {% if key == 'pro' %}btn-primary{% else %}btn-outline{% endif %}"
                   {% if not stripe_ready %}disabled{% endif %}>
             {{ _('billing.choose', plan=plan.name) }}

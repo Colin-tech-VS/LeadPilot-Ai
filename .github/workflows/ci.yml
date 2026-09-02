@@ -21,4 +21,4 @@ jobs:
         env:
           FLASK_ENV: development
           PYTHONPATH: ${{ github.workspace }}
-        run: pytest -q
+        run: python -m pytest -q

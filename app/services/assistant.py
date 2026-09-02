@@ -204,31 +204,66 @@ def content_audit_summary() -> dict:
     }
 
 
+# GSC priority filter used by Nova and the admin SEO console:
+# enough impressions to be real, still few clicks, CTR below 3 %, ranked by
+# how far the CTR sits below what that average position would normally earn.
+SEO_OPP_MIN_IMPRESSIONS = 15
+SEO_OPP_MAX_CLICKS = 100
+SEO_OPP_MAX_CTR = 3.0
+
+
 def _gsc_row(row: dict) -> dict:
-    """Flatten a Search Console analytics row (keys[] + metrics)."""
+    """Flatten a Search Console analytics row (keys[] + metrics).
+
+    Accepts both the raw API shape (``keys``, CTR as a 0–1 ratio) and the
+    dashboard payload (``label``, CTR already in percent). Mixing the two
+    used to drop every opportunity: dashboard rows have no ``keys``, so the
+    scorer skipped them, and a percent CTR ≤ 1 was multiplied by 100 again.
+    """
     keys = row.get("keys") or []
-    ctr = float(row.get("ctr") or 0)
+    label = (row.get("label") or row.get("key") or (keys[0] if keys else "") or "")
+    if isinstance(label, str):
+        label = label.strip()
+    else:
+        label = str(label)
+    raw_ctr = float(row.get("ctr") or 0)
+    already_percent = ("label" in row and "keys" not in row) or raw_ctr > 1
+    ctr = round(raw_ctr, 2) if already_percent else round(raw_ctr * 100, 2)
     return {
-        "key": keys[0] if keys else "",
+        "key": label,
         "clicks": int(row.get("clicks") or 0),
         "impressions": int(row.get("impressions") or 0),
-        "ctr": round(ctr * 100, 2) if ctr <= 1 else round(ctr, 2),
+        "ctr": ctr,
         "position": round(float(row.get("position") or 0), 1),
     }
 
 
+def _expected_ctr_pct(position: float) -> float:
+    """Rough organic CTR (%) for an average position — scoring only.
+
+    Not a Search Console figure. Used to rank the CTR/position gap so a
+    page at position 3 with 1 % CTR outranks a page at position 20 with 1 %.
+    """
+    pos = max(1.0, float(position or 1.0))
+    return 28.0 / (pos ** 0.85)
+
+
 def _seo_opportunities(query_rows: list[dict], *, limit: int = 8) -> list[dict]:
-    """Queries where the site already ranks/shows but under-performs — i.e.
-    prime targets for a new article or an on-page optimisation."""
+    """Under-performing GSC rows: clicks < 100, CTR < 3 %, enough impressions.
+
+    Ranked by CTR/position gap (expected CTR for that position minus actual),
+    then impressions. Works on queries or pages — same metrics either way.
+    """
     opps = []
     for raw in query_rows or []:
         row = _gsc_row(raw)
-        if not row["key"] or row["impressions"] < 15:
+        if not row["key"] or row["impressions"] < SEO_OPP_MIN_IMPRESSIONS:
             continue
-        # High visibility but weak position or click-through = opportunity.
-        if row["position"] > 8 or row["ctr"] < 2:
-            opps.append(row)
-    opps.sort(key=lambda r: r["impressions"], reverse=True)
+        if row["clicks"] >= SEO_OPP_MAX_CLICKS or row["ctr"] >= SEO_OPP_MAX_CTR:
+            continue
+        gap = max(0.0, _expected_ctr_pct(row["position"]) - row["ctr"])
+        opps.append({**row, "ctr_position_gap": round(gap, 2)})
+    opps.sort(key=lambda r: (r["ctr_position_gap"], r["impressions"]), reverse=True)
     return opps[:limit]
 
 
@@ -322,6 +357,7 @@ def tool_analyze_seo(_actions, *, days=28) -> dict:
     if data.get("error"):
         return {"ok": False, "connected": True, "error": data["error"]}
     queries = data.get("queries") or []
+    pages = data.get("pages") or []
     return {
         "ok": True,
         "connected": True,
@@ -329,8 +365,9 @@ def tool_analyze_seo(_actions, *, days=28) -> dict:
         "range_days": days,
         "summary": data.get("summary"),
         "top_queries": [_gsc_row(r) for r in queries[:10]],
-        "top_pages": [_gsc_row(r) for r in (data.get("pages") or [])[:10]],
+        "top_pages": [_gsc_row(r) for r in pages[:10]],
         "opportunities": _seo_opportunities(queries),
+        "page_opportunities": _seo_opportunities(pages, limit=2),
     }
 
 

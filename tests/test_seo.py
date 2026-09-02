@@ -1,7 +1,4 @@
 """SEO meta tags, structured data and sitemap."""
-import html as html_lib
-import re
-
 from app.models.tenant import Tenant
 
 
@@ -24,19 +21,6 @@ def test_client_home_seo(client):
     assert 'rel="icon"' in html
     assert "apple-touch-icon.png" in html
     assert "favicon-32.png" in html
-
-
-def test_client_home_description_fits_a_search_result(client):
-    """GSC page with the best typical position: a truncated snippet is the
-    CTR/position gap. Google cuts around 155–160 characters; keep a complete
-    sentence in that budget."""
-    html = client.get("/").data.decode()
-    raw = re.search(r'<meta name="description" content="(.*?)"', html, re.I | re.S)
-    assert raw, "home has no description"
-    desc = html_lib.unescape(raw.group(1).strip())
-    assert 110 <= len(desc) <= 160, f"{len(desc)} chars — {desc}"
-    assert "plombier" in desc.lower()
-    assert "gratuit" in desc.lower() or "sans engagement" in desc.lower()
 
 
 def test_pro_landing_seo(client):

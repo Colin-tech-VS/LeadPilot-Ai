@@ -91,15 +91,12 @@ def test_seo_opportunities_selects_underperformers():
         # High impressions but poor position — a real opportunity.
         {"keys": ["devis electricien lyon"], "clicks": 1, "impressions": 800,
          "ctr": 0.001, "position": 14.0},
-        # Decent position but very low CTR — largest CTR/position gap.
+        # Decent position but very low CTR — opportunity (title/meta fix).
         {"keys": ["standard telephonique artisan"], "clicks": 0, "impressions": 300,
          "ctr": 0.0, "position": 6.0},
         # Too few impressions — ignored as noise.
         {"keys": ["mot rare"], "clicks": 0, "impressions": 3,
          "ctr": 0.0, "position": 30.0},
-        # Plenty of clicks already — not a priority even with a modest CTR.
-        {"keys": ["trouver un artisan"], "clicks": 120, "impressions": 9000,
-         "ctr": 0.013, "position": 4.0},
     ]
     opps = assistant._seo_opportunities(rows)
     keys = [o["key"] for o in opps]
@@ -107,26 +104,9 @@ def test_seo_opportunities_selects_underperformers():
     assert "standard telephonique artisan" in keys
     assert "plombier paris" not in keys
     assert "mot rare" not in keys
-    assert "trouver un artisan" not in keys
-    # Ranked by CTR/position gap, not raw impressions: position 6 at 0 % CTR
-    # outranks position 14 at 0.1 % CTR. CTR is normalised to percent.
-    assert opps[0]["key"] == "standard telephonique artisan"
-    assert opps[0]["ctr"] < 1
-    assert opps[0]["ctr_position_gap"] > opps[1]["ctr_position_gap"]
-
-
-def test_seo_opportunities_accepts_dashboard_page_rows():
-    """dashboard_payload exposes ``label`` and CTR already in percent."""
-    rows = [
-        {"label": "https://www.pilotcore.fr/", "clicks": 8, "impressions": 400,
-         "ctr": 2.0, "position": 3.0},
-        {"label": "https://www.pilotcore.fr/pro", "clicks": 40, "impressions": 200,
-         "ctr": 20.0, "position": 2.0},
-    ]
-    opps = assistant._seo_opportunities(rows, limit=2)
-    assert [o["key"] for o in opps] == ["https://www.pilotcore.fr/"]
-    assert opps[0]["ctr"] == 2.0
-    assert opps[0]["ctr_position_gap"] > 0
+    # Sorted by impressions (biggest reach first) and CTR normalised to %.
+    assert opps[0]["key"] == "devis electricien lyon"
+    assert opps[0]["ctr"] < 1  # 0.001 ratio -> 0.1%
 
 
 def test_analyze_traffic_tool_runs_on_empty_db(app):

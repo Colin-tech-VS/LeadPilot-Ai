@@ -1,7 +1,7 @@
 {
   "name": "PilotCore",
   "description": "Plateforme PilotCore — suivi des inscriptions, leads et conversions.",
-  "website": "https://www.pilotcore.fr",
+  "website": "https://pilotcore.fr",
   "repository": "https://github.com/Colin-tech-VS/LeadPilot-Ai",
   "stack": "scalingo-22",
   "port": 5000,
@@ -22,7 +22,6 @@
   "routes": {
     "/": "https://www.pilotcore.fr/",
     "/api/health": "https://www.pilotcore.fr/api/health",
-    "/admin": "https://www.pilotcore.fr/admin",
-    "/paiement": "https://www.pilotcore.fr/paiement"
+    "/admin": "https://www.pilotcore.fr/admin"
   }
 }

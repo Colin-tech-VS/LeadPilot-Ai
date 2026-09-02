@@ -1,23 +1,23 @@
 {
   "jobs": [
     {
-      "command": "0 6 1 * * PYTHONPATH=. python scripts/bill_overage.py",
+      "command": "0 6 1 * * python scripts/bill_overage.py",
       "size": "S"
     },
     {
-      "command": "15 6 * * * PYTHONPATH=. python scripts/generate_daily_blog.py",
+      "command": "15 6 * * * python scripts/generate_daily_blog.py",
       "size": "S"
     },
     {
-      "command": "*/15 * * * * PYTHONPATH=. python scripts/publish_queued_social.py",
+      "command": "*/15 * * * * python scripts/publish_queued_social.py",
       "size": "S"
     },
     {
-      "command": "0 7 * * * PYTHONPATH=. python scripts/tick_founding_program.py",
+      "command": "0 7 * * * python scripts/tick_founding_program.py",
       "size": "S"
     },
     {
-      "command": "*/10 * * * * PYTHONPATH=. python scripts/tick_mailing.py",
+      "command": "*/10 * * * * python scripts/tick_mailing.py",
       "size": "S"
     }
   ]

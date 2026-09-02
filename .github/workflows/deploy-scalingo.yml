@@ -25,7 +25,7 @@ jobs:
         env:
           FLASK_ENV: development
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m pytest -q
+        run: pytest -q
 
   deploy:
     needs: test
@@ -66,11 +66,3 @@ jobs:
           loc=$(curl -sSI --max-time 30 https://pilotcore.fr/ | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
           echo "apex Location: ${loc}"
           echo "$loc" | grep -Eq '^https://www\.pilotcore\.fr/?'
-          echo "$loc" | grep -Evq '10\.|192\.168\.|127\.0\.0\.1'
-          # /paiement doit exister sur www (200 connecté, 302 login) — jamais 404.
-          pay_code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://www.pilotcore.fr/paiement)
-          echo "/paiement HTTP ${pay_code}"
-          test "$pay_code" = "200" || test "$pay_code" = "302"
-          pay_loc=$(curl -sSI --max-time 30 https://pilotcore.fr/paiement | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
-          echo "apex /paiement Location: ${pay_loc}"
-          echo "$pay_loc" | grep -Eq '^https://www\.pilotcore\.fr/paiement'

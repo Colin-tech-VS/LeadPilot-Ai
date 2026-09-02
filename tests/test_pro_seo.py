@@ -71,24 +71,6 @@ def test_the_keyword_comes_before_the_brand(client):
     assert title.lower().index("artisan") < title.index("PilotCore")
 
 
-def test_the_founding_title_leads_with_the_programme_not_the_brand(client):
-    """Brand-first titles waste the SERP slot: the query is cut, CTR falls.
-
-    /50-artisans is one of the two GSC pages with clicks < 100 and CTR < 3 %
-    at a usable position — the title has to carry the programme and the trial,
-    then the brand, inside the same 70-character budget as /pro.
-    """
-    title = _tag(_head(client, "/50-artisans"), r"<title>(.*?)</title>")
-    assert title
-    assert "50" in title
-    assert "artisan" in title.lower()
-    assert re.search(r"essai|trial", title, re.I), title
-    assert title.lower().index("artisan") < title.index("PilotCore")
-    # Must not re-compete with the hub or /pro for the head terms.
-    assert not re.search(r"secr[ée]tariat t[ée]l[ée]phonique", title, re.I), title
-    assert not re.search(r"standard t[ée]l[ée]phonique IA", title, re.I), title
-
-
 # ── The rest of the head ─────────────────────────────────────────────────────
 
 

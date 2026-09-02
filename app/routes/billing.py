@@ -2,7 +2,6 @@ import logging
 
 from flask import Blueprint, current_app, g, redirect, render_template, request, url_for
 
-from app.core.canonical import CANONICAL_ORIGIN
 from app.core.web_auth import web_tenant_required
 from app.core.extensions import db
 from app.models.tenant import Tenant
@@ -14,7 +13,17 @@ logger = logging.getLogger(__name__)
 billing_bp = Blueprint("billing", __name__, url_prefix="/billing")
 paiement_bp = Blueprint("paiement", __name__)
 
-PAIEMENT_CANONICAL_URL = f"{CANONICAL_ORIGIN}/paiement"
+PAIEMENT_CANONICAL_URL = "https://pilotcore.fr/paiement"
+
+
+def _forwarded_proto() -> str:
+    raw = request.headers.get("X-Forwarded-Proto") or request.scheme or ""
+    return raw.split(",")[0].strip().lower()
+
+
+def _forwarded_host() -> str:
+    raw = request.headers.get("X-Forwarded-Host") or request.host or ""
+    return raw.split(",")[0].strip().split(":")[0].lower()
 
 
 def _fmt_eur(cents: int, lang: str) -> str:
@@ -54,7 +63,9 @@ def billing_page():
 
 @paiement_bp.route("/paiement", methods=["GET"], strict_slashes=False)
 def paiement_page():
-    """Alias of /billing on www. Apex/IP hosts are redirected by canonical_host."""
+    """HTTP (and any non-canonical host) → https://pilotcore.fr/paiement."""
+    if _forwarded_proto() != "https" or _forwarded_host() != "pilotcore.fr":
+        return redirect(PAIEMENT_CANONICAL_URL, code=301)
     return billing_page()
 
 

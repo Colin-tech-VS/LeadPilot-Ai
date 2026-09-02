@@ -1,6 +1,10 @@
 name: Deploy to Scalingo
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -11,7 +15,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
@@ -20,17 +24,45 @@ jobs:
       - name: Run tests
         env:
           FLASK_ENV: development
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest -q
 
   deploy:
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Deploy to Scalingo
-        uses: scalingo/github-actions/deploy@v1
-        with:
-          api-token: ${{ secrets.SCALINGO_API_TOKEN }}
-          app-name: leadpilot-ai
-          region: osc-fr1
+        env:
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SCALINGO_API_TOKEN:-}" ]; then
+            echo "SCALINGO_API_TOKEN n'est pas défini dans les secrets GitHub."
+            echo "Le déploiement effectif passe par l'intégration GitHub de l'app Scalingo leadpilot-ai (push sur main)."
+            exit 0
+          fi
+          curl -sSL https://cli-dl.scalingo.com/release/scalingo_latest_linux_amd64.tar.gz -o /tmp/scalingo.tgz
+          tar -xzf /tmp/scalingo.tgz -C /tmp
+          sudo install "$(find /tmp -type f -name scalingo | head -n 1)" /usr/local/bin/scalingo
+          scalingo --version
+          # Scalingo attend le code dans un sous-dossier à la racine de l'archive.
+          git archive --format=tar.gz --prefix=leadpilot-ai/ HEAD -o /tmp/leadpilot-ai.tar.gz
+          scalingo login --api-token "$SCALINGO_API_TOKEN"
+          scalingo --app leadpilot-ai --region osc-fr1 deploy /tmp/leadpilot-ai.tar.gz "${GITHUB_SHA}"
+
+      - name: Verify public endpoints
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 30 https://www.pilotcore.fr/api/health | tee /tmp/health.json
+          python3 -c 'import json,sys; b=json.load(open("/tmp/health.json")); assert b.get("status")=="ok", b'
+          curl -fsS --max-time 30 -o /dev/null https://www.pilotcore.fr/
+          # /admin redirige vers /admin/login (302) — la console est joignable.
+          code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://www.pilotcore.fr/admin)
+          test "$code" = "302" || test "$code" = "200"
+          # L'apex doit rediriger vers le canonique public www, jamais vers une IP privée.
+          loc=$(curl -sSI --max-time 30 https://pilotcore.fr/ | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
+          echo "apex Location: ${loc}"
+          echo "$loc" | grep -Eq '^https://www\.pilotcore\.fr/?'

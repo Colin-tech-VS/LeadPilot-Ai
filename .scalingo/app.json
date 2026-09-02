@@ -20,8 +20,8 @@
     }
   },
   "routes": {
-    "/": "backend:5000",
-    "/api/health": "backend:5000/api/health",
-    "/admin": "backend:5000/admin"
+    "/": "https://www.pilotcore.fr/",
+    "/api/health": "https://www.pilotcore.fr/api/health",
+    "/admin": "https://www.pilotcore.fr/admin"
   }
 }

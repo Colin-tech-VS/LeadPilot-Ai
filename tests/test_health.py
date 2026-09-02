@@ -36,9 +36,17 @@ def test_main_module_is_importable():
 def test_scalingo_app_json_routing():
     manifest = json.loads((ROOT / ".scalingo" / "app.json").read_text(encoding="utf-8"))
     assert manifest["port"] == 5000
-    assert manifest["routes"]["/"] == "backend:5000"
-    assert manifest["routes"]["/api/health"] == "backend:5000/api/health"
-    assert manifest["routes"]["/admin"] == "backend:5000/admin"
+    assert manifest["website"] == "https://pilotcore.fr"
+    # Public HTTPS targets only — never docker-style hosts like backend:5000
+    # (those resolve as RFC1918 / internes and the healthcheck refuses the redirect).
+    for target in manifest["routes"].values():
+        assert target.startswith("https://www.pilotcore.fr")
+        assert "backend" not in target
+        assert "127.0.0.1" not in target
+        assert "localhost" not in target
+    assert manifest["routes"]["/"] == "https://www.pilotcore.fr/"
+    assert manifest["routes"]["/api/health"] == "https://www.pilotcore.fr/api/health"
+    assert manifest["routes"]["/admin"] == "https://www.pilotcore.fr/admin"
     for key in ("SCALINGO_PROJECT", "DATABASE_URL", "SECRET_KEY"):
         assert key in manifest["env"]
         assert "value" in manifest["env"][key]

@@ -18,6 +18,21 @@ def test_nginx_apex_redirects_to_www_not_the_other_way():
     assert "10.100.4." not in nginx
 
 
+def test_apache_never_redirects_www_to_itself_or_apex():
+    """LWS + CNAME www→apex : un force-www sans exclusion de www boucle."""
+    htaccess = (ROOT / ".htaccess").read_text(encoding="utf-8")
+    vhost = (ROOT / "apache" / "pilotcore.conf").read_text(encoding="utf-8")
+    assert r"!^www\.pilotcore\.fr$" in htaccess
+    assert "RewriteRule ^ https://www.pilotcore.fr%{REQUEST_URI} [R=301,L]" in htaccess
+    assert "https://pilotcore.fr" not in htaccess.split("RewriteRule", 1)[-1]
+    assert "ServerName www.pilotcore.fr" in vhost
+    assert "Redirect permanent / https://www.pilotcore.fr/" in vhost
+    assert "ProxyPass / http://127.0.0.1:5000/" in vhost
+    www_vhost = vhost.rsplit("ServerName www.pilotcore.fr", 1)[-1]
+    assert "Redirect" not in www_vhost
+    assert "https://pilotcore.fr/" not in www_vhost
+
+
 def test_www_home_is_not_redirected_to_apex(client):
     """Regression for d66875a: www → apex fights Apache apex → www."""
     response = client.get("/", base_url=CANONICAL_ORIGIN, follow_redirects=False)

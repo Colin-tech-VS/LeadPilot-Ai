@@ -1,0 +1,8 @@
+# Canonique https://www.pilotcore.fr — ne jamais 301 www vers www ou vers l'apex.
+# Un RewriteRule inconditionnel vers www (force-www LWS) recrée TooManyRedirects
+# maintenant que www.pilotcore.fr est un CNAME de l'apex.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} !^www\.pilotcore\.fr$ [NC]
+    RewriteRule ^ https://www.pilotcore.fr%{REQUEST_URI} [R=301,L]
+</IfModule>

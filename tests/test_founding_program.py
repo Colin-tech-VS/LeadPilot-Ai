@@ -33,8 +33,7 @@ def test_founding_landing_sells_the_longer_trial_without_an_empty_counter(client
     public statement that nobody signed up. The counter appears only once there
     are enough members for it to argue in our favour."""
     html = client.get("/50-artisans").data.decode()
-    assert "50 premiers artisans" in html
-    assert "essai 30 jours" in html.lower() or "30 jours" in html
+    assert "Programme des 50 premiers artisans" in html
     assert "Rejoindre les 50 premiers artisans" in html or "est complet" in html
     assert "30 jours" in html
     assert "0 / 50 artisans inscrits" not in html

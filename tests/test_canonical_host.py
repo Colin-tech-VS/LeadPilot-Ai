@@ -28,25 +28,21 @@ def test_nginx_does_not_bounce_hosts():
     assert "map $host $https_origin" in nginx
 
 
-def test_apache_redirects_apex_to_www_without_loop():
-    """Une seule redirection : apex → www. www n'est jamais renvoyé vers www ni l'apex."""
+def test_apache_never_redirects_www_to_itself_or_apex():
+    """LWS + CNAME www→apex : un force-www sans exclusion de www boucle."""
     htaccess = _read(".htaccess")
     for rel in ("apache.conf", "apache/pilotcore.conf"):
         vhost = _read(rel)
         assert "Redirect permanent" not in vhost
-        assert "Redirect permanent / https://www.pilotcore.fr/" not in vhost
-        assert "https://pilotcore.fr%{REQUEST_URI}" not in vhost
-        assert "ServerName pilotcore.fr" in vhost
-        assert "ServerName www.pilotcore.fr" in vhost
-        assert "ServerAlias pilotcore.fr" not in vhost
-        assert "RewriteCond %{HTTP_HOST} !^www\\.pilotcore\\.fr$ [NC]" in vhost
-        assert "RewriteRule ^ https://www.pilotcore.fr%{REQUEST_URI} [R=301,L]" in vhost
+        assert WWW_REDIRECT_TARGET_RE.search(vhost) is None
+        assert "ProxyPass / http://127.0.0.1:5000/" in vhost
+        assert "ServerAlias pilotcore.fr" in vhost
         assert "RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]" not in vhost
         assert "RewriteRule ^/(?:api/health|health/ready|health|api)/?$ - [L,NC]" in vhost
         assert "RewriteCond %{HTTPS} on" in vhost
         assert "RewriteCond %{HTTP:X-Forwarded-Proto} =https" in vhost
-        assert "ProxyPass / http://127.0.0.1:5000/" in vhost
     assert "RewriteEngine Off" in htaccess
+    assert "https://www.pilotcore.fr%{REQUEST_URI}" not in htaccess
     assert WWW_REDIRECT_TARGET_RE.search(htaccess) is None
     assert "%{HTTPS} off" not in htaccess
 

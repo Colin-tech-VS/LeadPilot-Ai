@@ -86,7 +86,13 @@ def should_redirect_to_canonical() -> bool:
     if _is_private_or_loopback(host):
         return False
     proto = forwarded_proto()
-    if host == APEX_HOST or _is_public_ip(host):
+    # Never 301 between the two public hosts. Apache/LWS already 301s
+    # apex → www and, when www is a CNAME of the apex, www → www.
+    # Flask echoing either hop recreates TooManyRedirects. https://pilotcore.fr
+    # must be served (200) when the request reaches this app.
+    if host == APEX_HOST:
+        return False
+    if _is_public_ip(host):
         return True
     if host == CANONICAL_HOST and proto != "https":
         return True
@@ -95,6 +101,6 @@ def should_redirect_to_canonical() -> bool:
 
 def register_canonical_host(app) -> None:
     @app.before_request
-    def _redirect_apex_to_www():
+    def _redirect_non_public_hosts():
         if should_redirect_to_canonical():
             return redirect(canonical_location(), code=301)

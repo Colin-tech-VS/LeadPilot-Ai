@@ -38,14 +38,13 @@ def test_target_files_do_not_use_internal_hosts():
             )
 
 
-def test_nginx_apex_redirects_to_www_not_internal_ip():
+def test_nginx_does_not_bounce_paiement_to_the_other_host():
     nginx = _read("nginx.conf")
     assert PUBLIC_IP in nginx
-    assert "return 301 https://www.pilotcore.fr$request_uri;" in nginx
-    assert "https://pilotcore.fr$request_uri" not in nginx
+    assert "return 301 https://www.pilotcore.fr$request_uri;" not in nginx
+    assert "return 301 https://pilotcore.fr$request_uri;" not in nginx
     assert "https://pilotcore.fr/paiement" not in nginx
-    assert "server_name www.pilotcore.fr;" in nginx
-    assert "server_name pilotcore.fr" in nginx
+    assert "server_name pilotcore.fr www.pilotcore.fr" in nginx
 
 
 def test_paiement_route_is_registered(app):
@@ -69,15 +68,16 @@ def test_http_paiement_trailing_slash_does_not_404(client):
     assert response.status_code in (200, 302)
 
 
-def test_apex_paiement_redirects_to_www(client):
+def test_apex_paiement_is_not_redirected_to_www(client):
     response = client.get(
         "/paiement",
         base_url="https://pilotcore.fr",
         follow_redirects=False,
     )
-    assert response.status_code == 301
-    assert response.headers["Location"] == PAIEMENT_URL
-    assert not PRIVATE_LOCATION_RE.search(response.headers["Location"])
+    assert response.status_code != 301
+    location = response.headers.get("Location", "")
+    assert location != PAIEMENT_URL
+    assert not PRIVATE_LOCATION_RE.search(location)
 
 
 def test_www_paiement_does_not_redirect_to_apex(client):

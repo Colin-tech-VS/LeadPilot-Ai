@@ -1,4 +1,4 @@
-"""Apache/LWS force-www (apex → www). Flask must not 301 www → apex (loop)."""
+"""Neither public host may 301 to the other — that is the TooManyRedirects loop."""
 import re
 from pathlib import Path
 
@@ -9,64 +9,64 @@ PUBLIC_IP = "185.98.131.229"
 PRIVATE_LOCATION_RE = re.compile(r"10\.|192\.168\.|127\.0\.0\.1")
 
 
-def test_nginx_apex_redirects_to_www_not_the_other_way():
+def test_nginx_does_not_bounce_hosts():
     nginx = (ROOT / "nginx.conf").read_text(encoding="utf-8")
-    assert "server_name www.pilotcore.fr;" in nginx
-    assert "return 301 https://www.pilotcore.fr$request_uri;" in nginx
-    assert "https://pilotcore.fr$request_uri" not in nginx
-    assert "https://pilotcore.fr/paiement" not in nginx
+    assert "return 301 https://pilotcore.fr$request_uri;" not in nginx
+    assert "return 301 https://www.pilotcore.fr$request_uri;" not in nginx
+    assert "proxy_pass http://185.98.131.229:5000;" in nginx
     assert "10.100.4." not in nginx
+    assert "server_name pilotcore.fr www.pilotcore.fr" in nginx
 
 
 def test_apache_never_redirects_www_to_itself_or_apex():
     """LWS + CNAME www→apex : un force-www sans exclusion de www boucle."""
     htaccess = (ROOT / ".htaccess").read_text(encoding="utf-8")
     vhost = (ROOT / "apache" / "pilotcore.conf").read_text(encoding="utf-8")
-    assert r"!^www\.pilotcore\.fr$" in htaccess
-    assert "RewriteRule ^ https://www.pilotcore.fr%{REQUEST_URI} [R=301,L]" in htaccess
-    assert "https://pilotcore.fr" not in htaccess.split("RewriteRule", 1)[-1]
-    assert "ServerName www.pilotcore.fr" in vhost
-    assert "Redirect permanent / https://www.pilotcore.fr/" in vhost
+    assert "RewriteEngine Off" in htaccess
+    assert "https://www.pilotcore.fr%{REQUEST_URI}" not in htaccess
+    assert "Redirect permanent" not in vhost
     assert "ProxyPass / http://127.0.0.1:5000/" in vhost
-    www_vhost = vhost.rsplit("ServerName www.pilotcore.fr", 1)[-1]
-    assert "Redirect" not in www_vhost
-    assert "https://pilotcore.fr/" not in www_vhost
+    assert "ServerAlias pilotcore.fr" in vhost
+    assert "https://pilotcore.fr/" not in vhost
 
 
-def test_www_home_is_not_redirected_to_apex(client):
-    """Regression for d66875a: www → apex fights Apache apex → www."""
+def test_www_home_is_served_not_redirected_to_apex(client):
     response = client.get("/", base_url=CANONICAL_ORIGIN, follow_redirects=False)
-    assert response.status_code != 301
+    assert response.status_code == 200
     location = response.headers.get("Location", "")
     assert not location.startswith(APEX_ORIGIN)
     assert not PRIVATE_LOCATION_RE.search(location)
 
 
-def test_apex_home_redirects_to_www(client):
+def test_apex_home_is_served_not_redirected_to_www(client):
+    """https://pilotcore.fr/ must be HTTP 200 when Flask sees the request."""
     response = client.get("/", base_url=APEX_ORIGIN, follow_redirects=False)
-    assert response.status_code == 301
-    assert response.headers["Location"] == f"{CANONICAL_ORIGIN}/"
-    assert not PRIVATE_LOCATION_RE.search(response.headers["Location"])
+    assert response.status_code == 200
+    location = response.headers.get("Location", "")
+    assert not location.startswith(CANONICAL_ORIGIN)
+    assert not PRIVATE_LOCATION_RE.search(location)
 
 
-def test_apex_path_and_query_are_preserved(client):
+def test_apex_path_is_not_rewritten_to_www(client):
     response = client.get(
         "/pro?utm_source=gsc",
         base_url=APEX_ORIGIN,
         follow_redirects=False,
     )
-    assert response.status_code == 301
-    assert response.headers["Location"] == f"{CANONICAL_ORIGIN}/pro?utm_source=gsc"
+    assert response.status_code == 200
+    location = response.headers.get("Location", "")
+    assert not location.startswith(CANONICAL_ORIGIN)
 
 
-def test_apex_forwarded_host_redirects_to_www(client):
+def test_apex_forwarded_host_is_not_redirected_to_www(client):
     response = client.get(
         "/register",
         headers={"X-Forwarded-Host": "pilotcore.fr", "X-Forwarded-Proto": "https"},
         follow_redirects=False,
     )
-    assert response.status_code == 301
-    assert response.headers["Location"] == f"{CANONICAL_ORIGIN}/register"
+    assert response.status_code == 200
+    location = response.headers.get("Location", "")
+    assert not location.startswith(CANONICAL_ORIGIN)
 
 
 def test_www_http_upgrades_to_https_www_not_apex(client):
@@ -78,6 +78,12 @@ def test_www_http_upgrades_to_https_www_not_apex(client):
 
 def test_www_health_stays_200(client):
     response = client.get("/api/health", base_url=CANONICAL_ORIGIN)
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
+
+
+def test_apex_health_stays_200(client):
+    response = client.get("/api/health", base_url=APEX_ORIGIN)
     assert response.status_code == 200
     assert response.get_json() == {"status": "ok"}
 

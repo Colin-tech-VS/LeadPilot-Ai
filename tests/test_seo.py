@@ -1,4 +1,8 @@
 """SEO meta tags, structured data and sitemap."""
+import html as html_lib
+import re
+import uuid
+
 from app.models.tenant import Tenant
 
 
@@ -21,6 +25,17 @@ def test_client_home_seo(client):
     assert 'rel="icon"' in html
     assert "apple-touch-icon.png" in html
     assert "favicon-32.png" in html
+
+
+def test_client_home_description_fits_a_search_result(client):
+    """Highest-traffic page: a truncated snippet wastes the SERP slot."""
+    html = client.get("/").data.decode()
+    raw = re.search(r'<meta name="description" content="(.*?)"', html, re.I | re.S)
+    assert raw, "home has no description"
+    desc = html_lib.unescape(raw.group(1).strip())
+    assert 110 <= len(desc) <= 160, f"{len(desc)} chars — {desc}"
+    assert "plombier" in desc.lower()
+    assert "gratuit" in desc.lower() or "sans engagement" in desc.lower()
 
 
 def test_pro_landing_seo(client):
@@ -415,7 +430,161 @@ _PUBLIC_PAGES = [
     "/pro",
     "/trouver-un-artisan",
     "/prendre-rdv-artisan-en-ligne",
+    "/mentions-legales",
+    "/confidentialite",
+    "/cgu",
+    "/cookies",
+    "/suppression-donnees",
 ]
+
+_LEGAL_PAGES = [
+    "/mentions-legales",
+    "/confidentialite",
+    "/cgu",
+    "/cookies",
+    "/suppression-donnees",
+]
+
+
+def _meta_description(html):
+    raw = re.search(r'<meta name="description" content="(.*?)"', html, re.I | re.S)
+    return html_lib.unescape(raw.group(1).strip()) if raw else None
+
+
+def _canonical(html):
+    raw = re.search(r'<link[^>]+rel="canonical"[^>]+href="([^"]+)"', html, re.I)
+    return raw.group(1) if raw else None
+
+
+def test_legal_pages_have_unique_descriptions(client):
+    """The five legal pages used to copy the H1 into the meta — five identical
+    SERP snippets. Each description must be unique, distinct from the title,
+    and long enough to fill a result."""
+    seen = {}
+    for path in _LEGAL_PAGES:
+        html = client.get(path).data.decode()
+        title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S)
+        assert title, f"{path} has no title"
+        title_text = html_lib.unescape(title.group(1).strip())
+        desc = _meta_description(html)
+        assert desc, f"{path} has no description"
+        assert desc != title_text, f"{path} still copies the title into the description"
+        assert 110 <= len(desc) <= 170, f"{path}: {len(desc)} chars — {desc}"
+        assert desc not in seen, f"{path} reuses the description of {seen[desc]}"
+        seen[desc] = path
+        canon = _canonical(html)
+        assert canon and canon.rstrip("/").endswith(path), f"{path} canonicalises to {canon}"
+
+
+def test_cgu_description_keeps_the_apostrophe(client):
+    """Markup legal_title() used to leak an unescaped apostrophe into
+    content="…", which truncated the CGU snippet at « Conditions générales d »."""
+    html = client.get("/cgu").data.decode()
+    desc = _meta_description(html)
+    assert desc
+    assert "utilisation" in desc.lower()
+    assert "Conditions générales d'" not in html or "utilisation" in desc.lower()
+
+
+def test_unsubscribe_page_has_own_meta(client):
+    html = client.get("/desinscription/nimporte-quoi").data.decode()
+    desc = _meta_description(html)
+    assert desc and "désinscription" in desc.lower()
+    assert _canonical(html)
+    assert 'content="noindex, nofollow"' in html
+    home_desc = _meta_description(client.get("/").data.decode())
+    assert desc != home_desc
+
+
+def test_public_quote_does_not_inherit_home_meta(client, app):
+    from app.core.extensions import db
+    from app.models.quote import DOC_DEVIS, STATUS_SENT, Quote
+
+    with app.app_context():
+        tid = uuid.uuid4()
+        tenant = Tenant(
+            id=tid,
+            name="Plomberie Meta Quote",
+            trade_type="plombier",
+            city="Lyon",
+            public_slug=f"plomberie-meta-{uuid.uuid4().hex[:8]}",
+            is_public=True,
+        )
+        quote = Quote(
+            tenant_id=tid,
+            doc_type=DOC_DEVIS,
+            number="DEV-SEO-001",
+            title="Réparation fuite",
+            status=STATUS_SENT,
+        )
+        quote.ensure_token()
+        db.session.add_all([tenant, quote])
+        db.session.commit()
+        path = f"/quotes/public/{quote.id}/{quote.public_token}"
+
+    html = client.get(path).data.decode()
+    assert "<title>" in html
+    desc = _meta_description(html)
+    assert desc and "DEV-SEO-001" in desc
+    assert "Plomberie Meta Quote" in desc
+    canon = _canonical(html)
+    assert canon and path in canon
+    assert 'content="noindex, nofollow"' in html
+    home_desc = _meta_description(client.get("/").data.decode())
+    assert desc != home_desc
+
+
+def test_public_chat_does_not_inherit_home_meta(client, app):
+    slug = f"chat-seo-{uuid.uuid4().hex[:8]}"
+    with app.app_context():
+        from app.core.extensions import db
+
+        tenant = Tenant(
+            name="Serrurerie Chat SEO",
+            trade_type="serrurier",
+            city="Paris",
+            public_slug=slug,
+            is_public=True,
+        )
+        db.session.add(tenant)
+        db.session.commit()
+
+    html = client.get(f"/artisans/{slug}/chat").data.decode()
+    desc = _meta_description(html)
+    assert desc and "Serrurerie Chat SEO" in desc
+    canon = _canonical(html)
+    assert canon and f"/artisans/{slug}/chat" in canon
+    home_desc = _meta_description(client.get("/").data.decode())
+    assert desc != home_desc
+
+
+def test_directory_card_logos_have_alt(client, app):
+    """Home + /artisans were the two pages flagged for empty logo alts."""
+    slug = f"alt-seo-{uuid.uuid4().hex[:8]}"
+    name = "Plomberie Alt SEO"
+    with app.app_context():
+        from app.core.extensions import db
+
+        tenant = Tenant(
+            name=name,
+            trade_type="plombier",
+            city="Lyon",
+            public_slug=slug,
+            is_public=True,
+            public_blurb="Dépannage plomberie à Lyon.",
+        )
+        db.session.add(tenant)
+        db.session.commit()
+
+    for path in ("/", "/artisans"):
+        html = client.get(path).data.decode()
+        empty = re.findall(r'<img class="dl-card-logo"[^>]*alt=""', html)
+        assert not empty, f"{path} still ships empty card alts"
+        if name in html:
+            assert f'alt="{name}"' in html or f"alt='{name}'" in html
+
+    profile = client.get(f"/artisans/{slug}").data.decode()
+    assert f'alt="{name}"' in profile or f"alt='{name}'" in profile
 
 
 def _ld_blocks(html):

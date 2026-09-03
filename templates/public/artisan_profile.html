@@ -198,7 +198,7 @@
 <header class="ap-hero">
   <div class="ap-hero-inner">
     <div class="ap-seller-logo-wrap">
-      <img class="ap-seller-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+      <img class="ap-seller-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="{{ tenant.name }}" width="80" height="80">
     </div>
     <div class="ap-badges">
       <span class="ap-badge ap-badge--trade">{{ trade_icon }} {{ trade_label }}</span>

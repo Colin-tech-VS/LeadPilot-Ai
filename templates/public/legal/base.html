@@ -2,8 +2,12 @@
 {% from 'macros/seo.html' import seo_meta with context %}
 {% block body_class %}page-legal{% endblock %}
 
+{# Each legal page must set legal_description — copying the H1 into the
+   meta used to make all five SERP snippets identical (title = description). #}
+{% block legal_description %}{{ self.legal_title() }} — PilotCore{% endblock %}
+
 {% block meta %}
-{{ seo_meta(self.legal_title() ~ ' — ' ~ _('app.name'), self.legal_title() ~ ' — PilotCore', request.path, None, 'website', None, 'index, follow', None, lang) }}
+{{ seo_meta(self.legal_title() ~ ' — ' ~ _('app.name'), self.legal_description(), request.path, None, 'website', None, 'index, follow', None, lang) }}
 {% endblock %}
 
 {% block content %}

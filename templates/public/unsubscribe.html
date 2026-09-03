@@ -1,9 +1,15 @@
 {% extends "layouts/public.html" %}
+{% from 'macros/seo.html' import seo_meta with context %}
 
 {% block title %}Désinscription — PilotCore{% endblock %}
 
 {% block meta %}
-<meta name="robots" content="noindex, nofollow">
+{{ seo_meta(
+  'Désinscription — PilotCore',
+  'Confirmez votre désinscription des e-mails de prospection PilotCore. La demande est prise en compte immédiatement pour toutes les campagnes.',
+  request.path,
+  None, 'website', None, 'noindex, nofollow', None, lang
+) }}
 {% endblock %}
 
 {% block content %}

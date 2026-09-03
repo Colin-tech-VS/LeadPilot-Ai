@@ -5,7 +5,7 @@
 {% for t in trades if t.key == a.trade_type %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
 <a href="{{ url_for('web.artisan_profile', slug=a.public_slug) }}" class="dl-card dl-card--listed directory-card">
   <div class="dl-card-media">
-    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="{{ a.name }}" width="80" height="80">
     <span class="dl-card-flag dl-card-flag--listed">{{ _('directory.badge_listed') }}</span>
   </div>
   <div class="dl-card-header">
@@ -46,7 +46,7 @@
 {% for t in trades if t.key == l.trade_key %}{% set ns.label = t.label %}{% set ns.icon = t.icon %}{% endfor %}
 <a href="{{ url_for('web.listing_page', siren=l.siren) }}" class="dl-card dl-card--registry directory-card">
   <div class="dl-card-media dl-card-media--registry">
-    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="80" height="80">
+    <img class="dl-card-logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="{{ l.name | display_name }}" width="80" height="80">
     <span class="dl-card-flag dl-card-flag--registry">{{ _('directory.badge_registry') }}</span>
   </div>
   <div class="dl-card-header">

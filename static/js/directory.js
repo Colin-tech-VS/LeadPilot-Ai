@@ -61,7 +61,7 @@
     return (
       '<a href="/artisans/' + encodeURIComponent(a.slug) + '" class="dl-card dl-card--listed directory-card">' +
         '<div class="dl-card-media">' +
-          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="" width="80" height="80">' +
+          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="' + escapeHtml(a.name || "") + '" width="80" height="80">' +
           '<span class="dl-card-flag dl-card-flag--listed">' + flag + "</span>" +
         "</div>" +
         '<div class="dl-card-header">' +
@@ -108,7 +108,7 @@
     return (
       '<a href="' + escapeHtml(href) + '" class="dl-card dl-card--registry directory-card">' +
         '<div class="dl-card-media dl-card-media--registry">' +
-          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="" width="80" height="80">' +
+          '<img class="dl-card-logo" src="' + escapeHtml(a.logo_url || logoUrl) + '" alt="' + escapeHtml(a.name || "") + '" width="80" height="80">' +
           '<span class="dl-card-flag dl-card-flag--registry">' + flag + "</span>" +
         "</div>" +
         '<div class="dl-card-header">' +

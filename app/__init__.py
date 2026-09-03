@@ -43,6 +43,9 @@ def create_app(config_object=None):
 
     configure_logging(app)
     db.init_app(app)
+    from app.core.canonical import register_canonical_host
+
+    register_canonical_host(app)
     register_error_handlers(app)
     register_i18n(app)
     register_blueprints(app)

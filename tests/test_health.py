@@ -37,8 +37,7 @@ def test_scalingo_app_json_routing():
     manifest = json.loads((ROOT / ".scalingo" / "app.json").read_text(encoding="utf-8"))
     assert manifest["port"] == 5000
     assert manifest["website"] == "https://pilotcore.fr"
-    # Public HTTPS targets on the apex — never www (that fights Flask's
-    # 301 www → apex) and never docker-style hosts like backend:5000.
+    # Public HTTPS targets. Never docker-style hosts like backend:5000.
     for target in manifest["routes"].values():
         assert target.startswith("https://pilotcore.fr")
         assert "www.pilotcore.fr" not in target

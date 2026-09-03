@@ -1,24 +1,9 @@
-# PilotCore — edge Apache / LWS (document root).
-# Canonique public : https://pilotcore.fr
-#
-# www est un CNAME de l'apex : un Redirect inconditionnel vers l'hôte www
-# 301 vers soi-même (TooManyRedirects, iso-8859-1).
-# Le seul 301 d'hôte est www → apex. L'apex n'est jamais réécrit.
-# Ne pas tester HTTPS=off derrière le terminateur TLS LWS
-# Apache voit du HTTP et rebouclerait sur le même hôte.
+# Ne jamais réécrire l'hôte. Un force-www LWS (cible www) alors que www
+# est un CNAME de l'apex 301 vers soi-même (TooManyRedirects, iso-8859-1)
+# — y compris /api/health et /admin.
+# HTTP→HTTPS et le proxy Flask sont le rôle du vhost (apache.conf).
+# Pas de Redirect ni RewriteRule d'hôte ici.
 
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Sondes : Flask les sert sur l'hôte reçu (200), sans 301.
-    RewriteRule ^(?:api/health|health(?:/ready)?|api)/?$ - [L,NC]
-
-    # www → apex (301). Chemin et query string conservés.
-    RewriteCond %{HTTP_HOST} ^www\.pilotcore\.fr$ [NC]
-    RewriteRule ^ https://pilotcore.fr%{REQUEST_URI} [R=301,L]
-
-    # Apex : arrêter le rewrite (un force-www plus bas dans le même
-    # contexte ne doit pas renvoyer vers l'hôte www).
-    RewriteCond %{HTTP_HOST} ^pilotcore\.fr$ [NC]
-    RewriteRule ^ - [L]
+    RewriteEngine Off
 </IfModule>

@@ -56,9 +56,8 @@ jobs:
       - name: Verify public endpoints
         run: |
           set -euo pipefail
-          # Canonique : https://pilotcore.fr (301 www → apex). L'edge LWS peut
-          # encore 301 avant Flask. On refuse une Location RFC1918. On n'exige
-          # PAS apex → www (ça combat le 301 applicatif et recree la boucle).
+          # Aucun 301 www ↔ apex dans l'app. L'edge LWS peut encore 301 avant
+          # Flask ; on refuse une Location RFC1918 et un 301 vers soi-même.
           health_code=$(curl -sS --max-time 30 -o /tmp/health.body -w "%{http_code}" https://pilotcore.fr/api/health)
           echo "apex health HTTP ${health_code}"
           if [ "$health_code" = "200" ]; then

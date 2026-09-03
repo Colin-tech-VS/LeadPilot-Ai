@@ -37,16 +37,18 @@ def test_scalingo_app_json_routing():
     manifest = json.loads((ROOT / ".scalingo" / "app.json").read_text(encoding="utf-8"))
     assert manifest["port"] == 5000
     assert manifest["website"] == "https://pilotcore.fr"
-    # Public HTTPS targets only — never docker-style hosts like backend:5000
-    # (those resolve as RFC1918 / internes and the healthcheck refuses the redirect).
+    # Public HTTPS targets on the apex — never www (that fights Flask's
+    # 301 www → apex) and never docker-style hosts like backend:5000.
     for target in manifest["routes"].values():
-        assert target.startswith("https://www.pilotcore.fr")
+        assert target.startswith("https://pilotcore.fr")
+        assert "www.pilotcore.fr" not in target
         assert "backend" not in target
         assert "127.0.0.1" not in target
         assert "localhost" not in target
-    assert manifest["routes"]["/"] == "https://www.pilotcore.fr/"
-    assert manifest["routes"]["/api/health"] == "https://www.pilotcore.fr/api/health"
-    assert manifest["routes"]["/admin"] == "https://www.pilotcore.fr/admin"
+    assert manifest["routes"]["/"] == "https://pilotcore.fr/"
+    assert manifest["routes"]["/api/health"] == "https://pilotcore.fr/api/health"
+    assert manifest["routes"]["/admin"] == "https://pilotcore.fr/admin"
+    assert manifest["routes"]["/paiement"] == "https://pilotcore.fr/paiement"
     for key in ("SCALINGO_PROJECT", "DATABASE_URL", "SECRET_KEY"):
         assert key in manifest["env"]
         assert "value" in manifest["env"][key]

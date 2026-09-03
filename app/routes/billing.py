@@ -2,7 +2,7 @@ import logging
 
 from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
-from app.core.canonical import CANONICAL_HOST, CANONICAL_ORIGIN, forwarded_proto, visible_host
+from app.core.canonical import CANONICAL_ORIGIN
 from app.core.web_auth import web_tenant_required
 from app.core.extensions import db
 from app.models.tenant import Tenant
@@ -15,19 +15,6 @@ billing_bp = Blueprint("billing", __name__, url_prefix="/billing")
 paiement_bp = Blueprint("paiement", __name__)
 
 PAIEMENT_CANONICAL_URL = f"{CANONICAL_ORIGIN}/paiement"
-
-
-def _is_already_canonical_paiement() -> bool:
-    """True when this request is already https://pilotcore.fr/paiement."""
-    raw_url = (request.url or "").split("?", 1)[0].rstrip("/")
-    if raw_url == PAIEMENT_CANONICAL_URL:
-        return True
-    path = (request.path or "").rstrip("/")
-    return (
-        forwarded_proto() == "https"
-        and visible_host() == CANONICAL_HOST
-        and path == "/paiement"
-    )
 
 
 def _request_checkout_value(name: str):
@@ -85,11 +72,11 @@ def billing_page():
 
 @paiement_bp.route("/paiement", methods=["GET"], strict_slashes=False)
 def paiement_page():
-    """HTTP (and any non-canonical host) → https://pilotcore.fr/paiement."""
-    # Already on the canonical URL: never 301 to self (redirect loop).
-    if _is_already_canonical_paiement():
-        return billing_page()
-    return redirect(PAIEMENT_CANONICAL_URL, code=301)
+    """Serve /paiement. Host/IP hops are handled in ``register_canonical_host``.
+
+    A 301 www ↔ apex here loops with LWS force-www (www is a CNAME of the apex).
+    """
+    return billing_page()
 
 
 @billing_bp.route("/checkout/<plan>", methods=["POST"])

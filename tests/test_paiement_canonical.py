@@ -29,7 +29,7 @@ def test_env_example_declares_public_ip():
 
 
 def test_target_files_do_not_use_internal_hosts():
-    for rel in (".env", "config.py", "nginx.conf"):
+    for rel in (".env", "config.py", "nginx.conf", "apache.conf"):
         for lineno, line in enumerate(_read(rel).splitlines(), start=1):
             assert not FORBIDDEN_HOST_RE.search(line), (
                 f"{rel}:{lineno} still mentions a forbidden host: {line!r}"
@@ -41,6 +41,14 @@ def test_nginx_http_paiement_redirects_to_canonical_https():
     assert PUBLIC_IP in nginx
     assert "location = /paiement" in nginx
     assert "return 301 https://pilotcore.fr/paiement;" in nginx
+    assert "https://www.pilotcore.fr$request_uri" not in nginx
+
+
+def test_apache_http_paiement_redirects_to_canonical_https():
+    apache = _read("apache.conf")
+    assert PUBLIC_IP in apache
+    assert "RedirectMatch 301 ^/paiement/?$ https://pilotcore.fr/paiement" in apache
+    assert "https://www.pilotcore.fr/" not in apache
 
 
 def test_http_paiement_redirects_to_canonical_https(client):
@@ -82,6 +90,21 @@ def test_canonical_paiement_url_does_not_redirect_to_itself(client):
     response = client.get(
         "/paiement",
         base_url="https://pilotcore.fr",
+        follow_redirects=False,
+    )
+    assert response.status_code != 301
+    assert response.headers.get("Location") != PAIEMENT_URL
+
+
+def test_paiement_apex_ignores_stale_www_forwarded_host(client):
+    """Stale X-Forwarded-Host: www on the apex URL must not 301 /paiement to itself."""
+    response = client.get(
+        "/paiement",
+        base_url="https://pilotcore.fr",
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "www.pilotcore.fr",
+        },
         follow_redirects=False,
     )
     assert response.status_code != 301

@@ -2,6 +2,7 @@ import logging
 
 from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
+from app.core.canonical import CANONICAL_HOST, CANONICAL_ORIGIN, forwarded_proto, visible_host
 from app.core.web_auth import web_tenant_required
 from app.core.extensions import db
 from app.models.tenant import Tenant
@@ -13,17 +14,7 @@ logger = logging.getLogger(__name__)
 billing_bp = Blueprint("billing", __name__, url_prefix="/billing")
 paiement_bp = Blueprint("paiement", __name__)
 
-PAIEMENT_CANONICAL_URL = "https://pilotcore.fr/paiement"
-
-
-def _forwarded_proto() -> str:
-    raw = request.headers.get("X-Forwarded-Proto") or request.scheme or ""
-    return raw.split(",")[0].strip().lower()
-
-
-def _forwarded_host() -> str:
-    raw = request.headers.get("X-Forwarded-Host") or request.host or ""
-    return raw.split(",")[0].strip().split(":")[0].lower()
+PAIEMENT_CANONICAL_URL = f"{CANONICAL_ORIGIN}/paiement"
 
 
 def _is_already_canonical_paiement() -> bool:
@@ -33,8 +24,8 @@ def _is_already_canonical_paiement() -> bool:
         return True
     path = (request.path or "").rstrip("/")
     return (
-        _forwarded_proto() == "https"
-        and _forwarded_host() == "pilotcore.fr"
+        forwarded_proto() == "https"
+        and visible_host() == CANONICAL_HOST
         and path == "/paiement"
     )
 

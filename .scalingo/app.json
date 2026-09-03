@@ -20,8 +20,9 @@
     }
   },
   "routes": {
-    "/": "https://www.pilotcore.fr/",
-    "/api/health": "https://www.pilotcore.fr/api/health",
-    "/admin": "https://www.pilotcore.fr/admin"
+    "/": "https://pilotcore.fr/",
+    "/api/health": "https://pilotcore.fr/api/health",
+    "/admin": "https://pilotcore.fr/admin",
+    "/paiement": "https://pilotcore.fr/paiement"
   }
 }

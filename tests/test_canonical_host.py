@@ -44,6 +44,26 @@ def test_apache_vhost_file_matches_www_to_apex():
     assert "Redirect permanent / https://www.pilotcore.fr/" not in vhost
 
 
+def test_apache_default_tls_vhost_is_apex():
+    """Apache uses the first *:443 vhost as default. It must serve the apex."""
+    apache = _read("apache.conf")
+    first = re.search(r"<VirtualHost\s+\*:443>(.*?)</VirtualHost>", apache, re.S)
+    assert first, "missing TLS vhost"
+    name = re.search(r"ServerName\s+(\S+)", first.group(1))
+    assert name is not None
+    assert name.group(1) == "pilotcore.fr"
+
+
+def test_scalingo_internal_routes_target_apex():
+    """Les sondes .scalingo/app.json ne doivent pas viser www (boucle avec le 301)."""
+    import json
+
+    manifest = json.loads(_read(".scalingo/app.json"))
+    for target in manifest["routes"].values():
+        assert target.startswith("https://pilotcore.fr")
+        assert "www.pilotcore.fr" not in target
+
+
 def test_htaccess_www_redirects_to_apex_not_www():
     htaccess = _read(".htaccess")
     assert "RewriteEngine On" in htaccess

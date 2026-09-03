@@ -1,35 +1,35 @@
-"""Permanent redirect from www.pilotcore.fr to the apex host.
+"""Align Flask with the Apache/LWS edge: serve https://www.pilotcore.fr.
 
-Search Console still tracks the www property; the public site origin is
-https://pilotcore.fr. Only the www host is rewritten — never an IP (public or
-RFC1918), so Scalingo probes that arrive on an internal address keep a 200
-instead of a Location the healthcheck would refuse.
+Live DNS splits the two public hosts:
+
+* ``www.pilotcore.fr`` reaches Flask (Scalingo).
+* ``pilotcore.fr`` is answered by Apache/LWS, which already 301s to www
+  (force-www). Search Console tracks the www property.
+
+Commit ``d66875a`` made Flask 301 www → apex. That is the opposite hop of
+Apache's apex → www, so browsers hit TooManyRedirects. Flask and nginx must
+never send www back to the apex.
+
+Only the apex hostname and the public IPv4 are rewritten — never an RFC1918
+or loopback address, so Scalingo probes that arrive on an internal host keep
+a 200 instead of a Location the healthcheck would refuse.
 
 Health endpoints stay on the incoming host. POST/PUT/PATCH/DELETE are left
 alone so Twilio and Stripe webhooks pinned to PUBLIC_BASE_URL keep working.
-
-A stale ``X-Forwarded-Host: www`` on an apex request must not win: that 301s
-to https://pilotcore.fr while the browser is already there (TooManyRedirects).
-The LWS Apache edge historically forced www; Flask must not bounce back.
 """
 from __future__ import annotations
 
+import ipaddress
+
 from flask import redirect, request
 
-WWW_HOST = "www.pilotcore.fr"
-CANONICAL_HOST = "pilotcore.fr"
+CANONICAL_HOST = "www.pilotcore.fr"
 CANONICAL_ORIGIN = f"https://{CANONICAL_HOST}"
+APEX_HOST = "pilotcore.fr"
 
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "testserver"}
 _HEALTH_PATHS = {"/health", "/health/ready", "/api/health", "/api"}
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-
-
-def _parse_host(raw: str | None) -> str:
-    host = (raw or "").split(",")[0].strip().split(":")[0].lower()
-    if host.startswith("[") and host.endswith("]"):
-        host = host[1:-1]
-    return host
 
 
 def forwarded_proto() -> str:
@@ -38,23 +38,30 @@ def forwarded_proto() -> str:
 
 
 def forwarded_host() -> str:
-    return _parse_host(request.headers.get("X-Forwarded-Host") or request.host or "")
+    raw = request.headers.get("X-Forwarded-Host") or request.host or ""
+    host = raw.split(",")[0].strip().split(":")[0].lower()
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    return host
 
 
-def visible_host() -> str:
-    """Host the client actually addressed.
+def _ip_or_none(host: str):
+    try:
+        return ipaddress.ip_address(host)
+    except ValueError:
+        return None
 
-    Prefer the direct Host when it is already the apex. A reverse proxy that
-    still injects ``X-Forwarded-Host: www.pilotcore.fr`` on https://pilotcore.fr
-    must not trigger a 301 to the same URL.
-    """
-    direct = _parse_host(request.host)
-    forwarded = _parse_host(request.headers.get("X-Forwarded-Host"))
-    if direct == CANONICAL_HOST:
-        return direct
-    if forwarded:
-        return forwarded
-    return direct
+
+def _is_private_or_loopback(host: str) -> bool:
+    ip = _ip_or_none(host)
+    if ip is None:
+        return False
+    return bool(ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+
+
+def _is_public_ip(host: str) -> bool:
+    ip = _ip_or_none(host)
+    return ip is not None and not _is_private_or_loopback(host)
 
 
 def canonical_location() -> str:
@@ -68,25 +75,26 @@ def canonical_location() -> str:
     return url
 
 
-def should_redirect_www_to_apex() -> bool:
+def should_redirect_to_canonical() -> bool:
     if request.method not in _SAFE_METHODS:
         return False
     if request.path in _HEALTH_PATHS:
         return False
-    host = visible_host()
+    host = forwarded_host()
     if not host or host in _LOCAL_HOSTS:
         return False
-    if host == CANONICAL_HOST:
+    if _is_private_or_loopback(host):
         return False
-    if host != WWW_HOST:
-        return False
-    target = canonical_location()
-    incoming = (request.url or "").split("#", 1)[0]
-    return incoming.rstrip("/") != target.rstrip("/")
+    proto = forwarded_proto()
+    if host == APEX_HOST or _is_public_ip(host):
+        return True
+    if host == CANONICAL_HOST and proto != "https":
+        return True
+    return False
 
 
 def register_canonical_host(app) -> None:
     @app.before_request
-    def _redirect_www_to_apex():
-        if should_redirect_www_to_apex():
+    def _redirect_apex_to_www():
+        if should_redirect_to_canonical():
             return redirect(canonical_location(), code=301)

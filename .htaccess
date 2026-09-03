@@ -1,18 +1,8 @@
-# PilotCore — edge Apache / LWS (document root).
-# Canonique public : https://pilotcore.fr
-#
-# Ne JAMAIS rediriger vers l'hôte www : le panneau LWS
-# « forcer www » + le 301 applicatif www → apex produisent TooManyRedirects.
-# Ne pas tester HTTPS=off derrière le terminateur TLS LWS
-# Apache voit du HTTP et redirige www vers www (boucle sur elle-même).
-
+# Canonique https://www.pilotcore.fr — ne jamais 301 www vers www ou vers l'apex.
+# Un RewriteRule inconditionnel vers www (force-www LWS) recrée TooManyRedirects
+# maintenant que www.pilotcore.fr est un CNAME de l'apex.
 <IfModule mod_rewrite.c>
     RewriteEngine On
-
-    # Sondes : Flask les sert sur l'hôte reçu (200), sans 301.
-    RewriteRule ^(?:api/health|health(?:/ready)?|api)/?$ - [L,NC]
-
-    # www → apex (301). Chemin et query string conservés.
-    RewriteCond %{HTTP_HOST} ^www\.pilotcore\.fr$ [NC]
-    RewriteRule ^ https://pilotcore.fr%{REQUEST_URI} [R=301,L]
+    RewriteCond %{HTTP_HOST} !^www\.pilotcore\.fr$ [NC]
+    RewriteRule ^ https://www.pilotcore.fr%{REQUEST_URI} [R=301,L]
 </IfModule>

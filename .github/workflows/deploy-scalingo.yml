@@ -53,36 +53,9 @@ jobs:
           scalingo login --api-token "$SCALINGO_API_TOKEN"
           scalingo --app leadpilot-ai --region osc-fr1 deploy /tmp/leadpilot-ai.tar.gz "${GITHUB_SHA}"
 
+      # Accepter « un 3xx dont la Location n'est pas RFC1918 » a laissé passer
+      # une prod qui répondait 301 vers elle-même : site injoignable, deploy au
+      # vert. La sonde suit désormais chaque chaîne et refuse le saut vers soi,
+      # le cycle et la chaîne sans fin.
       - name: Verify public endpoints
-        run: |
-          set -euo pipefail
-          # Aucun 301 www ↔ apex dans l'app. L'edge LWS peut encore 301 avant
-          # Flask ; on refuse une Location RFC1918 et un 301 vers soi-même.
-          health_code=$(curl -sS --max-time 30 -o /tmp/health.body -w "%{http_code}" https://pilotcore.fr/api/health)
-          echo "apex health HTTP ${health_code}"
-          if [ "$health_code" = "200" ]; then
-            python3 -c 'import json; b=json.load(open("/tmp/health.body")); assert b.get("status")=="ok", b'
-          else
-            test "$health_code" = "301" || test "$health_code" = "302" || test "$health_code" = "308"
-            loc=$(curl -sSI --max-time 30 https://pilotcore.fr/api/health | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
-            echo "apex health Location: ${loc}"
-            echo "$loc" | grep -Evq '10\.|192\.168\.|127\.0\.0\.1'
-          fi
-          apex_code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://pilotcore.fr/)
-          apex_loc=$(curl -sSI --max-time 30 https://pilotcore.fr/ | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
-          echo "apex HTTP ${apex_code} Location: ${apex_loc}"
-          test "$apex_code" = "200" || test "$apex_code" = "301" || test "$apex_code" = "302" || test "$apex_code" = "308"
-          if [ -n "${apex_loc}" ]; then
-            echo "$apex_loc" | grep -Evq '10\.|192\.168\.|127\.0\.0\.1'
-          fi
-          www_code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://www.pilotcore.fr/)
-          loc=$(curl -sSI --max-time 30 https://www.pilotcore.fr/ | tr -d '\r' | awk 'tolower($1)=="location:"{print $2; exit}')
-          echo "www HTTP ${www_code} Location: ${loc}"
-          test "$www_code" = "200" || test "$www_code" = "301" || test "$www_code" = "302" || test "$www_code" = "308"
-          if [ -n "${loc}" ]; then
-            echo "$loc" | grep -Evq '10\.|192\.168\.|127\.0\.0\.1'
-          fi
-          code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://pilotcore.fr/admin)
-          test "$code" = "302" || test "$code" = "200" || test "$code" = "301"
-          pay_code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://pilotcore.fr/paiement)
-          test "$pay_code" = "302" || test "$pay_code" = "200" || test "$pay_code" = "301"
+        run: python3 scripts/check_public_endpoints.py

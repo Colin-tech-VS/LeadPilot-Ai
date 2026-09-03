@@ -69,6 +69,91 @@ du destinataire l'a refusé). Deux causes, dans l'ordre :
    Sans SPF/DKIM/DMARC, la prospection à froid rebondit quel que soit le
    contenu — c'est un réglage **DNS**, pas applicatif.
 
+## 2 bis. Routage public — la boucle `TooManyRedirects`
+
+> **À lire avant de « corriger » une boucle de redirection.** Six commits
+> successifs ont modifié `apache.conf`, `apache/pilotcore.conf`, `nginx.conf` et
+> `.htaccess` puis ont été rollbackés parce que « le site est toujours DOWN ».
+> Ces quatre fichiers **ne sont déployés nulle part** : le dépôt part sur
+> Scalingo via le buildpack Python (`Procfile` → gunicorn), qui n'exécute ni
+> Apache ni nginx. Les éditer ne change rien à la production.
+
+### Topologie réelle
+
+| Élément | État mesuré |
+|---------|-------------|
+| DNS `pilotcore.fr` et `www.pilotcore.fr` | pointent tous deux sur **LWS** (`2a00:7ee0:8:0:3:3884:0:d6a`) |
+| Edge qui répond | `Apache/2.4.68 (Debian)` de LWS — réponses `charset=iso-8859-1` |
+| App Flask | Scalingo `leadpilot-ai` (région `osc-fr1`) |
+| `pilotcore.fr` côté Scalingo | domaine ajouté, **`Pending DNS`** (le DNS ne pointe pas vers Scalingo) |
+| `www.pilotcore.fr` côté Scalingo | domaine **canonique**, certificat Let's Encrypt créé |
+
+### Les deux boucles, mesurées
+
+1. **LWS renvoie l'hôte vers lui-même.** Sur *tous* les chemins :
+
+   ```
+   GET https://www.pilotcore.fr/  ->  301  Location: https://www.pilotcore.fr/
+   ```
+
+   La cible est identique à la requête : le navigateur boucle jusqu'à
+   `TooManyRedirects`. La requête **n'atteint jamais Scalingo**. C'est la panne
+   principale, et elle se règle **dans le panel LWS uniquement**.
+
+2. **Le domaine canonique Scalingo renvoie vers cet hôte mort.** Le routeur
+   Scalingo 301 tout ce qui n'est pas `www.pilotcore.fr` vers
+   `https://www.pilotcore.fr` — y compris `/api/health` et les `POST` de
+   webhooks, que Flask n'aurait jamais redirigés :
+
+   ```
+   POST https://leadpilot-ai.osc-fr1.scalingo.io/webhook/inbound-call
+     ->  301  Location: https://www.pilotcore.fr/webhook/inbound-call
+   ```
+
+   L'app est donc injoignable même par son URL Scalingo.
+
+### Ce que Flask fait (et ne fait pas)
+
+`app/core/canonical.py` **ne redirige jamais** entre `www` et l'apex : les deux
+hôtes sont servis en 200, seul `http` → `https` (même hôte) et l'IPv4 publique
+sont réécrits. Les sondes (`/health`, `/health/ready`, `/api/health`, `/api`) et
+les méthodes mutantes ne sont jamais redirigées. `tests/test_canonical_host.py`
+verrouille ce comportement : **la boucle ne vient pas de l'application**.
+
+### Remise en service
+
+Dans cet ordre — les étapes 1 et 2 demandent les accès LWS, hors du dépôt :
+
+1. **Panel LWS** — supprimer la redirection du domaine. Une entrée de type
+   « redirection » vers `https://www.pilotcore.fr` (ou un `force-www` appliqué
+   à un vhost qui sert déjà `www`) redirige l'hôte vers lui-même. Vérifier
+   aussi un `.htaccess` résiduel à la racine du docroot LWS.
+2. **DNS** — faire pointer le site vers Scalingo :
+   - `www.pilotcore.fr` → `CNAME` vers `leadpilot-ai.osc-fr1.scalingo.io.`
+   - `pilotcore.fr` (apex) → la cible apex indiquée par Scalingo (le domaine
+     reste `Pending DNS` tant que ce n'est pas fait).
+3. **Scalingo** — retirer le domaine canonique tant que `www` n'est pas servi
+   par Scalingo, sinon le routeur renvoie l'app vers l'hôte en panne :
+
+   ```bash
+   scalingo --app leadpilot-ai --region osc-fr1 unset-canonical-domain
+   scalingo --app leadpilot-ai --region osc-fr1 domains   # vérifier l'absence de (*)
+   ```
+
+   Une fois le DNS de `www` sur Scalingo, `set-canonical-domain` peut être
+   remis sans risque : les deux hôtes seront alors servis par le même routeur.
+
+### Vérification
+
+```bash
+python3 scripts/check_public_endpoints.py
+```
+
+La sonde suit chaque chaîne de redirection et échoue sur un saut vers soi-même,
+un cycle, une chaîne sans fin ou une `Location` RFC1918. Elle tourne à chaque
+deploy (`deploy-scalingo.yml`). L'ancienne version, qui acceptait tout 3xx dont
+la `Location` n'était pas privée, affichait le vert sur le site en panne.
+
 ## 3. Sécurité
 
 - `TWILIO_AUTO_PROVISION_NUMBERS` : un numéro dédié n’est acheté **qu’après paiement Stripe**, et seulement si `LIVE_PROVIDER_SPEND=1`.

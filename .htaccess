@@ -1,3 +1,11 @@
+# ⚠ FICHIER NON DÉPLOYÉ — aucune pipeline ne l'installe.
+# Le dépôt part sur Scalingo (buildpack Python + gunicorn) : ni Apache ni nginx
+# n'y tournent. L'edge qui répond en production est celui de LWS, configuré
+# dans son panel. Éditer ce fichier ne change donc rien à la prod — six commits
+# l'ont tenté puis ont été rollbackés. La boucle 301 se corrige côté LWS + DNS :
+# voir docs/PRODUCTION.md, section « Routage public ». Conservé comme référence
+# pour un futur hébergement auto-géré.
+
 # Ne jamais réécrire l'hôte. Un force-www LWS (cible www) alors que www
 # est un CNAME de l'apex 301 vers soi-même (TooManyRedirects, iso-8859-1)
 # — y compris /api/health et /admin.

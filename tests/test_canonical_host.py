@@ -37,8 +37,10 @@ def test_apache_never_redirects_www_to_itself_or_apex():
         assert WWW_REDIRECT_TARGET_RE.search(vhost) is None
         assert "ProxyPass / http://127.0.0.1:5000/" in vhost
         assert "ServerAlias pilotcore.fr" in vhost
-        assert "RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]" in vhost
+        assert "RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]" not in vhost
         assert "RewriteRule ^/(?:api/health|health/ready|health|api)/?$ - [L,NC]" in vhost
+        assert "RewriteCond %{HTTPS} on" in vhost
+        assert "RewriteCond %{HTTP:X-Forwarded-Proto} =https" in vhost
     assert "RewriteEngine Off" in htaccess
     assert "https://www.pilotcore.fr%{REQUEST_URI}" not in htaccess
     assert WWW_REDIRECT_TARGET_RE.search(htaccess) is None

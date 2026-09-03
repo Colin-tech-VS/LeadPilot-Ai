@@ -1,13 +1,7 @@
 {% extends "layouts/public.html" %}
-{% from 'macros/seo.html' import seo_meta with context %}
 {% set nav_active = 'directory' %}
 
-{% set _ctitle = tenant.name ~ ' — ' ~ _('chatbot.title') %}
-{% set _cdesc = _('chatbot.public_tagline') ~ ' ' ~ tenant.name ~ '.' %}
-{% set _cpath = ('/artisans/' ~ artisan_slug ~ '/chat') if artisan_slug else ('/chat/' ~ tenant_id) %}
-
-{% block title %}{{ _ctitle }}{% endblock %}
-{% block meta %}{{ seo_meta(_ctitle, _cdesc, _cpath, None, 'website', None, 'noindex, follow', None, lang) }}{% endblock %}
+{% block title %}{{ tenant.name }} — {{ _('chatbot.title') }}{% endblock %}
 
 {% block content %}
 <div class="container chat-public-wrap">

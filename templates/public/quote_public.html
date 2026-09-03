@@ -1,13 +1,6 @@
 {% extends "layouts/public.html" %}
-{% from 'macros/seo.html' import seo_meta with context %}
 
-{% set _qtype = _('quotes.invoice') if quote.is_invoice else _('quotes.quote') %}
-{% set _qtitle = quote.number ~ ' — ' ~ tenant.name %}
-{% set _qdesc = _qtype ~ ' ' ~ quote.number ~ ' de ' ~ tenant.name ~ ((': ' ~ quote.title) if quote.title else '') ~ '. Consultez le document et répondez en ligne.' %}
-{% set _qpath = '/quotes/public/' ~ quote.id ~ '/' ~ token %}
-
-{% block title %}{{ _qtitle }}{% endblock %}
-{% block meta %}{{ seo_meta(_qtitle, _qdesc, _qpath, None, 'website', None, 'noindex, nofollow', None, lang) }}{% endblock %}
+{% block title %}{{ quote.number }} — {{ tenant.name }}{% endblock %}
 
 {% block content %}
 <div class="container quote-public-wrap">

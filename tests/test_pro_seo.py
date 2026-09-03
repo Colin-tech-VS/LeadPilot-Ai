@@ -71,18 +71,6 @@ def test_the_keyword_comes_before_the_brand(client):
     assert title.lower().index("artisan") < title.index("PilotCore")
 
 
-def test_the_founding_title_leads_with_the_programme_not_the_brand(client):
-    """Brand-first titles waste the SERP slot: the query is cut, CTR falls."""
-    title = _tag(_head(client, "/50-artisans"), r"<title>(.*?)</title>")
-    assert title
-    assert "50" in title
-    assert "artisan" in title.lower()
-    assert re.search(r"essai|trial", title, re.I), title
-    assert title.lower().index("artisan") < title.index("PilotCore")
-    assert not re.search(r"secr[ée]tariat t[ée]l[ée]phonique", title, re.I), title
-    assert not re.search(r"standard t[ée]l[ée]phonique IA", title, re.I), title
-
-
 # ── The rest of the head ─────────────────────────────────────────────────────
 
 

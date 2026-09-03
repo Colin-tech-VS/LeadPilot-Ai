@@ -56,8 +56,9 @@ jobs:
       - name: Verify public endpoints
         run: |
           set -euo pipefail
-          # L'edge Apache/LWS peut 301 (force-www) avant Flask. On refuse une
-          # Location RFC1918 ; le 301 applicatif www → apex est couvert par pytest.
+          # L'edge Apache/LWS peut encore 301 avant Flask. On refuse une Location
+          # RFC1918 et une boucle www → www. On n'exige PAS apex → www (ça
+          # combat le 301 applicatif www → apex).
           health_code=$(curl -sS --max-time 30 -o /tmp/health.body -w "%{http_code}" https://www.pilotcore.fr/api/health)
           echo "health HTTP ${health_code}"
           if [ "$health_code" = "200" ]; then

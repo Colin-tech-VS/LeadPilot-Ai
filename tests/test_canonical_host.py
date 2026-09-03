@@ -37,6 +37,13 @@ def test_apache_www_redirects_to_apex_not_www():
     assert "RedirectMatch 301 ^/paiement/?$ https://pilotcore.fr/paiement" in apache
 
 
+def test_apache_vhost_file_matches_www_to_apex():
+    vhost = _read("apache/pilotcore.conf")
+    assert "RewriteRule ^ https://pilotcore.fr%{REQUEST_URI} [R=301,L]" in vhost
+    assert WWW_REDIRECT_TARGET_RE.search(vhost) is None
+    assert "Redirect permanent / https://www.pilotcore.fr/" not in vhost
+
+
 def test_htaccess_www_redirects_to_apex_not_www():
     htaccess = _read(".htaccess")
     assert "RewriteEngine On" in htaccess

@@ -56,6 +56,8 @@ jobs:
       - name: Verify public endpoints
         run: |
           set -euo pipefail
+          # Apache/LWS force-www (apex → www). Flask sert www (200) et ne
+          # doit jamais 301 www → apex (boucle TooManyRedirects).
           curl -fsS --max-time 30 https://www.pilotcore.fr/api/health | tee /tmp/health.json
           python3 -c 'import json,sys; b=json.load(open("/tmp/health.json")); assert b.get("status")=="ok", b'
           curl -fsS --max-time 30 -o /dev/null https://www.pilotcore.fr/

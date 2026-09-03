@@ -132,16 +132,29 @@ Dans cet ordre — les étapes 1 et 2 demandent les accès LWS, hors du dépôt 
    - `www.pilotcore.fr` → `CNAME` vers `leadpilot-ai.osc-fr1.scalingo.io.`
    - `pilotcore.fr` (apex) → la cible apex indiquée par Scalingo (le domaine
      reste `Pending DNS` tant que ce n'est pas fait).
-3. **Scalingo** — retirer le domaine canonique tant que `www` n'est pas servi
-   par Scalingo, sinon le routeur renvoie l'app vers l'hôte en panne :
+3. **Scalingo — ✅ fait le 3 septembre 2026.** Le domaine canonique a été
+   retiré : il renvoyait l'app vers l'hôte en panne.
 
    ```bash
    scalingo --app leadpilot-ai --region osc-fr1 unset-canonical-domain
-   scalingo --app leadpilot-ai --region osc-fr1 domains   # vérifier l'absence de (*)
+   scalingo --app leadpilot-ai --region osc-fr1 domains   # plus de (*)
    ```
 
-   Une fois le DNS de `www` sur Scalingo, `set-canonical-domain` peut être
-   remis sans risque : les deux hôtes seront alors servis par le même routeur.
+   Effet mesuré immédiatement après — l'app est de nouveau joignable par son
+   URL Scalingo, sans redirection :
+
+   | Chemin | Avant | Après |
+   |--------|-------|-------|
+   | `GET /api/health` | `301` → `www.pilotcore.fr` | `200 {"status":"ok"}` |
+   | `GET /` | `301` | `200` |
+   | `GET /admin` | `301` | `302` vers `/admin/login` (même hôte) |
+   | `POST /webhook/inbound-call` | `301` | `401` (signature vérifiée) |
+
+   Les webhooks Twilio et Stripe repassent donc par l'app au lieu d'être
+   redirigés en `301` — un `POST` redirigé perd son corps.
+
+   Ne **pas** remettre `set-canonical-domain` tant que le DNS de `www` ne
+   pointe pas sur Scalingo : le routeur renverrait de nouveau vers LWS.
 
 ### Vérification
 

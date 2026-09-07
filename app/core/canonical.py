@@ -109,7 +109,14 @@ def should_redirect_to_canonical() -> bool:
         return False
     # Never 301 www ↔ apex. Either hop fights LWS force-www + CNAME.
     if host in PUBLIC_HOSTS:
-        return forwarded_proto() == "http"
+        if forwarded_proto() != "http":
+            return False
+        # Only redirect if the canonical URL for this host differs from current
+        canonical_url = canonical_location()
+        current_url = f"https://{host}{request.path or '/'}"
+        if request.query_string:
+            current_url += f"?{request.query_string.decode()}"
+        return canonical_url != current_url
     if _is_public_ip(host):
         return True
     return False

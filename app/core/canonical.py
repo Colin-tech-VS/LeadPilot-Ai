@@ -98,20 +98,6 @@ def canonical_location() -> str:
 
 
 def should_redirect_to_canonical() -> bool:
-    if request.method not in _SAFE_METHODS:
-        return False
-    if request.path in _HEALTH_PATHS:
-        return False
-    host = visible_host()
-    if not host or host in _LOCAL_HOSTS:
-        return False
-    if _is_private_or_loopback(host):
-        return False
-    # Never 301 www ↔ apex. Either hop fights LWS force-www + CNAME.
-    if host in PUBLIC_HOSTS:
-        return forwarded_proto() == "http"
-    if _is_public_ip(host):
-        return True
     return False
 
 

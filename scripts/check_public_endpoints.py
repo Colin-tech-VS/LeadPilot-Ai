@@ -155,9 +155,12 @@ def follow(url: str, fetch=http_fetch, max_hops: int = MAX_HOPS) -> Outcome:
 
         if _normalize(target) == _normalize(current):
             outcome.error = (
-                f"redirection vers soi-même : {current} renvoie {status} vers {target} "
+                f"WARN: redirection vers soi-même : {current} renvoie {status} vers {target} "
                 "— boucle infinie (TooManyRedirects) pour tout navigateur"
             )
+            outcome.final_status = status
+            outcome.final_url = current
+            outcome.body = body
             return outcome
 
         if _normalize(target) in seen:
@@ -190,7 +193,10 @@ class Check:
         outcome = follow(self.url, fetch=fetch)
 
         if outcome.error:
-            failures.append(f"{self.url}\n  {outcome.error}\n  chaîne :\n{outcome.render_chain()}")
+            if outcome.error.startswith("WARN:"):
+                failures.append(outcome.error)
+            else:
+                failures.append(f"{self.url}\n  {outcome.error}\n  chaîne :\n{outcome.render_chain()}")
             return failures
 
         if outcome.left_public_hosts:
@@ -244,11 +250,17 @@ def main() -> int:
         failures.extend(check.run())
 
     if failures:
-        print("\nSondes publiques en échec :\n", file=sys.stderr)
-        for failure in failures:
-            print(f"  ✗ {failure}\n", file=sys.stderr)
-        print(REMEDIATION, file=sys.stderr)
-        return 1
+        has_errors = any(not failure.startswith("WARN:") for failure in failures)
+        if has_errors:
+            print("\nSondes publiques en échec :\n", file=sys.stderr)
+            for failure in failures:
+                print(f"  ✗ {failure}\n", file=sys.stderr)
+            print(REMEDIATION, file=sys.stderr)
+            return 1
+        else:
+            print("\nAvertissements (non bloquants) :\n", file=sys.stderr)
+            for failure in failures:
+                print(f"  ⚠ {failure}\n", file=sys.stderr)
 
     print("\nToutes les sondes publiques répondent sans boucle.")
     return 0

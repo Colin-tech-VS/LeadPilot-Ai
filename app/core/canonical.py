@@ -107,11 +107,11 @@ def should_redirect_to_canonical() -> bool:
         return False
     if _is_private_or_loopback(host):
         return False
-    # Never 301 www ↔ apex. Either hop fights LWS force-www + CNAME.
+    # Never 301 www ↔ apex. Only redirect HTTP → HTTPS on the same host.
     if host in PUBLIC_HOSTS:
         return forwarded_proto() == "http"
     if _is_public_ip(host):
-        return True
+        return forwarded_proto() == "http"
     return False
 
 
